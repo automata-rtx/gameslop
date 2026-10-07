@@ -2,7 +2,7 @@ extends Node
 ## meta.json I/O with atomic writes (13 Interfaces, 14 §3). Never interprets data.
 ## TODO(M2.10): schema v1 round trip, migrations, atomic tmp+rename, corrupt backup.
 
-const META_PATH := "user://meta.json"
+const META_PATH := Tuning.META_FILE
 
 var _warned: Dictionary = {}
 

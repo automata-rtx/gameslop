@@ -109,7 +109,7 @@ func test_fonts_are_bundled_with_licence() -> void:
 func test_fonts_cover_04_characters() -> void:
 	# Non-ASCII characters 04 prints: menu prefix, separators, leader, belt count, empty slot.
 	# System fallback is off in the import so a missing glyph shows, not a borrowed one.
-	# (04 §4's block cursor U+25AE is not in JetBrains Mono; reported, not tested here.)
+	# (The block cursor is U+258C, see Strings.MENU_CURSOR; test_strings checks every character in Strings.)
 	var chars := "▸·…—×░ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]:,%"
 	for p in [UiTokens.FONT_REGULAR_PATH, UiTokens.FONT_BOLD_PATH]:
 		var f := load(p) as FontFile

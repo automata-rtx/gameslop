@@ -52,7 +52,7 @@ Mechanics are in `08_entities.md`. Here is what each one *is*, which is what its
 - **Still** — Something that is only drawn while it is being looked at. Between glances it is somewhere else, closer. A matte-black vertical shape, taller than a doorway, with no features. It does not walk. It is simply where you last did not look.
 - **Flicker** — A lighting fault that learned to want things. It lives inside lit fixtures; a room where the lights flicker is a room where it is. It can jump to a handheld light. It cannot exist in darkness.
 - **Echo** — Your footsteps, arriving late. Nothing to see but a heat-shimmer when it is close. It follows sound. When you stop, it stops, a little after.
-- **Null** — The edge of what was drawn, given legs. Where it walks, the world is not rendered: walls go to lines, floors go to grids, and inside it there is nothing. It is slow. It does not stop. It only exists where the drawing ended, which is the Substrate, and in Cycle 2, wherever it wants.
+- **Null** — The edge of what was drawn, given legs. Where it walks, the world is not rendered: walls go to lines, floors go to grids, and inside it there is nothing. It is slow. It does not stop. It only exists where the drawing ended, which is the Substrate, in Cycle 2 as well.
 
 ## 6. Notes: the whole text of the game
 
@@ -157,7 +157,7 @@ When a note is picked up (`09_items_and_interactables.md`), the game does not pa
 
 ## 9. Tone references for agents writing anything else
 
-- HUD strings are clerical: `COHERENCE 087`, `DEPTH 03 · GARAGE`, `EXIT POWERED`, `DISSOLVED BY STILL`.
+- HUD strings are clerical: `COHERENCE 087`, `DEPTH 03 · GARAGE`, `EXIT: POWERED`, `DISSOLVED BY STILL`.
 - Error codex entries (Archive) are written as builder memos.
 - The death screen never mocks. It reports.
 - Unlock messages are one line, no praise: `ARCHIVE: NOTE P4`, `ITEM UNLOCKED: RADIO`, `LOADOUT UNLOCKED: CARTOGRAPHER`.

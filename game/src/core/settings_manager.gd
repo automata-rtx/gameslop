@@ -4,18 +4,40 @@ extends Node
 ## the InputMap. TODO(M2.11): load/validate/persist user://settings.cfg (12 §8),
 ## presets, tab reset, rebinding with conflict swap (12 §5).
 
+## Two routes, both kept: `changed` is the local signal for nodes that hold a reference
+## to this autoload (HUD, player); EventBus.settings_changed is the cross-scene route for
+## listeners that must not depend on the autoload (renderer, audio). set_value emits both.
 signal changed(key: StringName, value: Variant)
 
-## 06 §2: every rebindable action, in menu order. The ui_* built-ins are not rebindable.
-const REBINDABLE_ACTIONS: Array[StringName] = [
-	&"move_forward", &"move_back", &"move_left", &"move_right",
-	&"sprint", &"crouch", &"interact", &"flashlight", &"crank",
-	&"noclip", &"use_item",
-	&"item_1", &"item_2", &"item_3", &"item_4", &"item_next", &"item_prev",
-	&"status", &"pause",
-]
+## Setting keys and their defaults (12 §3 to §6), from Tuning. Seeded into `_values` so
+## get_value never returns null for a known key before M2.11 loads settings.cfg.
+const DEFAULTS: Dictionary = {
+	&"mouse_sensitivity": Tuning.PLAYER_MOUSE_SENS_DEFAULT,
+	&"fov": Tuning.SETTINGS_FOV_DEFAULT,
+	&"head_bob": Tuning.SETTINGS_HEAD_BOB_DEFAULT,
+	&"screen_shake": Tuning.SETTINGS_SHAKE_DEFAULT,
+	&"invert_y": false,
+	&"sprint_mode": &"hold",   # &"hold" or &"toggle" (12 §5)
+	&"crouch_mode": &"hold",
+	&"hold_to_press": false,   # 12 §6 accessibility
+	&"render_scale": Tuning.SETTINGS_RENDER_SCALE_DEFAULT,
+	&"ui_scale": Tuning.SETTINGS_UI_SCALE_DEFAULT,
+	&"text_size": Tuning.SETTINGS_TEXT_SIZE_DEFAULT,
+	&"brightness": Tuning.SETTINGS_BRIGHTNESS_DEFAULT,
+	&"flicker_intensity": Tuning.SETTINGS_FLICKER_INTENSITY_DEFAULT,
+	&"audio_master": Tuning.SETTINGS_AUDIO_MASTER_DEFAULT,
+	&"audio_effects": Tuning.SETTINGS_AUDIO_EFFECTS_DEFAULT,
+	&"audio_ambience": Tuning.SETTINGS_AUDIO_AMBIENCE_DEFAULT,
+	&"audio_music": Tuning.SETTINGS_AUDIO_MUSIC_DEFAULT,
+	&"audio_ui": Tuning.SETTINGS_AUDIO_UI_DEFAULT,
+	&"mute_unfocused": Tuning.SETTINGS_MUTE_UNFOCUSED_DEFAULT,
+	&"preset": Tuning.SETTINGS_PRESET_DEFAULT,
+}
 
-var _values: Dictionary = {}
+## 06 §2: every rebindable action, in menu order. The ui_* built-ins are not rebindable.
+const REBINDABLE_ACTIONS: Array[StringName] = Tuning.INPUT_ACTIONS
+
+var _values: Dictionary = DEFAULTS.duplicate()
 var _warned: Dictionary = {}
 
 

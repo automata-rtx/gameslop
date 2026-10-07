@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = &"still"
-display_name = "Still"
+display_name = "STILL"
 rule = "Moves only when you are not observing it."
 counter = "Keep it in a lit view and back away; break line of sight and hide; noclip through a wall."
 tell = "The room goes quiet (ambience −6 dB) within 8 m; a matte-black column with no features."

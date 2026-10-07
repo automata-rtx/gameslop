@@ -315,6 +315,13 @@ const ERROR_STATE_WANDER := &"wander"
 const ERROR_STATE_SEARCH := &"search"
 const ERROR_STATE_CHASE := &"chase"
 const ERROR_STATE_SATIATED := &"satiated"
+# Per-error extra states (08 §5, §6). Still, Static and Null have none beyond the common five
+# (Null's calm window is Dormant; it then Chases).
+const ERROR_STATE_FOLLOW := &"follow"                # Echo: its Chase
+const ERROR_STATE_RESIDENT := &"resident"            # Flicker
+const ERROR_STATE_STALK := &"stalk"
+const ERROR_STATE_LUNGE := &"lunge"
+const ERROR_STATE_ATTACHED := &"attached"
 const ERROR_PROXIMITY_HZ := 10.0                    # error_proximity emission rate
 const ERROR_PROXIMITY_INTERVAL := 0.1               # s
 

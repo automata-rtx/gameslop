@@ -23,7 +23,7 @@ const MENU_ARCHIVE := "ARCHIVE"
 const MENU_SETTINGS := "SETTINGS"
 const MENU_QUIT := "QUIT"
 const MENU_SELECTED_PREFIX := "▸ "
-const MENU_CURSOR := "▮"                            # block cursor on typed lines
+const MENU_CURSOR := "▌"                            # block cursor on typed lines (U+258C; 04 said U+25AE, absent from the font)
 const TITLE_LABEL_BEST_DEPTH := "BEST DEPTH"        # DESCEND detail column
 const TITLE_LABEL_RUNS := "RUNS"
 const TITLE_LABEL_WINS := "WINS"
@@ -249,7 +249,7 @@ const LOADOUT_NAMES: Dictionary = {
 const LOADOUT_DESCRIPTIONS: Dictionary = {
 	&"faller": "Polaroid and eight uses of chalk. Coherence 100. No trade-off.",
 	&"cartographer": "Twenty uses of chalk and a radio. Starts with 90 Coherence.",
-	&"lightbearer": "Three glowsticks and a flare. Cranks 1.5 times faster. No Polaroid. Flicker is drawn to your light from 1.5 times the distance.",
+	&"lightbearer": "Three glowsticks and a flare. Cranks 1.5 times faster. No Polaroid. Flicker sees your light from 1.5 times the distance.",
 	&"diver": "Two Polaroids. Starts at depth 3 with 70 Coherence. Skips depths 1 and 2 and their rewards.",
 }
 const LOADOUT_UNLOCK_CONDITIONS: Dictionary = {
@@ -432,5 +432,6 @@ const ENDING_TITLE_CARD := "NOCLIP"
 const CREDITS_AI := "NOCLIP was designed and built by an AI (Claude, Anthropic) using the Godot Engine."
 const CREDITS_GODOT := "Godot Engine. MIT license."
 const CREDITS_FONT := "Typeface bundled under the SIL Open Font License 1.1."
+const CREDITS_FONT_COPYRIGHT := "JetBrains Mono, Copyright 2020 The JetBrains Mono Project Authors, SIL OFL 1.1"
 const CREDITS_THANKS := "Thank you for looking."
-const CREDITS_LINES: Array[String] = [CREDITS_AI, CREDITS_GODOT, CREDITS_FONT, CREDITS_THANKS]
+const CREDITS_LINES: Array[String] = [CREDITS_AI, CREDITS_GODOT, CREDITS_FONT, CREDITS_FONT_COPYRIGHT, CREDITS_THANKS]

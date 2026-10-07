@@ -18,7 +18,9 @@ func start_run(mode: StringName, loadout: StringName, run_seed: int) -> void:
 	run.mode = mode
 	run.loadout = loadout
 	run.run_seed = run_seed
-	run.depth = 1  # TODO(M2.10): Diver starts at depth 3 (05 §7)
+	var kit: LoadoutData = DataRegistry.loadout(loadout)
+	run.depth = kit.start_depth if kit != null else 1  # Diver starts at depth 3 (05 §7)
+	run.max_depth = run.depth
 	run.started_at_ms = Time.get_ticks_msec()
 	_todo("start_run: strata_order (05 §2), loadout coherence and items (05 §7)")
 	_run_active = true
@@ -37,6 +39,7 @@ func descend(proper: bool) -> void:
 	else:
 		run.drops_in_a_row += 1
 	run.depth += 1
+	run.max_depth = maxi(run.max_depth, run.depth)
 	EventBus.level_left.emit(proper)
 
 
@@ -50,7 +53,40 @@ func end_run(cause: StringName) -> void:
 	EventBus.run_ended.emit(cause, compute_score())
 
 
-## 05 §5. TODO(M2.10): the Descent Score formula.
+## Counters the run scene calls down (05 Interfaces, production additions). Run-scoped;
+## the meta Archive counters are written by record_run (M2.10).
+func record_notice(id: StringName) -> void:
+	if run == null:
+		return
+	run.encounters[id] = int(run.encounters.get(id, 0)) + 1
+
+
+func record_evasion(id: StringName) -> void:
+	if run == null:
+		return
+	run.evasions += 1
+	run.evasions_by[id] = int(run.evasions_by.get(id, 0)) + 1
+
+
+## `kind`: what the Coherence bought (&"noclip_wall", &"noclip_floor", ...).
+func record_spend(_kind: StringName, amount: float) -> void:
+	if run == null:
+		return
+	run.coherence_spent += maxf(amount, 0.0)
+
+
+func record_wall_pass() -> void:
+	if run != null:
+		run.walls_passed += 1
+
+
+func record_drop() -> void:
+	if run != null:
+		run.drops_total += 1
+
+
+## 05 §5. TODO(M2.10): the Descent Score formula. The time bonus must read
+## Clock.run_seconds() (hitstop and menu pause excluded), never wall time.
 func compute_score() -> int:
 	_todo("compute_score (M2.10)")
 	return 0

@@ -6,7 +6,7 @@
 script = ExtResource("1_data")
 id = &"lightbearer"
 display_name = "LIGHTBEARER"
-description = "CHEMICAL LIGHT AND A FASTER CRANK. NO POLAROID. FLICKER NOTICES YOUR LIGHT FROM FURTHER."
+description = "Three glowsticks and a flare. Cranks 1.5 times faster. No Polaroid. Flicker sees your light from 1.5 times the distance."
 start_items = Dictionary[StringName, int]({&"glowstick": 3, &"flare": 1})
 start_coherence = 100.0
 start_depth = 1

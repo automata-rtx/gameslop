@@ -16,3 +16,6 @@ func now_ms() -> int:
 
 func advance(dt_s: float) -> void:
 	time_s += dt_s
+
+func now_usec() -> int:
+	return int(round(time_s * 1000000.0))

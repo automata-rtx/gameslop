@@ -8,7 +8,7 @@ extends RefCounted
 ## Both `--flag value` and `--flag=value` are accepted. Bad values warn and are ignored.
 
 ## GLOSSARY: the six strata ids.
-const STRATA: Array[StringName] = [&"halls", &"pools", &"garage", &"offices", &"server", &"substrate"]
+const STRATA: Array[StringName] = Tuning.STRATA_ALL
 const DEFAULT_TOUR_DIR := "build/tour"
 
 var has_seed: bool = false

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = &"static"
-display_name = "Static"
+display_name = "STATIC"
 rule = "A drifting field; inside it you lose Coherence. It leans toward noise."
 counter = "Go around, wait for it to drift, or noclip past it. A burning flare pushes it back."
 tell = "Hum through walls; distortion visible at 15 m."

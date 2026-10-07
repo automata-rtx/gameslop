@@ -116,7 +116,7 @@ Daily Descent always uses Faller.
 ## 8. Modes
 
 - **Descent:** random `run_seed`; loadout chosen; unlocks apply.
-- **Daily Descent:** `run_seed = hash("NOCLIP:" + UTC date as YYYYMMDD)` (the same expression as `13` §4). One attempt per day per save. The result is stored in `daily_history` (`13`). The title screen shows today's seed and the player's result if played. Faller loadout, all unlocked items in the pool regardless of unlock state (so every player faces the same game).
+- **Daily Descent:** `run_seed = hash("NOCLIP:" + UTC date as YYYYMMDD)` (the same expression as `13` §4). One attempt per day per save. The result is stored in `daily` (`13` §2). The title screen shows today's seed and the player's result if played. Faller loadout, all unlocked items in the pool regardless of unlock state (so every player faces the same game).
 - **Endless:** available after a win. Identical to Descent, except the Threshold at depth 6 behaves as a proper exit into Cycle 2 and the run ends only at dissolution or abandonment. The ending plays only in Descent mode.
 
 ## 9. Difficulty and fairness rules (enforced by code, tested by `15`)
@@ -142,3 +142,10 @@ Daily Descent always uses Faller.
 - `GameState.start_run(mode, loadout, seed)`, `GameState.descend(proper: bool)`, `GameState.end_run(cause: StringName)`, `GameState.compute_score() -> int`.
 - Signals on `EventBus` (signatures canonical in `14` §4): `run_started`, `level_entered(depth, stratum, arrival)`, `level_left(proper)`, `run_ended(cause, score)`, `unlock_earned(id)`.
 - `MetaState` (`13`): unlock flags, stats, notes, daily history.
+
+### Interface additions during production
+
+- `RunState` also holds `evasions_by: Dictionary` (error id to count; `evasions` stays the total), `max_depth: int`, `walls_passed: int`, `drops_total: int`, `coherence_spent: float`, `distance_m: float`.
+- `GameState` counters, called down by the run scene: `record_notice(id: StringName)`, `record_evasion(id: StringName)`, `record_spend(kind: StringName, amount: float)`, `record_wall_pass()`, `record_drop()`.
+- `GameState.start_run` starts at the loadout's `start_depth` (`LoadoutData`, via `DataRegistry`). `compute_score` reads the time bonus from `Clock.run_seconds()`.
+- `MetaState.stats.depth_reached_counts` (`13` §2) and `MetaState.depth_reached(depth)` back unlock #7 (reach depth 4 twice).
