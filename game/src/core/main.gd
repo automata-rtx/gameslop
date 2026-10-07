@@ -13,6 +13,9 @@ func _ready() -> void:
 	if args.smoke:
 		_run_smoke()
 		return
+	if args.validate_levels > 0:
+		_run_validate_levels(args.validate_levels)
+		return
 	if args.wants_direct_level():
 		# TODO(M1.12): launch straight into a generated level from the flags (14 §9).
 		push_warning("--seed/--depth/--stratum: direct level launch arrives with M1.12")
@@ -25,6 +28,21 @@ func _run_smoke() -> void:
 	# Process time, not wall time: the smoke test measures that frames keep flowing.
 	await get_tree().create_timer(SMOKE_WAIT_S).timeout
 	get_tree().quit(0)
+
+
+## 14 §9 --validate-levels N: N levels per stratum with a grammar; prints one report line
+## per stratum and quits 1 if any level shipped invalid.
+func _run_validate_levels(n: int) -> void:
+	var ok := true
+	for stratum in CliArgs.STRATA:
+		var report := LevelValidator.run_batch(stratum, n)
+		var failures: Array = report["failures"]
+		report.erase("failures")
+		print("validate-levels %s" % JSON.stringify(report))
+		for line in failures:
+			print("  " + str(line))
+		ok = ok and report["invalid"] == 0
+	get_tree().quit(0 if ok else 1)
 
 
 ## TODO(M1.9): generate and build depth 1 (Halls, the --seed or a fixed seed) and
