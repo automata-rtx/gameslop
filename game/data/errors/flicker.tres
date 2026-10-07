@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = &"flicker"
-display_name = "Flicker"
+display_name = "FLICKER"
 rule = "Lives in lit fixtures; lunges at you if you stand in its light; jumps to your flashlight if you keep it on near it."
 counter = "Darkness. Turn the flashlight off, move through unlit groups. Chemical light (glowstick, flare) is immune."
 tell = "Fixtures stutter at 8 to 20 Hz. Only Flicker makes lights flicker."

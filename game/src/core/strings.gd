@@ -23,7 +23,7 @@ const MENU_ARCHIVE := "ARCHIVE"
 const MENU_SETTINGS := "SETTINGS"
 const MENU_QUIT := "QUIT"
 const MENU_SELECTED_PREFIX := "▸ "
-const MENU_CURSOR := "▮"                            # block cursor on typed lines
+const MENU_CURSOR := "▌"                            # block cursor on typed lines (U+258C; 04 said U+25AE, absent from the font)
 const TITLE_LABEL_BEST_DEPTH := "BEST DEPTH"        # DESCEND detail column
 const TITLE_LABEL_RUNS := "RUNS"
 const TITLE_LABEL_WINS := "WINS"
@@ -249,7 +249,7 @@ const LOADOUT_NAMES: Dictionary = {
 const LOADOUT_DESCRIPTIONS: Dictionary = {
 	&"faller": "Polaroid and eight uses of chalk. Coherence 100. No trade-off.",
 	&"cartographer": "Twenty uses of chalk and a radio. Starts with 90 Coherence.",
-	&"lightbearer": "Three glowsticks and a flare. Cranks 1.5 times faster. No Polaroid. Flicker is drawn to your light from 1.5 times the distance.",
+	&"lightbearer": "Three glowsticks and a flare. Cranks 1.5 times faster. No Polaroid. Flicker sees your light from 1.5 times the distance.",
 	&"diver": "Two Polaroids. Starts at depth 3 with 70 Coherence. Skips depths 1 and 2 and their rewards.",
 }
 const LOADOUT_UNLOCK_CONDITIONS: Dictionary = {

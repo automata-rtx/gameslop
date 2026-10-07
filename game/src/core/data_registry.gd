@@ -12,9 +12,10 @@ const STRATA_DIR := "res://data/strata"
 const ERRORS_DIR := "res://data/errors"
 const LOADOUTS_DIR := "res://data/loadouts"
 
-const STRATUM_ORDER: Array[StringName] = [&"halls", &"pools", &"garage", &"offices", &"server", &"substrate"]
-const ITEM_ORDER: Array[StringName] = [&"polaroid", &"glowstick", &"flare", &"chalk", &"radio", &"fuse", &"keycard"]
-const ERROR_ORDER: Array[StringName] = [&"static", &"still", &"flicker", &"echo", &"null"]
+const STRATUM_ORDER: Array[StringName] = Tuning.STRATA_ALL
+## The six belt kinds plus the keycard.
+const ITEM_ORDER: Array[StringName] = [&"polaroid", &"glowstick", &"flare", &"chalk", &"radio", &"fuse", &"keycard"]   # Tuning.ITEM_KINDS + keycard (test_data_tuning checks)
+const ERROR_ORDER: Array[StringName] = Tuning.ERROR_IDS
 const LOADOUT_ORDER: Array[StringName] = [&"faller", &"cartographer", &"lightbearer", &"diver"]
 
 static var _notes: Array[NoteData] = []

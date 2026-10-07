@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = &"echo"
-display_name = "Echo"
+display_name = "ECHO"
 rule = "Follows the trail of your footsteps, at your speed, 800 ms late."
 counter = "Stop. Crouch-walk. Throw a noise elsewhere."
 tell = "Your own footsteps behind you, late. Shimmer at 4 m."

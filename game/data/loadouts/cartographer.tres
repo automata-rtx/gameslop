@@ -6,7 +6,7 @@
 script = ExtResource("1_data")
 id = &"cartographer"
 display_name = "CARTOGRAPHER"
-description = "MORE CHALK AND A RADIO. STARTS AT 90 COHERENCE."
+description = "Twenty uses of chalk and a radio. Starts with 90 Coherence."
 start_items = Dictionary[StringName, int]({&"chalk": 20, &"radio": 1})
 start_coherence = 90.0
 start_depth = 1

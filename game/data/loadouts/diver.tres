@@ -6,7 +6,7 @@
 script = ExtResource("1_data")
 id = &"diver"
 display_name = "DIVER"
-description = "SKIPS DEPTHS 1 AND 2. STARTS AT DEPTH 3 WITH 70 COHERENCE."
+description = "Two Polaroids. Starts at depth 3 with 70 Coherence. Skips depths 1 and 2 and their rewards."
 start_items = Dictionary[StringName, int]({&"polaroid": 2})
 start_coherence = 70.0
 start_depth = 3

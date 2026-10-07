@@ -6,7 +6,7 @@
 script = ExtResource("1_data")
 id = &"faller"
 display_name = "FALLER"
-description = "STANDARD ISSUE. NO TRADE-OFF."
+description = "Polaroid and eight uses of chalk. Coherence 100. No trade-off."
 start_items = Dictionary[StringName, int]({&"polaroid": 1, &"chalk": 8})
 start_coherence = 100.0
 start_depth = 1

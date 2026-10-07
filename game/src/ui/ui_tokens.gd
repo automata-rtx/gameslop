@@ -25,7 +25,7 @@ const UI_ACCENT_CB := Color("#FFD166")
 const BACKING_ALPHA := 0.6
 const UI_BACKING := Color(UI_BG, BACKING_ALPHA)
 ## 04 §7 pause: the frozen frame is overlaid with 70% black.
-const PAUSE_OVERLAY := Color(UI_BG, 0.7)
+const PAUSE_OVERLAY := Color(UI_BG, Tuning.UI_PAUSE_OVERLAY_ALPHA)
 ## 04 §8 note sheet backings (92% alpha) per note voice.
 const NOTE_ALPHA := 0.92
 const NOTE_BG := Color(Color("#1A1A1A"), NOTE_ALPHA)
