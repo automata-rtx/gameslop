@@ -167,6 +167,7 @@ const ARCHIVE_LOCKED_CELL := "··"                   # undiscovered note or err
 const NOTE_HEADER_FALLER := "NOTE {id} · HANDWRITTEN"
 const NOTE_HEADER_BUILDER := "RENDER NOTE {number}"
 const NOTE_HEADER_STRAY := "FOUND OBJECT"
+const NOTE_HEADER_BUILDER_FINAL := "NOTE {id}"        # U6 (Archive only); 04 §8 names no header for it
 const STAT_RUNS := "RUNS"
 const STAT_WINS := "WINS"
 const STAT_BEST_DEPTH := "BEST DEPTH"

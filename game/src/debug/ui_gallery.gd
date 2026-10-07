@@ -1,9 +1,11 @@
 class_name UiGallery
 extends Control
-## Debug gallery for screenshot review of the readout UI (04 §11). M0.5 placeholder: every
-## glyph with its name, the type scale, colour tokens, one of each themed control, the
-## dotted leader, and the note-sheet voices. HUD states and menus join it as they are
-## built. Debug-only text: the strings here are labels for review, not player text, so
+## Debug gallery for screenshot review of the readout UI (04 §11): every glyph with its
+## name, the type scale, colour tokens, one of each themed control, the dotted leader, the
+## note-sheet voices, and the HUD states (M1.6, HudGalleryStates). Menus join it as they
+## are built. Flags after `--`:
+##   --hud-state NAME   show one HUD state full screen
+##   --hud-shots DIR    save every HUD state as DIR/hud_<state>_<w>x<h>.png, then quit Debug-only text: the strings here are labels for review, not player text, so
 ## they do not live in strings.gd.
 
 const GLYPH_COLUMNS := 6
@@ -38,15 +40,30 @@ const NOTE_VOICES: Array[Array] = [
 	[&"NoteSheet", &"H3", Strings.NOTE_HEADER_FALLER],
 ]
 
+const HUD_PREVIEW_SIZE := Vector2i(1920, 1080)
+const HUD_PREVIEW_SCALE := 0.5
+
 @onready var _content: VBoxContainer = %Content
+
+var _hud_viewport: SubViewport
 
 
 func _ready() -> void:
+	var args := OS.get_cmdline_user_args()
+	var shots := _arg(args, "--hud-shots")
+	var one := _arg(args, "--hud-state")
+	if not shots.is_empty():
+		_hud_shots.call_deferred(shots)
+		return
+	if not one.is_empty():
+		_full_screen_state(StringName(one))
+		return
 	_section("GLYPHS", _glyph_grid())
 	_section("TYPE SCALE", _type_scale())
 	_section("COLOUR", _swatches())
 	_section("CONTROLS", _controls())
 	_section("NOTE SHEETS", _note_sheets())
+	_section("HUD STATES", _hud_states())
 
 
 func _section(title: String, body: Control) -> void:
@@ -242,3 +259,82 @@ func _note_sheets() -> Control:
 		sheet.add_child(v)
 		box.add_child(sheet)
 	return box
+
+
+# --- HUD states (M1.6) -------------------------------------------------------------------
+
+static func _arg(args: PackedStringArray, flag: String) -> String:
+	for i in args.size():
+		if args[i] == flag and i + 1 < args.size():
+			return args[i + 1]
+		if args[i].begins_with(flag + "="):
+			return args[i].substr(flag.length() + 1)
+	return ""
+
+
+func _hud_states() -> Control:
+	var box := VBoxContainer.new()
+	var picker := OptionButton.new()
+	for st in HudGalleryStates.STATES:
+		picker.add_item(String(st).to_upper())
+	box.add_child(picker)
+	var container := SubViewportContainer.new()
+	container.stretch = false
+	container.custom_minimum_size = Vector2(HUD_PREVIEW_SIZE) * HUD_PREVIEW_SCALE
+	_hud_viewport = SubViewport.new()
+	_hud_viewport.size = HUD_PREVIEW_SIZE
+	_hud_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	container.add_child(_hud_viewport)
+	container.scale = Vector2.ONE * HUD_PREVIEW_SCALE
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(HUD_PREVIEW_SIZE) * HUD_PREVIEW_SCALE
+	holder.add_child(container)
+	box.add_child(holder)
+	picker.item_selected.connect(func(i: int) -> void: _show_preview(HudGalleryStates.STATES[i]))
+	_show_preview.call_deferred(HudGalleryStates.STATES[0])
+	return box
+
+
+func _show_preview(state: StringName) -> void:
+	for c in _hud_viewport.get_children():
+		c.free()
+	var root := Control.new()
+	root.theme = theme
+	root.size = Vector2(HUD_PREVIEW_SIZE)
+	_hud_viewport.add_child(root)
+	HudGalleryStates.build(root, state)
+
+
+func _clear_page() -> void:
+	for c in get_children():
+		c.queue_free()
+
+
+func _full_screen_state(state: StringName) -> Control:
+	_clear_page()
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(root)
+	HudGalleryStates.build(root, state)
+	return root
+
+
+func _hud_shots(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	var vp_size := get_viewport().get_visible_rect().size
+	for state in HudGalleryStates.STATES:
+		var root := _full_screen_state(state)
+		for i in 4:
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		var path := "%s/hud_%s_%dx%d.png" % [dir, state, int(vp_size.x), int(vp_size.y)]
+		img.save_png(path)
+		print("ui_gallery: saved ", path)
+		root.free()
+	UiMotion.manual_clock = false
+	get_tree().quit(0)
+
+
+func _exit_tree() -> void:
+	UiMotion.manual_clock = false

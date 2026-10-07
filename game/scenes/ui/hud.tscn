@@ -1,0 +1,200 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/hud.gd" id="1_hud"]
+[ext_resource type="Script" path="res://src/ui/ui_shutter.gd" id="2_shutter"]
+[ext_resource type="Script" path="res://src/ui/hud_coherence.gd" id="3_coherence"]
+[ext_resource type="Script" path="res://src/ui/hud_depth.gd" id="4_depth"]
+[ext_resource type="Script" path="res://src/ui/hud_notifications.gd" id="5_notify"]
+[ext_resource type="Script" path="res://src/ui/hud_prompt.gd" id="6_prompt"]
+[ext_resource type="Script" path="res://src/ui/hud_crank.gd" id="7_crank"]
+[ext_resource type="Script" path="res://src/ui/hud_belt.gd" id="8_belt"]
+[ext_resource type="Script" path="res://src/ui/hud_crosshair.gd" id="9_crosshair"]
+[ext_resource type="PackedScene" path="res://scenes/ui/note_sheet.tscn" id="10_sheet"]
+
+[node name="Hud" type="Control"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="Frame" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Dimmable" type="Control" parent="Frame"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CoherenceShutter" type="Container" parent="Frame/Dimmable"]
+unique_name_in_owner = true
+clip_children = 1
+layout_mode = 1
+offset_left = 32.0
+offset_top = 32.0
+offset_right = 272.0
+offset_bottom = 72.0
+mouse_filter = 2
+script = ExtResource("2_shutter")
+
+[node name="Coherence" type="Control" parent="Frame/Dimmable/CoherenceShutter"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("3_coherence")
+
+[node name="Depth" type="VBoxContainer" parent="Frame/Dimmable"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -32.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = 32.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("4_depth")
+
+[node name="Notifications" type="VBoxContainer" parent="Frame/Dimmable"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = 32.0
+offset_bottom = 32.0
+grow_horizontal = 2
+mouse_filter = 2
+script = ExtResource("5_notify")
+
+[node name="Caption" type="Control" parent="Frame/Dimmable"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_top = 80.0
+offset_bottom = 80.0
+mouse_filter = 2
+script = ExtResource("6_prompt")
+text_type = &"Caption"
+shutter_sound = false
+
+[node name="Prompt" type="Control" parent="Frame/Dimmable"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_top = 120.0
+offset_bottom = 120.0
+mouse_filter = 2
+script = ExtResource("6_prompt")
+
+[node name="CrankShutter" type="Container" parent="Frame/Dimmable"]
+unique_name_in_owner = true
+clip_children = 1
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = -32.0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("2_shutter")
+
+[node name="Crank" type="HBoxContainer" parent="Frame/Dimmable/CrankShutter"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("7_crank")
+
+[node name="BeltShutter" type="Container" parent="Frame/Dimmable"]
+unique_name_in_owner = true
+clip_children = 1
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -32.0
+offset_top = -32.0
+offset_right = -32.0
+offset_bottom = -32.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("2_shutter")
+
+[node name="Belt" type="HBoxContainer" parent="Frame/Dimmable/BeltShutter"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("8_belt")
+
+[node name="NoteSheet" parent="Frame/Dimmable" instance=ExtResource("10_sheet")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -360.0
+offset_top = -72.0
+offset_right = 360.0
+offset_bottom = -72.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="CrosshairLayer" type="Control" parent="Frame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Crosshair" type="Control" parent="Frame/CrosshairLayer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -64.0
+offset_top = -64.0
+offset_right = 64.0
+offset_bottom = 64.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("9_crosshair")

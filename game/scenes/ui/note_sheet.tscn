@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/note_sheet.gd" id="1_sheet"]
+
+[node name="NoteSheet" type="Container"]
+visible = false
+clip_children = 1
+custom_minimum_size = Vector2(720, 0)
+mouse_filter = 2
+script = ExtResource("1_sheet")
+
+[node name="Panel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"NoteSheet"
+
+[node name="Box" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="Label" parent="Panel/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NoteHeader"
+
+[node name="Rule" type="ColorRect" parent="Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.54901963, 0.54901963, 0.54901963, 1)
+
+[node name="Lines" type="VBoxContainer" parent="Panel/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 2
