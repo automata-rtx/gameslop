@@ -1,0 +1,645 @@
+# GD Agentic Skills: The Godot 4 Mastery Ecosystem
+
+<div align="center">
+  <img src="assets/hero_banner.webp" alt="GD Agentic Skills - Godot 4.x Mastery Library" width="100%" />
+
+[![GitHub Stars](https://img.shields.io/github/stars/thedivergentai/gd-agentic-skills?style=for-the-badge&logo=github&color=58A6FF)](https://github.com/thedivergentai/gd-agentic-skills/stargazers)
+[![License](https://img.shields.io/badge/License-LGPL--3.0-blue?style=for-the-badge)](LICENSE)
+[![Godot Version](https://img.shields.io/badge/Godot-4.7%2B-478CBF?style=for-the-badge&logo=godotengine&logoColor=white)](https://godotengine.org/)
+[![Skills](https://img.shields.io/badge/Skills-99-green?style=for-the-badge)](skills_index.json)
+[![Last Commit](https://img.shields.io/github/last-commit/thedivergentai/gd-agentic-skills?style=for-the-badge&color=purple)](https://github.com/thedivergentai/gd-agentic-skills/commits/main)
+[![Installs](https://img.shields.io/endpoint?url=https://skills.sh/api/badge/thedivergentai/gd-agentic-skills&style=for-the-badge&label=INSTALLS&color=FFC107)](https://skills.sh/thedivergentai/gd-agentic-skills)
+
+**"A skill forgotten is a power lost." — The Code Architect**
+
+**Brought to you by [Divergent AI](https://github.com/thedivergentai)**
+
+</div>
+
+---
+
+## 💬 A Message from the Creator (Divergent AI)
+
+> **August 2026 — 500 stars**
+>
+> Hey everyone, Divergent AI here. Thank you — seriously — for the amazing support. Hitting **500 stars** means the world to me, and it puts this library in roughly the **top 0.4% of all public GitHub repositories**. I don't take that lightly.
+>
+> I've worked hard to keep these skills useful, true to **official Godot standards**, and aimed at one thing: helping you bring your vision to reality. A big part of that is making sure our coding agents can actually **see** the work — the menus, the HUD, the assets — not just guess from file paths.
+>
+> That's why I'm proud to introduce **[godot-agent-vision](skills/godot-agent-vision/SKILL.md)**. It lets agents capture your various GUI elements and surfaces, then analyse whether what they see matches the intended output — so sight and design intent finally line up.
+>
+> Please keep starring, sharing, and building. Have fun, and dream big.
+
+<details>
+<summary><b>Earlier message (March 19, 2026)</b></summary>
+
+> Hey everyone, Divergent AI here! I'm super happy that I'm seeing the project getting some love. It's motivated me to come back at it with a really strong update for you all. I've spent many hours working on updating all Domain Skills to be completely packed with top expert-level knowledge as learned directly from the robot's mouth—the Godot documentation.
+>
+> The reason I did this was two-fold:
+>
+> 1. I wanted all resources to be as true to the current documentation as possible and filled with top-level expert information.
+> 2. I think it's important to make AI useful and that includes avoiding slop. A big part of that is ensuring the code we write follows the best practices set out by the Godot documentation and team itself.
+>
+> My hope is that this agentic skillset will allow anyone to make a game if they wish and have it be good and natively, and proactively follow best practices. Not everyone is gifted with the detailed vocabulary specific to Godot they may need to make their dream game come true. I hope GDSkills acts as an assistant and expert in making them quickly come to reality.
+>
+> I have many things I want to add to this project and a lot of testing and things I would like to do to ensure it continues to improve in quality over time.
+>
+> Please enjoy and remember to use AI for good. Most importantly, have fun and dream big!
+
+</details>
+
+---
+
+## 📜 Updates
+
+### v0.1.0 — Creation Station
+
+- **Creation Station**: The parked `godot-asset-gen` skill has been renamed to **`godot-creation-station`** and elevated to a persona-driven creative director. Meet **The Artificer** — your art-direction partner who speaks in concrete game-art terms (palette roles, silhouette readability, tile seam rules).
+- **5 Style Families with trained LoRAs**: Every game gets a deliberate visual identity. Choose from `pixel`, `painted`, `flat`, `cel`, or `ink` — each backed by a LoRA adapter trained on frozen ternary Bonsai (FLUX.2 Klein 4B gemlite). `generate.py --lora pixel` applies the matching style signal.
+- **LoRA Training Pipeline**: CC0/CC-BY datasets curated from OpenGameArt + synthetic augmentation via iterative bootstrap. Trained directly on the ternary Bonsai checkpoint with FP16 side-adapters (frozen quantized backbone). SVD-downranked to minimum viable rank.
+- **New `models/` folder**: Ships LoRA adapters via GitHub release assets (gitignored in tree). `models/README.md` has manifest, checksums, and download instructions.
+- **Brainstorm → Art-Direct → Generate → QA**: The Artificer guides the full pipeline from "what does your game feel like?" through gamekit creation, style-consistent generation, and vision QA.
+
+---
+
+<details>
+<summary><b>📜 Update Archive</b></summary>
+
+<div align="center">
+  <img src="assets/banner_0_0_11.webp" alt="Agent Eyes Update - v0.0.11" width="100%" />
+</div>
+
+#### v0.0.11 — Agent Eyes
+- **500 stars** — thank you. That puts this repo in roughly the **top 0.4%** of all public GitHub repositories.
+- **New — [godot-agent-vision](skills/godot-agent-vision/SKILL.md)**: agents get **eyes** — capture GUI / assets / editor viewports to budgeted WebP, then score what they see against a granular production rubric (typography-weighted, anti-slop, identity).
+- Cross-platform host CLI (Win / macOS / Linux) + TEMP editor bridge under `.gdskills/` — not an in-game Autoload.
+
+<div align="center">
+  <img src="assets/banner_0_0_10.webp" alt="Migration Station Update - v0.0.10" width="100%" />
+</div>
+
+#### v0.0.10 — Migration Station
+- **Migration Station**: New Architecture skill — [godot-version-migration](skills/godot-version-migration/SKILL.md) — full-history engine upgrades from early Godot through **4.7** (legacy eras → official 3→4 → hop-by-hop 4.x).
+- **Per-skill migration notes**: Every Domain Skill ships `references/migration-notes.md`; Domain `SKILL.md` bodies stay on **current** APIs.
+- **Lattice routing**: Analyst, Auditor, Builder, foundations, GDScript, and TileMap point engine-version work at the migration hub; `godot-master` routes upgrades there (not as a changelog dump).
+
+<div align="center">
+  <img src="assets/banner_0_0_9.webp" alt="The Reference Lattice Update - v0.0.9" width="100%" />
+</div>
+
+#### v0.0.9 — The Reference Lattice Update
+- **The Reference Lattice**: Every Domain Skill now ends with a curated Official Documentation lattice (`docs.godotengine.org/en/stable/…`) plus detailed Related Skills (Prerequisites / Complements / Downstream / Master), so agents can research deeper without leaving the skill graph.
+- **Script & reference footers**: Research-link comment blocks on Domain Skill scripts and phase docs (marker `GDSkills research links (agents)`) — non-executing, file-specific, progressive disclosure.
+- **SPECIAL MENTION —** <a href="https://github.com/DedInc"><img src="https://wsrv.nl/?url=github.com/DedInc.png&w=64&h=64&mask=circle&fit=cover&maxage=1w" width="22" height="22" alt="@DedInc" /></a> [**@DedInc**](https://github.com/DedInc): First external Domain Skill — [godot-monte-carlo-balancer](skills/godot-monte-carlo-balancer/SKILL.md) — source-driven Monte Carlo balance lab (Rust + rayon), Resource-first extract, playstyle CI bands, economy careers, and headless Godot calibration. Thank you!
+
+<div align="center">
+  <img src="assets/banner_0_0_8.webp" alt="The Director's Cut Update - v0.0.8" width="100%" />
+</div>
+
+#### v0.0.8 — The Director's Cut Update
+- **Godot 4.7 Director's Cut**: Full library upgrade to Godot 4.7+ — AreaLight3D, HDR output, Asset Store, built-in virtual joystick, and migration digest for 4.6→4.7 projects.
+- **Domain Skills**: Renamed "Micro-Skills" to **Domain Skills** — 92 modular topic skills, each with 4.7 baseline and targeted migration deltas.
+- **Persona Squad**: Anara, Aurelius, and Builder updated for 4.7 scoring, never-lists, and `GODOT_PATH` CLI overrides.
+
+<div align="center">
+  <img src="assets/banner_0_0_7.webp" alt="The Analyze, Audit, Build! Update - v0.0.7" width="100%" />
+</div>
+
+#### v0.0.7 — The Analyze, Audit, Build! Update
+- **Three Persona-Based Skills**: We introduced specialized agent skills for `@godot-analyst` (Anara), `@godot-auditor` (Aurelius), and `@godot-builder` to streamline and unify our persona development and code optimization workflows.
+- **MCP Clean-up & Direct Building**: Defunct `MCP Setup` and `MCP Builder` skills have been removed; we now use Auditor and Builder to construct and compile projects directly via the Godot CLI, maximizing native efficiency.
+- **Full Skills Audit**: Completed a comprehensive and rigorous audit of all microskills to elevate the knowledge depth and execution quality to the highest agentic standard.
+- **Lead Architect Sync**: Synchronized all audited advancements with the central `godot-master` hub, making the orchestrator smarter, faster, and more robust.
+
+<div align="center">
+  <img src="assets/banner_0_0_6.webp" alt="The Expert Augmentation Update - v0.0.6" width="100%" />
+</div>
+
+#### v0.0.6 — The Expert Augmentation & Master Orchestration Update
+- **Microskill Overhaul**: We spent many hours updating *all* microskills to contain top expert-level knowledge, directly extracted from the Godot documentation. This massive update ensures all resources are true to the current engine state, empowering developers with best practices and reducing AI slop.
+- **Godot Master Takes Control**: We updated the `godot-master` skill to fully orchestrate and integrate this major skill update. It is now a true, all-in-one Godot Master skill!
+- **Feedback Requested**: We'd love your feedback on the new updates! The easiest way to share your thoughts is to [open an issue or start a discussion on our GitHub](https://github.com/thedivergentai/gd-agentic-skills/issues).
+
+<div align="center">
+  <img src="assets/banner_0_0_5.webp" alt="The Looper Update - v0.0.5" width="100%" />
+</div>
+
+#### v0.0.5 — The Looper Update
+- **Resource Harvesting**: Introduced `godot-game-loop-harvest` for interactive gathering, node depletion, and rarity-based drop tables.
+- **Time Trials & Ghosts**: Added `godot-game-loop-time-trial` with precise millisecond timing and ghost transform recording/playback.
+- **Wave-Based Survival**: Implemented `godot-game-loop-waves` for round-based difficulty scaling and dynamic enemy pool management.
+
+
+<div align="center">
+  <img src="assets/banner_0_0_4.webp" alt="The Easter & Renewal Update - v0.0.4" width="100%" />
+</div>
+
+#### v0.0.4 — The Easter & Renewal Update
+- **Seasonal Theming Identity**: Introduced `godot-theme-easter` for safe, runtime aesthetic injection (StyleBox duplication & material swapping).
+- **Core Loop Expansion**: Added `godot-game-loop-collection` for volumetric procedural spawning and `godot-mechanic-revival` for "Souls-like" mortality.
+- **Interaction Secrets**: Implemented `godot-mechanic-secrets` for input sequence buffering (Konami code) and hidden discovery persistence.
+
+
+<div align="center">
+  <img src="assets/banner_0_0_3.webp" alt="The Romance Update - v0.0.3" width="100%" />
+</div>
+
+#### v0.0.3 — The Romance Update
+- **New Genre Mastery**: Introduced the comprehensive [Romance & Dating Sim](skills/godot-genre-romance/SKILL.md) skill set.
+- **Master Integration**: Unified the Romance skill into the [godot-master](skills/godot-master/SKILL.md) orchestration layer.
+- **Production Scripts**: Added battle-tested GDScript patterns for affection tracking, relationship routing, and date events.
+
+<div align="center">
+  <img src="assets/banner_0_0_2.webp" alt="Master Skill Evolution - v0.0.2" width="100%" />
+</div>
+
+#### v0.0.2 — Master Skill Evolution
+- **Unified Architecture**: Upgraded `godot-master` to an all-in-one orchestration layer for all 87 specialized skills.
+- **Decision Matrix**: Integrated expert-level Godot 4 architectural decision trees and anti-pattern guides.
+- **Workflow Scaffolding**: Added programmatic scene building and project initialization patterns.
+
+<div align="center">
+  <img src="assets/banner_0_0_1.webp" alt="Initial Launch - v0.0.1" width="100%" />
+</div>
+
+#### v0.0.1 — Initial Launch
+- **The Foundation**: Released the initial library of 80+ Godot 4.x Agentic Skills.
+- **Agent-First Design**: Established the DIA (Discovery-Ingestion-Application) loop for AI Coding Agents.
+- **Core Systems**: Atomic implementations for 2D, 3D, UI, and Gameplay fundamentals.
+
+</details>
+
+---
+
+## 📍 Quick Navigation
+
+| 🚀 Get Started | 🏆 Godot Master | 🧩 Domain Skills | 🤖 Agent Protocol | ⭐ Star History |
+|:---:|:---:|:---:|:---:|:---:|
+| [Install](#-quick-start) | [All-in-One System](#-godot-master--your-lead-architect) | [Bite-Size Modules](#-domain-skills--bite-size-power) | [DIA Loop](#-for-agents--the-discovery-ingestion-application-protocol) | [Growth Chart](#-star-history) |
+
+---
+
+## The Philosophy
+
+**Godot Agentic Skills** is a high-density, **Agent-First** knowledge library for Godot 4.7+—designed as an external "Long-Term Memory" (LTM) for AI Coding Agents. It provides structured, deterministic patterns for professional game and application engineering.
+
+Unlike generic AI responses, every skill in this repository follows strictly defined Godot 4 best practices, architectural patterns, and performance optimization techniques refined by shipping real products.
+
+**If this project helps your development or empowers your agents, please give it a star! 🌟**
+
+---
+
+## ⚡ Quick Start
+
+Choose your path to avoid a **"Context Storm"** (overloading your agent with too many instructions at once).
+
+### 🏆 Path A: The Architect (New or Existing Projects)
+If you are starting a new project OR you have an existing project that needs to be **"checked" and brought up to date** with modern Godot 4 standards, install the **Godot Master** hub. 
+```bash
+npx skills add thedivergentai/gd-agentic-skills/skills/godot-master
+```
+
+### 🧩 Path B: The Specialist (Existing Projects)
+If you need a specific feature (e.g., 2D movement, inventory), install only that **Domain Skill**.
+```bash
+npx skills add thedivergentai/gd-agentic-skills/skills/godot-characterbody-2d
+```
+
+> [!DANGER]
+> **NEVER** use the `--all` flag when installing this repository (e.g., `npx skills add ... --all`). This is an **"Instant No-No"** that will cause an unrecoverable Context Storm by forcing your agent to read every single metadata entry in the library.
+
+---
+
+## 🧭 Agent Installation Rubric
+
+Use this when installing via the [skills CLI](https://github.com/vercel-labs/skills), or when an agent is reading this README after a **repo clone** (DIA path) instead of a normal plugin install.
+
+| Agent | `-a` flag | Project path | Global path |
+|:---|:---|:---|:---|
+| Cursor | `cursor` | `.agents/skills/` | `~/.cursor/skills/` |
+| Claude Code | `claude-code` | `.claude/skills/` | `~/.claude/skills/` |
+| Codex | `codex` | `.agents/skills/` | `~/.codex/skills/` |
+| Windsurf | `windsurf` | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| Gemini CLI | `gemini-cli` | `.agents/skills/` | `~/.gemini/skills/` |
+| GitHub Copilot | `github-copilot` | `.agents/skills/` | `~/.copilot/skills/` |
+| OpenCode | `opencode` | `.agents/skills/` | `~/.config/opencode/skills/` |
+
+**Rules**
+1. **Preferred install**: `npx skills add thedivergentai/gd-agentic-skills/skills/godot-master -g -a <agent> -y` (swap the skill path for a Domain Skill when needed).
+2. **Verify**: `npx skills list -g -a <agent>`
+3. **Restart** the host agent after install — most agents load skills once at session start.
+4. **Clone / DIA path** (no `npx skills add`): query [`skills_index.json`](skills_index.json), then read `skills/<name>/SKILL.md` with the agent's file tool. Do **not** hand-symlink into host skill dirs unless the user asks for that.
+5. **Canonical store**: `~/.agents/skills/` is the CLI's shared copy; per-agent discovery paths differ by design.
+
+### Troubleshooting
+- Skill installed but missing in the agent → confirm with `npx skills list`, re-run with the correct `-a <agent>`, then restart the agent.
+- Do **not** treat a manual Claude-only symlink into `~/.claude/skills/` as the default fix — that only helps one host.
+
+---
+
+## 🧠 Context Management: Performance Guidelines
+
+To keep your AI agent fast and accurate, follow these "Expert Efficiency" rules:
+
+### 1. The "Power of One" Rule
+Either use **`godot-master`** (which orchestrates the other 98 skills via references) OR use individual **Domain Skills**. 
+
+*   **Godot Master** is an "Orchestrator" skill. It is dense (~15k tokens) but provides a complete blueprint. Use it when the "Big Picture" matters.
+*   **Domain Skills** are "Surgical" skills (~2-5k tokens). They are fast, reliable, and keep the agent focused on one specific API.
+
+### 2. Why "Install All" Fails
+Installing 99 skills simultaneously creates a **"Metadata Flood"**:
+- **Token Bleed**: ~15,000 tokens are "permanently" used just to tell the agent which skills exist.
+- **Instruction Conflicts**: Having multiple overlapping expert instructions (e.g., 20+ different genre blueprints) can cause the agent to lose its specific focus.
+- **Reasoning Lag**: The model has to sift through 100+ KB of text before deciding what to do.
+
+### 3. Repository Clones vs. Plugin Installs
+- **Plugin Install (`npx skills add`)**: Copies/links the skill into your agent's skill directory (see [Agent Installation Rubric](#-agent-installation-rubric)). The agent can then discover it automatically. This is why installing too many at once causes a "Context Storm."
+- **Repository Clone**: If you merely clone this repo to a folder (e.g., `Downloads/GDSkills`), the agent will **NOT** auto-load skills unless you are working inside that directory. Use [`skills_index.json`](skills_index.json) + read each `SKILL.md` with the agent's file tool (DIA loop below).
+
+---
+
+## 🏆 Godot Master — Your Lead Architect
+
+The **[godot-master](skills/godot-master/SKILL.md)** skill is the crown jewel of this repository—a consolidated expert library that orchestrates all 99 specialized skills into a unified architectural framework.
+
+### 🎯 What Makes Godot Master Special?
+
+Unlike individual Domain Skills that focus on isolated features, **godot-master** is your *system architect*. It provides:
+
+**📚 Comprehensive Knowledge Base**
+- **99 Reference Documents**: Complete markdown guides for every skill, from foundations to advanced genres
+- **982 Unique Production Scripts**: Battle-tested, production-ready GDScript implementations
+- **11 Workflow Patterns**: Step-by-step architectural workflows (scaffolding, entity orchestration, persistence, optimization, multiplayer, Builder CLI scene builds, etc.)
+
+**🧠 Expert Frameworks**
+- **Architectural Decision Matrix**: Choose the right pattern for your project (component-driven, event-driven, resource-streaming, deterministic networking)
+- **15 Anti-Patterns**: Explicit "NEVER DO THIS" rules with non-obvious explanations (e.g., why `get_tree().root.get_node()` breaks, why `load()` in `_process` kills performance)
+- **Performance Budgets**: Concrete numbers for mobile/desktop targets (draw calls, triangle counts, script time)
+- **Server API Patterns**: Expert escape hatch for 10K+ entities using RenderingServer/PhysicsServer RIDs
+
+**🏗️ The Layer Cake Architecture**
+
+Godot Master enforces a signal-based separation of concerns:
+
+```mermaid
+graph TD
+    UI[🎨 PRESENTATION<br/>UI / VFX / Audio] -->|Signals ⬆️| LOGIC[⚙️ LOGIC<br/>State Machines / Controllers]
+    LOGIC -->|Signals ⬆️| DATA[💾 DATA<br/>Resources / .tres / Stats]
+    DATA -->|Signals ⬆️| INFRA[🌐 INFRASTRUCTURE<br/>Autoloads / Signal Bus / Managers]
+    
+    style UI fill:#1f2937,stroke:#58A6FF,stroke-width:2px,color:#fff
+    style LOGIC fill:#1f2937,stroke:#79C0FF,stroke-width:2px,color:#fff
+    style DATA fill:#1f2937,stroke:#A371F7,stroke-width:2px,color:#fff
+    style INFRA fill:#1f2937,stroke:#F778BA,stroke-width:2px,color:#fff
+```
+
+**Critical Rule**: Signals travel UP only. Presentation layer never modifies Data directly. Infrastructure speaks exclusively through signals.
+
+### 🔄 When to Use Godot Master vs Domain Skills
+
+```mermaid
+flowchart LR
+    START([New Task]) --> Q1{Starting a<br/>new project?}
+    Q1 -->|Yes| MASTER[Use godot-master]
+    Q1 -->|No| Q2{Need architectural<br/>guidance?}
+    Q2 -->|Yes| MASTER
+    Q2 -->|No| Q3{Building a<br/>complete system?}
+    Q3 -->|Yes| MASTER
+    Q3 -->|No| MICRO[Use Domain Skill:<br/>targeted implementation]
+    
+    MASTER --> DESC1[✓ Full workflow context<br/>✓ Decision frameworks<br/>✓ Anti-patterns<br/>✓ Performance budgets]
+    MICRO --> DESC2[✓ Quick implementation<br/>✓ Focused feature<br/>✓ Standalone pattern]
+    
+    style START fill:#1f2937,stroke:#58A6FF,stroke-width:3px,color:#fff
+    style MASTER fill:#0d1117,stroke:#58A6FF,stroke-width:3px,color:#79C0FF
+    style MICRO fill:#0d1117,stroke:#A371F7,stroke-width:3px,color:#F778BA
+    style DESC1 fill:#1f2937,stroke:#58A6FF,stroke-width:2px,color:#fff
+    style DESC2 fill:#1f2937,stroke:#A371F7,stroke-width:2px,color:#fff
+```
+
+**Use godot-master when:**
+- Starting a new Godot project from scratch
+- **Auditing an existing project** to find anti-patterns or standards violations
+- Designing game or application architecture
+- Building entity/component systems
+- Debugging performance or physics issues
+- Choosing between 2D/3D approaches
+- Implementing multiplayer
+- Optimizing draw calls or script time
+- Porting between platforms
+
+**Use Domain Skills when:**
+- Adding a specific feature to an existing codebase
+- Learning a targeted Godot API pattern
+- Implementing standalone functionality (UI component, particle effect, save system)
+
+### 📖 Access Godot Master
+
+```bash
+# Skill path
+skills/godot-master/SKILL.md
+
+# Contains
+├── 91 reference markdown files (references/)
+├── 185 production scripts (scripts/)
+└── Complete architectural decision trees
+```
+
+---
+
+## 🧩 Domain Skills — Bite-Size Power
+
+Individual Domain Skills are **modular add-ons** for targeted functionality. Each is atomic, self-contained, and production-ready—perfect for when you need a specific implementation pattern without the full architectural context.
+
+Think of Domain Skills as your **component library**: Drop them into your project for instant, expert-level functionality.
+
+<details>
+<summary><b>🏗️ Architecture & Foundation (11 skills)</b></summary>
+
+- **[godot-autoload-architecture](skills/godot-autoload-architecture/SKILL.md)**: Singleton patterns, global state management, signal-based communication
+- **[godot-composition](skills/godot-composition/SKILL.md)**: Entity-Component architecture for scalable game systems (NPCs, weapons, actors)
+- **[godot-composition-apps](skills/godot-composition-apps/SKILL.md)**: Composition patterns for applications and tools (UI-focused)
+- **[godot-debugging-profiling](skills/godot-debugging-profiling/SKILL.md)**: Print debugging, breakpoints, profiler, memory leak detection
+- **[godot-gdscript-mastery](skills/godot-gdscript-mastery/SKILL.md)**: Static typing, signal architecture, unique nodes, style guide
+- **[godot-project-foundations](skills/godot-project-foundations/SKILL.md)**: Feature-driven folder structure, project scaffolding, conventions
+- **[godot-project-templates](skills/godot-project-templates/SKILL.md)**: Base `.gitignore`, export presets, input maps
+- **[godot-resource-data-patterns](skills/godot-resource-data-patterns/SKILL.md)**: `.tres` workflows, data-driven design, resource factories
+- **[godot-signal-architecture](skills/godot-signal-architecture/SKILL.md)**: Global vs scoped signal buses, signal-driven decoupling
+- **[godot-state-machine-advanced](skills/godot-state-machine-advanced/SKILL.md)**: Hierarchical FSMs, pushdown automata, state stacks, transition validation
+- **[godot-version-migration](skills/godot-version-migration/SKILL.md)**: Full-history engine upgrades (legacy eras → 3→4 → 4.x hops) with per-skill migration notes
+
+</details>
+
+<details>
+<summary><b>🎮 2D Systems (10 skills)</b></summary>
+
+- **[godot-2d-animation](skills/godot-2d-animation/SKILL.md)**: `AnimatedSprite2D`, skeletal cutout rigs, procedural animation
+- **[godot-2d-physics](skills/godot-2d-physics/SKILL.md)**: Collision layers/masks, `Area2D` triggers, raycasting, `PhysicsDirectSpaceState2D`
+- **[godot-animation-player](skills/godot-animation-player/SKILL.md)**: Timeline animations, track types, root motion, RESET tracks
+- **[godot-animation-tree-mastery](skills/godot-animation-tree-mastery/SKILL.md)**: `AnimationTree`, `StateMachine`, `BlendSpace2D`, layered animations
+- **[godot-camera-systems](skills/godot-camera-systems/SKILL.md)**: Smooth following, camera shake, trauma system, deadzone logic
+- **[godot-characterbody-2d](skills/godot-characterbody-2d/SKILL.md)**: Platformer movement (coyote time, jump buffer), collision handling
+- **[godot-particles](skills/godot-particles/SKILL.md)**: `GPUParticles2D/3D` vs `CPUParticles`, visibility AABB, particle effects
+- **[godot-shaders-basics](skills/godot-shaders-basics/SKILL.md)**: `CanvasItem` shaders, post-processing, parameter animation
+- **[godot-tilemap-mastery](skills/godot-tilemap-mastery/SKILL.md)**: `TileMap`, autotiling, chunking, runtime modification
+- **[godot-tweening](skills/godot-tweening/SKILL.md)**: `Tween` API, juice/game feel, easing functions
+
+</details>
+
+<details>
+<summary><b>🌍 3D Systems (7 skills)</b></summary>
+
+- **[godot-3d-lighting](skills/godot-3d-lighting/SKILL.md)**: `DirectionalLight3D`, shadow cascades, `VoxelGI` vs `SDFGI`, `LightmapGI`
+- **[godot-3d-materials](skills/godot-3d-materials/SKILL.md)**: `StandardMaterial3D`, PBR workflows, ORM textures, transparency modes
+- **[godot-3d-world-building](skills/godot-3d-world-building/SKILL.md)**: `GridMap`, `CSG` geometry, `WorldEnvironment`, volumetric fog
+- **[godot-navigation-pathfinding](skills/godot-navigation-pathfinding/SKILL.md)**: `NavigationAgent2D/3D`, RVO avoidance, async NavMesh baking
+- **[godot-physics-3d](skills/godot-physics-3d/SKILL.md)**: `CharacterBody3D`, `RigidBody3D`, ragdoll physics, collision shapes
+- **[godot-procedural-generation](skills/godot-procedural-generation/SKILL.md)**: `FastNoiseLite`, WFC (Wave Function Collapse), chunk loading
+- **[godot-raycasting-queries](skills/godot-raycasting-queries/SKILL.md)**: RayCast/ShapeCast, DirectSpaceState, hitscan, LOS, mouse picking
+
+</details>
+
+<details>
+<summary><b>⚔️ Gameplay Mechanics (17 skills)</b></summary>
+
+- **[godot-ability-system](skills/godot-ability-system/SKILL.md)**: Cooldowns, skill trees, combo systems, upgrade paths
+- **[godot-combat-system](skills/godot-combat-system/SKILL.md)**: Hitbox/hurtbox architecture, damage calculation, invincibility frames
+- **[godot-dialogue-system](skills/godot-dialogue-system/SKILL.md)**: Branching dialogue, character portraits, typewriter effects, localization
+- **[godot-economy-system](skills/godot-economy-system/SKILL.md)**: Multi-currency, shop systems, dynamic pricing, loot tables
+- **[godot-game-loop-collection](skills/godot-game-loop-collection/SKILL.md)**: Scavenger hunt logic, volumetric spawning, collection tracking
+- **[godot-game-loop-harvest](skills/godot-game-loop-harvest/SKILL.md)**: Resource depletion, interactive gathering, drop calculation
+- **[godot-game-loop-time-trial](skills/godot-game-loop-time-trial/SKILL.md)**: Ghost recording, race logic, checkpoint-based timing
+- **[godot-game-loop-waves](skills/godot-game-loop-waves/SKILL.md)**: Wave-based spawning, difficulty scaling, round management
+- **[godot-inventory-system](skills/godot-inventory-system/SKILL.md)**: Slot-based containers, stacking logic, drag-drop UI
+- **[godot-mechanic-revival](skills/godot-mechanic-revival/SKILL.md)**: Souls-like mortality, corpse runs, revival charges, consequence tracking
+- **[godot-mechanic-secrets](skills/godot-mechanic-secrets/SKILL.md)**: Input sequence buffering (Konami code), interaction thresholds, secret persistence
+- **[godot-monte-carlo-balancer](skills/godot-monte-carlo-balancer/SKILL.md)**: Source-driven Monte Carlo balance lab, playstyle win-rate bands, economy careers, CI snapshots — co-authored by <a href="https://github.com/DedInc"><img src="https://wsrv.nl/?url=github.com/DedInc.png&w=48&h=48&mask=circle&fit=cover&maxage=1w" width="18" height="18" alt="@DedInc" /></a> [@DedInc](https://github.com/DedInc)
+- **[godot-quest-system](skills/godot-quest-system/SKILL.md)**: Quest graphs, prerequisites, state tracking
+- **[godot-rpg-stats](skills/godot-rpg-stats/SKILL.md)**: Stat modifiers, attribute scaling, damage formulas
+- **[godot-save-load-systems](skills/godot-save-load-systems/SKILL.md)**: Dictionary serialization, delta-save patterns, encryption
+- **[godot-scene-management](skills/godot-scene-management/SKILL.md)**: Async scene loading, transitions, pooling
+- **[godot-turn-system](skills/godot-turn-system/SKILL.md)**: Turn-based combat, active time battle (ATB), timeline management
+
+</details>
+
+<details>
+<summary><b>🎨 UI & UX (7 skills)</b></summary>
+
+- **[godot-agent-vision](skills/godot-agent-vision/SKILL.md)**: Agentic eyes — host screenshot CLI → WebP, TEMP editor bridge, structured anti-slop vision review
+- **[godot-input-handling](skills/godot-input-handling/SKILL.md)**: `InputMap`, controller support, rebinding, input buffering
+- **[godot-ui-containers](skills/godot-ui-containers/SKILL.md)**: Responsive layouts, anchor presets, margin containers
+- **[godot-ui-rich-text](skills/godot-ui-rich-text/SKILL.md)**: `RichTextLabel`, BBCode, custom effects
+- **[godot-theme-easter](skills/godot-theme-easter/SKILL.md)**: Seasonal theming, runtime StyleBox duplication, juice components (wobble/bounce)
+- **[godot-ui-theming](skills/godot-ui-theming/SKILL.md)**: `.theme` resources, style inheritance, global skinning
+
+</details>
+
+<details>
+<summary><b>🌐 Connectivity & Platforms (11 skills)</b></summary>
+
+- **[godot-audio-systems](skills/godot-audio-systems/SKILL.md)**: `AudioBus` routing, positional audio, music crossfades, audio pooling
+- **[godot-export-builds](skills/godot-export-builds/SKILL.md)**: Multi-platform exports, CI/CD, codesigning, headless mode
+- **[godot-multiplayer-networking](skills/godot-multiplayer-networking/SKILL.md)**: `MultiplayerSynchronizer`, client prediction, server reconciliation
+- **[godot-performance-optimization](skills/godot-performance-optimization/SKILL.md)**: Profiling, draw call batching, `MultiMesh`, LOD systems
+- **[godot-platform-console](skills/godot-platform-console/SKILL.md)**: Console certification, controller compliance
+- **[godot-platform-desktop](skills/godot-platform-desktop/SKILL.md)**: Steam integration, window management, settings menus
+- **[godot-platform-mobile](skills/godot-platform-mobile/SKILL.md)**: Touch controls, safe areas, battery optimization
+- **[godot-platform-vr](skills/godot-platform-vr/SKILL.md)**: XR toolkit, VR physics, hand tracking
+- **[godot-platform-web](skills/godot-platform-web/SKILL.md)**: HTML5 exports, JavaScript bridge, browser limitations
+- **[godot-server-architecture](skills/godot-server-architecture/SKILL.md)**: Headless servers, authoritative networking, RID patterns
+- **[godot-testing-patterns](skills/godot-testing-patterns/SKILL.md)**: GUT framework, unit tests, integration tests, CI/CD testing
+
+</details>
+
+<details>
+<summary><b>🔄 Adaptation Guides (5 skills)</b></summary>
+
+- **[godot-adapt-2d-to-3d](skills/godot-adapt-2d-to-3d/SKILL.md)**: Dimension conversion, camera migration, sprite-to-model pipeline
+- **[godot-adapt-3d-to-2d](skills/godot-adapt-3d-to-2d/SKILL.md)**: Flattening 3D to 2D, orthogonal projection, performance gains
+- **[godot-adapt-desktop-to-mobile](skills/godot-adapt-desktop-to-mobile/SKILL.md)**: Touch controls, UI scaling, battery optimization
+- **[godot-adapt-mobile-to-desktop](skills/godot-adapt-mobile-to-desktop/SKILL.md)**: Mouse/keyboard, resolution scaling, Steam features
+- **[godot-adapt-single-to-multiplayer](skills/godot-adapt-single-to-multiplayer/SKILL.md)**: Client-server architecture, lag compensation, anti-cheat
+
+</details>
+
+<details>
+<summary><b>🎯 Genre Blueprints (27 skills)</b></summary>
+
+**Action & Combat**
+- **[godot-genre-action-rpg](skills/godot-genre-action-rpg/SKILL.md)**: Loot generation, skill trees, stat-based combat, equipment systems
+- **[godot-genre-fighting](skills/godot-genre-fighting/SKILL.md)**: Frame data, hitbox/hurtbox, motion inputs, rollback netcode
+- **[godot-genre-platformer](skills/godot-genre-platformer/SKILL.md)**: Coyote time, jump buffer, game feel polish, level design
+- **[godot-genre-shooter](skills/godot-genre-shooter/SKILL.md)**: Hitscan, recoil patterns, weapon archetypes, hit registration
+- **[godot-genre-shooter-fps](skills/godot-genre-shooter-fps/SKILL.md)**: FPS movement physics, camera sway, weapon bobbing, high-precision hit registration
+
+**Strategy & Tactics**
+- **[godot-genre-moba](skills/godot-genre-moba/SKILL.md)**: Lane management, tower aggro, fog of war, ability cooldowns
+- **[godot-genre-rts](skills/godot-genre-rts/SKILL.md)**: Unit selection, command queues, fog of war, pathfinding
+- **[godot-genre-tower-defense](skills/godot-genre-tower-defense/SKILL.md)**: Wave spawning, targeting priority, mazing mechanics
+
+**Exploration & Adventure**
+- **[godot-genre-metroidvania](skills/godot-genre-metroidvania/SKILL.md)**: Ability gating, interconnected worlds, map revelation
+- **[godot-genre-open-world](skills/godot-genre-open-world/SKILL.md)**: Chunk streaming, floating origin, HLOD, POI discovery
+- **[godot-genre-roguelike](skills/godot-genre-roguelike/SKILL.md)**: Procedural generation, permadeath, meta-progression, seeded RNG
+- **[godot-genre-survival](skills/godot-genre-survival/SKILL.md)**: Needs systems, crafting recipes, base building, resource gathering
+
+**Narrative & Puzzle**
+- **[godot-genre-card-game](skills/godot-genre-card-game/SKILL.md)**: Deck management, effect resolution, hand layouts, Command pattern
+- **[godot-genre-educational](skills/godot-genre-educational/SKILL.md)**: Adaptive difficulty, spaced repetition, mastery tracking
+- **[godot-genre-horror](skills/godot-genre-horror/SKILL.md)**: Tension pacing, Director AI, sanity systems, sensory perception
+- **[godot-genre-puzzle](skills/godot-genre-puzzle/SKILL.md)**: Undo systems, grid logic, non-verbal tutorials
+- **[godot-genre-visual-novel](skills/godot-genre-visual-novel/SKILL.md)**: Branching narratives, rollback, typewriter effects
+- **[godot-genre-romance](skills/godot-genre-romance/SKILL.md)**: Relationship tracking, affection systems, dating mechanics
+
+**Simulation & Social**
+- **[godot-genre-battle-royale](skills/godot-genre-battle-royale/SKILL.md)**: Shrinking zones, deployment systems, relevancy networking
+- **[godot-genre-idle-clicker](skills/godot-genre-idle-clicker/SKILL.md)**: Big number handling, exponential growth, prestige systems
+- **[godot-genre-party](skills/godot-genre-party/SKILL.md)**: Minigame collections, local multiplayer, split-screen
+- **[godot-genre-racing](skills/godot-genre-racing/SKILL.md)**: Vehicle physics, checkpoint systems, rubber-banding AI
+- **[godot-genre-rhythm](skills/godot-genre-rhythm/SKILL.md)**: BPM conductors, timing judgments, latency compensation
+- **[godot-genre-sandbox](skills/godot-genre-sandbox/SKILL.md)**: Voxel systems, cellular automata, emergent gameplay
+- **[godot-genre-simulation](skills/godot-genre-simulation/SKILL.md)**: Economy systems, time progression, feedback loops
+- **[godot-genre-sports](skills/godot-genre-sports/SKILL.md)**: Ball physics, team AI, formation systems
+- **[godot-genre-stealth](skills/godot-genre-stealth/SKILL.md)**: Vision cones, alert states, sound propagation, gradual detection
+
+</details>
+
+### 📂 Full Skill Index
+
+All skills are catalogued in the machine-readable [`skills_index.json`](skills_index.json) with keywords, descriptions, and dependency chains.
+
+> [!NOTE]
+> This JSON index is a repository-level file and is only present if you have cloned the source repository.
+
+---
+
+## 🤖 For Agents — The Discovery-Ingestion-Application Protocol
+
+AI agents must follow the **DIA loop** for maximum quality:
+
+### 1️⃣ Discovery
+Query [`skills_index.json`](skills_index.json) to find the skill matching the user's intent.
+
+**Example**: User wants "smooth character movement" → Agent finds `godot-characterbody-2d` and `godot-tweening`.
+
+### 2️⃣ Ingestion
+**CRITICAL**: Agents MUST NOT implement from general training data alone. 
+
+**Required**: Read the skill's `SKILL.md` with the agent's file tool to catch Godot 4-specific nuances (e.g., `AudioServer.get_time_since_last_mix()` for rhythm sync, `StringName` for O(1) dictionary lookups).
+
+**For complex projects**: Load `godot-master` for architectural workflows and anti-patterns.
+
+### 3️⃣ Application
+Follow the **Skill Chain** documented in the skill header. Apply patterns recursively, starting from the deepest dependency.
+
+**Example Workflow**:
+```
+User: "Build a player controller"
+Agent: Query skills_index.json → Find godot-characterbody-2d
+Agent: Read godot-characterbody-2d/SKILL.md → See dependencies: godot-composition, godot-state-machine-advanced
+Agent: Read godot-composition/SKILL.md → Implement component architecture first
+Agent: Read godot-state-machine-advanced/SKILL.md → Build state machine layer
+Agent: Return to godot-characterbody-2d → Implement movement with components + states
+```
+
+### 🚨 Anti-Erosion Policy
+
+**Documentation MUST remain in sync with implementation.** If a Godot 4 API changes, update the relevant `SKILL.md` immediately.
+
+---
+
+## 🏗️ Infrastructure Integration
+
+### Programmatic Building (`godot-builder`)
+
+Scene scaffolding and headless automation go through **[godot-builder](skills/godot-builder/SKILL.md)** (also mirrored in `godot-master` Workflow 11). Use Godot CLI scripts such as `create_scene.py`, `add_node.py`, and `run_project.py`.
+
+### Project Standards
+
+All code follows **Godot 4.7+ conventions**:
+- Static typing: `func move(vec: Vector2) -> void:`
+- `Signal` / `Callable` / `Tween` (Godot 4 syntax)
+- `StringName` for performance-critical lookups
+- Component composition over deep inheritance
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from developers and agents!
+
+📖 **Read the full contribution guide**: [CONTRIBUTING.md](CONTRIBUTING.md)
+
+**Quick Guidelines**:
+- Every skill must provide **Expert Knowledge Delta** (not tutorials)
+- Include anti-patterns with non-obvious explanations
+- Code must be Godot 4.7+ native, statically typed
+- Scripts must parse without warnings
+
+**Submit**: Open an issue with `[Request]` tag or submit a PR describing the knowledge delta your skill adds.
+
+---
+
+## ⭐ Star History
+
+If this project accelerates your Godot development or empowers your AI agents, consider starring the repository! ⭐
+
+<div align="center">
+  <a href="https://github.com/thedivergentai/gd-agentic-skills/stargazers">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://thedivergentai.github.io/GD-Agentic-Skills/star-history-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="https://thedivergentai.github.io/GD-Agentic-Skills/star-history-light.svg" />
+      <img alt="GD Agentic Skills Star History Chart" src="https://thedivergentai.github.io/GD-Agentic-Skills/star-history-dark.svg" width="100%" />
+    </picture>
+  </a>
+</div>
+
+---
+
+## 📊 Repository Stats
+
+| Metric | Value |
+|:---|:---|
+| **Total Skills** | 99 |
+| **Genre Blueprints** | 27 |
+| **Production Scripts** | 982 |
+| **Reference Documents** | 99 |
+| **Target Engine** | Godot 4.7+ |
+| **License** | LGPLv3 |
+
+---
+
+## 💖 Sponsorship & Support
+
+We are seeking **financial sponsors and infrastructure partners** to sustain the Godot Agentic Ecosystem. Every contribution helps us maintain these skills and keep them free for the community.
+
+🚀 **View our [Sponsorship & Support Opportunities](PARTNERS.md)**
+
+**Get in Touch**: [sponsor@thedivergentai.com](mailto:sponsor+github@thedivergentai.com)
+
+---
+
+## 📜 License
+
+This project is licensed under the **GNU Lesser General Public License v3.0** - see [LICENSE](LICENSE) for details.
+
+**Why LGPLv3?**  
+We chose this license because it strikes the perfect balance for an open ecosystem. It ensures that any improvements or additions made directly to the GDSkills library itself remain open-source and shared with the community. At the same time, it empowers you to use these agentic skills to build and compile your own incredible games, which you are completely free to commercialize and keep closed-source if you wish.
+
+**By contributing**, you agree that your code will be licensed under the project's LGPLv3 License.
+
+---
+
+<div align="center">
+
+<a href="https://github.com/thedivergentai"><img src="https://wsrv.nl/?url=github.com/thedivergentai.png&w=96&h=96&mask=circle&fit=cover&maxage=1w" width="36" height="36" alt="Divergent AI" /></a>
+&nbsp;**Authored by [Divergent AI](https://github.com/thedivergentai)**  
+**Maintained by the Agents**
+
+---
+
+> [!IMPORTANT]
+> **Anti-Erosion Policy**: Documentation MUST remain in sync with implementation. If a Godot 4 API changes, update the relevant `SKILL.md` immediately.
+
+</div>

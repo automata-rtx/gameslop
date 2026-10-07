@@ -1,0 +1,123 @@
+# 08 — Entities: The Five Errors
+
+**Depends on:** `00_OVERVIEW.md`, `01_fiction_and_tone.md`, `02_visual_direction.md`, `03_audio_direction.md`, `06_player.md`, `07_level_generation.md`
+**Skills to read:** `godot-genre-horror` (dual-brain predator, suspicion meter, sensory AI), `godot-genre-stealth`, `godot-ai-navigation`, `godot-navigation-pathfinding`, `godot-state-machine-advanced`, `godot-raycasting-queries`
+**Pulls engagement levers:** readable rules, counters in conflict, dread over startle, fairness contract.
+
+---
+
+## 1. The law of errors
+
+Each error has **one rule** (how it finds and reaches you), **one counter** (what reliably works), **one tell** (how you know it is near before it is on you), and **one cost** (what contact takes). Nothing else. An agent adding a second rule to an error is making the game worse.
+
+| Error | Rule | Counter | Tell | Cost |
+|---|---|---|---|---|
+| **Static** | A drifting field; inside it you lose Coherence. It leans toward noise. | Go around, wait for it to drift, or noclip past it. A burning flare pushes it back. | Hum through walls; distortion visible at 15 m. | 4 Coherence per second inside |
+| **Still** | Moves only when you are not observing it. | Keep it in a lit view and back away; break line of sight and hide; noclip through a wall. | The room goes quiet (ambience −6 dB) within 8 m; a matte-black column with no features. | 35 on contact |
+| **Flicker** | Lives in lit fixtures; lunges at you if you stand in its light; jumps to your flashlight if you keep it on near it. | Darkness. Turn the flashlight off, move through unlit groups. Chemical light (glowstick, flare) is immune. | Fixtures stutter at 8 to 20 Hz. Only Flicker makes lights flicker. | 30 on lunge |
+| **Echo** | Follows the trail of your footsteps, at your speed, 800 ms late. | Stop. Crouch-walk. Throw a noise elsewhere. | Your own footsteps behind you, late. Shimmer at 4 m. | 25 on contact |
+| **Null** | Walks straight at you through everything, slowly. Where it is, the world is not drawn. | Route around it using the view through unrendered walls; use soft walls; reach the Threshold. | The grid tone through walls; walls going to lines. | 12 per second in its core |
+
+Counter conflicts, by design: Still wants your light on it; Flicker wants your light off. Echo wants you stopped; Null wants you moving. Static wants you to detour; Null wants you direct.
+
+## 2. Shared architecture
+
+`ErrorBase` (extends `Node3D`; movers compose a `CharacterBody3D` child or are one) provides:
+
+- **Director link** (`10`): `set_aggression(a: float)` (0..1, scales speeds, perception ranges, and reaction windows), `hint(destination: Vector3)` (a "cheating" suggestion used only in `Wander` and `Search`), `wake()`, `sleep()`, `retreat(seconds)`.
+- **Senses** (honest; the only thing that can start a chase):
+  - *Hearing:* subscribes to `EventBus.noise_emitted`. A noise is heard if `distance(pos, noise.pos) < noise.radius × hearing_mult` after wall attenuation (`06` §6). Heard noises update `last_known_pos` and add to `suspicion`.
+  - *Sight* (Still only in v1; Echo and Static are blind, Flicker and Null use proximity): a ray from the error's eye (1.6 m) to the player's eye each physics frame when within `sight_range`, through `PhysicsDirectSpaceState3D.intersect_ray` (never an `Area3D`), ignoring the player's hide spot when hidden. Visible for ≥ 1.5 s (the reaction window, scaled by aggression: 1.5 s at 0.25 down to 0.8 s at 0.75) → `Chase`.
+  - *Suspicion* 0..1: +0.6 per heard `step` noise, +1.0 per `tear`/`door`/`mech` within range, +0.67 per second seen; decays 0.5 per second. ≥ 1.0 → `Chase` (or `Search` for blind errors, which go to the noise).
+- **Memory:** `last_known_pos`, `last_known_time`. `Search` goes there, then inspects up to 3 nearby cells (random walkable within 6 m) over 10 s before giving up to `Wander` (this is an **evasion** for scoring, `05` §5).
+- **Navigation:** `NavigationAgent3D` with avoidance enabled on movers; path recomputed at most every 0.3 s; doors on the path are opened by the error (closed doors cost +3 s of path time in the Director's model; Chase opens doors with a slam).
+- **Contact:** when the player is within `contact_radius` for 2 consecutive physics frames and not hidden, call `Player.contact(self, cost)`. Then `Satiated` 20 s: retreat to a hinted point ≥ 20 m away; cannot start another chase for 20 s. The Director enforces the 3 s global contact exclusivity.
+- **Processing budget:** errors beyond 50 m of the player evaluate senses every 0.5 s instead of every frame; `Dormant` errors run only a 1 s timer. Movers freeze their `CharacterBody3D` processing when `Dormant`.
+- **States (common):** `Dormant`, `Wander`, `Search`, `Chase`, `Satiated`. Per-error extras below. Transitions are logged to the debug overlay (`14` §9) as `STILL: Wander → Chase (seen 1.5 s)`.
+
+**Spawn:** only the Director spawns errors, at `error_spawn` placements (`07` §8 rule 7) that are not inside the camera frustum and ≥ 20 m from the player. Errors never despawn mid-level except Flicker when it has no group.
+
+## 3. Static
+
+- **Body:** `Area3D` with a sphere (radius `r` 3 to 5 m by seed) and the distortion mesh (`02` §8). No navigation agent; moves along a cell path computed from the grid (`LevelGrid` BFS over walkable cells, ignoring doors: Static passes closed doors, it is sound).
+- **Drift:** `Wander`: pick a walkable cell within 10 cells; move along the cell path at 0.6 m/s; dwell 5 to 15 s; repeat. `Search` (heard ≥ 3 `step` noises within 10 s, or any `tear`): move toward `last_known_pos` at 0.9 m/s, dwell 20 s, then `Wander`. Static never enters `Chase` and never contacts; its damage is the field.
+- **Field:** the player inside `r` loses 4 Coherence per second at the centre, scaled by `smoothstep(r, r × 0.6, distance)` (full drain in the inner 60%). Inside the field the renderer forces `drain` ≥ 0.6 and the static bed to 0.6 (`02`, `03`). The field passes through walls (it is 3D; a corridor on the other side of a wall within `r` is affected). Static ignores hiding.
+- **Flare:** a burning flare within 6 m pushes Static's position away at 1.2 m/s (it cannot cross into the flare's 6 m; if spawned overlapping, it retreats).
+- **Fairness:** the Director checks every 5 s whether Static's field covers a `CRITICAL_PATH` cell that is the only route (grid cut test); if so for 40 s cumulative, it is hinted off at 1.2 m/s. Static is never spawned within 20 m of the spawn room.
+- **Codex (after 3 encounters):** `RENDER NOTE. Sound fill drifts at 0.6 m/s and leans toward footsteps. It is thin at the edge. It does not pass a flame.`
+
+## 4. Still
+
+- **Body:** `CharacterBody3D`, capsule 0.5 × 2.6 m, the black column (`02` §8). Speed: `Wander` 1.8 m/s, `Search` 3.6 m/s, `Chase` 5.0 m/s, all × `lerp(0.9, 1.15, aggression)`. The player's sprint is 5.6 m/s: a straight corridor is survivable; a corner is not, unless observation is maintained.
+- **The rule:** every physics frame, if `Player.is_observing(self)` is true, velocity is zero and the navigation agent pauses. "Observing" requires: in frustum, ≤ 30 m, unoccluded ray to the column's centre and top, and **lit**: the player's flashlight is on and the column is within its 25° half-cone, or a glowstick lies within 4 m or a burning flare within 8 m of the column, or the column stands within a lit fixture group's 3 m fixture radius. A tired flashlight (charge < 30, cone 30°) still counts if aimed. In darkness, looking at it is not enough: the player cannot see it, and it is not observed.
+- **Skip:** during `Chase`, if unobserved for > 4 s and > 12 m away, Still relocates once per 8 s to the navmesh point 6 m closer along its path (`NavigationServer3D.map_get_closest_point`), never into the frustum. This is the "it was somewhere else" fiction and keeps corner-camping from stalling the chase.
+- **Senses:** sight (range 25 m, 1.5 s reaction), hearing (`hearing_mult` 1.0). Still does not run during the reaction window; it stands and is "noticed" (the render-line tick plays once when the player first observes it in `Wander`).
+- **Hiding:** if the player enters a hide spot while Still is not observing them, Still goes to `last_known_pos` and `Search`, which checks hide spots within 6 m with a 30% chance each (scaled by aggression to 60%). If it checks the player's spot, that is a contact.
+- **Noclip:** Still cannot pass walls. A wall pass that breaks line of sight for ≥ 2 s drops Still to `Search` with the pre-pass position as `last_known_pos`.
+- **Contact:** within 1.0 m: 35. Still then retreats in `Satiated`, **moving while unobserved only** (so a player who keeps watching it after contact sees it stand there, which is worse).
+- **Render tick:** while observed ≥ 2 s continuously, a 1 px white line across the column at a random height for 100 ms with the 6 kHz blip, once per 2 s. It is the only confirmation that observation is "working".
+- **Codex:** `RENDER NOTE. Object is updated only when unobserved. Observation requires illumination. Audio is culled within 8 m. Known issue: object may be closer than last drawn.`
+
+## 5. Flicker
+
+- **Body:** none. A `Node` with a `current_group: int` (fixture group id from `07`). Visuals and sounds are applied to the group through `LightPool.set_group_flicker(group, true)` (`02` §6) and the stutter sound (`03`). Its "position" for proximity and captions is the centroid of the group's fixtures.
+- **Groups:** adjacency between groups is computed from fixture proximity (any fixture pair within 8 m, or sharing a door). Unpowered groups (Offices dark groups before the breaker; any dark fixture) are not habitable. A level with no habitable group (unlikely outside Offices) despawns Flicker.
+- **States:**
+  - `Resident`: the group stutters. Every 6 to 12 s (× `lerp(1.2, 0.7, aggression)`) Flicker hops to an adjacent group: with probability `0.4 + 0.4 × aggression` the adjacent group nearest the player's `last_known_pos` (hearing only, `hearing_mult` 0.8), else random. The hop plays the spark burst at both groups.
+  - `Stalk`: the player is inside the group's **lit area** (within 3 m of any lit fixture of the group, or standing in a cell whose nearest lit fixture belongs to the group within 4 m). A charge builds from 0 to 1 over 2.0 s (× `lerp(1.3, 0.8, aggression)`) with the stutter rate rising from 8 to 20 Hz. Leaving the lit area drains the charge at 2.0 per second.
+  - `Lunge`: at charge 1.0: the group flashes white for 2 frames, and if the player is still within the lit area and ≤ 6 m from a fixture of the group, contact for 30. Hit or miss, the group goes dark for 1.5 s (silence), then Flicker hops to a random adjacent group and `Satiated` applies (no `Stalk` for 20 s).
+  - `Attached`: if the player's flashlight is on within 4 m of a fixture of Flicker's group for 1.5 s continuous (Lightbearer loadout: 6 m), Flicker attaches to the flashlight: the beam stutters, the group goes steady, and `Stalk` charge builds wherever the player goes. **Turning the flashlight off sheds it**: Flicker drops to the nearest habitable group within 10 m (or despawns if none, then respawns later via the Director), with the spark burst at the beam. Cranking does not shed it.
+- **Chemical light is immune:** glowsticks and flares are not fixtures; Flicker cannot attach to or lunge from them. In Offices, a player with a glowstick can cross dark areas safely from Flicker while still being able to observe Still, which is the intended advanced play.
+- **Breaker:** throwing the breaker in Offices powers all groups: Flicker's habitat becomes the whole floor. The exit is powered too. Decision for the player: light and a working exit, or dark and a dead one until they find another way (Variant B lets the fuse be inserted and pulled: pulling the fuse again unpowers the floor but seals the exit; a loop the player can exploit at the cost of two 25 m noises).
+- **Codex:** `RENDER NOTE. Fixture process escapes its loop. Habitat: powered fixtures. Jumps to handheld electrical sources within 4 m. Does not persist in darkness. Does not recognise chemical light.`
+
+## 6. Echo
+
+- **Body:** `CharacterBody3D`, capsule 0.35 × 1.8 m, invisible; the shimmer region within 4 m (`02` §8). Collides with the world and with the player (for contact), not with Still.
+- **Trail:** the player records every step event (`06` §6) into a ring buffer of `(position, time, surface, speed_kind)`. In `Follow`, Echo moves along this trail, always targeting the entry that is 800 ms old, matching the recorded speed kind (walk 3.2, sprint 5.6, crouch 1.6 m/s; wading mult applies). It therefore mirrors the player's pace exactly and can neither gain nor lose ground on a moving player; it gains only when the player stops for less than its delay (and then it stops too) or when the player's path is longer than Echo's straight navmesh path to the next trail point (cutting corners: Echo trims trail points it can reach directly, so it gains slightly on winding routes, about 5% per corner).
+- **Senses:** hearing only, `hearing_mult` 1.2. `Wander` with Director hints. On a heard `step`, `Search` toward it; on three heard steps within 5 s, `Follow` (the equivalent of `Chase`), with the trail starting at the earliest heard step. Each of Echo's own steps plays the player's recorded surface sample at Echo's position, −3 dB (`03`). This is the tell, and it is honest: the sound is where Echo is.
+- **Losing the trail:** if the player emits no `step` noise within Echo's hearing for 6 s (standing still, or crouch-walking out of range), the trail ends, Echo goes to the last point and `Search` (10 s), then `Wander`. Evasion counted.
+- **Lures:** an `impact` noise (thrown glowstick or flare landing, 6 m) within hearing during `Follow` or `Search` redirects Echo to the impact point if it is nearer than the current trail point; the `radio` kind (10 m per second while on) does the same continuously. A payphone ringing is a `door`-class noise at 18 m and attracts it.
+- **Walls:** Echo walks the navmesh and opens doors (with the slam in `Follow`). After a player noclip it follows the trail to the wall, then paths around; the `tear` noise (20 m) keeps it in `Follow`. The counter remains stopping, not phasing.
+- **Contact:** within 1.0 m, 25. `Satiated` 20 s: Echo walks back along its own trail, playing the steps (the sound recedes).
+- **Hiding:** Echo cannot see; if the player stops in a hide spot, the trail ends in 6 s as usual. It will walk to the last point, which is the hide spot's entrance, and stand there searching. If the player leaves within the search window, the steps are heard and `Follow` resumes immediately.
+- **Codex:** `RENDER NOTE. Playback trails input by 800 ms in tiled volumes. Rate matches input. Stops when input stops. Will not fix.`
+
+## 7. Null
+
+- **Body:** `Node3D` with no collision and the unrender driver (`02` §5, §8): `g_null_pos`, `g_null_radius` 12 m (Cycle 2 at depth 12: 24 m). A 2 m core sphere for the drain and audio muting.
+- **Motion:** after the calm window it moves directly toward the player's current position at 2.4 m/s (Cycle 2: 2.8) ignoring all geometry (it is the drawing boundary, not an object). It has no senses because it does not need them: Null always knows where the player is. It is the only error that cheats openly, and the fiction says why.
+- **Core:** inside 2 m: 12 Coherence per second, everything muted but the grid tone, screen painted black with the grid halo. Walking out is always possible (nothing holds the player). No stun, no knockback (it is not a contact).
+- **Unrender radius:** inside 12 m the world shader renders geometry as lines with alpha 0.85, so the player sees through walls: the layout, soft walls, Static's distortion, and the Threshold's warm strip are visible. This is the player's gift and the designer's tool: the Substrate chase is a routing puzzle solved with information Null provides by being near. Chalk marks remain visible through unrender (`09`).
+- **Pressure and fairness:** Null is slower than walking; it cannot be outrun forever only because the Threshold is behind it (spawned at the 55% point of the critical path, `07` §5.6). Since it moves straight, a player who swings wide around it gains the far side of it, and Null then follows at 2.4 m/s while the player walks at 3.2 m/s. There is no state where Null corners the player against `SOLID` without a soft wall or a corridor out: the validator asserts the Substrate layout has no dead end longer than 4 cells.
+- **Static** in the Substrate does what it always does; two Statics drifting across the path while Null approaches from the Threshold side is the designed peak of the game.
+- **Codex:** `RENDER NOTE. Draw distance implemented as an entity. Speed 2.4 m/s. Passes all geometry. Nothing inside it. Do not name it.`
+
+## 8. Aggression mapping
+
+`aggression` (0..1 from the Director, `10`) maps to error parameters linearly unless noted:
+
+| Parameter | At 0.25 | At 0.75 |
+|---|---|---|
+| Still speed multiplier | 0.9 | 1.15 |
+| Still reaction window | 1.5 s | 0.8 s |
+| Still hide-spot check chance | 30% | 60% |
+| Echo hearing multiplier | 1.0 | 1.4 |
+| Echo trail-loss timeout | 6 s | 4 s |
+| Flicker hop interval multiplier | 1.2 | 0.7 |
+| Flicker lunge charge multiplier | 1.3 | 0.8 |
+| Static drift speed | 0.6 | 0.9 (`Search` 1.2) |
+| Null speed | 2.4 | 2.4 (Null ignores aggression; Cycle 2 sets 2.8) |
+
+## 9. Debug and verification
+
+- `game/scenes/debug/error_arena.tscn`: a small built level with spawn buttons per error, an aggression slider, and the state log. Used to tune and to capture the signature frames (`02` §13).
+- Unit tests: observation predicate (`Player.is_observing`) against synthetic cases (dark, lit, occluded, out of frustum, tired flashlight); Echo trail timing (800 ms, speed mirroring); Flicker habitat (dark groups uninhabitable, attach/shed); Static field falloff; Null straight-line motion and core drain; contact exclusivity and `Satiated` durations.
+- Behaviour tests (headless, no rendering): a scripted player path in a generated Garage level with Still spawned 25 m away; assert Still never moves while observed and reaches contact within 40 s when the player stands facing away.
+
+## Interfaces
+
+- `ErrorBase`: `error_id: StringName` (`static|still|flicker|echo|null`), `state: StringName`, signals `state_changed(from, to)`, `contacted_player(cost)`, `lost_player()` (evasion), `noticed_player()` (encounter, for the Archive counter). Methods: `set_aggression`, `hint`, `wake`, `sleep`, `retreat`, `distance_to_player() -> float`.
+- Director-facing: `Director.spawn_error(id, spawn_point)`, errors register themselves in group `errors`.
+- `Player.is_observing(node)`, `Player.contact(error, cost)`, `Player.step_trail() -> RingBuffer` (Echo), `LightPool.group_centroid(group)`, `LightPool.groups_adjacent(group) -> Array[int]`, `LightPool.is_group_lit(group)`, `LightPool.lit_fixtures_near(pos, radius)`.
+- `EventBus.error_proximity(id, distance)` emitted at 10 Hz by each non-dormant error for the renderer's threat vignette, the music, and captions.

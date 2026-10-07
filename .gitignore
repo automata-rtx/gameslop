@@ -1,0 +1,14 @@
+# Godot
+game/.godot/
+game/export_presets.cfg.secret
+*.import.tmp
+# toolchain and builds
+tools/godot/bin/
+tools/godot/templates/
+build/
+# python
+__pycache__/
+*.pyc
+# OS
+.DS_Store
+Thumbs.db
