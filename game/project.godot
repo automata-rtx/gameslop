@@ -1,0 +1,7 @@
+; Engine configuration file. Minimal bootstrap from M0.1; M0.2 completes it (14 §1, §3, §7, §11).
+config_version=5
+
+[application]
+
+config/name="NOCLIP"
+config/features=PackedStringArray("4.7", "Forward Plus")
