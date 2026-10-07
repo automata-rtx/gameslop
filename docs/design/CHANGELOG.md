@@ -15,3 +15,12 @@ Entries are one line each: date, document, change, rationale. The design was loc
 - 2026-10-07 — 12, 04 — Rebind conflicts swap; FSR 2 only below render scale 1.0 and replaces AA; first-run hints and the Landing panel render key names from bindings. Reason: engine behaviour and rebinding correctness.
 - 2026-10-07 — 05, 07, 13 — One seed derivation function (`Seeds.derive`) and one daily seed expression. Reason: two-argument `hash()` does not exist.
 - 2026-10-07 — 15, CLAUDE.md — Continuous production with tagged checkpoints replaces milestone gates; human play only at cp-12 and cp-13. Reason: the user wants minimal playtesting and bisectable builds.
+
+## Production
+
+- 2026-10-07 — 08 — Null codex reads "implemented as an object", not "an entity". Reason: "entity" is a forbidden word (01 §2, GLOSSARY); 01 note U1 has the same wording and must be changed to match when notes are authored.
+- 2026-10-07 — 04 — Boot line is `rendering` without the ellipsis. Reason: 01 §6 writing rules ban ellipses in UI strings and 01 wins.
+- 2026-10-07 — 04, 09 — Breaker prompt text is `FLIP BREAKER` and door prompts are `OPEN DOOR` / `CLOSE DOOR` (04 §6); the breaker stays a 0.6 s hold (06, 07, 09). Reason: 04 wins over 09's `THROW BREAKER` and `OPEN`.
+- 2026-10-07 — 02 — Substrate distance fog runs 25 m to 45 m (the §7 range); §6's "black at 40 m" is read as a point inside it. Reason: the two sections of 02 disagree.
+- 2026-10-07 — 11, 06 — Flicker lunge trauma 0.4 (11 §3) is superseded by the contact trauma 0.6 (06 §9) whenever a lunge lands. Reason: 06 wins; both values stay in `tuning.gd`.
+- 2026-10-07 — 04, 14 — `strings.gd` lives in `game/src/core/` (14 §2), not `game/data/` (04 §11). Reason: 14 owns the layout.
