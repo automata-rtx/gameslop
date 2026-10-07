@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"P1"
+stratum = &"pools"
+voice = &"faller"
+tier = 1
+text = "Water's warm. Always warm. Walk, don't run; it hears the splash before you do. When I stand still it stops too. Like it's waiting to see what I'll do."

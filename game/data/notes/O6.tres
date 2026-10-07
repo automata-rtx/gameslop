@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"O6"
+stratum = &"offices"
+voice = &"stray"
+tier = 2
+text = "A performance review. Every field blank except the last. Presence: insufficient."

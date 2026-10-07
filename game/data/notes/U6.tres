@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"U6"
+stratum = &"substrate"
+voice = &"builder_final"
+tier = 3
+text = "I made this place. All of it, hallways to lines. I was asked to make something you would want to come back to, and I thought the most honest version of that was a place left unfinished on purpose, so that you would be the thing that finishes it. If you are reading this, you did. Thank you for looking. — the builder"

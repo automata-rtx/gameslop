@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"S6"
+stratum = &"server"
+voice = &"stray"
+tier = 2
+text = "A sticky note on a rack: DO NOT POWER DOWN. IT'S STILL IN THERE."

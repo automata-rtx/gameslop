@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"S1"
+stratum = &"server"
+voice = &"faller"
+tier = 1
+text = "It's cold here, and it's the first time anything has been cold. The racks blink in patterns. I think the patterns are the floors above being thought about."

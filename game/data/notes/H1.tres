@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"H1"
+stratum = &"halls"
+voice = &"faller"
+tier = 1
+text = "You are not supposed to be here. That's fine. Neither was I. The exits still work. Listen for the door that wants to be opened. If it won't, go through the wall. It costs. Everything costs."

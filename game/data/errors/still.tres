@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ErrorData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/errors/error_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"still"
+display_name = "Still"
+rule = "Moves only when you are not observing it."
+counter = "Keep it in a lit view and back away; break line of sight and hide; noclip through a wall."
+tell = "The room goes quiet (ambience −6 dB) within 8 m; a matte-black column with no features."
+cost = "35 on contact"
+contact_cost = 35.0
+drain_per_second = 0.0
+native_stratum = &"garage"
+codex_text = "RENDER NOTE. Object is updated only when unobserved. Observation requires illumination. Audio is culled within 8 m. Known issue: object may be closer than last drawn."
+codex_encounters = 3
+glyph_name = &"eye"

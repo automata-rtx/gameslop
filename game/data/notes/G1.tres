@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"G1"
+stratum = &"garage"
+voice = &"faller"
+tier = 1
+text = "Rule for the tall one: look at it. Don't stop looking. It only gets closer in the gaps. Back away with your light on it until you can see the whole room. Then run."

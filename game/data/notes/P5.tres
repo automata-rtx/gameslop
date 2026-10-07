@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"P5"
+stratum = &"pools"
+voice = &"faller"
+tier = 2
+text = "I took a photograph of my kitchen before I fell. I look at it when the colour starts going. It helps. It helps less each time."

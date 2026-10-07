@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ErrorData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/errors/error_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"static"
+display_name = "Static"
+rule = "A drifting field; inside it you lose Coherence. It leans toward noise."
+counter = "Go around, wait for it to drift, or noclip past it. A burning flare pushes it back."
+tell = "Hum through walls; distortion visible at 15 m."
+cost = "4 Coherence per second inside"
+contact_cost = 0.0
+drain_per_second = 4.0
+native_stratum = &""
+codex_text = "RENDER NOTE. Sound fill drifts at 0.6 m/s and leans toward footsteps. It is thin at the edge. It does not pass a flame."
+codex_encounters = 3
+glyph_name = &"wave"

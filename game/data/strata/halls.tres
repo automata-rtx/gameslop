@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="StratumData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/levelgen/stratum_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"halls"
+display_name = "HALLS"
+depth_min = 1
+depth_max = 1
+height = 3.0
+decks = 1
+grid_sizes = PackedInt32Array(24)
+walkable_cells = PackedInt32Array(300)
+wall_color = Color(0.788235, 0.635294, 0.152941, 1)
+wall_color_secondary = Color(0.721569, 0.572549, 0.121569, 1)
+wall_pattern_mode = 2
+wall_pattern_scale = 0.6
+wall_roughness = 0.85
+wall_metallic = 0.0
+wall_normal_strength = 0.25
+floor_color = Color(0.545098, 0.478431, 0.227451, 1)
+floor_color_secondary = Color(0.545098, 0.478431, 0.227451, 1)
+floor_pattern_mode = 3
+floor_pattern_scale = 4.0
+floor_roughness = 1.0
+ceiling_color = Color(0.909804, 0.886275, 0.811765, 1)
+ceiling_pattern_mode = 6
+ceiling_pattern_scale = 0.6
+ceiling_roughness = 0.9
+partition_color = Color(0.541176, 0.560784, 0.588235, 1)
+partition_pattern_mode = 0
+partition_pattern_scale = 1.0
+fixture_kind = &"tube"
+fixture_prefab_path = "res://scenes/props/halls/fixture_tube.tscn"
+fixture_spacing_m = 4.0
+fixture_emission_color = Color(1, 0.94902, 0.768627, 1)
+fixture_emission_strength = 8.0
+fixture_light_color = Color(1, 0.937255, 0.760784, 1)
+fixture_light_energy = 1.0
+fixture_light_range = 7.0
+studio_light_energy = 0.0
+studio_light_range = 0.0
+fog_color = Color(0.705882, 0.603922, 0.235294, 1)
+fog_density = 0.02
+distance_fog_begin = 0.0
+distance_fog_end = 0.0
+ambient_color = Color(0.431373, 0.352941, 0.117647, 1)
+ambient_energy = 0.15
+exposure = 1.0
+shadow_bias = 0.05
+has_water = false
+water_color = Color(0, 0, 0, 0)
+reverb_room_size = 0.5
+reverb_damping = 0.6
+reverb_wet = 0.2
+reverb_predelay_ms = 0.0
+reverb_highpass_hz = 0.0
+prop_ids = Array[StringName]([&"vending", &"payphone", &"chair", &"wall_clock"])
+hide_spot_kinds = Array[StringName]([&"locker"])
+exit_kind = &"elevator"
+landing_kind = &"elevator"
+native_error = &""
+soft_wall_count = 4

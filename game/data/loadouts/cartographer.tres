@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="LoadoutData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/loadout_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"cartographer"
+display_name = "CARTOGRAPHER"
+description = "MORE CHALK AND A RADIO. STARTS AT 90 COHERENCE."
+start_items = Dictionary[StringName, int]({&"chalk": 20, &"radio": 1})
+start_coherence = 90.0
+start_depth = 1
+crank_rate_mult = 1.0
+flicker_attract_mult = 1.0
+unlock_id = &"cartographer"

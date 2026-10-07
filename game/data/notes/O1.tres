@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"O1"
+stratum = &"offices"
+voice = &"faller"
+tier = 1
+text = "The lights here aren't lights. Something lives in the flicker. Turn your torch off and it loses you. Dark is the only place it can't be."

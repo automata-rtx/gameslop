@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="StratumData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/levelgen/stratum_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"substrate"
+display_name = "SUBSTRATE"
+depth_min = 6
+depth_max = 6
+height = 3.0
+decks = 1
+grid_sizes = PackedInt32Array(28)
+walkable_cells = PackedInt32Array(360)
+wall_color = Color(0.0196078, 0.0196078, 0.0196078, 1)
+wall_color_secondary = Color(0.901961, 0.901961, 0.901961, 1)
+wall_pattern_mode = 0
+wall_pattern_scale = 1.0
+wall_roughness = 1.0
+wall_metallic = 0.0
+wall_normal_strength = 0.0
+floor_color = Color(0.0196078, 0.0196078, 0.0196078, 1)
+floor_color_secondary = Color(0.901961, 0.901961, 0.901961, 1)
+floor_pattern_mode = 0
+floor_pattern_scale = 1.0
+floor_roughness = 1.0
+ceiling_color = Color(0.0196078, 0.0196078, 0.0196078, 1)
+ceiling_pattern_mode = 0
+ceiling_pattern_scale = 1.0
+ceiling_roughness = 1.0
+partition_color = Color(0.541176, 0.560784, 0.588235, 1)
+partition_pattern_mode = 0
+partition_pattern_scale = 1.0
+fixture_kind = &"none"
+fixture_prefab_path = ""
+fixture_spacing_m = 0.0
+fixture_emission_color = Color(1, 1, 1, 1)
+fixture_emission_strength = 0.0
+fixture_light_color = Color(1, 1, 1, 1)
+fixture_light_energy = 0.0
+fixture_light_range = 0.0
+studio_light_energy = 0.6
+studio_light_range = 15.0
+fog_color = Color(0, 0, 0, 1)
+fog_density = 0.0
+distance_fog_begin = 25.0
+distance_fog_end = 45.0
+ambient_color = Color(0.0627451, 0.0627451, 0.0627451, 1)
+ambient_energy = 0.05
+exposure = 1.0
+shadow_bias = 0.05
+has_water = false
+water_color = Color(0, 0, 0, 0)
+reverb_room_size = 1.0
+reverb_damping = 0.0
+reverb_wet = 0.5
+reverb_predelay_ms = 0.0
+reverb_highpass_hz = 300.0
+prop_ids = Array[StringName]([&"studio_light", &"scaffold", &"threshold_door"])
+hide_spot_kinds = Array[StringName]([])
+exit_kind = &"threshold_door"
+landing_kind = &"pocket"
+native_error = &"null"
+soft_wall_count = 6

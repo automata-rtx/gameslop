@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ErrorData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/errors/error_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"null"
+display_name = "Null"
+rule = "Walks straight at you through everything, slowly. Where it is, the world is not drawn."
+counter = "Route around it using the view through unrendered walls; use soft walls; reach the Threshold."
+tell = "The grid tone through walls; walls going to lines."
+cost = "12 per second in its core"
+contact_cost = 0.0
+drain_per_second = 12.0
+native_stratum = &"substrate"
+codex_text = "RENDER NOTE. Draw distance implemented as an object. Speed 2.4 m/s. Passes all geometry. Nothing inside it. Do not name it."
+codex_encounters = 3
+glyph_name = &"null"

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"S4"
+stratum = &"server"
+voice = &"builder"
+tier = 1
+text = "RENDER NOTE 0418. Below this floor we stopped. The budget ended. Geometry past this point is unlit, unwrapped, untextured. Nothing should go there. Nothing should be able to."

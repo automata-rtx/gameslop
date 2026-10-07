@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"O3"
+stratum = &"offices"
+voice = &"faller"
+tier = 2
+text = "Day 20. Found a breaker room and flipped every switch. The floor lit up section by section like it was waking. I cried. I don't know why that's the thing that did it."

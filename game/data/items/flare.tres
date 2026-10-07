@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/items/item_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+kind = &"flare"
+display_name = "FLARE"
+cap = 2
+use_time = 0.0
+weight = 2
+unlock_id = &"flare"
+belt_item = true
+pickup_count = 1
+world_light_color = Color(1, 0.290196, 0.180392, 1)

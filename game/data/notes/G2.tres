@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"G2"
+stratum = &"garage"
+voice = &"builder"
+tier = 1
+text = "RENDER NOTE 0201. Garage deck: cars are boxes. Nobody opens them. Pillars every 8 m for occlusion. Ramps between floors, no stairs."

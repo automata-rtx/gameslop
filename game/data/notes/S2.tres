@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"S2"
+stratum = &"server"
+voice = &"builder"
+tier = 1
+text = "RENDER NOTE 0402. Server volume: aisles 1.2 m. Fans at 40 dB. Lighting from status LEDs only. This floor holds everything above it. Treat as load-bearing."

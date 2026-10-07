@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/items/item_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+kind = &"polaroid"
+display_name = "POLAROID"
+cap = 3
+use_time = 1.2
+weight = 3
+unlock_id = &""
+belt_item = true
+pickup_count = 1
+world_light_color = Color(0.94902, 0.94902, 0.94902, 1)

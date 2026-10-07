@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ErrorData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/errors/error_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"flicker"
+display_name = "Flicker"
+rule = "Lives in lit fixtures; lunges at you if you stand in its light; jumps to your flashlight if you keep it on near it."
+counter = "Darkness. Turn the flashlight off, move through unlit groups. Chemical light (glowstick, flare) is immune."
+tell = "Fixtures stutter at 8 to 20 Hz. Only Flicker makes lights flicker."
+cost = "30 on lunge"
+contact_cost = 30.0
+drain_per_second = 0.0
+native_stratum = &"offices"
+codex_text = "RENDER NOTE. Fixture process escapes its loop. Habitat: powered fixtures. Jumps to handheld electrical sources within 4 m. Does not persist in darkness. Does not recognise chemical light."
+codex_encounters = 3
+glyph_name = &"bolt"

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"U2"
+stratum = &"substrate"
+voice = &"faller"
+tier = 1
+text = "I can see through the walls here. Everything is lines. I can see the door from anywhere. I can also see it coming from anywhere."

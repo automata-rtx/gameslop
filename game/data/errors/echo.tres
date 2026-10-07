@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ErrorData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/errors/error_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"echo"
+display_name = "Echo"
+rule = "Follows the trail of your footsteps, at your speed, 800 ms late."
+counter = "Stop. Crouch-walk. Throw a noise elsewhere."
+tell = "Your own footsteps behind you, late. Shimmer at 4 m."
+cost = "25 on contact"
+contact_cost = 25.0
+drain_per_second = 0.0
+native_stratum = &"pools"
+codex_text = "RENDER NOTE. Playback trails input by 800 ms in tiled volumes. Rate matches input. Stops when input stops. Will not fix."
+codex_encounters = 3
+glyph_name = &"steps"

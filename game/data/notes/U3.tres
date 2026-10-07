@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"U3"
+stratum = &"substrate"
+voice = &"builder"
+tier = 2
+text = "RENDER NOTE 0511. Placeholder material (magenta/black) left on 3,400 surfaces. Shipping anyway. No one will see this floor."

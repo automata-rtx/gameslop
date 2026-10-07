@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"O4"
+stratum = &"offices"
+voice = &"builder"
+tier = 2
+text = "RENDER NOTE 0311. Flicker fault: fixture process escapes its loop and jumps to adjacent fixtures. Contained to floors 4 and below. Observed following handheld sources. Do not carry a light near fixtures. Do not report further."

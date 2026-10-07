@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="LoadoutData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/loadout_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"diver"
+display_name = "DIVER"
+description = "SKIPS DEPTHS 1 AND 2. STARTS AT DEPTH 3 WITH 70 COHERENCE."
+start_items = Dictionary[StringName, int]({&"polaroid": 2})
+start_coherence = 70.0
+start_depth = 3
+crank_rate_mult = 1.0
+flicker_attract_mult = 1.0
+unlock_id = &"diver"

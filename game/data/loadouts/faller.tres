@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="LoadoutData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/loadout_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"faller"
+display_name = "FALLER"
+description = "STANDARD ISSUE. NO TRADE-OFF."
+start_items = Dictionary[StringName, int]({&"polaroid": 1, &"chalk": 8})
+start_coherence = 100.0
+start_depth = 1
+crank_rate_mult = 1.0
+flicker_attract_mult = 1.0
+unlock_id = &""

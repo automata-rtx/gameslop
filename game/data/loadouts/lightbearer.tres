@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="LoadoutData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/loadout_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"lightbearer"
+display_name = "LIGHTBEARER"
+description = "CHEMICAL LIGHT AND A FASTER CRANK. NO POLAROID. FLICKER NOTICES YOUR LIGHT FROM FURTHER."
+start_items = Dictionary[StringName, int]({&"glowstick": 3, &"flare": 1})
+start_coherence = 100.0
+start_depth = 1
+crank_rate_mult = 1.5
+flicker_attract_mult = 1.5
+unlock_id = &"lightbearer"

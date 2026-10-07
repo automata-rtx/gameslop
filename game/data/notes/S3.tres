@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NoteData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/note_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"S3"
+stratum = &"server"
+voice = &"faller"
+tier = 2
+text = "I went through four walls in a row to get here. Every time I do it the world looks thinner afterward. Like paper you've held up to the light too long."
