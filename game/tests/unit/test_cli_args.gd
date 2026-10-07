@@ -44,3 +44,10 @@ func test_bad_values_are_ignored() -> void:
 	assert_eq(a.stratum, &"")
 	assert_false(a.has_seed)
 	assert_true(a.smoke, "a later valid flag still parses")
+
+
+func test_shots_dir() -> void:
+	var a := CliArgs.parse(PackedStringArray(["--seed", "1", "--shots", "build/shots"]))
+	assert_eq(a.shots_dir, "build/shots")
+	assert_true(a.wants_direct_level())
+	assert_eq(CliArgs.parse(PackedStringArray(["--shots"])).shots_dir, "")

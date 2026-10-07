@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/levelgen/level.gd" id="1_level"]
+[ext_resource type="Script" path="res://src/lighting/light_pool.gd" id="2_pool"]
+
+[node name="Level" type="Node3D"]
+script = ExtResource("1_level")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+unique_name_in_owner = true
+
+[node name="Content" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="LightPool" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_pool")
+
+[node name="Navigation" type="NavigationRegion3D" parent="."]
+unique_name_in_owner = true

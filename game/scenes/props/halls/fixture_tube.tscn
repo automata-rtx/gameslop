@@ -1,0 +1,27 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/lighting/fixture.gd" id="1_fixture"]
+[ext_resource type="Material" path="res://data/materials/halls/fixture_emissive.tres" id="2_lit"]
+[ext_resource type="Material" path="res://data/materials/halls/fixture_housing.tres" id="3_housing"]
+
+[sub_resource type="BoxMesh" id="Mesh_tube"]
+size = Vector3(0.3, 0.03, 1.2)
+
+[sub_resource type="BoxMesh" id="Mesh_housing"]
+size = Vector3(0.4, 0.02, 1.3)
+
+[node name="FixtureTube" type="Node3D"]
+script = ExtResource("1_fixture")
+
+[node name="Housing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.01, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_housing")
+material_override = ExtResource("3_housing")
+
+[node name="Tube" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.025, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_tube")
+material_override = ExtResource("2_lit")

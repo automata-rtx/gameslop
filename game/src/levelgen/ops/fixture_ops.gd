@@ -34,7 +34,7 @@ static func room_fixtures(gen: StratumGenerator, room: RoomData, height: float, 
 			{&"group": group, &"fixture": fixture})
 
 
-## Ceiling fixtures every `spacing` cells along corridors (FLOOR cells), grouped per segment
+## Ceiling fixtures on the `spacing`-cell lattice along corridors (FLOOR cells), grouped per segment
 ## between junctions, at most `group_max` fixtures per group.
 static func corridor_fixtures(gen: StratumGenerator, spacing: int, group_max: int, height: float, fixture: StringName) -> void:
 	var grid := gen.grid
@@ -87,12 +87,28 @@ static func _flood_segment(grid: LevelGrid, start: int, segment: int, seg_of: Pa
 	return out
 
 
+## T2 (02 §2): fixtures sit on one exact lattice for the whole level, `spacing` cells
+## apart. A straight run along X is lit where x is a multiple of `spacing`, along Z where z
+## is; bends and junctions only where both are (so no two tubes crowd a corner).
+static func on_lattice(grid: LevelGrid, c: Vector2i, spacing: int) -> bool:
+	var along_x := grid.can_step(c, LevelGrid.E) or grid.can_step(c, LevelGrid.W)
+	var along_z := grid.can_step(c, LevelGrid.N) or grid.can_step(c, LevelGrid.S)
+	var x_ok := posmod(c.x, spacing) == 0
+	var z_ok := posmod(c.y, spacing) == 0
+	if along_x and not along_z:
+		return x_ok
+	if along_z and not along_x:
+		return z_ok
+	return x_ok and z_ok
+
+
 static func _place_segment(gen: StratumGenerator, ordered: Array[Vector3i], spacing: int, group_max: int,
 		height: float, fixture: StringName) -> void:
 	var lit: Array[Vector2i] = []
 	for e in ordered:
-		if e.z % spacing == 0:
-			lit.append(Vector2i(e.x, e.y))
+		var c := Vector2i(e.x, e.y)
+		if on_lattice(gen.grid, c, spacing):
+			lit.append(c)
 	var k := 0
 	while k < lit.size():
 		var chunk: Array[Vector2i] = lit.slice(k, mini(k + group_max, lit.size()))

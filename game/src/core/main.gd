@@ -17,16 +17,17 @@ func _ready() -> void:
 		_run_validate_levels(args.validate_levels)
 		return
 	if args.wants_direct_level():
-		# TODO(M1.12): launch straight into a generated level from the flags (14 §9).
-		push_warning("--seed/--depth/--stratum: direct level launch arrives with M1.12")
+		_show(DirectLevel.from_args(args))
+		return
 	# TODO(M1.9): SceneRouter.change_to("res://scenes/title.tscn") once the title exists;
 	# until then %Content holds the placeholder title.
 
 
 func _run_smoke() -> void:
-	_smoke_generate_depth_1()
+	await _smoke_generate_depth_1()
 	# Process time, not wall time: the smoke test measures that frames keep flowing.
 	await get_tree().create_timer(SMOKE_WAIT_S).timeout
+	print("smoke: ok")
 	get_tree().quit(0)
 
 
@@ -45,7 +46,21 @@ func _run_validate_levels(n: int) -> void:
 	get_tree().quit(0 if ok else 1)
 
 
-## TODO(M1.9): generate and build depth 1 (Halls, the --seed or a fixed seed) and
-## wait for LevelBuilder.built before the smoke timer starts.
+## 14 §9: generate and build depth 1 (Halls, the --seed or a fixed seed) and wait for
+## LevelBuilder.built (bounded) before the smoke timer starts.
 func _smoke_generate_depth_1() -> void:
-	pass
+	var args := CliArgs.current()
+	var d := DirectLevel.from_args(args)
+	d.stratum = Tuning.STRATUM_DEPTH1
+	d.depth = 1
+	d.shots_dir = ""
+	d.capture_mouse = false
+	_show(d)
+	await d.built
+
+
+## Replaces the routed content with a debug node (direct level launch, smoke).
+func _show(node: Node) -> void:
+	for child in %Content.get_children():
+		child.queue_free()
+	%Content.add_child(node)

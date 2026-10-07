@@ -1,0 +1,49 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Material" path="res://data/materials/halls/prop_red.tres" id="1_body"]
+[ext_resource type="Material" path="res://data/materials/halls/vending_panel.tres" id="2_panel"]
+[ext_resource type="Material" path="res://data/materials/halls/prop_black.tres" id="3_black"]
+
+[sub_resource type="BoxMesh" id="Mesh_body"]
+size = Vector3(1, 1.85, 0.7)
+
+[sub_resource type="BoxMesh" id="Mesh_panel"]
+size = Vector3(0.6, 1.2, 0.02)
+
+[sub_resource type="BoxMesh" id="Mesh_slot"]
+size = Vector3(0.22, 0.5, 0.02)
+
+[sub_resource type="BoxMesh" id="Mesh_tray"]
+size = Vector3(0.7, 0.18, 0.02)
+
+[sub_resource type="BoxShape3D" id="Shape_body"]
+size = Vector3(1, 1.85, 0.7)
+
+[node name="Vending" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
+mesh = SubResource("Mesh_body")
+material_override = ExtResource("1_body")
+
+[node name="Panel" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 1.15, -0.355)
+mesh = SubResource("Mesh_panel")
+material_override = ExtResource("2_panel")
+
+[node name="Slot" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.33, 1.1, -0.355)
+mesh = SubResource("Mesh_slot")
+material_override = ExtResource("3_black")
+
+[node name="Tray" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.3, -0.355)
+mesh = SubResource("Mesh_tray")
+material_override = ExtResource("3_black")
+
+[node name="Collider" type="StaticBody3D" parent="."]
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Collider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
+shape = SubResource("Shape_body")

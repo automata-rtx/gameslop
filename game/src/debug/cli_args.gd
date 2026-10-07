@@ -5,6 +5,8 @@ extends RefCounted
 ##   --smoke                          boot, generate depth 1, wait 2 s, quit 0
 ##   --tour [out_dir]                 screenshot tour (needs a GPU)
 ##   --validate-levels N              generate and validate N levels per stratum
+##   --shots <dir>                    with a direct level: capture the build verification
+##                                    frames (spawn, corridor, exit room) and quit
 ## Both `--flag value` and `--flag=value` are accepted. Bad values warn and are ignored.
 
 ## GLOSSARY: the six strata ids.
@@ -22,6 +24,8 @@ var tour: bool = false
 var tour_dir: String = ""
 ## 0 when not given.
 var validate_levels: int = 0
+## Empty when not given.
+var shots_dir: String = ""
 
 
 ## The flags of this process (OS.get_cmdline_user_args()).
@@ -71,6 +75,12 @@ static func parse(args: PackedStringArray) -> CliArgs:
 			"--tour":
 				out.tour = true
 				out.tour_dir = value if not value.is_empty() else DEFAULT_TOUR_DIR
+				consumed = 2 if next_is_value else 1
+			"--shots":
+				if value.is_empty():
+					push_warning("CliArgs: --shots needs a directory")
+				else:
+					out.shots_dir = value
 				consumed = 2 if next_is_value else 1
 			"--validate-levels":
 				if value.is_valid_int() and value.to_int() > 0:
