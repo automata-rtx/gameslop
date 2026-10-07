@@ -18,3 +18,5 @@ shader_parameter/metallic = 0.0
 shader_parameter/normal_strength = 0.25
 shader_parameter/triplanar_scale = 0.5
 shader_parameter/noise_albedo_amount = 0.15
+shader_parameter/pattern_contrast = 1.6
+shader_parameter/print_amount = 0.14

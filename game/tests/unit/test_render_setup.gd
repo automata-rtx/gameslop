@@ -6,10 +6,15 @@ extends TestCase
 const SHADERS := {
 	"res://shaders/world_surface.gdshader": [&"albedo", &"albedo_secondary", &"pattern_mode", &"pattern_scale",
 			&"roughness", &"metallic", &"emission", &"emission_strength", &"noise_albedo", &"noise_normal",
-			&"normal_strength", &"triplanar_scale", &"held", &"soft", &"u_floor", &"jitter_floor"],
-	"res://shaders/coherence_post.gdshader": [&"sat", &"warmth", &"vig", &"line_color"],
-	"res://shaders/coherence_screen.gdshader": [&"ca", &"grain", &"scan", &"invert", &"flash", &"grain_time"],
+			&"normal_strength", &"triplanar_scale", &"held", &"soft", &"u_floor", &"jitter_floor",
+			&"pattern_contrast", &"print_amount"],
+	"res://shaders/coherence_post.gdshader": [&"line_color"],
+	"res://shaders/coherence_screen.gdshader": [&"ca", &"sat", &"warmth", &"grain", &"vig", &"scan", &"invert",
+			&"flash", &"black", &"ripple", &"grain_time"],
 }
+const INCLUDE := "res://shaders/include/coherence.gdshaderinc"
+const GLOBALS: Array[String] = ["g_coherence", "g_noclip_charge", "g_noclip_commit", "g_noclip_target",
+		"g_noclip_target_normal", "g_noclip_invalid", "g_null_pos", "g_null_radius", "g_time"]
 const HALLS_MATERIALS := ["carpet", "wallpaper", "ceiling_tile", "fixture_emissive", "soft_wall"]
 const HALLS := preload("res://data/strata/halls.tres")
 const SUBSTRATE := preload("res://data/strata/substrate.tres")
@@ -32,9 +37,11 @@ func test_shaders_compile_with_their_uniforms() -> void:
 			assert_contains(names, u, path)
 
 
-func test_world_shader_reads_the_six_globals_and_never_blends() -> void:
+func test_world_shader_reads_the_globals_and_never_blends() -> void:
 	var code := (load("res://shaders/world_surface.gdshader") as Shader).code
-	for g in ["g_coherence", "g_noclip_charge", "g_noclip_commit", "g_null_pos", "g_null_radius", "g_time"]:
+	assert_contains(code, "#include \"res://shaders/include/coherence.gdshaderinc\"")
+	code += (load(INCLUDE) as ShaderInclude).code
+	for g in GLOBALS:
 		assert_contains(code, "global uniform", g)
 		assert_contains(code, g)
 	assert_contains(code, "ALPHA_SCISSOR_THRESHOLD")
@@ -87,6 +94,7 @@ func test_noise_textures_respect_the_budget() -> void:
 		assert_not_null(tex, n)
 		assert_true(tex.width <= Tuning.WORLD_NOISE_TEXTURE_MAX and tex.height <= Tuning.WORLD_NOISE_TEXTURE_MAX, n)
 		assert_true(tex.seamless, n)
+		assert_eq(tex.width, Tuning.QUALITY_TEXTURE_SIZE_HIGH, "12 §3: Texture detail defaults to High")
 
 
 func test_environment_maps_stratum_data() -> void:

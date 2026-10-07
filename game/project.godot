@@ -178,6 +178,18 @@ g_noclip_commit={
 "type": "float",
 "value": 0.0
 }
+g_noclip_target={
+"type": "vec3",
+"value": Vector3(0, -1000, 0)
+}
+g_noclip_target_normal={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
+g_noclip_invalid={
+"type": "float",
+"value": 0.0
+}
 g_null_pos={
 "type": "vec3",
 "value": Vector3(0, -1000, 0)

@@ -92,7 +92,7 @@ Implemented by `Clock.hitstop(ms)`: `get_tree().paused = true` for N ms of wall-
 
 ## Interfaces
 
-- `CoherenceRenderer.pulse(kind)` kinds: `hit`, `noclip_commit`, `coherence_gain`, `dissolve`, `flash`.
+- `CoherenceRenderer.pulse(kind)` kinds: `hit`, `noclip_commit`, `coherence_gain`, `dissolve`, `flash` (Polaroid only), `ripple` (Landing), `drop` (floor commit, then again on the drop arrival). `CoherenceRenderer.set_static(amount)` for "Inside Static"; `set_noclip_invalid(on)` for "Noclip invalid".
 - `CameraRig`: `add_trauma(v)`, `fov_punch(delta_deg, up_ms, down_ms)`, `fov_hold(delta_deg)`, `set_bob_scale(v)`, `nod(pitch_deg)`, `roll_kick(deg)`.
 - `Clock.hitstop(ms)`.
 - `HUD` methods per `04`.

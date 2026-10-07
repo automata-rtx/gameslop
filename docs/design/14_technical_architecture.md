@@ -184,7 +184,7 @@ Profiling: the `godot-debugging-profiling` skill's approach; the debug overlay's
 
 ## 11. Global shader parameters
 
-Declared in `project.godot` under `[shader_globals]`: `g_coherence` (float 1.0), `g_noclip_charge` (float 0.0), `g_noclip_commit` (float 0.0), `g_null_pos` (vec3 0,−1000,0), `g_null_radius` (float 0.0), `g_time` (float). `CoherenceRenderer` writes them in `_process`.
+Declared in `project.godot` under `[shader_globals]`: `g_coherence` (float 1.0), `g_noclip_charge` (float 0.0), `g_noclip_commit` (float 0.0), `g_noclip_target` (vec3 0,−1000,0), `g_noclip_target_normal` (vec3 0,0,0), `g_noclip_invalid` (float 0.0), `g_null_pos` (vec3 0,−1000,0), `g_null_radius` (float 0.0), `g_time` (float). `CoherenceRenderer` writes them in `_process`. Shaders include them from `shaders/include/coherence.gdshaderinc`.
 
 ## 12. Security and robustness
 
@@ -203,4 +203,5 @@ Every system document's "Interfaces" section is the contract; this document owns
 - `GameState`: `is_run_active()`, `last_cause()`. Helper scripts `RunState` and `MetaState` live beside it.
 - `SettingsManager`: `REBINDABLE_ACTIONS`.
 - `CoherenceRenderer` (M1.5): `post_quad()`, `screen_layer()`, `pulse_frames(kind)`, read-only `post_params`, `reduce_noise`, `reduce_flashing`; it listens to `SettingsManager.changed` for `reduce_visual_noise` and `reduce_flashing`, and on `run_started` takes the start Coherence from `GameState.run.coherence`. Pure curves in `CoherencePost` (`game/src/core/coherence_post.gd`).
+- `CoherenceRenderer` (R3): `set_noclip_target(pos, normal)`, `set_noclip_invalid(on)`, `set_static(amount)`, pulse kinds `ripple` and `drop` (`drop` fired at the floor commit and again on the drop arrival), `heartbeat_phase()` and `heartbeat_bpm()` (AudioManager should lock the heartbeat sample to the phase), `apply_texture_detail(level)` (listens to the `texture_detail` setting), `register_viewport(vp)` / `unregister_viewport(vp)` / `registered_viewports()`. Viewports: the globals reach world shaders in every viewport already; the post stack grades only the main viewport, and a registered SubViewport (monitor, Polaroid) is only recorded for now. Grading SubViewport cameras is future work. The scene pass quad is visible only while Null is present. `SettingsManager.DEFAULTS` gains `reduce_visual_noise` and `reduce_flashing` (both false).
 - Rendering helpers (M1.5): `StratumEnvironment.build(data, preset) -> Environment`, `StratumEnvironment.apply_viewport_preset(viewport, preset)`, `DustMotes.create(particle_scale)` with `follow` (`game/src/lighting/`). Halls materials in `game/data/materials/halls/`.

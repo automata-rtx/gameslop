@@ -5,7 +5,8 @@ extends RefCounted
 ## Nothing here touches nodes, so every curve is unit-tested.
 
 ## Result keys, one per post shader uniform.
-const KEYS: Array[StringName] = [&"ca", &"sat", &"warmth", &"grain", &"vig", &"scan", &"invert", &"flash"]
+const KEYS: Array[StringName] = [&"ca", &"sat", &"warmth", &"grain", &"vig", &"scan", &"invert", &"flash",
+		&"black", &"ripple"]
 
 ## Frames a hit inversion or a white flash lasts (02 §4, 11 §3, 12 §6).
 const FLASH_FRAMES := Tuning.POST_PULSE_HIT_INVERT_FRAMES
@@ -32,10 +33,10 @@ static func base_grain(drain: float) -> float:
 
 
 ## 02 §4 step 4: lerp(0.15, 0.45, drain) plus up to 0.3 from threat, pulsing with the
-## heartbeat (03: 60 to 140 bpm by threat). `time_s` is wall-clock seconds.
-static func vignette(drain: float, threat: float, time_s: float) -> float:
-	var bpm := lerpf(Tuning.AUDIO_HEARTBEAT_MIN_BPM, Tuning.AUDIO_HEARTBEAT_MAX_BPM, threat)
-	var beat := 0.5 + 0.5 * cos(TAU * time_s * bpm / 60.0)
+## heartbeat. `beat_phase` is CoherenceRenderer's accumulated heartbeat phase (0..1, 0 on
+## the beat), so a rate change never jumps the pulse.
+static func vignette(drain: float, threat: float, beat_phase: float) -> float:
+	var beat := 0.5 + 0.5 * cos(TAU * beat_phase)
 	var threat_vig := Tuning.POST_THREAT_VIGNETTE_MAX * threat * lerpf(0.6, 1.0, beat)
 	return lerpf(Tuning.POST_VIGNETTE_MIN, Tuning.POST_VIGNETTE_MAX, drain) + threat_vig
 
@@ -52,10 +53,10 @@ static func expo_decay(age_s: float, duration_s: float) -> float:
 	return pow(2.0, -10.0 * age_s / duration_s)
 
 
-## 06 §8, 02 §4: held at 1.0 for the 250 ms pass, then decays over 300 ms.
-## Drives both g_noclip_commit and the post's commit pulse.
+## 06 §8, 11 §2, 02 §4: held at 1.0 through the 80 ms hitstop and the 250 ms pass, then
+## decays over 300 ms. Drives both g_noclip_commit and the post's commit pulse.
 static func commit_envelope(age_s: float) -> float:
-	var hold := Tuning.NOCLIP_PASS_TIME_MS / 1000.0
+	var hold := (Tuning.NOCLIP_COMMIT_HITSTOP_MS + Tuning.NOCLIP_PASS_TIME_MS) / 1000.0
 	if age_s < 0.0:
 		return 0.0
 	if age_s < hold:
@@ -68,6 +69,35 @@ static func dissolve_progress(age_s: float) -> float:
 	if age_s < 0.0 or is_inf(age_s):
 		return 0.0
 	return clampf(age_s / Tuning.POST_PULSE_DISSOLVE_TIME, 0.0, 1.0)
+
+
+## Landing ripple progress 0..1 over its duration; -1 when idle (11 §3).
+static func ripple_progress(age_s: float) -> float:
+	var dur := Tuning.POST_PULSE_RIPPLE_MS / 1000.0
+	if age_s < 0.0 or age_s >= dur:
+		return -1.0
+	return age_s / dur
+
+
+## The drop's black (11 §2, §3). `fall_age_s`: since the floor commit (INF when none);
+## `arrive_age_s`: since the drop arrival (INF when none). 1.2 s to black with grain, held
+## black until the arrival, then black to the world over 400 ms. The fade never starts
+## before the fall has run its 1.2 s; an arrival without a fall just fades in.
+static func drop_black(fall_age_s: float, arrive_age_s: float) -> float:
+	var fall := Tuning.NOCLIP_FLOOR_FALL_TIME
+	var fade := Tuning.DROP_ARRIVAL_FADE_MS / 1000.0
+	var falling := fall_age_s >= 0.0 and not is_inf(fall_age_s)
+	var arrived := arrive_age_s >= 0.0 and not is_inf(arrive_age_s)
+	if not arrived:
+		if not falling:
+			return 0.0
+		return clampf(fall_age_s / fall, 0.0, 1.0) if fall > 0.0 else 1.0
+	var since := arrive_age_s
+	if falling:
+		since = minf(arrive_age_s, fall_age_s - fall)
+	if since < 0.0:
+		return clampf(fall_age_s / fall, 0.0, 1.0) if falling else 1.0
+	return clampf(1.0 - since / fade, 0.0, 1.0)
 
 
 ## A 2-frame flash, or with reduce_flashing a 200 ms soft fade to 60% white (12 §6).
@@ -83,9 +113,11 @@ static func flash_amount(frames_since: int, age_s: float, reduce_flashing: bool)
 
 
 ## The full uniform set. `ages` maps pulse kind -> seconds since it fired (INF or < 0 when
-## never); `frames` maps kind -> process frames since it fired (-1 when never).
+## never), plus `drop_arrival`; `frames` maps kind -> process frames since it fired (-1 when
+## never). `beat_phase`: the heartbeat phase. `static_amount`: 0..1 inside Static's field.
 static func compute(coherence01: float, noclip_charge: float, threat: float, ages: Dictionary,
-		frames: Dictionary, time_s: float, reduce_noise: bool, reduce_flashing: bool) -> Dictionary:
+		frames: Dictionary, beat_phase: float, reduce_noise: bool, reduce_flashing: bool,
+		static_amount: float = 0.0) -> Dictionary:
 	var drain := drain_of(coherence01)
 	var hit_age: float = ages.get(&"hit", INF)
 	var hit := expo_decay(hit_age, Tuning.POST_PULSE_HIT_DECAY_MS / 1000.0)
@@ -101,6 +133,14 @@ static func compute(coherence01: float, noclip_charge: float, threat: float, age
 	var grain := base_grain(drain) + Tuning.POST_GRAIN_MAX * maxf(hit, commit)
 	grain = lerpf(grain, 1.0, dissolve)
 	var scan := maxf(base_scan(drain, noclip_charge), Tuning.POST_PULSE_NOCLIP_SCANLINE * commit)
+	# 02 §8, 11 §3: inside Static, grain to 0.6 and CA to 0.02 (never lower than without it).
+	var st := clampf(static_amount, 0.0, 1.0)
+	grain = lerpf(grain, maxf(grain, Tuning.POST_STATIC_GRAIN), st)
+	ca = lerpf(ca, maxf(ca, Tuning.POST_STATIC_CA), st)
+	# 11 §2-§3 drop: black with grain (the grain spike level, as for the commit).
+	var black := drop_black(ages.get(&"drop", INF), ages.get(&"drop_arrival", INF))
+	grain = maxf(grain, (Tuning.POST_GRAIN_MIN + Tuning.POST_GRAIN_MAX) * black)
+	var ripple := ripple_progress(ages.get(&"ripple", INF))
 
 	var invert := 0.0
 	var flash := 0.0
@@ -119,5 +159,6 @@ static func compute(coherence01: float, noclip_charge: float, threat: float, age
 		scan = 0.0
 	return {
 		&"ca": ca, &"sat": sat, &"warmth": Tuning.POST_PULSE_GAIN_WARMTH * gain, &"grain": grain,
-		&"vig": vignette(drain, threat, time_s), &"scan": scan, &"invert": invert, &"flash": flash,
+		&"vig": vignette(drain, threat, beat_phase), &"scan": scan, &"invert": invert, &"flash": flash,
+		&"black": black, &"ripple": ripple,
 	}
