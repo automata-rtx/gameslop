@@ -1,0 +1,611 @@
+{
+ "schema": 1,
+ "generator": "tools/audio/synth.py",
+ "rate": 48000,
+ "bits": 16,
+ "sounds": {
+  "foot_carpet": {
+   "group": "player",
+   "bus": "Footsteps",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/foot_carpet_v01.wav",
+    "res://assets/audio/player/foot_carpet_v02.wav",
+    "res://assets/audio/player/foot_carpet_v03.wav",
+    "res://assets/audio/player/foot_carpet_v04.wav",
+    "res://assets/audio/player/foot_carpet_v05.wav"
+   ],
+   "length_s": [
+    0.19425,
+    0.174833,
+    0.165021,
+    0.171813,
+    0.187583
+   ]
+  },
+  "foot_tile": {
+   "group": "player",
+   "bus": "Footsteps",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/foot_tile_v01.wav",
+    "res://assets/audio/player/foot_tile_v02.wav",
+    "res://assets/audio/player/foot_tile_v03.wav",
+    "res://assets/audio/player/foot_tile_v04.wav",
+    "res://assets/audio/player/foot_tile_v05.wav"
+   ],
+   "length_s": [
+    0.129708,
+    0.141437,
+    0.145229,
+    0.137333,
+    0.1315
+   ]
+  },
+  "foot_water": {
+   "group": "player",
+   "bus": "Footsteps",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/foot_water_v01.wav",
+    "res://assets/audio/player/foot_water_v02.wav",
+    "res://assets/audio/player/foot_water_v03.wav",
+    "res://assets/audio/player/foot_water_v04.wav",
+    "res://assets/audio/player/foot_water_v05.wav"
+   ],
+   "length_s": [
+    0.262958,
+    0.241104,
+    0.234,
+    0.247167,
+    0.231021
+   ]
+  },
+  "foot_concrete": {
+   "group": "player",
+   "bus": "Footsteps",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/foot_concrete_v01.wav",
+    "res://assets/audio/player/foot_concrete_v02.wav",
+    "res://assets/audio/player/foot_concrete_v03.wav",
+    "res://assets/audio/player/foot_concrete_v04.wav",
+    "res://assets/audio/player/foot_concrete_v05.wav"
+   ],
+   "length_s": [
+    0.139958,
+    0.153875,
+    0.136833,
+    0.150729,
+    0.130312
+   ]
+  },
+  "foot_raised_floor": {
+   "group": "player",
+   "bus": "Footsteps",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/foot_raised_floor_v01.wav",
+    "res://assets/audio/player/foot_raised_floor_v02.wav",
+    "res://assets/audio/player/foot_raised_floor_v03.wav",
+    "res://assets/audio/player/foot_raised_floor_v04.wav",
+    "res://assets/audio/player/foot_raised_floor_v05.wav"
+   ],
+   "length_s": [
+    0.184375,
+    0.195375,
+    0.182292,
+    0.186938,
+    0.164125
+   ]
+  },
+  "foot_substrate": {
+   "group": "player",
+   "bus": "Footsteps",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/foot_substrate_v01.wav",
+    "res://assets/audio/player/foot_substrate_v02.wav",
+    "res://assets/audio/player/foot_substrate_v03.wav",
+    "res://assets/audio/player/foot_substrate_v04.wav",
+    "res://assets/audio/player/foot_substrate_v05.wav"
+   ],
+   "length_s": [
+    0.098604,
+    0.103,
+    0.099542,
+    0.104521,
+    0.106146
+   ]
+  },
+  "sprint_breath_loop": {
+   "group": "player",
+   "bus": "Player",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/sprint_breath_loop_v01.wav"
+   ],
+   "length_s": [
+    4.444417
+   ],
+   "loop_frames": [
+    213331
+   ]
+  },
+  "stamina_empty_gasp": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/stamina_empty_gasp_v01.wav",
+    "res://assets/audio/player/stamina_empty_gasp_v02.wav",
+    "res://assets/audio/player/stamina_empty_gasp_v03.wav"
+   ],
+   "length_s": [
+    0.4275,
+    0.441396,
+    0.442833
+   ]
+  },
+  "crouch": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/crouch_v01.wav",
+    "res://assets/audio/player/crouch_v02.wav",
+    "res://assets/audio/player/crouch_v03.wav",
+    "res://assets/audio/player/crouch_v04.wav"
+   ],
+   "length_s": [
+    0.174187,
+    0.153167,
+    0.155188,
+    0.163958
+   ]
+  },
+  "flashlight_toggle": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/flashlight_toggle_v01.wav",
+    "res://assets/audio/player/flashlight_toggle_v02.wav",
+    "res://assets/audio/player/flashlight_toggle_v03.wav",
+    "res://assets/audio/player/flashlight_toggle_v04.wav"
+   ],
+   "length_s": [
+    0.052,
+    0.052,
+    0.052,
+    0.052
+   ]
+  },
+  "crank_loop": {
+   "group": "player",
+   "bus": "Player",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/crank_loop_v01.wav"
+   ],
+   "length_s": [
+    1.000021
+   ],
+   "loop_frames": [
+    48000
+   ]
+  },
+  "crank_whine": {
+   "group": "player",
+   "bus": "Player",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/crank_whine_v01.wav"
+   ],
+   "length_s": [
+    1.000021
+   ],
+   "loop_frames": [
+    48000
+   ],
+   "runtime": {
+    "pitch_min": 0.4444,
+    "pitch_max": 2.0,
+    "follows": "flashlight_charge"
+   }
+  },
+  "crank_full": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/crank_full_v01.wav",
+    "res://assets/audio/player/crank_full_v02.wav",
+    "res://assets/audio/player/crank_full_v03.wav"
+   ],
+   "length_s": [
+    0.162,
+    0.162,
+    0.162
+   ]
+  },
+  "noclip_charge": {
+   "group": "player",
+   "bus": "Player",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/noclip_charge_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ],
+   "runtime": {
+    "pitch_min": 0.5,
+    "pitch_max": 2.0,
+    "follows": "noclip_charge"
+   }
+  },
+  "noclip_commit": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/noclip_commit_v01.wav",
+    "res://assets/audio/player/noclip_commit_v02.wav",
+    "res://assets/audio/player/noclip_commit_v03.wav"
+   ],
+   "length_s": [
+    0.452,
+    0.452,
+    0.452
+   ]
+  },
+  "noclip_fall": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/noclip_fall_v01.wav",
+    "res://assets/audio/player/noclip_fall_v02.wav",
+    "res://assets/audio/player/noclip_fall_v03.wav"
+   ],
+   "length_s": [
+    1.25,
+    1.25,
+    1.25
+   ]
+  },
+  "noclip_fail": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/noclip_fail_v01.wav",
+    "res://assets/audio/player/noclip_fail_v02.wav",
+    "res://assets/audio/player/noclip_fail_v03.wav"
+   ],
+   "length_s": [
+    0.16,
+    0.16,
+    0.16
+   ]
+  },
+  "noclip_cancel": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/noclip_cancel_v01.wav",
+    "res://assets/audio/player/noclip_cancel_v02.wav",
+    "res://assets/audio/player/noclip_cancel_v03.wav"
+   ],
+   "length_s": [
+    0.12,
+    0.12,
+    0.12
+   ]
+  },
+  "drop_arrival": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/drop_arrival_v01.wav",
+    "res://assets/audio/player/drop_arrival_v02.wav",
+    "res://assets/audio/player/drop_arrival_v03.wav"
+   ],
+   "length_s": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "coherence_loss_tick": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/coherence_loss_tick_v01.wav",
+    "res://assets/audio/player/coherence_loss_tick_v02.wav",
+    "res://assets/audio/player/coherence_loss_tick_v03.wav"
+   ],
+   "length_s": [
+    0.014,
+    0.014,
+    0.014
+   ]
+  },
+  "coherence_gain": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/coherence_gain_v01.wav",
+    "res://assets/audio/player/coherence_gain_v02.wav",
+    "res://assets/audio/player/coherence_gain_v03.wav"
+   ],
+   "length_s": [
+    0.75,
+    0.75,
+    0.75
+   ]
+  },
+  "heartbeat": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/heartbeat_v01.wav",
+    "res://assets/audio/player/heartbeat_v02.wav",
+    "res://assets/audio/player/heartbeat_v03.wav"
+   ],
+   "length_s": [
+    0.32,
+    0.32,
+    0.32
+   ]
+  },
+  "error_contact_hit": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/error_contact_hit_v01.wav",
+    "res://assets/audio/player/error_contact_hit_v02.wav",
+    "res://assets/audio/player/error_contact_hit_v03.wav"
+   ],
+   "length_s": [
+    1.152,
+    1.152,
+    1.152
+   ]
+  },
+  "dissolve": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/dissolve_v01.wav",
+    "res://assets/audio/player/dissolve_v02.wav",
+    "res://assets/audio/player/dissolve_v03.wav"
+   ],
+   "length_s": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  "ui_move": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_move_v01.wav",
+    "res://assets/audio/ui/ui_move_v02.wav",
+    "res://assets/audio/ui/ui_move_v03.wav",
+    "res://assets/audio/ui/ui_move_v04.wav"
+   ],
+   "length_s": [
+    0.01,
+    0.01,
+    0.01,
+    0.01
+   ]
+  },
+  "ui_confirm": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_confirm_v01.wav",
+    "res://assets/audio/ui/ui_confirm_v02.wav",
+    "res://assets/audio/ui/ui_confirm_v03.wav"
+   ],
+   "length_s": [
+    0.062,
+    0.062,
+    0.062
+   ]
+  },
+  "ui_back": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_back_v01.wav",
+    "res://assets/audio/ui/ui_back_v02.wav",
+    "res://assets/audio/ui/ui_back_v03.wav"
+   ],
+   "length_s": [
+    0.062,
+    0.062,
+    0.062
+   ]
+  },
+  "ui_slider_step": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_slider_step_v01.wav",
+    "res://assets/audio/ui/ui_slider_step_v02.wav",
+    "res://assets/audio/ui/ui_slider_step_v03.wav"
+   ],
+   "length_s": [
+    0.022,
+    0.022,
+    0.022
+   ],
+   "runtime": {
+    "pitch_min": 0.75,
+    "pitch_max": 1.5,
+    "follows": "slider value"
+   }
+  },
+  "ui_glitch_transition": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_glitch_transition_v01.wav",
+    "res://assets/audio/ui/ui_glitch_transition_v02.wav",
+    "res://assets/audio/ui/ui_glitch_transition_v03.wav"
+   ],
+   "length_s": [
+    0.13,
+    0.13,
+    0.13
+   ]
+  },
+  "ui_title_boot": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_title_boot_v01.wav",
+    "res://assets/audio/ui/ui_title_boot_v02.wav",
+    "res://assets/audio/ui/ui_title_boot_v03.wav"
+   ],
+   "length_s": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  "ui_unlock": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_unlock_v01.wav",
+    "res://assets/audio/ui/ui_unlock_v02.wav",
+    "res://assets/audio/ui/ui_unlock_v03.wav"
+   ],
+   "length_s": [
+    0.3,
+    0.3,
+    0.3
+   ]
+  },
+  "ui_summary_stamp": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_summary_stamp_v01.wav",
+    "res://assets/audio/ui/ui_summary_stamp_v02.wav",
+    "res://assets/audio/ui/ui_summary_stamp_v03.wav"
+   ],
+   "length_s": [
+    0.302,
+    0.302,
+    0.302
+   ]
+  },
+  "ui_shutter": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_shutter_v01.wav",
+    "res://assets/audio/ui/ui_shutter_v02.wav",
+    "res://assets/audio/ui/ui_shutter_v03.wav"
+   ],
+   "length_s": [
+    0.07,
+    0.07,
+    0.07
+   ]
+  },
+  "ui_type": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_type_v01.wav",
+    "res://assets/audio/ui/ui_type_v02.wav",
+    "res://assets/audio/ui/ui_type_v03.wav",
+    "res://assets/audio/ui/ui_type_v04.wav"
+   ],
+   "length_s": [
+    0.01,
+    0.01,
+    0.01,
+    0.01
+   ]
+  },
+  "ui_hold_tick": {
+   "group": "ui",
+   "bus": "UI",
+   "loop": false,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ui/ui_hold_tick_v01.wav",
+    "res://assets/audio/ui/ui_hold_tick_v02.wav",
+    "res://assets/audio/ui/ui_hold_tick_v03.wav"
+   ],
+   "length_s": [
+    0.022,
+    0.022,
+    0.022
+   ]
+  }
+ }
+}

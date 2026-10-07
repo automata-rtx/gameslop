@@ -1,0 +1,487 @@
+{
+ "schema": 1,
+ "seed": 20261007,
+ "format": {"rate": 48000, "bits": 16},
+ "groups": {
+  "player":   {"dir": "player",   "bus": "Player",   "channels": 1, "ceiling_db": -1.0, "variants": [3, 5], "variants_loop": [1, 3], "dur_range": [0.005, 6.0]},
+  "ui":       {"dir": "ui",       "bus": "UI",       "channels": 2, "ceiling_db": -1.0, "variants": [3, 5], "variants_loop": [1, 3], "dur_range": [0.004, 2.5]},
+  "world":    {"dir": "world",    "bus": "Interact", "channels": 1, "ceiling_db": -1.0, "variants": [3, 5], "variants_loop": [1, 3], "dur_range": [0.005, 12.0]},
+  "ambience": {"dir": "ambience", "bus": "Ambience", "channels": 2, "ceiling_db": -1.0, "variants": [3, 5], "variants_loop": [1, 3], "dur_range": [0.005, 30.0]},
+  "errors":   {"dir": "errors",   "bus": "Errors",   "channels": 1, "ceiling_db": -6.0, "variants": [3, 5], "variants_loop": [1, 3], "dur_range": [0.005, 12.0]},
+  "music":    {"dir": "music",    "bus": "Music",    "channels": 2, "ceiling_db": -1.0, "variants": [1, 5], "variants_loop": [1, 3], "dur_range": [1.0, 60.0]}
+ },
+ "recipes": {
+
+  "foot_carpet": {
+   "group": "player", "bus": "Footsteps", "dur": 0.18, "variants": 5,
+   "jitter": {"pitch": 0.06, "time": 0.008, "gain_db": 1.5, "dur": 0.1},
+   "norm": {"krms_db": -14},
+   "note": "03: brown noise burst 70 ms, LP 900 Hz, soft attack. Heel then a softer toe 55 ms later, a low body thump, a faint fabric scuff.",
+   "layers": [
+    {"src": "noise", "color": "brown", "dur": 0.07, "peak_db": 0, "env": {"type": "adsr", "a": 0.008, "d": 0.025, "s": 0.45, "r": 0.035}, "chain": [{"fx": "lp", "f": 900, "q": 0.6}]},
+    {"src": "sine", "freq": 95, "dur": 0.07, "peak_db": -10, "env": {"type": "exp", "a": 0.004, "t60": 0.07}},
+    {"src": "noise", "color": "brown", "at": 0.055, "dur": 0.07, "peak_db": -6, "env": {"type": "adsr", "a": 0.006, "d": 0.02, "s": 0.35, "r": 0.04}, "chain": [{"fx": "lp", "f": 750, "q": 0.6}]},
+    {"src": "noise", "color": "pink", "at": 0.01, "dur": 0.1, "peak_db": -22, "env": {"type": "adsr", "a": 0.015, "d": 0.03, "s": 0.3, "r": 0.05}, "chain": [{"fx": "bp", "f": 2600, "bw": 2200}]}
+   ],
+   "fx": [{"fx": "hp", "f": 110, "track": false}],
+   "expect": {"centroid": [120, 600]}
+  },
+
+  "foot_tile": {
+   "group": "player", "bus": "Footsteps", "dur": 0.14, "variants": 5, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "time": 0.006, "gain_db": 1.5, "dur": 0.1},
+   "norm": {"krms_db": -14},
+   "note": "03: white noise click 20 ms + sine 1.8 kHz 15 ms, HP 400 Hz. A hard heel click with a ceramic tink under it (1.8 kHz plus an inharmonic 2.9 kHz plate mode) and a little body, then the toe. Click and tink ring longer than the table (35 ms, 90 ms) so the step carries the -14 dB walk level of 03 §6 rule 1 without crushing the click.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.035, "peak_db": 0, "env": {"type": "exp", "a": 0.0005, "t60": 0.05}, "chain": [{"fx": "bp", "f": 2600, "q": 0.8}, {"fx": "drive", "db": 12}]},
+    {"src": "sine", "freq": 1800, "dur": 0.1, "peak_db": -6, "env": {"type": "exp", "a": 0.0005, "t60": 0.09}},
+    {"src": "sine", "freq": 2930, "dur": 0.025, "peak_db": -18, "env": {"type": "exp", "a": 0.0005, "t60": 0.012}},
+    {"src": "noise", "color": "pink", "dur": 0.09, "peak_db": -2, "env": {"type": "exp", "a": 0.001, "t60": 0.08}, "chain": [{"fx": "bp", "f": 700, "q": 1.0}]},
+    {"src": "noise", "color": "white", "at": 0.05, "dur": 0.015, "peak_db": -5, "env": {"type": "exp", "a": 0.0005, "t60": 0.015}, "chain": [{"fx": "bp", "f": 3000, "q": 0.8}, {"fx": "drive", "db": 6}]},
+    {"src": "sine", "freq": 1800, "at": 0.05, "dur": 0.02, "peak_db": -16, "env": {"type": "exp", "a": 0.0005, "t60": 0.012}}
+   ],
+   "fx": [{"fx": "hp", "f": 400, "track": false}],
+   "expect": {"centroid": [1500, 4500]}
+  },
+
+  "foot_water": {
+   "group": "player", "bus": "Footsteps", "dur": 0.24, "variants": 5, "lead": 0.002,
+   "jitter": {"pitch": 0.06, "time": 0.01, "gain_db": 1.5, "dur": 0.1},
+   "norm": {"krms_db": -11},
+   "note": "03: tile step + noise band 2 kHz / 1.5 kHz bandwidth 120 ms with a ripple envelope; louder than dry steps. A low plunge and three rising bubble chirps make it read as water rather than hiss.",
+   "layers": [
+    {"src": "ref", "ref": "foot_tile", "peak_db": -9},
+    {"src": "noise", "color": "white", "at": 0.005, "dur": 0.12, "peak_db": 0, "env": {"type": "adsr", "a": 0.006, "d": 0.05, "s": 0.4, "r": 0.06}, "chain": [{"fx": "bp", "f": 2000, "bw": 1500}, {"fx": "am", "wave": "random", "freq": 45, "depth": 0.75}]},
+    {"src": "noise", "color": "pink", "dur": 0.08, "peak_db": -5, "env": {"type": "exp", "a": 0.004, "t60": 0.08}, "chain": [{"fx": "lp", "f": 500, "q": 0.9}]},
+    {"src": "sine", "freq": [1300, 2600], "at": 0.06, "dur": 0.014, "peak_db": -12, "env": {"type": "exp", "a": 0.001, "t60": 0.014}, "repeat": {"count": 3, "every": 0.04, "jitter": 0.012, "gain_jitter_db": 4, "pitch_jitter": 0.25}}
+   ],
+   "fx": [{"fx": "hp", "f": 120, "track": false}],
+   "expect": {"centroid": [900, 3500]}
+  },
+
+  "foot_concrete": {
+   "group": "player", "bus": "Footsteps", "dur": 0.14, "variants": 5, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "time": 0.006, "gain_db": 1.5, "dur": 0.1},
+   "norm": {"krms_db": -14},
+   "note": "03: noise burst 40 ms, BP 1.2 kHz, short tail. Gritty heel, a low knock, a sandy scuff, the toe, and an 11 ms slap off the nearest pillar.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.04, "peak_db": 0, "env": {"type": "exp", "a": 0.0008, "t60": 0.06}, "chain": [{"fx": "bp", "f": 1200, "q": 0.9, "order": 4}, {"fx": "drive", "db": 9}]},
+    {"src": "sine", "freq": 140, "dur": 0.05, "peak_db": -10, "env": {"type": "exp", "a": 0.001, "t60": 0.04}},
+    {"src": "noise", "color": "pink", "at": 0.025, "dur": 0.05, "peak_db": -16, "env": {"type": "adsr", "a": 0.008, "d": 0.02, "s": 0.5, "r": 0.02}, "chain": [{"fx": "bp", "f": 4200, "bw": 3000}, {"fx": "am", "wave": "random", "freq": 150, "depth": 0.85}]},
+    {"src": "noise", "color": "white", "at": 0.045, "dur": 0.03, "peak_db": -5, "env": {"type": "exp", "a": 0.0008, "t60": 0.04}, "chain": [{"fx": "bp", "f": 1500, "q": 0.9, "order": 4}, {"fx": "drive", "db": 9}]}
+   ],
+   "fx": [{"fx": "delay", "time": 0.011, "fb": 0.25, "mix": 0.18, "damp": 3500}],
+   "expect": {"centroid": [700, 2600]}
+  },
+
+  "foot_raised_floor": {
+   "group": "player", "bus": "Footsteps", "dur": 0.18, "variants": 5, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "time": 0.006, "gain_db": 1.5, "dur": 0.1},
+   "norm": {"krms_db": -14},
+   "note": "03: concrete + hollow resonance sine 180 Hz 60 ms. Two panel modes (180, 291 Hz) and a small double rattle as the tile settles in its frame.",
+   "layers": [
+    {"src": "ref", "ref": "foot_concrete", "peak_db": 0},
+    {"src": "sine", "freq": 180, "dur": 0.09, "peak_db": -3, "env": {"type": "exp", "a": 0.002, "t60": 0.09}},
+    {"src": "sine", "freq": 291, "dur": 0.06, "peak_db": -11, "env": {"type": "exp", "a": 0.002, "t60": 0.05}},
+    {"src": "noise", "color": "white", "at": 0.028, "dur": 0.006, "peak_db": -14, "env": {"type": "exp", "a": 0.0003, "t60": 0.005}, "chain": [{"fx": "hp", "f": 2500}], "repeat": {"count": 2, "every": 0.011, "jitter": 0.003, "gain_jitter_db": 3}}
+   ],
+   "expect": {"centroid": [250, 1500], "peak_hz": [150, 320]}
+  },
+
+  "foot_substrate": {
+   "group": "player", "bus": "Footsteps", "dur": 0.1, "variants": 5, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0, "dur": 0.05},
+   "norm": {"krms_db": -14},
+   "note": "03: tile click + 1 kHz square blip 10 ms, bit-crushed. The steps sound synthetic: identical heel and toe blips, 6-bit, held to 12 kHz.",
+   "layers": [
+    {"src": "ref", "ref": "foot_tile", "dur": 0.1, "peak_db": -3},
+    {"src": "square", "freq": 1000, "dur": 0.01, "peak_db": -5, "env": {"type": "adsr", "a": 0.0005, "d": 0.004, "s": 0.6, "r": 0.003}},
+    {"src": "square", "freq": 1000, "at": 0.05, "dur": 0.01, "peak_db": -11, "env": {"type": "adsr", "a": 0.0005, "d": 0.004, "s": 0.6, "r": 0.003}}
+   ],
+   "fx": [{"fx": "drive", "db": 9}, {"fx": "crush", "bits": 6, "hold": 4}, {"fx": "lp", "f": 9000, "track": false}],
+   "expect": {"centroid": [900, 6000]}
+  },
+
+  "sprint_breath_loop": {
+   "group": "player", "dur": 4.4444, "loop": true, "variants": 1,
+   "norm": {"lufs": -26},
+   "note": "03: pink noise shaped by a 0.9 Hz LFO, LP 1.5 kHz. Exhale (darker, louder) and inhale (brighter, softer) as two shaped phases of the 0.9 Hz cycle; 4 breaths per loop under a slow random depth so no two breaths match. AudioManager fades it in over 2 s of sprinting.",
+   "layers": [
+    {"src": "noise", "color": "pink", "peak_db": 0, "chain": [{"fx": "lp", "f": 1500, "q": 0.6}, {"fx": "peak", "f": 700, "q": 1.2, "gain_db": 5}, {"fx": "am", "wave": "shape", "freq": 0.9, "depth": 1.0, "points": [[0, 0.04], [0.06, 0.95], [0.16, 1.0], [0.4, 0.12], [0.5, 0.04], [1.0, 0.04]]}]},
+    {"src": "noise", "color": "pink", "peak_db": -5, "chain": [{"fx": "bp", "f": 2300, "bw": 1800}, {"fx": "am", "wave": "shape", "freq": 0.9, "depth": 1.0, "points": [[0, 0.02], [0.5, 0.02], [0.58, 0.8], [0.8, 1.0], [0.95, 0.05], [1.0, 0.02]]}]}
+   ],
+   "fx": [{"fx": "am", "wave": "random", "freq": 0.45, "depth": 0.35}, {"fx": "hp", "f": 90}]
+  },
+
+  "stamina_empty_gasp": {
+   "group": "player", "dur": 0.42, "variants": 3,
+   "jitter": {"pitch": 0.05, "time": 0.01, "gain_db": 1.0, "dur": 0.06},
+   "norm": {"lufs": -20},
+   "note": "03: breath burst 400 ms, HP 300 Hz. A sharp inhale whose formant rises (1.3 to 2.4 kHz), an airy hiss over it, a throat-catch at the onset.",
+   "layers": [
+    {"src": "noise", "color": "pink", "dur": 0.4, "peak_db": 0, "env": {"type": "adsr", "a": 0.035, "d": 0.12, "s": 0.55, "r": 0.2}, "chain": [{"fx": "bp", "f": [1300, 2400], "q": 1.3}]},
+    {"src": "noise", "color": "white", "dur": 0.4, "peak_db": -9, "env": {"type": "adsr", "a": 0.05, "d": 0.1, "s": 0.5, "r": 0.2}, "chain": [{"fx": "bp", "f": [3000, 4500], "q": 1.0}]},
+    {"src": "noise", "color": "pink", "dur": 0.04, "peak_db": -8, "env": {"type": "exp", "a": 0.002, "t60": 0.04}, "chain": [{"fx": "bp", "f": 900, "q": 2.0}]}
+   ],
+   "fx": [{"fx": "hp", "f": 300, "track": false}],
+   "expect": {"centroid": [1300, 4000]}
+  },
+
+  "crouch": {
+   "group": "player", "dur": 0.17, "variants": 4,
+   "jitter": {"pitch": 0.07, "time": 0.01, "gain_db": 1.5, "dur": 0.1},
+   "norm": {"lufs": -26},
+   "note": "03: cloth rustle, pink noise 150 ms, BP 2 kHz. Crinkle grains (random AM at 70 Hz) over a soft low whoosh of the body moving. Plays down and up.",
+   "layers": [
+    {"src": "noise", "color": "pink", "dur": 0.15, "peak_db": 0, "env": {"type": "adsr", "a": 0.025, "d": 0.05, "s": 0.55, "r": 0.06}, "chain": [{"fx": "bp", "f": 2000, "q": 0.8}, {"fx": "am", "wave": "random", "freq": 70, "depth": 0.7}]},
+    {"src": "noise", "color": "brown", "dur": 0.16, "peak_db": -9, "env": {"type": "adsr", "a": 0.04, "d": 0.05, "s": 0.5, "r": 0.06}, "chain": [{"fx": "lp", "f": 450}]}
+   ],
+   "fx": [{"fx": "hp", "f": 120, "track": false}],
+   "expect": {"centroid": [900, 3500]}
+  },
+
+  "flashlight_toggle": {
+   "group": "player", "dur": 0.05, "variants": 4, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.002, "gain_db": 1.0},
+   "norm": {"peak_db": -5},
+   "note": "03: relay click, square 2.5 kHz 4 ms + noise 10 ms. Snap, a plastic housing resonance, and the spring's second click 12 ms later. Also the relay click in ui_title_boot.",
+   "layers": [
+    {"src": "square", "freq": 2500, "dur": 0.004, "peak_db": 0, "env": {"type": "exp", "a": 0.0003, "t60": 0.005}},
+    {"src": "noise", "color": "white", "dur": 0.01, "peak_db": -3, "env": {"type": "exp", "a": 0.0003, "t60": 0.008}, "chain": [{"fx": "bp", "f": 3500, "q": 0.9}]},
+    {"src": "sine", "freq": 900, "dur": 0.02, "peak_db": -12, "env": {"type": "exp", "a": 0.0005, "t60": 0.015}},
+    {"src": "noise", "color": "white", "at": 0.012, "dur": 0.006, "peak_db": -8, "env": {"type": "exp", "a": 0.0003, "t60": 0.005}, "chain": [{"fx": "bp", "f": 4500, "q": 1.2}]}
+   ],
+   "fx": [{"fx": "hp", "f": 250, "track": false}],
+   "expect": {"centroid": [1800, 6000]}
+  },
+
+  "crank_loop": {
+   "group": "player", "dur": 1.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -22},
+   "note": "03 crank loop, ratchet part: a 12 Hz click train (square 3 kHz 3 ms) with a noisy tick, a pawl knock, and a gear grind turning at the same 12 Hz. The whine is crank_whine, a separate loop, so its pitch can follow charge without speeding up the ratchet.",
+   "layers": [
+    {"src": "square", "freq": 3000, "dur": 0.003, "peak_db": 0, "env": {"type": "exp", "a": 0.0003, "t60": 0.004}, "repeat": {"every": 0.08333, "jitter": 0.002, "gain_jitter_db": 2.5}},
+    {"src": "noise", "color": "white", "dur": 0.006, "peak_db": -4, "env": {"type": "exp", "a": 0.0003, "t60": 0.006}, "chain": [{"fx": "bp", "f": 4500, "q": 1.0}], "repeat": {"every": 0.08333, "jitter": 0.002, "gain_jitter_db": 3}},
+    {"src": "sine", "freq": 1150, "dur": 0.015, "peak_db": -6, "env": {"type": "exp", "a": 0.0005, "t60": 0.012}, "repeat": {"every": 0.08333, "jitter": 0.002, "gain_jitter_db": 2}},
+    {"src": "noise", "color": "brown", "peak_db": -10, "chain": [{"fx": "bp", "f": 320, "q": 1.8}, {"fx": "am", "wave": "sine", "freq": 12, "depth": 0.6}]}
+   ],
+   "fx": [{"fx": "hp", "f": 150}],
+   "expect": {"centroid": [1500, 6000]}
+  },
+
+  "crank_whine": {
+   "group": "player", "dur": 1.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -26},
+   "runtime": {"pitch_min": 0.4444, "pitch_max": 2.0, "follows": "flashlight_charge"},
+   "note": "03 crank loop, whine part: a dynamo whine rendered at 450 Hz so pitch_scale 0.444 to 2.0 covers 200 to 900 Hz; a soft second harmonic and a 12 Hz flutter tied to the crank's turning.",
+   "layers": [
+    {"src": "sine", "freq": 450, "peak_db": 0},
+    {"src": "triangle", "freq": 900, "peak_db": -16},
+    {"src": "noise", "color": "pink", "peak_db": -30, "chain": [{"fx": "bp", "f": 1800, "q": 2.0}]}
+   ],
+   "fx": [{"fx": "am", "wave": "sine", "freq": 12, "depth": 0.2}],
+   "expect": {"peak_hz": [440, 460]}
+  },
+
+  "crank_full": {
+   "group": "player", "dur": 0.16, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.03, "time": 0.002, "gain_db": 1.0},
+   "norm": {"peak_db": -6},
+   "note": "03: the click train stops; one bright click 5 kHz. A ringing ting so it reads as 'full', over a small clunk.",
+   "layers": [
+    {"src": "square", "freq": 5000, "dur": 0.004, "peak_db": 0, "env": {"type": "exp", "a": 0.0002, "t60": 0.004}},
+    {"src": "noise", "color": "white", "dur": 0.006, "peak_db": -6, "env": {"type": "exp", "a": 0.0002, "t60": 0.005}, "chain": [{"fx": "hp", "f": 5000}]},
+    {"src": "sine", "freq": 5000, "dur": 0.15, "peak_db": -6, "env": {"type": "exp", "a": 0.0005, "t60": 0.14}},
+    {"src": "sine", "freq": 7400, "dur": 0.08, "peak_db": -16, "env": {"type": "exp", "a": 0.0005, "t60": 0.06}},
+    {"src": "sine", "freq": 220, "dur": 0.04, "peak_db": -12, "env": {"type": "exp", "a": 0.001, "t60": 0.03}}
+   ],
+   "expect": {"centroid": [3000, 8000]}
+  },
+
+  "noclip_charge": {
+   "group": "player", "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -20},
+   "runtime": {"pitch_min": 0.5, "pitch_max": 2.0, "follows": "noclip_charge"},
+   "note": "03: sine cluster (3 detuned sines, 110 Hz) rising to 440 Hz over the charge + a rising bit-crushed noise band. Rendered at 220 Hz so pitch_scale 0.5 to 2.0 sweeps 110 to 440 Hz with the charge; the crushed band and a 6 Hz scanline shimmer rise with it.",
+   "layers": [
+    {"src": "sine", "freq": 220, "detune": [-14, 0, 11], "peak_db": 0},
+    {"src": "sine", "freq": 110, "peak_db": -15},
+    {"src": "noise", "color": "white", "peak_db": -12, "chain": [{"fx": "bp", "f": 1800, "q": 3.0}, {"fx": "crush", "bits": 5, "hold": 6}, {"fx": "am", "wave": "random", "freq": 25, "depth": 0.5}, {"fx": "lp", "f": 6000}]}
+   ],
+   "fx": [{"fx": "am", "wave": "sine", "freq": 6, "depth": 0.15}],
+   "expect": {"peak_hz": [210, 230]}
+  },
+
+  "noclip_commit": {
+   "group": "player", "dur": 0.45, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0},
+   "norm": {"rms_db": -11},
+   "note": "03: sub thump (45 Hz decaying 250 ms) + digital tear (white noise through an 8-bit crush, 120 ms) + a 60 ms silence gap. The gap runs 20 to 80 ms, inside the 80 ms hitstop: the impact, then the frozen world is silent, then the tear resumes as the pass begins.",
+   "layers": [
+    {"src": "sine", "freq": [75, 42], "dur": 0.32, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.25}, "chain": [{"fx": "drive", "db": 6}]},
+    {"src": "noise", "color": "white", "dur": 0.2, "peak_db": -2, "env": {"type": "adsr", "a": 0.001, "d": 0.03, "s": 0.7, "r": 0.06}, "chain": [{"fx": "bp", "f": [6000, 900], "q": 0.7}, {"fx": "crush", "bits": 8, "hold": 6}, {"fx": "drive", "db": 12}, {"fx": "am", "wave": "square", "freq": 55, "depth": 0.6}]},
+    {"src": "noise", "color": "white", "dur": 0.004, "peak_db": -4, "env": {"type": "exp", "a": 0.0002, "t60": 0.004}}
+   ],
+   "fx": [{"fx": "gap", "at": 0.018, "dur": 0.06}, {"fx": "hp", "f": 30, "track": false}],
+   "expect": {"centroid": [300, 4000]}
+  },
+
+  "noclip_fall": {
+   "group": "player", "dur": 1.25, "variants": 3,
+   "jitter": {"pitch": 0.04, "gain_db": 1.0},
+   "norm": {"lufs": -20},
+   "note": "11: the floor commit plays noclip_commit plus a falling sine during the 1.2 s black: 600 to 55 Hz with a slow wobble, over a closing wind band.",
+   "layers": [
+    {"src": "sine", "freq": [600, 55], "fm": {"freq": 5, "dev": 6}, "peak_db": 0, "env": {"type": "adsr", "a": 0.08, "d": 0.3, "s": 0.8, "r": 0.4}},
+    {"src": "noise", "color": "pink", "peak_db": -9, "env": {"type": "adsr", "a": 0.2, "d": 0.3, "s": 0.7, "r": 0.4}, "chain": [{"fx": "bp", "f": [2200, 250], "q": 1.5}]}
+   ],
+   "fx": [{"fx": "hp", "f": 35, "track": false}]
+  },
+
+  "noclip_fail": {
+   "group": "player", "dur": 0.16, "variants": 3,
+   "jitter": {"pitch": 0.03, "gain_db": 1.0},
+   "norm": {"lufs": -22},
+   "note": "03: short descending sine 300 to 120 Hz, 150 ms, dull (low-passed, no transient). Also the invalid-target tone (11).",
+   "layers": [
+    {"src": "sine", "freq": [300, 120], "dur": 0.15, "peak_db": 0, "env": {"type": "adsr", "a": 0.006, "d": 0.04, "s": 0.7, "r": 0.06}},
+    {"src": "triangle", "freq": [300, 120], "dur": 0.15, "peak_db": -10, "env": {"type": "adsr", "a": 0.006, "d": 0.04, "s": 0.7, "r": 0.06}}
+   ],
+   "fx": [{"fx": "lp", "f": 600, "q": 0.6, "track": false}],
+   "expect": {"centroid": [100, 450]}
+  },
+
+  "noclip_cancel": {
+   "group": "player", "dur": 0.12, "variants": 3,
+   "jitter": {"pitch": 0.03, "gain_db": 1.0},
+   "norm": {"lufs": -24},
+   "note": "06 §8 and 11: releasing early cancels with a short descending tone as the preview collapses (100 ms). Softer than noclip_fail, with a trace of the charge's crushed band.",
+   "layers": [
+    {"src": "sine", "freq": [440, 220], "dur": 0.11, "peak_db": 0, "env": {"type": "adsr", "a": 0.004, "d": 0.03, "s": 0.6, "r": 0.05}},
+    {"src": "noise", "color": "white", "dur": 0.1, "peak_db": -12, "env": {"type": "exp", "a": 0.002, "t60": 0.1}, "chain": [{"fx": "bp", "f": [1800, 500], "q": 3.0}, {"fx": "crush", "bits": 5, "hold": 6}]}
+   ],
+   "fx": [{"fx": "lp", "f": 3000, "track": false}]
+  },
+
+  "drop_arrival": {
+   "group": "player", "dur": 1.0, "variants": 3,
+   "jitter": {"pitch": 0.04, "gain_db": 1.0},
+   "norm": {"lufs": -22},
+   "note": "11 arrival (drop): a sub settle as black and grain give way to the new level, with a low rumble and a little crushed grain.",
+   "layers": [
+    {"src": "sine", "freq": [55, 38], "peak_db": 0, "env": {"type": "exp", "a": 0.03, "t60": 0.9}, "chain": [{"fx": "drive", "db": 4}]},
+    {"src": "noise", "color": "brown", "peak_db": -6, "env": {"type": "adsr", "a": 0.06, "d": 0.3, "s": 0.3, "r": 0.5}, "chain": [{"fx": "lp", "f": 180}]},
+    {"src": "noise", "color": "white", "at": 0.02, "dur": 0.5, "peak_db": -20, "env": {"type": "exp", "a": 0.01, "t60": 0.5}, "chain": [{"fx": "crush", "bits": 6, "hold": 8}, {"fx": "hp", "f": 1500}]}
+   ],
+   "fx": [{"fx": "hp", "f": 28, "track": false}]
+  },
+
+  "coherence_loss_tick": {
+   "group": "player", "dur": 0.012, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.02, "gain_db": 0.5},
+   "norm": {"peak_db": -12},
+   "note": "03: 1.2 kHz square blip 8 ms; played per Coherence point lost, rate-limited to 20 Hz.",
+   "layers": [
+    {"src": "square", "freq": 1200, "dur": 0.01, "phase": 0.0, "env": {"type": "adsr", "a": 0.0005, "d": 0.002, "s": 0.75, "r": 0.003}}
+   ],
+   "fx": [{"fx": "lp", "f": 7000, "track": false}],
+   "expect": {"peak_hz": [1140, 1260]}
+  },
+
+  "coherence_gain": {
+   "group": "player", "dur": 0.75, "variants": 3,
+   "jitter": {"time": 0.006, "gain_db": 1.0},
+   "norm": {"lufs": -18},
+   "note": "03: warm chord, sines 220/330/440 Hz, 600 ms, soft. Strummed 15 ms apart, each voice a detuned pair for warmth, a whisper of triangle for body, low-passed.",
+   "layers": [
+    {"src": "sine", "freq": 220, "detune": [-4, 4], "dur": 0.7, "peak_db": 0, "env": {"type": "adsr", "a": 0.06, "d": 0.2, "s": 0.65, "r": 0.3}},
+    {"src": "sine", "freq": 330, "detune": [-4, 4], "at": 0.015, "dur": 0.68, "peak_db": -2, "env": {"type": "adsr", "a": 0.06, "d": 0.2, "s": 0.65, "r": 0.3}},
+    {"src": "sine", "freq": 440, "detune": [-4, 4], "at": 0.03, "dur": 0.66, "peak_db": -4, "env": {"type": "adsr", "a": 0.06, "d": 0.2, "s": 0.6, "r": 0.3}},
+    {"src": "triangle", "freq": 220, "dur": 0.7, "peak_db": -18, "env": {"type": "adsr", "a": 0.08, "d": 0.2, "s": 0.6, "r": 0.3}}
+   ],
+   "fx": [{"fx": "lp", "f": 2500, "track": false}],
+   "expect": {"peak_hz": [210, 450]}
+  },
+
+  "heartbeat": {
+   "group": "player", "dur": 0.32, "variants": 3,
+   "jitter": {"pitch": 0.03, "time": 0.006, "gain_db": 1.0},
+   "norm": {"lufs": -20},
+   "note": "03: two sine thumps 55 Hz (90 ms, 70 ms) spaced 180 ms; AudioManager retriggers it at 60 to 140 bpm by threat. Each thump drops in pitch around 55 Hz; soft saturation adds the 110 Hz harmonic so small speakers still carry it.",
+   "layers": [
+    {"src": "sine", "freq": [62, 50], "dur": 0.09, "peak_db": 0, "env": {"type": "exp", "a": 0.006, "t60": 0.09}},
+    {"src": "sine", "freq": [66, 54], "at": 0.18, "dur": 0.07, "peak_db": -3, "env": {"type": "exp", "a": 0.005, "t60": 0.07}}
+   ],
+   "fx": [{"fx": "drive", "db": 8}, {"fx": "lp", "f": 320, "track": false}, {"fx": "hp", "f": 30, "track": false}],
+   "expect": {"peak_hz": [40, 70]}
+  },
+
+  "error_contact_hit": {
+   "group": "player", "dur": 1.15, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0},
+   "norm": {"rms_db": -8},
+   "note": "03: the noclip commit tear at 2x length (240 ms) + sub 40 Hz + a 1 s decaying noise band at 400 Hz. The bite.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.24, "peak_db": -3, "env": {"type": "adsr", "a": 0.001, "d": 0.05, "s": 0.7, "r": 0.1}, "chain": [{"fx": "bp", "f": [6000, 700], "q": 0.7}, {"fx": "crush", "bits": 8, "hold": 6}, {"fx": "drive", "db": 12}, {"fx": "am", "wave": "square", "freq": 32, "depth": 0.6}]},
+    {"src": "sine", "freq": [62, 38], "dur": 0.8, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.7}, "chain": [{"fx": "drive", "db": 6}]},
+    {"src": "noise", "color": "pink", "dur": 1.1, "peak_db": -5, "env": {"type": "exp", "a": 0.004, "t60": 1.0}, "chain": [{"fx": "bp", "f": 400, "q": 2.0}]},
+    {"src": "noise", "color": "white", "dur": 0.004, "peak_db": -4, "env": {"type": "exp", "a": 0.0002, "t60": 0.004}}
+   ],
+   "fx": [{"fx": "hp", "f": 28, "track": false}]
+  },
+
+  "dissolve": {
+   "group": "player", "dur": 1.5, "variants": 3, "fade_out": 0.003,
+   "jitter": {"pitch": 0.03, "gain_db": 0.5},
+   "norm": {"lufs": -14},
+   "note": "03: the static bed to full, a pitch-dropping sine cluster, 1.5 s, cut to silence (3 ms anti-click only).",
+   "layers": [
+    {"src": "noise", "color": "white", "peak_db": 0, "env": {"type": "points", "points": [[0, 0.05], [1.3, 1.0], [1.5, 1.0]]}, "chain": [{"fx": "lp", "f": [200, 6000], "q": 0.7}]},
+    {"src": "sine", "freq": [330, 55], "detune": [-18, 0, 13], "peak_db": -2, "env": {"type": "points", "points": [[0, 0.0], [0.08, 1.0], [1.2, 0.8], [1.5, 0.6]]}, "chain": [{"fx": "crush", "hold": 3}]},
+    {"src": "sine", "freq": [165, 27.5], "peak_db": -8, "env": {"type": "points", "points": [[0, 0.0], [0.15, 1.0], [1.5, 0.7]]}}
+   ],
+   "fx": [{"fx": "hp", "f": 25, "track": false}]
+  },
+
+  "ui_move": {
+   "group": "ui", "dur": 0.008, "variants": 4, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "gain_db": 0.5},
+   "norm": {"peak_db": -14},
+   "note": "03: 2 ms noise tick, HP 4 kHz (the 2 ms fade-in rule makes it a 6 ms tick). Also the item-select tick (11).",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.006, "env": {"type": "exp", "a": 0.0005, "t60": 0.004}}
+   ],
+   "fx": [{"fx": "hp", "f": 4000, "order": 4}],
+   "expect": {"centroid": [5000, 16000]}
+  },
+
+  "ui_confirm": {
+   "group": "ui", "dur": 0.06, "variants": 3, "lead": 0.002,
+   "jitter": {"gain_db": 0.5},
+   "norm": {"lufs": -24},
+   "note": "03: tick + sine 880 Hz 40 ms.",
+   "layers": [
+    {"src": "ref", "ref": "ui_move", "peak_db": -6},
+    {"src": "sine", "freq": 880, "dur": 0.045, "peak_db": 0, "env": {"type": "adsr", "a": 0.002, "d": 0.01, "s": 0.7, "r": 0.02}},
+    {"src": "sine", "freq": 1760, "dur": 0.03, "peak_db": -16, "env": {"type": "exp", "a": 0.002, "t60": 0.03}}
+   ],
+   "expect": {"peak_hz": [860, 900]}
+  },
+
+  "ui_back": {
+   "group": "ui", "dur": 0.06, "variants": 3, "lead": 0.002,
+   "jitter": {"gain_db": 0.5},
+   "norm": {"lufs": -25},
+   "note": "03: tick + sine 440 Hz 40 ms.",
+   "layers": [
+    {"src": "ref", "ref": "ui_move", "peak_db": -6},
+    {"src": "sine", "freq": 440, "dur": 0.045, "peak_db": 0, "env": {"type": "adsr", "a": 0.002, "d": 0.01, "s": 0.7, "r": 0.02}},
+    {"src": "sine", "freq": 880, "dur": 0.03, "peak_db": -16, "env": {"type": "exp", "a": 0.002, "t60": 0.03}}
+   ],
+   "expect": {"peak_hz": [430, 450]}
+  },
+
+  "ui_slider_step": {
+   "group": "ui", "dur": 0.02, "variants": 3, "lead": 0.002,
+   "jitter": {"gain_db": 0.5},
+   "norm": {"peak_db": -14},
+   "runtime": {"pitch_min": 0.75, "pitch_max": 1.5, "follows": "slider value"},
+   "note": "03: tick with pitch by value; a short 1 kHz body under the tick so pitch_scale is heard as pitch. 12: each settings slider plays it at the new level.",
+   "layers": [
+    {"src": "ref", "ref": "ui_move", "peak_db": -4},
+    {"src": "sine", "freq": 1000, "dur": 0.015, "peak_db": 0, "env": {"type": "exp", "a": 0.001, "t60": 0.015}}
+   ],
+   "expect": {"peak_hz": [960, 1040]}
+  },
+
+  "ui_glitch_transition": {
+   "group": "ui", "dur": 0.13, "variants": 3, "decorrelate": true,
+   "jitter": {"pitch": 0.05, "gain_db": 0.5},
+   "norm": {"lufs": -22},
+   "note": "03: 120 ms bit-crushed noise swipe; sliced at ~90 Hz like the 8 to 14 bands, swept 6 kHz to 800 Hz and panned left to right.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.12, "pan": [-0.6, 0.6], "env": {"type": "adsr", "a": 0.004, "d": 0.03, "s": 0.8, "r": 0.03}, "chain": [{"fx": "bp", "f": [6000, 800], "q": 0.8}, {"fx": "crush", "bits": 4, "hold": 8}, {"fx": "am", "wave": "square", "freq": 90, "duty": 0.6, "depth": 0.8}]}
+   ],
+   "fx": [{"fx": "hp", "f": 150, "track": false}],
+   "expect": {"centroid": [1000, 6000]}
+  },
+
+  "ui_title_boot": {
+   "group": "ui", "dur": 2.0, "variants": 3,
+   "jitter": {"time": 0.01, "gain_db": 0.5},
+   "norm": {"lufs": -18},
+   "note": "03: 1.5 s rising sine cluster + relay click + hum settle. The cluster climbs an octave over 1.25 s, the relay closes, the 100 Hz hum takes over and settles away.",
+   "layers": [
+    {"src": "sine", "freq": [110, 220], "detune": [-12, 0, 9], "dur": 1.27, "peak_db": 0, "env": {"type": "points", "points": [[0, 0], [0.9, 0.7], [1.2, 1.0], [1.27, 0]]}},
+    {"src": "sine", "freq": [165, 330], "detune": [-7, 6], "dur": 1.27, "peak_db": -5, "env": {"type": "points", "points": [[0, 0], [0.9, 0.6], [1.2, 1.0], [1.27, 0]]}},
+    {"src": "ref", "ref": "flashlight_toggle", "at": 1.25, "peak_db": -4},
+    {"src": "sine", "freq": 100, "at": 1.25, "dur": 0.75, "peak_db": -2, "env": {"type": "points", "points": [[0, 0], [0.02, 1.0], [0.25, 0.55], [0.75, 0]]}},
+    {"src": "sine", "freq": 200, "at": 1.25, "dur": 0.75, "peak_db": -14, "env": {"type": "points", "points": [[0, 0], [0.02, 1.0], [0.25, 0.5], [0.75, 0]]}},
+    {"src": "noise", "color": "pink", "at": 1.25, "dur": 0.75, "peak_db": -26, "env": {"type": "points", "points": [[0, 0], [0.02, 1.0], [0.75, 0]]}}
+   ],
+   "fx": [{"fx": "lp", "f": 5000, "track": false}]
+  },
+
+  "ui_unlock": {
+   "group": "ui", "dur": 0.3, "variants": 3,
+   "jitter": {"time": 0.004, "gain_db": 0.5},
+   "norm": {"lufs": -22},
+   "note": "03: sine 660/990 Hz 200 ms, dry. The fifth arrives 50 ms after the root; no reverb.",
+   "layers": [
+    {"src": "sine", "freq": 660, "dur": 0.25, "peak_db": 0, "env": {"type": "adsr", "a": 0.003, "d": 0.06, "s": 0.6, "r": 0.12}},
+    {"src": "sine", "freq": 990, "at": 0.05, "dur": 0.24, "peak_db": -2, "env": {"type": "adsr", "a": 0.003, "d": 0.06, "s": 0.6, "r": 0.12}},
+    {"src": "sine", "freq": 1980, "at": 0.05, "dur": 0.08, "peak_db": -20, "env": {"type": "exp", "a": 0.002, "t60": 0.08}}
+   ],
+   "expect": {"peak_hz": [640, 1010]}
+  },
+
+  "ui_summary_stamp": {
+   "group": "ui", "dur": 0.3, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.006, "gain_db": 1.0},
+   "norm": {"lufs": -19},
+   "note": "03: thud + paper. A rubber stamp landing (knock and low thud), then the sheet shifting under it.",
+   "layers": [
+    {"src": "sine", "freq": [90, 55], "dur": 0.12, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.12}},
+    {"src": "noise", "color": "brown", "dur": 0.08, "peak_db": -4, "env": {"type": "exp", "a": 0.001, "t60": 0.07}, "chain": [{"fx": "lp", "f": 400}]},
+    {"src": "noise", "color": "white", "dur": 0.008, "peak_db": -8, "env": {"type": "exp", "a": 0.0003, "t60": 0.006}, "chain": [{"fx": "bp", "f": 1600, "q": 1.0}]},
+    {"src": "noise", "color": "pink", "at": 0.03, "dur": 0.2, "peak_db": -12, "env": {"type": "adsr", "a": 0.02, "d": 0.05, "s": 0.5, "r": 0.1}, "chain": [{"fx": "hp", "f": 2000}, {"fx": "am", "wave": "random", "freq": 50, "depth": 0.6}]}
+   ],
+   "fx": [{"fx": "hp", "f": 35, "track": false}]
+  },
+
+  "ui_shutter": {
+   "group": "ui", "dur": 0.07, "variants": 3,
+   "jitter": {"pitch": 0.05, "gain_db": 0.5},
+   "norm": {"peak_db": -20},
+   "note": "04 §4: every motion has its sound. The shutter's six bands at 10 ms offsets, as six falling micro-ticks alternating left and right.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.005, "pan": -0.25, "peak_db": 0, "env": {"type": "exp", "a": 0.0004, "t60": 0.003}, "chain": [{"fx": "bp", "f": 6500, "q": 1.2}], "repeat": {"count": 3, "every": 0.02, "decay_db": -2.0, "gain_jitter_db": 1, "pitch_jitter": 0.06}},
+    {"src": "noise", "color": "white", "at": 0.01, "dur": 0.005, "pan": 0.25, "peak_db": -1, "env": {"type": "exp", "a": 0.0004, "t60": 0.003}, "chain": [{"fx": "bp", "f": 6000, "q": 1.2}], "repeat": {"count": 3, "every": 0.02, "decay_db": -2.0, "gain_jitter_db": 1, "pitch_jitter": 0.06}}
+   ],
+   "expect": {"centroid": [4000, 12000]}
+  },
+
+  "ui_type": {
+   "group": "ui", "dur": 0.008, "variants": 4, "lead": 0.002,
+   "jitter": {"pitch": 0.08, "gain_db": 1.0},
+   "norm": {"peak_db": -26},
+   "note": "04 §4: typing at 60 characters per second; a barely-there tick, rate-limited by the caller.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.006, "peak_db": 0, "env": {"type": "exp", "a": 0.0004, "t60": 0.004}, "chain": [{"fx": "bp", "f": 3000, "q": 1.0}]},
+    {"src": "sine", "freq": 2400, "dur": 0.005, "peak_db": -6, "env": {"type": "exp", "a": 0.0004, "t60": 0.004}}
+   ]
+  },
+
+  "ui_hold_tick": {
+   "group": "ui", "dur": 0.02, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.03, "gain_db": 0.5},
+   "norm": {"peak_db": -16},
+   "note": "11 interact hold: a low tick every 0.2 s while the prompt's underline fills.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.004, "peak_db": -4, "env": {"type": "exp", "a": 0.0004, "t60": 0.003}, "chain": [{"fx": "bp", "f": 900, "q": 1.0}]},
+    {"src": "sine", "freq": 300, "dur": 0.016, "peak_db": 0, "env": {"type": "exp", "a": 0.001, "t60": 0.014}}
+   ],
+   "expect": {"centroid": [200, 2500]}
+  }
+ }
+}
