@@ -168,3 +168,8 @@ The builder tags every wall collider with metadata `{cell, dir, wall_type}`. `No
 - `LevelBuilder.build(level: LevelData, parent: Node3D) -> Signal ready` (main thread, sliced; emits `built` after navigation bake).
 - `LevelGrid` queries used by others: `is_walkable(cell)`, `wall(cell, dir)`, `floor_y(cell)`, `cell_of(world_pos) -> Vector2i`, `world_of(cell) -> Vector3`, `distance_field(from)`, `random_walkable_cell(rng, filter)`, `fixture_groups()`, `rooms()`.
 - Placement kinds consumed by `09` (props, items, notes, hide spots, exits, locks), by `10` (error spawn points), by `02` (fixtures, studio lights, water).
+
+### Interface additions during production
+- `LevelGenerator.generate(stratum, depth, seed, first_run = false, cycle = 1, options = {})`; `options` takes `item_pool` (unlock gating), `fuse_unlocked` (Variant B), `endless`.
+- `LevelValidator.validate(level) -> PackedStringArray` (empty when valid) and `LevelValidator.run_batch(stratum, n, depth = 0) -> Dictionary`.
+- `LevelGrid.world_of(cell)` returns the cell centre `(x*2, floor_y, z*2)`. Placement kinds are the `LevelData.P_*` constants; a note placement is a slot, and the note is chosen from the Archive at build time. `LevelData.to_ascii()` and a SHA-256 `hash()` exist for debugging and determinism.
