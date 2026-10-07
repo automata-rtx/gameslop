@@ -2,12 +2,16 @@ extends Node3D
 ## Render bench (02 §13, M1.5): a Halls corridor and room from BoxMeshes with the Halls
 ## materials, fixtures on the exact 4 m grid, dust, the Halls environment at a preset.
 ## The seed of the screenshot tour.
-##   -- --shots <dir>     capture the Coherence 100/60/30/10, noclip and unrender frames
-##                        plus manifest.json (T1/T3 numbers), then quit
+##   -- --shots <dir>     capture the Coherence 100/60/30/10, close-ups, noclip (charge,
+##                        invalid, commit), Static, drop, ripple and Null frames plus
+##                        manifest.json (T1/T3 numbers), then quit
 ##   -- --preset low|medium|high
-## Interactive keys: 1-4 Coherence 100/60/30/10, C charge, N commit, U Null at 8 m, H hit.
+## Interactive keys: 1-4 Coherence 100/60/30/10, C charge (aimed at the wall ahead),
+## I invalid, N commit, U Null at 8 m (Substrate environment), H hit, S Static, D drop
+## (press again for the arrival), R ripple.
 
 const HALLS := preload("res://data/strata/halls.tres")
+const SUBSTRATE := preload("res://data/strata/substrate.tres")
 const MAT_DIR := "res://data/materials/halls/"
 const HEIGHT := 3.0
 const WALL_T := 0.2
@@ -24,6 +28,9 @@ var _fixtures: Array[MeshInstance3D] = []
 var _lights: Array[OmniLight3D] = []
 var _preset: StringName = Tuning.QUALITY_PRESET_DEFAULT
 var _hold_commit: bool = false
+var _world_env: WorldEnvironment
+var _halls_env: Environment
+var _substrate_env: Environment
 
 
 func _ready() -> void:
@@ -60,21 +67,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_2: CoherenceRenderer.set_coherence(60.0)
 		KEY_3: CoherenceRenderer.set_coherence(30.0)
 		KEY_4: CoherenceRenderer.set_coherence(10.0)
-		KEY_C: CoherenceRenderer.set_noclip_charge(0.0 if CoherenceRenderer.noclip_charge > 0.0 else 0.75)
+		KEY_C:
+			_aim_noclip_target()
+			CoherenceRenderer.set_noclip_charge(0.0 if CoherenceRenderer.noclip_charge > 0.0 else 0.75)
+		KEY_I: CoherenceRenderer.set_noclip_invalid(not CoherenceRenderer.noclip_invalid)
 		KEY_N: CoherenceRenderer.pulse(&"noclip_commit")
 		KEY_H: CoherenceRenderer.pulse(&"hit")
-		KEY_U:
-			var on := CoherenceRenderer.null_radius <= 0.0
-			CoherenceRenderer.set_null(_null_at_8m() if on else CoherenceRenderer.NULL_POS_ABSENT,
-					Tuning.NULL_UNRENDER_RADIUS if on else 0.0)
+		KEY_S: CoherenceRenderer.set_static(0.0 if CoherenceRenderer.static_amount > 0.0 else 1.0)
+		KEY_D: CoherenceRenderer.pulse(&"drop")
+		KEY_R: CoherenceRenderer.pulse(&"ripple")
+		KEY_U: _set_null(CoherenceRenderer.null_radius <= 0.0)
 
 
 # ---------------------------------------------------------------- scene
 
 func _build_environment() -> void:
-	var we := WorldEnvironment.new()
-	we.environment = StratumEnvironment.build(HALLS, _preset)
-	add_child(we)
+	_halls_env = StratumEnvironment.build(HALLS, _preset)
+	_substrate_env = StratumEnvironment.build(SUBSTRATE, _preset)
+	_world_env = WorldEnvironment.new()
+	_world_env.environment = _halls_env
+	add_child(_world_env)
 	StratumEnvironment.apply_viewport_preset(get_viewport(), _preset)
 
 
@@ -168,6 +180,7 @@ func _build_camera() -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = body
 	mi.material_override = held
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = Vector3(0.24, -0.24, -0.5)
 	mi.rotation_degrees = Vector3(-75.0, 8.0, 0.0)
 	_camera.add_child(mi)
@@ -184,6 +197,14 @@ func _pose(name: StringName) -> void:
 		&"room":
 			_camera.position = Vector3(-0.4, EYE, -17.0)
 			_camera.look_at(Vector3(0.3, EYE - 0.2, -28.0))
+		&"carpet_close":
+			# Looking down at the carpet 1 to 3 m ahead: the loop pile must survive TAA.
+			_camera.position = Vector3(0.0, EYE, -3.0)
+			_camera.look_at(Vector3(0.0, 0.0, -4.6))
+		&"wall_close":
+			# 0.9 m from the wallpaper across a stripe edge: print and pinstripes.
+			_camera.position = Vector3(0.1, EYE, -5.0)
+			_camera.look_at(Vector3(1.0, EYE - 0.15, -5.4))
 		&"soft":
 			# 1.5 m from the soft wall, aimed at it: the 1 px grid preview shows (02 §5).
 			_camera.position = Vector3(-0.6, EYE, -26.5)
@@ -207,6 +228,38 @@ func _null_at_8m() -> Vector3:
 	return _camera.global_position - _camera.global_basis.z * 8.0
 
 
+## Null at 8 m ahead, in the Substrate environment (black background, distance fog to
+## black), as the tour frames it; off restores the Halls environment.
+func _set_null(on: bool) -> void:
+	_world_env.environment = _substrate_env if on else _halls_env
+	CoherenceRenderer.set_null(_null_at_8m() if on else CoherenceRenderer.NULL_POS_ABSENT,
+			Tuning.NULL_UNRENDER_RADIUS if on else 0.0)
+
+
+## What noclip targeting (M1.4) will do: the crosshair ray's first hit on the bench's
+## axis-aligned walls, floor or ceiling (analytic; the bench boxes have no collision).
+func _aim_noclip_target() -> void:
+	var o := _camera.global_position
+	var d := -_camera.global_basis.z
+	var best_t := INF
+	var best_n := Vector3.ZERO
+	var planes: Array[Plane] = [Plane(Vector3.UP, 0.0), Plane(Vector3.DOWN, -HEIGHT),
+			Plane(Vector3.LEFT, -1.0), Plane(Vector3.RIGHT, -1.0),
+			Plane(Vector3.LEFT, -ROOM.x * 0.5), Plane(Vector3.RIGHT, -ROOM.x * 0.5),
+			Plane(Vector3.BACK, -CORRIDOR_LEN - ROOM.y)]
+	for p in planes:
+		var denom := p.normal.dot(d)
+		if denom >= -0.0001:
+			continue
+		var t := (p.d - p.normal.dot(o)) / denom
+		if t > 0.0 and t < best_t:
+			best_t = t
+			best_n = p.normal
+	if is_inf(best_t):
+		return
+	CoherenceRenderer.set_noclip_target(o + d * best_t, best_n)
+
+
 # ---------------------------------------------------------------- shots
 
 func _capture_all(dir: String) -> void:
@@ -225,19 +278,39 @@ func _capture_all(dir: String) -> void:
 	manifest[&"shots"]["room_c100"] = await _shot(abs_dir, "room_c100")
 	_pose(&"soft")
 	manifest[&"shots"]["soft_wall"] = await _shot(abs_dir, "soft_wall")
+	_pose(&"carpet_close")
+	manifest[&"shots"]["carpet_close"] = await _shot(abs_dir, "carpet_close")
+	_pose(&"wall_close")
+	manifest[&"shots"]["wall_close"] = await _shot(abs_dir, "wall_close")
 	_reset_state()
 	_pose(&"wall")
 	CoherenceRenderer.set_coherence(70.0)
+	_aim_noclip_target()
 	CoherenceRenderer.set_noclip_charge(0.75)
 	manifest[&"shots"]["noclip_charge"] = await _shot(abs_dir, "noclip_charge")
+	CoherenceRenderer.set_noclip_invalid(true)
+	manifest[&"shots"]["noclip_invalid"] = await _shot(abs_dir, "noclip_invalid")
+	CoherenceRenderer.set_noclip_invalid(false)
 	CoherenceRenderer.set_noclip_charge(0.0)
 	_hold_commit = true
 	manifest[&"shots"]["noclip_commit"] = await _shot(abs_dir, "noclip_commit")
 	_hold_commit = false
 	_reset_state()
 	_pose(&"corridor")
-	CoherenceRenderer.set_null(_null_at_8m(), Tuning.NULL_UNRENDER_RADIUS)
+	CoherenceRenderer.set_static(1.0)
+	manifest[&"shots"]["static"] = await _shot(abs_dir, "static")
+	_reset_state()
+	# Drop arrival a third of the way through its 400 ms fade (wall-clock, so set the age).
+	CoherenceRenderer.pulse(&"drop")
+	CoherenceRenderer.pulse(&"drop")
+	manifest[&"shots"]["drop_black"] = await _shot_at_drop(abs_dir, "drop_black", -1.0)
+	manifest[&"shots"]["drop_arrival"] = await _shot_at_drop(abs_dir, "drop_arrival", 0.13)
+	_reset_state()
+	manifest[&"shots"]["ripple"] = await _shot_at_ripple(abs_dir, "ripple", 0.35)
+	_reset_state()
+	_set_null(true)
 	manifest[&"shots"]["unrender"] = await _shot(abs_dir, "unrender")
+	_set_null(false)
 	_reset_state()
 	var f := FileAccess.open(abs_dir.path_join("manifest.json"), FileAccess.WRITE)
 	f.store_string(JSON.stringify(manifest, "  "))
@@ -247,8 +320,9 @@ func _capture_all(dir: String) -> void:
 
 
 func _reset_state() -> void:
+	# The same reset a run start does (pulses, Static, target, Null).
+	CoherenceRenderer._on_run_started(&"bench", 0)
 	CoherenceRenderer.set_coherence(Tuning.COHERENCE_MAX)
-	CoherenceRenderer.set_noclip_charge(0.0)
 	CoherenceRenderer.set_null(CoherenceRenderer.NULL_POS_ABSENT, 0.0)
 
 
@@ -259,6 +333,31 @@ func _frames(n: int) -> void:
 
 func _shot(dir: String, name: String) -> Dictionary:
 	await _frames(SETTLE_FRAMES)
+	var img := get_viewport().get_texture().get_image()
+	img.save_png(dir.path_join(name + ".png"))
+	return _measure(img)
+
+
+## Pulses are wall-clock and the CPU renderer takes seconds per frame, so the bench pins a
+## pulse's age by back-dating it right before the capture frame.
+func _shot_at_drop(dir: String, name: String, arrival_age_s: float) -> Dictionary:
+	await _frames(SETTLE_FRAMES)
+	var now := Time.get_ticks_usec()
+	CoherenceRenderer._pulse_at_usec[&"drop"] = now - int((Tuning.NOCLIP_FLOOR_FALL_TIME + 1.0) * 1e6)
+	CoherenceRenderer._drop_arrive_usec = -1 if arrival_age_s < 0.0 else now - int(arrival_age_s * 1e6)
+	return await _capture_now(dir, name)
+
+
+func _shot_at_ripple(dir: String, name: String, progress: float) -> Dictionary:
+	await _frames(SETTLE_FRAMES)
+	CoherenceRenderer._pulse_at_usec[&"ripple"] = Time.get_ticks_usec() - int(progress * Tuning.POST_PULSE_RIPPLE_MS * 1000.0)
+	return await _capture_now(dir, name)
+
+
+## Writes the post uniforms for the pinned state, renders one frame and saves it.
+func _capture_now(dir: String, name: String) -> Dictionary:
+	CoherenceRenderer._process(0.0)
+	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(dir.path_join(name + ".png"))
 	return _measure(img)

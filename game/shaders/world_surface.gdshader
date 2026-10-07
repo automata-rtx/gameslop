@@ -2,16 +2,11 @@
 // held objects. Variation comes from uniforms and the stratum's noise textures only.
 // Never alpha blends: unrender is a dithered ALPHA_SCISSOR so the material stays in
 // the opaque pipeline (depth writes, SSAO/SSIL, volumetric fog, decals all correct).
+// Globals, jitter and the unrender terms come from the shared Coherence include.
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
-// 14 §11: written every frame by CoherenceRenderer (and NullPresence through it).
-global uniform float g_coherence;
-global uniform float g_noclip_charge;
-global uniform float g_noclip_commit;
-global uniform vec3 g_null_pos;
-global uniform float g_null_radius;
-global uniform float g_time;
+#include "res://shaders/include/coherence.gdshaderinc"
 
 // 02 §5 per-material uniforms.
 uniform vec4 albedo : source_color = vec4(1.0);
@@ -39,67 +34,41 @@ uniform float held = 0.0;
 // 02 §5, 09: generator-marked passable wall.
 uniform float soft = 0.0;
 // 02 §7: Substrate permanent partial unrender (0.55); Cycle 2 corrupted surfaces (0.2).
+// The placeholder checker (pattern 5) ignores it.
 uniform float u_floor = 0.0;
 // 02 §7 Cycle 2: vertex jitter floor (0.004).
 uniform float jitter_floor = 0.0;
 // 02 §7 Substrate: grid lines emit x1.5.
 uniform float line_emission = 1.0;
+// Stripes: the secondary colour pushed this far from the primary (1 = the palette pair).
+uniform float pattern_contrast = 1.0;
+// Stripes: strength of the printed detail (diamond print, pinstripes at the stripe edges).
+uniform float print_amount = 0.0;
 
-// Constants mirrored from Tuning (02 §5); shaders cannot read GDScript.
-const float JITTER_MAX = 0.012;
-const float JITTER_NOCLIP = 0.04;
-const float JITTER_HZ = 20.0;
-const float UNRENDER_INNER = 0.6;
-const float NOCLIP_RADIUS = 3.0;
-const float NOCLIP_AIM_MAX = 2.5;
-const float NOCLIP_PREVIEW_U = 0.9;
-const float GRID_SPACING = 0.5;
-const vec3 GRID_COLOR = vec3(0.7913, 0.7913, 0.7913); // #E6E6E6 in linear
-const float UNRENDER_FULL = 0.95;
-const float SCREEN_DOOR_MAX = 0.6;
-const float SOFT_BAND_HZ = 0.5;
-const float SOFT_BAND_AMPLITUDE = 0.03;
-const float SOFT_PREVIEW_U = 0.3;
-const float SOFT_PREVIEW_DIST = 2.0;
-const float SOFT_PREVIEW_SPAN = 1.2;
-const float CHECKER_SIZE = 1.0;
+// Constants mirrored from Tuning (02 §5); a test parses each line against tuning.gd.
+const float GRID_SPACING = 0.5;          // WORLD_GRID_SPACING
+const vec3 GRID_COLOR = vec3(0.7913, 0.7913, 0.7913); // WORLD_GRID_LINE_COLOR in linear
+const float SOFT_BAND_HZ = 0.5;          // WORLD_SOFT_BAND_HZ
+const float SOFT_BAND_AMPLITUDE = 0.03;  // WORLD_SOFT_BAND_AMPLITUDE
+const float SOFT_PREVIEW_U = 0.3;        // WORLD_SOFT_PREVIEW_U
+const float SOFT_PREVIEW_DIST = 2.0;     // WORLD_SOFT_PREVIEW_DIST
+const float SOFT_PREVIEW_SPAN = 1.2;     // WORLD_SOFT_PREVIEW_SPAN
+const float CHECKER_SIZE = 1.0;          // WORLD_PLACEHOLDER_CHECKER
+const float CARPET_LOOPS = 90.0;         // WORLD_CARPET_LOOPS_PER_M
+const float PRINT_PERIOD = 0.15;         // WORLD_WALLPAPER_PRINT_PERIOD
+const float PREVIEW_DASH = 8.0;          // WORLD_NOCLIP_INVALID_DASHES_PER_M
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
-
-float hash13(vec3 p) {
-	p = fract(p * 0.1031);
-	p += dot(p, p.zyx + 31.32);
-	return fract((p.x + p.y) * p.z);
-}
-
-vec3 hash33(vec3 p) {
-	p = fract(p * vec3(0.1031, 0.1030, 0.0973));
-	p += dot(p, p.yxz + 33.33);
-	return fract((p.xxy + p.yxx) * p.zyx);
-}
-
-float hash12(vec2 p) {
-	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-	p3 += dot(p3, p3.yzx + 33.33);
-	return fract((p3.x + p3.y) * p3.z);
-}
 
 void vertex() {
 	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	// Patterns use the undisturbed position so they never swim; only the geometry trembles.
 	v_world_pos = wp;
 	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	// 02 §5: jitter = 0.012 smoothstep(0.5, 1, 1 - coherence) + 0.04 commit. Hashing the
-	// world position keeps coincident vertices of neighbouring meshes together (no cracks).
-	float drain = 1.0 - g_coherence;
-	float jitter = max(jitter_floor, JITTER_MAX * smoothstep(0.5, 1.0, drain)) + JITTER_NOCLIP * g_noclip_commit;
-	jitter *= 1.0 - held;
-	if (jitter > 0.0) {
-		// Stepped at 20 Hz so the tremble reads as a glitch rather than a blur under TAA.
-		float step_t = floor(g_time * JITTER_HZ);
-		VERTEX += (hash33(floor(wp * 100.0) + step_t * 7.31) * 2.0 - 1.0) * jitter;
-	}
+	// 02 §5: jitter = 0.012 smoothstep(0.5, 1, 1 - coherence) + 0.04 commit, in object
+	// space before projection; the offset is hashed from the world position (include).
+	VERTEX += coh_jitter(wp, jitter_floor, held);
 }
 
 // Dominant-axis planar coordinates: x runs along the surface horizontally, y runs up on walls.
@@ -118,11 +87,12 @@ vec2 plane_uv(vec3 p, vec3 an, vec3 n, out vec3 ta, out vec3 tb) {
 	return p.xy;
 }
 
-// Anti-aliased 1 px lines on a unit grid (fwidth-based, 02 §5).
-float grid_mask(vec2 g) {
+// Anti-aliased 1 px lines on a unit grid (fwidth-based, 02 §5). x: the lines of constant
+// g.x (running along g.y); y: the lines of constant g.y.
+vec2 grid_masks(vec2 g) {
 	vec2 fw = max(fwidth(g), vec2(1e-5));
 	vec2 d = abs(fract(g - 0.5) - 0.5) / fw;
-	return 1.0 - clamp(min(d.x, d.y), 0.0, 1.0);
+	return 1.0 - clamp(d, 0.0, 1.0);
 }
 
 // Seam lines of physical width `w` metres on a grid of cell size `s` (AA, never thinner than 1 px).
@@ -133,6 +103,37 @@ float seam_mask(vec2 p, float s, float w) {
 	vec2 d = abs(fract(g - 0.5) - 0.5);
 	vec2 m = 1.0 - smoothstep(half_w - fw * 0.5, half_w + fw * 0.5, d);
 	return max(m.x, m.y);
+}
+
+// 1 where `d` is within `w` of 0, anti-aliased over one pixel of `d`.
+float aa_band(float d, float w) {
+	float fw = max(fwidth(d), 1e-5);
+	return 1.0 - smoothstep(w - fw * 0.5, w + fw * 0.5, abs(d));
+}
+
+// Halls carpet (02 §7): a loop pile, ~90 loops per metre in staggered rows. Each loop is a
+// lit crown with a dark gap around it; the yarn tone varies per loop. Faded to its mean
+// once a loop is under ~2.5 px, so it never shimmers under TAA.
+float carpet_pile(vec2 p) {
+	vec2 lp = p * CARPET_LOOPS;
+	float row = floor(lp.y);
+	lp.x += 0.5 * mod(row, 2.0);
+	vec2 cell = floor(lp);
+	vec2 f = fract(lp) - 0.5;
+	float crown = 1.0 - smoothstep(0.12, 0.48, length(f * vec2(1.0, 1.35)));
+	float yarn = coh_hash12(cell);
+	float pile = mix(0.7, 1.1, crown) * mix(0.9, 1.08, yarn);
+	float loops_per_px = max(fwidth(lp.x), fwidth(lp.y));
+	return mix(0.93, pile, 1.0 - smoothstep(0.15, 0.32, loops_per_px));
+}
+
+// Halls wallpaper print: small diamond outlines with a dot, on a 0.15 m half-drop lattice.
+float wallpaper_print(vec2 p) {
+	vec2 q = p / PRINT_PERIOD;
+	q.x += 0.5 * mod(floor(q.y), 2.0);
+	vec2 f = fract(q) - 0.5;
+	float dia = abs(f.x) + abs(f.y * 1.4);
+	return max(aa_band(dia - 0.22, 0.025), 1.0 - smoothstep(0.03, 0.06, dia));
 }
 
 void fragment() {
@@ -153,21 +154,28 @@ void fragment() {
 	bool unlit = false;
 	if (pattern_mode == 1) {
 		vec2 cell = floor(puv / pattern_scale);
-		float tint = (hash12(cell) - 0.5) * 0.05;
+		float tint = (coh_hash12(cell) - 0.5) * 0.05;
 		base = mix(a * (1.0 + tint), b, seam_mask(puv, pattern_scale, pattern_detail));
 	} else if (pattern_mode == 2) {
 		// Vertical stripes: secondary of width pattern_detail every pattern_scale metres.
 		float x = fract(puv.x / pattern_scale) * pattern_scale;
 		float fw = max(fwidth(puv.x), 1e-5);
 		float s = smoothstep(-fw, fw, x) * (1.0 - smoothstep(pattern_detail - fw, pattern_detail + fw, x));
-		base = mix(a, b, s);
+		vec3 b2 = max(a + (b - a) * pattern_contrast, vec3(0.0));
+		base = mix(a, b2, s);
+		if (print_amount > 0.0) {
+			// Pinstripes 6 mm in from each stripe edge, and the diamond print in the wide band.
+			float pin = max(aa_band(x - 0.006, 0.0015), aa_band(x - (pattern_detail - 0.006), 0.0015));
+			float pr = wallpaper_print(puv) * (1.0 - s);
+			base *= 1.0 - print_amount * max(pin, pr * 0.7);
+		}
 	} else if (pattern_mode == 3) {
-		// Carpet: two octaves of mottling plus fibre speckle.
+		// Carpet: two octaves of mottling, a tuft scale, and the loop pile.
 		float m1 = texture(noise_albedo, puv * pattern_scale * 0.11).r;
 		float m2 = texture(noise_albedo, puv * pattern_scale * 0.73 + 0.37).r;
-		float fibre = hash12(floor(puv * 400.0));
-		float k = m1 * 0.6 + m2 * 0.4;
-		base = mix(b, a, 0.5) * mix(0.78, 1.18, k) * mix(0.92, 1.06, fibre);
+		float tuft = texture(noise_albedo, puv * 9.0 + 0.71).r;
+		float k = m1 * 0.55 + m2 * 0.3 + tuft * 0.15;
+		base = mix(b, a, 0.5) * mix(0.78, 1.18, k) * carpet_pile(puv);
 	} else if (pattern_mode == 4) {
 		float m1 = texture(noise_albedo, puv * pattern_scale * 0.25).r;
 		float m2 = texture(noise_albedo, puv * pattern_scale * 1.7 + 0.5).r;
@@ -179,7 +187,7 @@ void fragment() {
 		unlit = true;
 	} else if (pattern_mode == 6) {
 		vec2 cell = floor(puv / pattern_scale);
-		float tint = (hash12(cell) - 0.5) * 0.03;
+		float tint = (coh_hash12(cell) - 0.5) * 0.03;
 		float fissure = texture(noise_albedo, puv * 3.1).r;
 		vec3 panel = a * (1.0 + tint) * mix(0.93, 1.03, fissure);
 		base = mix(panel, b, seam_mask(puv, pattern_scale, pattern_detail));
@@ -200,29 +208,20 @@ void fragment() {
 			float t = dot(v_world_pos - cam, n) / facing;
 			vec3 hit = cam + fwd * t;
 			if (t > 0.0 && t < SOFT_PREVIEW_DIST) {
-				soft_u = SOFT_PREVIEW_U * (1.0 - smoothstep(SOFT_PREVIEW_SPAN * 0.6, SOFT_PREVIEW_SPAN, distance(hit, v_world_pos)));
+				soft_u = SOFT_PREVIEW_U * coh_falloff(SOFT_PREVIEW_SPAN * 0.6, SOFT_PREVIEW_SPAN, distance(hit, v_world_pos));
 			}
 		}
 	}
 
 	// ---- unrender term u (02 §5) ----
-	float u = u_floor;
-	if (g_null_radius > 0.0) {
-		u = max(u, smoothstep(g_null_radius, g_null_radius * UNRENDER_INNER, distance(v_world_pos, g_null_pos)));
-	}
-	float d_cam = distance(v_world_pos, cam);
-	u = max(u, g_noclip_commit * smoothstep(NOCLIP_RADIUS, NOCLIP_RADIUS * 0.8, d_cam));
-	if (g_noclip_charge > 0.001) {
-		// 02 §9: preview around the aimed point (the ray within the 2.5 m aim range),
-		// radius growing with charge. Capped below full so a cancelled charge never shows
-		// what is behind the wall.
-		float t = clamp(dot(v_world_pos - cam, fwd), 0.0, NOCLIP_AIM_MAX);
-		float r = NOCLIP_RADIUS * g_noclip_charge;
-		float dp = distance(v_world_pos, cam + fwd * t);
-		u = max(u, NOCLIP_PREVIEW_U * g_noclip_charge * (1.0 - smoothstep(r * UNRENDER_INNER, r, dp)));
-	}
-	u = max(u, soft_u);
-	u *= 1.0 - held;
+	// The placeholder checker is exempt from the Substrate floor: it must read magenta.
+	float u_other = pattern_mode == 5 ? 0.0 : u_floor;
+	u_other = max(u_other, coh_null_u(v_world_pos));
+	u_other = max(u_other, coh_commit_u(v_world_pos, cam));
+	u_other = max(u_other, soft_u);
+	// 02 §9: the charge preview, a disc anchored at the noclip target.
+	float u_prev = coh_preview_u(v_world_pos);
+	float u = max(u_other, u_prev) * (1.0 - held);
 
 	// ---- normal (noise, triplanar dominant plane) ----
 	if (normal_strength > 0.0) {
@@ -235,7 +234,13 @@ void fragment() {
 	vec3 emit = emission.rgb * emission_strength;
 	float line = 0.0;
 	if (u > 0.0) {
-		line = grid_mask(puv / GRID_SPACING) * smoothstep(0.0, 0.25, u);
+		vec2 lines = grid_masks(puv / GRID_SPACING);
+		if (g_noclip_invalid > 0.5 && u_prev > u_other) {
+			// 11 §2 noclip invalid: the preview grid is dashed.
+			lines.x *= step(0.5, fract(puv.y * PREVIEW_DASH));
+			lines.y *= step(0.5, fract(puv.x * PREVIEW_DASH));
+		}
+		line = max(lines.x, lines.y) * smoothstep(0.0, 0.25, u);
 		base = mix(base, vec3(0.0), u);
 		emit = mix(emit, vec3(0.0), u);
 	}
@@ -252,9 +257,8 @@ void fragment() {
 	}
 	EMISSION = emit * (1.0 - line) + GRID_COLOR * line * line_emission;
 
-	// Screen-door (02 §5): fully unrendered fills drop about 60% of pixels; lines stay.
-	float door = u >= UNRENDER_FULL ? SCREEN_DOOR_MAX * u : 0.0;
-	float h = hash12(floor(FRAGCOORD.xy));
-	ALPHA = (line < 0.5 && h < door) ? 0.0 : 1.0;
+	// Screen door (02 §5): at u >= 0.95 a fraction 0.6 u of fill cells is discarded, on a
+	// world-anchored lattice so the pattern sticks to the surface; lines always stay.
+	ALPHA = (line < 0.5 && coh_screen_door(v_world_pos, u)) ? 0.0 : 1.0;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 }

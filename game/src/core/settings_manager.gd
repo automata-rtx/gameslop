@@ -20,6 +20,8 @@ const DEFAULTS: Dictionary = {
 	&"sprint_mode": &"hold",   # &"hold" or &"toggle" (12 §5)
 	&"crouch_mode": &"hold",
 	&"hold_to_press": false,   # 12 §6 accessibility
+	&"reduce_visual_noise": false,   # 12 §6: caps grain, CA, scanline (02 §4)
+	&"reduce_flashing": false,       # 12 §6: 2-frame flashes become a 200 ms soft fade
 	&"render_scale": Tuning.SETTINGS_RENDER_SCALE_DEFAULT,
 	&"ui_scale": Tuning.SETTINGS_UI_SCALE_DEFAULT,
 	&"text_size": Tuning.SETTINGS_TEXT_SIZE_DEFAULT,

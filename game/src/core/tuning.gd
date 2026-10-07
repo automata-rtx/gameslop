@@ -451,7 +451,9 @@ const NULL_UNRENDER_RADIUS_CYCLE2 := 24.0           # m, from depth 12 in Endles
 const NULL_CYCLE2_RADIUS_FROM_DEPTH := 12
 const NULL_CORE_RADIUS := 2.0                       # m
 const NULL_DRAIN_PER_S := 12.0                      # inside the core
-const NULL_UNRENDER_ALPHA := 0.85
+const NULL_UNRENDER_ALPHA := 0.85                 # superseded: 08 §7 "alpha 0.85" reads as 02 §5
+                                                    # (lines on black, fills screen-door dithered at
+                                                    # u >= 0.95); no shader reads this. CHANGELOG R3.
 const NULL_SPAWN_PATH_FRACTION := 0.55              # of the critical path (07 §5.6)
 const NULL_SPAWN_MIN_DIST := 20.0                   # m from the player
 const NULL_DEAD_END_MAX_CELLS := 4                  # validator invariant
@@ -902,7 +904,20 @@ const POST_REDUCED_CA_CAP := 0.004
 const POST_STATIC_GRAIN := 0.6                      # inside Static (02 §8)
 const POST_STATIC_CA := 0.02
 const POST_DISSOLVE_GRID := Vector2i(48, 27)        # quads (02 §10)
-const POST_PULSE_KINDS: Array[StringName] = [&"hit", &"noclip_commit", &"coherence_gain", &"dissolve", &"flash"]
+# `flash` is the Polaroid's white flash only (09); Flicker's lunge flash is the fixture
+# group's, not the post stack's. `ripple`: Landing (11 §3). `drop`: the floor commit fires
+# it (1.2 s to black with grain, then held), the drop arrival fires it again (black to the
+# world over 400 ms).
+const POST_PULSE_KINDS: Array[StringName] = [&"hit", &"noclip_commit", &"coherence_gain", &"dissolve", &"flash", &"ripple", &"drop"]
+# Render-task constants of the screen pass (02 gives no number; chosen in the render bench).
+const POST_GRAIN_FPS := 24.0                        # grain re-seeds at film cadence
+const POST_TEAR_ROWS := 0.035                       # fraction of rows torn at scan 1
+const POST_TEAR_SHIFT := 0.025                      # max sideways shift, fraction of the width
+const POST_TEAR_LIGHT := 0.03                       # torn rows carry a faint light line
+const POST_PULSE_RIPPLE_MS := 600                   # Landing ripple crosses the screen
+const POST_RIPPLE_WIDTH := 0.05                     # ring half-width, fraction of the height
+const POST_RIPPLE_SHIFT := 0.008                    # radial displacement in the ring
+const POST_RIPPLE_LIGHT := 0.12                     # ring brightening in the grid colour
 const POST_TIME_WRAP_S := 3600.0                    # g_time and grain time wrap (render-task constant: shader float precision)
 
 # 02 §5 world shader
@@ -910,12 +925,16 @@ const WORLD_JITTER_MAX := 0.012
 const WORLD_JITTER_SMOOTH_MIN := 0.5
 const WORLD_JITTER_SMOOTH_MAX := 1.0
 const WORLD_JITTER_NOCLIP := 0.04                   # x g_noclip_commit
+const WORLD_JITTER_HZ := 20.0                       # jitter re-seeds 20 times per second (TAA)
 const WORLD_UNRENDER_INNER := 0.6                   # u = smoothstep(r, r*0.6, d)
 const WORLD_GRID_SPACING := 0.5                     # m
 const WORLD_GRID_LINE_COLOR := "#E6E6E6"
 const WORLD_UNRENDER_FULL := 0.95                   # u >= 0.95: fully lines, screen-door transparent
 const WORLD_SCISSOR_THRESHOLD := 0.5
-const WORLD_SCREEN_DOOR_MAX := 0.6                  # ALPHA = 1 - 0.6 x u x hash
+const WORLD_SCREEN_DOOR_MAX := 0.6                  # at u >= 0.95 a fraction 0.6 x u of fill cells is
+                                                    # discarded: ALPHA = hash(cell) < 0.6 u ? 0 : 1
+const WORLD_SCREEN_DOOR_CELL := 0.01                # m; hash cell lattice: 1 cm, halved/doubled by octaves
+                                                    # until one cell is at most a pixel (world-anchored)
 const WORLD_SOFT_BAND_HZ := 0.5
 const WORLD_SOFT_BAND_AMPLITUDE := 0.03
 const WORLD_SOFT_PREVIEW_U := 0.3
@@ -923,6 +942,10 @@ const WORLD_SOFT_PREVIEW_DIST := 2.0                # m crosshair range
 const WORLD_SOFT_PREVIEW_SPAN := 1.2                # m around the aimed point (render-task constant)
 const WORLD_NOCLIP_PREVIEW_U := 0.9                 # charge preview peak, below WORLD_UNRENDER_FULL so a
                                                     # cancelled charge never shows what is behind a wall
+const WORLD_NOCLIP_PREVIEW_DEPTH := 0.3             # m; surfaces this far off the target plane are outside the disc
+const WORLD_NOCLIP_INVALID_DASHES_PER_M := 8.0      # invalid noclip: the preview grid is dashed (11 §2)
+const WORLD_CARPET_LOOPS_PER_M := 90.0              # Halls loop pile (60 to 120 per m reads at 1 to 3 m)
+const WORLD_WALLPAPER_PRINT_PERIOD := 0.15          # m; Halls wallpaper diamond print
 const WORLD_PLACEHOLDER_CHECKER := 1.0              # m checker, magenta #FF00FF and black
 const WORLD_SUBSTRATE_U_FLOOR := 0.55
 const WORLD_NOISE_TEXTURE_MAX := 1024               # px (14 §10)
@@ -1027,7 +1050,7 @@ const FLASHLIGHT_MODEL_LENGTH := 0.18               # m cylinder
 const DUST_BOX_SIZE := 12.0                         # m
 const DUST_PARTICLES := 200
 const DUST_ALPHA := 0.12
-const DUST_QUAD_SIZE := 0.001                       # m
+const DUST_QUAD_SIZE := 0.0035                      # m (3.5 mm: 1 mm is sub-pixel beyond 1 m)
 const PARTICLES_LOW_SCALE := 0.5
 
 # 02 §11 camera
