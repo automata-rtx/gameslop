@@ -255,7 +255,7 @@ func test_player_stands_on_spawn() -> void:
 		await get_tree().physics_frame
 	assert_true(player.is_on_floor(), "on the floor")
 	assert_lt(absf(player.global_position.y - start.y), 0.2, "did not fall through")
-	assert_eq(player.floor_surface(), &"carpet")
+	assert_eq(player.locomotion.floor_surface(), &"carpet")
 	assert_true(_level.light_pool.target == player.rig.camera)
 	_level.detach_player(player)
 	player.queue_free()
