@@ -159,3 +159,9 @@ These are suppressed after the player has reached depth 3 once. The settings `GA
 - `HUD` scene methods: `set_coherence(v: float, delta: float)`, `set_depth(depth: int, stratum: StringName)`, `set_exit_status(status: StringName, timer: float)`, `set_stamina(v: float)`, `set_crank(v: float)`, `set_noclip(charge: float, target: StringName, valid: bool, reason: StringName)`, `show_prompt(text: String)`, `hide_prompt()`, `set_items(slots: Array[ItemSlot], selected: int)`, `notify(text: String)`, `show_note(note: NoteData)`, `set_hidden(on: bool)`, `caption(text: String)`.
 - `MenuShell` scene: `open(menu_id: StringName)`, `close()`, with submenus as `Control` children registered by id.
 - `Theme` resource `game/assets/ui/noclip_theme.tres` provides fonts, colours, and the dotted leader `StyleBox`.
+
+### Interface additions during production
+- HUD: `bind_player(node)`, `unbind_player()`, `bind_inventory(node)`, `show_prompt(text, hold_time = 0.0)`, `restore()`; `set_items(slots: Array)` takes slot-like entries (`kind`, `count`) or null.
+- Inventory contract the HUD needs: `signal changed(slots: Array, selected: int)`; optional `slots` and `selected` read once at bind.
+- Noclip target ids are `wall`, `soft`, `floor` (anything else times as a wall).
+- The theme carries a `NoclipTokens` type (colours, sizes, `leader`) and named text-role styles; code uses `UiTokens`.
