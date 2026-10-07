@@ -28,3 +28,4 @@ Entries are one line each: date, document, change, rationale. The design was loc
 - 2026-10-07 — 11, 06 — Flicker lunge trauma 0.4 (11 §3) is superseded by the contact trauma 0.6 (06 §9) whenever a lunge lands. Reason: 06 wins; both values stay in `tuning.gd`.
 - 2026-10-07 — 04, 14 — `strings.gd` lives in `game/src/core/` (14 §2), not `game/data/` (04 §11). Reason: 14 owns the layout.
 - 2026-10-07 — 07, 05, 14 — `Seeds.derive` lives in `game/src/core/seeds.gd` (`class_name Seeds`); `tuning.gd` stays constants only and is exempt from the 400-line script limit. Unlock ids are `Tuning.UNLOCK_IDS` in milestone order. Reason: a const-only class cannot hold a function; unlock ids were unspecified.
+- 2026-10-07 — 14, 15, CLAUDE.md — Agents verify rendering themselves with `tools/ci/render.sh` (Forward+ on Mesa lavapipe under Xvfb). Reason: removes the human from visual verification before cp-12; frame-time budgets still need a real GPU.

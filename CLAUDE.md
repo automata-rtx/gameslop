@@ -20,9 +20,10 @@ $GODOT_BIN --headless --path game --import    # import after asset changes
 tools/ci/test.sh                              # run the test suite headless (the merge gate)
 python3 tools/audio/synth.py --out game/assets/audio   # regenerate all audio from recipes
 $GODOT_BIN --path game -- --seed 1 --depth 1 --stratum halls   # launch straight into a level (needs a GPU)
-$GODOT_BIN --path game -- --tour build/tour   # screenshot tour (needs a GPU)
+tools/ci/render.sh --path game -- --tour build/tour   # screenshot tour on the CPU renderer
+tools/ci/render.sh --path game res://scenes/debug/<bench>.tscn   # any scene, rendered
 ```
-Agent containers have no GPU: logic tests run headless; rendering is verified by the human from the tour or by `godot-agent-vision` where a GPU exists. Say so in your report when you could not verify visually.
+Agent containers have no GPU, but `tools/ci/render.sh <godot args>` runs the real Forward+ renderer on the CPU (Mesa lavapipe under Xvfb). Use it to capture screenshots (`get_viewport().get_texture().get_image().save_png(...)`) and look at them with your image-reading tool: composition, palette, shaders, UI layout. It is slow (expect a few fps at 1080p; render at 960x540 when you can) and says nothing about real frame times. Logic tests stay headless. Say in your report what you verified visually and what still needs a real GPU.
 
 ## Rules
 - Numbers live in the design documents and are mirrored in `game/src/core/tuning.gd`. Change both or neither.
