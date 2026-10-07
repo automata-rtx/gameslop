@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/debug/player_bench.gd" id="1_bench"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/hide_spot_locker.tscn" id="3_locker"]
+
+[sub_resource type="Environment" id="Env_bench"]
+background_mode = 1
+background_color = Color(0, 0, 0, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.431, 0.353, 0.118, 1)
+ambient_light_energy = 0.12
+tonemap_mode = 4
+glow_enabled = true
+glow_intensity = 0.6
+glow_bloom = 0.1
+glow_blend_mode = 2
+glow_hdr_threshold = 1.0
+
+[node name="PlayerBench" type="Node3D"]
+script = ExtResource("1_bench")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_bench")
+
+[node name="FixtureLight" type="OmniLight3D" parent="."]
+unique_name_in_owner = true
+position = Vector3(-1.5, 2.8, 2)
+light_color = Color(1, 0.937, 0.761, 1)
+light_energy = 1.6
+shadow_enabled = true
+omni_range = 7.0
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+unique_name_in_owner = true
+position = Vector3(0, 0, 4)
+
+[node name="Locker" parent="." instance=ExtResource("3_locker")]
+unique_name_in_owner = true
+position = Vector3(-5.45, 0, 0)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Overlay" type="CanvasLayer" parent="."]
+
+[node name="Readout" type="Label" parent="Overlay"]
+unique_name_in_owner = true
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 900.0
+offset_bottom = 140.0
+text = "player bench"
