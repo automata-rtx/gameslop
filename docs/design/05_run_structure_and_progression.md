@@ -25,7 +25,7 @@
 | 5 | the last remaining | |
 | 6 | Substrate | Always; the Threshold is here |
 
-Cycle 2+ (Endless only): same rule with the same strata, each with corruption (`02` §7, `07` §9). The seed for depth *d* is `hash(run_seed, d)`, so a run is fully reproducible from `run_seed`.
+Cycle 2+ (Endless only): same rule with the same strata, each with corruption (`02` §7, `07` §9). The seed for depth *d* is `Seeds.derive(run_seed, "depth:%d" % d)` (defined in `tuning.gd`, see `07` §1), so a run is fully reproducible from `run_seed`.
 
 **Level size and time budget** (the generator targets these; `07` holds the grid numbers):
 
@@ -42,7 +42,7 @@ A full winning Descent is 25 to 30 minutes. Death at depth 2 or 3 takes 5 to 10 
 
 ## 3. Error roster per depth (initial tuning)
 
-The Director (`10`) spawns from this roster; "native" is the stratum's teaching error (Pools: Echo, Garage: Still, Offices: Flicker, Server: none, Substrate: Null).
+The Director (`10`) spawns from this roster; "native" is the stratum's teaching error (Pools: Echo, Garage: Still, Offices: Flicker, Substrate: Null; Server has no native: its "native" slot is one hunter already met this run, chosen by seed).
 
 | Depth | Roster | Director aggression base |
 |---|---|---|
@@ -52,7 +52,7 @@ The Director (`10`) spawns from this roster; "native" is the stratum's teaching 
 | 4 | Static ×1, native ×1, plus one of the hunters already met this run (Still or Echo) | 0.55 |
 | 5 | Static ×2, Still ×1, Echo ×1, Flicker ×1 (Server: all three; other strata: native plus two) | 0.65 |
 | 6 | Null ×1, Static ×2 | 0.75 |
-| Cycle 2 (7 to 12) | as above with +1 Static and aggression +0.15, Null appears from depth 10, radius ×2 at 12 | |
+| Cycle 2 (7 to 12) | as above with +1 Static and aggression +0.15; Null appears only in the Substrate (depth 12, 18, …) with radius ×2 from depth 12 | |
 
 **Awake:** after a drop, the next level's aggression base is +0.15 and one hunter starts in "searching" state at 30 m from the player instead of "dormant". Dropping twice in a row makes it +0.25 and two hunters searching. Dropping three times in a row keeps +0.25 (it does not escalate further; the fairness floor holds).
 
@@ -61,7 +61,7 @@ The Director (`10`) spawns from this roster; "native" is the stratum's teaching 
 ### Proper exit (the Landing)
 1. The player enters the exit volume (elevator car, stairwell door, pool drain hatch, ramp gate; `07` §6). The HUD prints `DESCENDING`.
 2. A 6 s **Landing** interstitial: the player stands in a small enclosed cabin scene (stratum-themed: elevator for Halls, Garage, Offices; stairwell landing for Pools, Server; a lit white pocket for Substrate), the camera is free, the cabin shudders, the world shader unrender ripples once, and the next level generates in a thread (`07` §8).
-3. Rewards, presented in-world on the cabin wall as a two-item panel (`[1]` and `[2]`, glyph and name, choose with keys or click): one of two items from the current item pool, weighted by what the player lacks. Choosing is optional; the cabin opens after 6 s regardless. The panel also prints `COHERENCE +20`, applied on arrival with the gain pulse.
+3. Rewards, presented in-world on the cabin wall as a two-item panel (labelled with the `item_1` and `item_2` bindings, `[1]` and `[2]` by default, glyph and name, choose with keys or click): one of two items from the current item pool, weighted by what the player lacks. Choosing is optional; the cabin opens after 6 s regardless. The panel also prints `COHERENCE +20`, applied on arrival with the gain pulse.
 4. The cabin door opens onto the next level's spawn room. Depth label shutters in.
 
 ### Drop
@@ -88,7 +88,7 @@ Drops are not penalised: they already cost Coherence and reward. Endless continu
 | 1 | Glowstick in item pool | Reach depth 2 | Item |
 | 2 | Radio in item pool | Reach depth 3 | Item |
 | 3 | Flare in item pool | Reach depth 4 | Item |
-| 4 | Fuse in item pool (and Powered exits may spawn without a breaker, see `07`) | Reach depth 5 | Item |
+| 4 | Fuse in item pool, and Powered exits may spawn as Variant B (breaker with an empty fuse socket, see `07` §6) | Reach depth 5 | Item |
 | 5 | Loadout: Cartographer | Find 5 notes | Loadout |
 | 6 | Loadout: Lightbearer | Evade Flicker 3 times in one run | Loadout |
 | 7 | Loadout: Diver | Reach depth 4 twice | Loadout |
@@ -100,14 +100,14 @@ Drops are not penalised: they already cost Coherence and reward. Endless continu
 | 13 | Archive: Null codex counter line | Encounter Null 3 times | Archive |
 | 14 | Note U6 and the ending variant | Find all 35 other notes | Archive |
 
-"Encounter" means the error entered chasing state against the player. Unlocks are announced on the Run Summary and as HUD notifications when earned mid-run (`04` §6). Unlocks never increase player power; they add options and knowledge (roguelike skill rule: meta never overpowered).
+"Encounter" and "evade" are the `noticed_player` and `lost_player` events defined per error in `08` §2. Unlocks are announced on the Run Summary and as HUD notifications when earned mid-run (`04` §6). Unlocks never increase player power; they add options and knowledge (roguelike skill rule: meta never overpowered).
 
 ## 7. Loadouts
 
 | Loadout | Start | Trade-off | Unlock |
 |---|---|---|---|
-| **Faller** (default) | Polaroid ×1, Chalk ×4, Coherence 100 | none | always |
-| **Cartographer** | Chalk ×10, Radio ×1, Coherence 90 | starts with 90 | #5 |
+| **Faller** (default) | Polaroid ×1, Chalk ×8 (uses), Coherence 100 | none | always |
+| **Cartographer** | Chalk ×20 (uses), Radio ×1, Coherence 90 | starts with 90 | #5 |
 | **Lightbearer** | Glowstick ×3, Flare ×1, crank rate ×1.5 | no Polaroid; Flicker is attracted to the player's light from 1.5× distance | #6 |
 | **Diver** | Polaroid ×2, start at depth 3 with Coherence 70 | skips depths 1 and 2 and their rewards; score counts max depth normally | #7 |
 
@@ -116,7 +116,7 @@ Daily Descent always uses Faller.
 ## 8. Modes
 
 - **Descent:** random `run_seed`; loadout chosen; unlocks apply.
-- **Daily Descent:** `run_seed = hash("NOCLIP", UTC date)`. One attempt per day per save. The result is stored in `daily_history` (`13`). The title screen shows today's seed and the player's result if played. Faller loadout, all unlocked items in the pool regardless of unlock state (so every player faces the same game).
+- **Daily Descent:** `run_seed = hash("NOCLIP:" + UTC date as YYYYMMDD)` (the same expression as `13` §4). One attempt per day per save. The result is stored in `daily_history` (`13`). The title screen shows today's seed and the player's result if played. Faller loadout, all unlocked items in the pool regardless of unlock state (so every player faces the same game).
 - **Endless:** available after a win. Identical to Descent, except the Threshold at depth 6 behaves as a proper exit into Cycle 2 and the run ends only at dissolution or abandonment. The ending plays only in Descent mode.
 
 ## 9. Difficulty and fairness rules (enforced by code, tested by `15`)
@@ -125,7 +125,7 @@ Daily Descent always uses Faller.
 2. The exit and its lock objective are reachable on foot from spawn without noclip. (`07` §8 validation)
 3. The first 30 s of every level (15 s after a drop) have no hunter in chasing state. (`10` calm window)
 4. An error contact costs a fixed amount, stuns 1.2 s, and then that error retreats for 20 s. Two errors cannot contact the player within the same 3 s. (`08`, `10`)
-5. A player at 100 Coherence can always survive at least two contacts plus one floor drop (35 + 35 + 30 = 100 is death, so contact damage is tuned at 35, 25, 30 and never all three maxima in one depth below depth 5).
+5. No single damage event exceeds 35 Coherence. At least 3 s pass between any two contacts, and the same error cannot contact twice within 20 s (`Satiated`). A noclip is refused when it would reduce Coherence to 0 (`06` §8), so the player can never spend themselves to death.
 6. Static never blocks the only route to the exit for more than 40 s (it drifts). (`08`)
 7. Awake never exceeds +0.25 aggression.
 8. The Threshold is always reachable within 90 s of walking from the Substrate spawn along the generator's critical path, so that Null's pressure is a chase, not a maze.
@@ -140,5 +140,5 @@ Daily Descent always uses Faller.
 
 - `RunState` (in `GameState` autoload, `14`): `run_seed: int`, `mode: StringName`, `loadout: StringName`, `depth: int`, `strata_order: Array[StringName]`, `coherence: float`, `items: Array[ItemSlot]`, `proper_exits: int`, `drops_in_a_row: int`, `notes_found: Array[StringName]`, `evasions: int`, `encounters: Dictionary`, `started_at_ms: int`.
 - `GameState.start_run(mode, loadout, seed)`, `GameState.descend(proper: bool)`, `GameState.end_run(cause: StringName)`, `GameState.compute_score() -> int`.
-- Signals on `EventBus`: `run_started`, `level_entered(depth, stratum)`, `level_left(proper)`, `run_ended(cause, score)`, `unlock_earned(id)`.
+- Signals on `EventBus` (signatures canonical in `14` §4): `run_started`, `level_entered(depth, stratum, arrival)`, `level_left(proper)`, `run_ended(cause, score)`, `unlock_earned(id)`.
 - `MetaState` (`13`): unlock flags, stats, notes, daily history.

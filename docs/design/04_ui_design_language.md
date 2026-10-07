@@ -118,6 +118,8 @@ All menus share one scene (`ui/menu_shell.tscn`): black background, a title line
 
 Contextual hints are single prompt-style lines, `ui_dim`, shown once each, in the prompt position, for 6 s or until the action is performed:
 
+All key names below are rendered from the current bindings (`SettingsManager.bindings()`); the defaults are shown.
+
 1. On spawn: `[W A S D] MOVE · [MOUSE] LOOK` (shown until 3 m walked).
 2. At 15 s or when ambient light drops: `[F] FLASHLIGHT`.
 3. When the flashlight is first below 60%: `[HOLD R] CRANK`.

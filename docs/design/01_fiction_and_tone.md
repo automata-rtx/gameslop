@@ -63,7 +63,7 @@ Notes are the only words in the world. There are 36. Each is short enough to rea
 - **Stray (S):** found objects. Short. Odd. Never explained.
 - **The builder (X):** one note, unlocked in the Archive after the other 35 are found.
 
-Each note has an ID, a stratum, a voice, and a tier. Tier 1 notes can appear from the first run; tier 2 notes appear only after the player has reached that stratum once before; this keeps the early story front-loaded with hints and the later story for returning players. The Archive (`13_save_and_meta.md`) shows found notes in stratum order.
+Each note has an ID, a stratum, a voice, and a tier. Levels carry two notes (one on depth 6) drawn from the stratum's six per `09` §2. Tier 1 notes can appear from the first run; tier 2 notes appear only after the player has reached that stratum once before; this keeps the early story front-loaded with hints and the later story for returning players. The Archive (`13_save_and_meta.md`) shows found notes in stratum order.
 
 ### Halls
 

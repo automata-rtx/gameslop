@@ -39,11 +39,11 @@ TITLE ──► DESCEND ──► [Depth N: explore ▸ find lock objective ▸ 
                     Depth 6: reach the THRESHOLD ──► ENDING ──► Endless + Cycle 2 unlocked
 ```
 
-**Minute to minute:** walk, listen, light, read the room, decide: explore for the proper exit (safe, rewarded with Coherence and an item choice) or noclip down right now (instant, costs 30 Coherence, lands you somewhere random, and the next level's errors start more awake). Inside that decision sit smaller ones: sprint or stay quiet, flashlight on or off, crank it now or later, spend a Polaroid now or hold it, chalk this junction or trust memory.
+**Minute to minute:** walk, listen, light, read the room, decide: explore for the proper exit (safe, rewarded with Coherence and an item choice) or noclip down right now (a 2.5 s charge, costs 30 Coherence, lands you somewhere random, and the next level's errors start more awake). Inside that decision sit smaller ones: sprint or stay quiet, flashlight on or off, crank it now or later, spend a Polaroid now or hold it, chalk this junction or trust memory.
 
 **Run to run:** learn each error's rule, learn each stratum's layout grammar, unlock items and loadouts through milestones (not currency), find notes that assemble the fiction, then win, then chase depth and score in Endless and Daily Descent.
 
-**Session shape:** a run to depth 6 is 20 to 30 minutes. Early deaths take 3 to 8 minutes. Restarting takes one keypress. There is no run-to-run power creep; progression is knowledge, options, and content.
+**Session shape:** a run to depth 6 is 25 to 30 minutes. Early deaths take 5 to 10 minutes. Restarting takes one keypress. There is no run-to-run power creep; progression is knowledge, options, and content.
 
 ## 5. What makes it engaging (the principles behind the loop)
 

@@ -99,10 +99,11 @@ Step cadence: one step every 0.55 m walked (0.45 m sprinting, 0.7 m crouching), 
 ### Targeting
 Each physics frame while `noclip` is held, a ray from the camera (max 2.5 m) finds the aimed surface on the `world` layer.
 
-- **Wall target:** surface normal within 30° of horizontal. Valid if the level marks the surface's cell wall as passable (every interior wall and partition is; perimeter and "solid" walls are not; `07` §7) and a shape cast of the player capsule from the far side of the wall finds free space within 0.3 to 2.0 m beyond the surface. Reasons shown when invalid: `SOLID` (perimeter), `NO SPACE` (no free cell behind), `TOO FAR` (not within 2.5 m).
+- **Wall target:** surface normal within 30° of horizontal. Valid if the level marks the surface's cell wall as passable (every interior wall and partition is; perimeter and "solid" walls are not; `07` §7) and a shape cast of the player capsule from the far side of the wall finds free space within 0.3 to 2.0 m beyond the surface. Reasons shown when invalid: `SOLID` (perimeter), `NO SPACE` (no free cell behind), `TOO FAR` (not within 2.5 m), `TOO THIN` (the player's Coherence is not greater than the cost: a noclip can never reduce Coherence to 0, so spending is always a survivable choice).
 - **Floor target:** surface normal within 20° of up, hit point within 2.5 m, and the current depth is not the last of the run (depth 6 in Descent; never solid in Endless). Invalid reason on depth 6: `SOLID`.
 - **Soft walls** (`09` §8): same as wall target but the charge is faster and cheaper (below).
 - Ceilings are never valid (`SOLID`).
+- Any target is invalid with reason `TOO THIN` when `coherence <= cost` for that target type.
 
 ### Charge
 | Target | Charge time | Coherence cost | Speed while charging | Noise on commit |
@@ -114,7 +115,7 @@ Each physics frame while `noclip` is held, a ray from the camera (max 2.5 m) fin
 Releasing before full charge cancels (no cost, a short descending tone). Looking away from the target cancels. Being contacted by an error cancels. The charge is shown by the HUD arc (`04` §6), the world-shader unrender preview around the target point, the rising sine cluster, and a slow FOV pull-in of 6° (`11`).
 
 ### Commit
-1. **Hitstop:** 80 ms freeze of the world (`Engine.time_scale` 0.0 is not used; the player's and errors' processing is paused and the audio gap plays), with the sub thump and the tear.
+1. **Hitstop:** 80 ms freeze of the world via `Clock.hitstop(80)` (`11` §4: the scene tree is paused; HUD, post stack, and audio run as `PROCESS_MODE_ALWAYS`), with the sub thump and the tear.
 2. **Pass (wall):** the camera moves through the wall over 250 ms along the aim direction to the found free spot; during the pass, collision with the `world` layer is disabled for the player, the world shader's `g_noclip_commit` is 1.0 (geometry within 3 m is lines), the post shader's `noclip_commit` pulse plays, and the FOV punches +8° then returns over 300 ms.
 3. **Pass (floor):** the camera drops through the floor into black with grain for 1.2 s, then the next level's arrival (`05` §4). `GameState.descend(false)` is called at commit, so a death during the fall is impossible.
 4. **After:** Coherence is deducted with the loss animation; a 1.0 s cooldown before another charge; the noise event; the Director is informed (`10`).
@@ -131,7 +132,7 @@ Releasing before full charge cancels (no cost, a short descending tone). Looking
 - Gains: proper exit +20; Polaroid +25; the ending restores to 100.
 - Losses: noclip (5/10/30); Static inside the field 4 per second; error contact (Still 35, Echo 25, Flicker 30); Null core 12 per second; Cycle 2 ambient drain 0.2 per second in the Substrate only.
 - Below 25: HUD danger state, renderer near-monochrome, heartbeat floor 90 bpm. No mechanical penalty: the pressure is perceptual and the player's tools are unchanged (pillar 2: legibility).
-- At 0: **dissolution**. Input is locked; 1.5 s of the dissolve sequence (`02` §10, `03` §4), then the Run Summary (`04` §7). Cause is the last damage source.
+- At 0: **dissolution**. Input is locked; 1.5 s of the dissolve sequence (`02` §10, `03` §4), then the Run Summary (`04` §7). Cause is the last damage source: one of the five error ids, or `&"substrate"` for the Cycle 2 ambient drain (summary line `DISSOLVED BY THE SUBSTRATE`). Noclip can never be a cause (`§8`, `TOO THIN`).
 
 **Contact rules** (shared with `08` and `10`): on contact the player loses the error's amount, is stunned 1.2 s (no sprint, no noclip, movement at crouch speed, camera trauma 0.6), is pushed 1.5 m away from the error, and the error enters its "satiated" state for 20 s. Two contacts cannot happen within 3 s of each other.
 
@@ -157,6 +158,6 @@ Hide spots (`09` §6) are entered with `interact`. Inside: the camera moves to t
 ## Interfaces
 
 - `Player` node: signals `coherence_changed(value, delta, source)`, `stamina_changed(value)`, `charge_changed(value)`, `noclip_state(charge: float, target: StringName, valid: bool, reason: StringName)`, `contacted(by: StringName)`, `dissolved(cause: StringName)`, `hidden_changed(on: bool)`.
-- `Player.apply_coherence(delta: float, source: StringName)`; `Player.contact(error: Node3D, amount: float)` (applies the contact rules); `Player.is_observing(node: Node3D) -> bool` (frustum, distance ≤ 30 m, unoccluded, and lit: either the flashlight is on and aimed within 25° or the node is within a lit fixture group); `Player.eye_position() -> Vector3`; `Player.is_hidden() -> bool`.
+- `Player.apply_coherence(delta: float, source: StringName)`; `Player.contact(error: Node3D, amount: float) -> bool` (applies the contact rules; returns false when the Director refuses it under the 3 s exclusivity, `10` §4); `Player.is_observing(node: Node3D) -> bool` (frustum, distance ≤ 30 m, unoccluded, and lit per `08` §4: flashlight on and within 25° of the beam axis, or a glowstick within 4 m or a burning flare within 8 m of the node, or the node inside the light range of a powered fixture); `Player.eye_position() -> Vector3`; `Player.is_hidden() -> bool`.
 - `EventBus.noise_emitted(pos, radius, kind)`.
 - `tuning.gd` constants for every number in this document.

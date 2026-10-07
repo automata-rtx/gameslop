@@ -69,7 +69,7 @@ The tables below are the contract. An agent implementing an action implements it
 
 ## 4. Hitstop
 
-Implemented by pausing the `gameplay` process group for N ms (`get_tree().paused` is not used; player, errors, and props read a `Clock.gameplay_scale` and the Director's tick is skipped). The post shader and audio keep running. Used only for the noclip commit (80 ms) and error contact (60 ms). Never for UI.
+Implemented by `Clock.hitstop(ms)`: `get_tree().paused = true` for N ms of wall-clock time (a one-shot `Timer` with `process_mode = PROCESS_MODE_ALWAYS` unpauses). The post stack quad, the HUD, the captions, the audio players for pulses, and the Clock itself are `PROCESS_MODE_ALWAYS` so the image and sound continue; the player, errors, props, Director, and level are `PROCESS_MODE_PAUSABLE` (the default). The pause menu uses the same tree pause, so `Clock` refuses a hitstop while the menu is open and ends any hitstop when the menu opens. Used only for the noclip commit (80 ms) and error contact (60 ms). Never for UI.
 
 ## 5. Tweens and timing
 

@@ -70,7 +70,7 @@ Rules: `game/assets/audio/` is generated and committed (so builds do not need Py
 | `SaveManager` | `meta.json` I/O with atomic writes | Interpret data |
 | `AudioManager` | Sample playback, buses, reverb per stratum, ducking, pooling of `AudioStreamPlayer3D` (pool of 32) | Game logic |
 | `CoherenceRenderer` | Global shader params, post stack, pulses, threat | Read player directly (it is fed by signals) |
-| `Clock` | `gameplay_scale`, hitstop, pausable process groups | — |
+| `Clock` | `hitstop(ms)` via tree pause, wall-clock timers that survive pause, run timer | — |
 | `SceneRouter` | Scene changes with the glitch transition, threaded loads | — |
 
 Everything else is a node in a scene. The Director is per-level. The HUD is a child of `run.tscn`. The player is a child of `run.tscn`, re-parented into each level.
@@ -127,7 +127,7 @@ Level transition: `GameState.descend(proper)` → `run.tscn` starts generating d
 - **Resources for data:** `StratumData`, `ItemData`, `NoteData`, `ErrorData`, `LoadoutData`. Mutable runtime copies use `duplicate(true)`.
 - **RNG discipline:** no `randi()`/`randf()` in gameplay or generation. Every system takes an `RandomNumberGenerator` or a seed. UI and purely cosmetic effects may use a global cosmetic RNG seeded from time.
 - **Threads:** generation data only; never touch nodes off the main thread; results handed over by `call_deferred`.
-- **No `get_tree().paused` for hitstop**; use `Clock.gameplay_scale` and process modes.
+- **Hitstop and pause both use `get_tree().paused`** (`11` §4); nodes that must keep running during either (post quad, HUD, captions, pulse audio, Clock, SceneRouter, menus) are `PROCESS_MODE_ALWAYS`; everything in the level is pausable. There is no custom time scale.
 - **Errors in code:** `assert()` for invariants (stripped in release), `push_error` for recoverable failures with a fallback.
 - **Comments:** explain why, not what. Reference the design doc section when implementing a rule: `# 08 §4: Still freezes while observed`.
 - **File size:** scripts over 400 lines are split. Functions over 60 lines are split.

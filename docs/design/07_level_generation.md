@@ -11,7 +11,7 @@
 1. **Grammar, not noise.** Each stratum has a layout grammar a player can learn: Halls are a braided maze with rooms; Pools are big halls on a spine; Garage is an open deck with pillars and cores; Offices are rings around cubicle mazes; Server is parallel aisles; Substrate is Halls or Offices with pieces missing. Learning the grammar is progression.
 2. **The level is data first.** Generation produces a `LevelGrid` and a `Placements` list on a worker thread. Building nodes happens on the main thread in time slices. Every consumer (navigation, Director, noclip validation, exit status, minimap-free wayfinding through fixtures) reads the grid, never the scene tree.
 3. **Edge walls.** Walls live on cell edges, 0.2 m thick. This makes every interior wall thin enough to noclip, makes thickness explicit, and lets the generator mark walls `SOLID`, `WALL`, `SOFT`, `PARTITION`, or `DOOR`.
-4. **Deterministic.** One `RandomNumberGenerator` per level seeded by `hash(run_seed, depth)`, with derived sub-seeds for layout, placement, props, and fixtures, so the same seed always builds the same level and a tuning change in props does not reshuffle the maze.
+4. **Deterministic.** One `RandomNumberGenerator` per level seeded by `Seeds.derive(run_seed, "depth:%d" % depth)` (`tuning.gd`: `derive(base: int, label: String) -> int` = `hash("%d:%s" % [base, label])`), with derived sub-seeds (`Seeds.derive(level_seed, "layout")` and so on) for layout, placement, props, and fixtures, so the same seed always builds the same level and a tuning change in props does not reshuffle the maze.
 5. **Validated or rejected.** A level that fails validation (§8) is regenerated with `sub_seed + 1`, up to 8 attempts, then falls back to the stratum's simplest grammar. The build never ships an invalid level.
 
 ## 2. Grid model
@@ -35,7 +35,7 @@ seed ─► Layout(stratum) ─► Rooms + Corridors + Walls ─► Decks/Basins
      ─► Collision ─► Navigation bake (threaded) ─► LightPool register ─► ready
 ```
 
-Stage timings must fit the 6 s Landing (`05` §4): layout and placement under 300 ms on the worker thread; build sliced at 4 ms per frame; navigation bake asynchronous; a level is "ready" when the bake completes. If a drop arrives before ready, the arrival black holds until ready (max 3 s extra, then arrive with navigation pending; errors stay dormant until the bake finishes).
+Stage timings must fit the 6 s Landing (`05` §4): layout and placement under 300 ms on the worker thread; build sliced at 4 ms per frame; navigation bake asynchronous; a level is "ready" when the bake completes. If the Landing's 6 s or a drop's 1.2 s elapse before ready, the cabin door stays shut (the cabin keeps shuddering) or the arrival black holds, until ready (max 3 s extra, then arrive with navigation pending; errors stay dormant until the bake finishes).
 
 ## 4. Shared layout operations (library, `game/src/levelgen/ops/`)
 
@@ -67,7 +67,8 @@ Each grammar is a `StratumGenerator` subclass implementing `layout(grid, rng)` a
 ### 5.2 Pools (height 6.0 m)
 - `spine_and_branches`: a main 1-cell corridor across the long axis with 3 to 5 branches; `bsp_split` the remaining space into 6 to 9 `pool_hall` rooms of 8×6 to 14×10 attached to the spine or a branch by a 1-cell doorway (no door prefab, an open tiled arch).
 - Each pool hall gets a `BASIN`: inner rect inset by 2 cells, `floor_y` −0.6, −1.2, or −1.8 (rng), `WATER` flag with water surface at `floor_y + fill` where fill ∈ {0 (dry), 0.5 (shallow), basin depth (full)} weighted 30/40/30. One side of the basin has a 2-cell `RAMP` of steps (built as a stepped mesh with step 0.25 m) and ladders (`ladder` prop) on two edges. Full basins deeper than 1.2 m are impassable except by the steps (wading depth limit 1.3 m; deeper is modelled as `SOLID` for movement).
-- 1 to 2 `pump` rooms (2×2, `DOOR`), hide spot hosts.
+- 1 to 2 `pump` rooms (2×2, `DOOR`), hide spot hosts. When the lock is Powered, one pump room is also the `breaker` room (the breaker box on its wall).
+- `spawn` room: a 3×3 tiled antechamber on the perimeter attached to the stairwell landing; `exit` room: the exit hall.
 - Props: ladders, `lifeguard_chair` (1 per 3 halls), `lane_rope` floating in full basins, drips at hashed ceiling points.
 - Fixtures: ceiling panels every 3 cells in halls, every 2 cells in corridors. Groups per hall.
 - Soft walls: 3, between adjacent halls.
@@ -78,7 +79,7 @@ Each grammar is a `StratumGenerator` subclass implementing `layout(grid, rng)` a
 - Two to three `RAMP` runs connect the decks: 4 cells long, straight, 1 cell wide, with low `WALL` edges; placed against the perimeter.
 - Parking bays: cells adjacent to interior strips and the perimeter are bays; `car` props fill 35% of bays (Poisson, min spacing 1 cell), each a hide spot host (`under_car`). `barrier` props at 10% of bay ends.
 - Fixtures: sodium cage lamps on pillars every 4 cells (one per pillar face facing the longest open run). Groups: 4×4-cell quadrants.
-- Spawn on deck 1, exit on deck 0 (so every Garage level requires finding a ramp). Keycard (when Keyed) on the other deck from the exit.
+- `spawn` room: a 3×3 elevator lobby on deck 1 (walled, one opening) attached to the Landing cabin; `exit` room: the 3×3 core on deck 0 holding the stairwell door. Spawn on deck 1, exit on deck 0 (so every Garage level requires finding a ramp). Keycard (when Keyed) on the other deck from the exit.
 - Soft walls: 3, on interior strips only. Cores are `SOLID`.
 - Exit: `stairwell_door` in a core, with an `exit_sign` prop above it (the only green light in the stratum, visible across the deck).
 
@@ -97,7 +98,7 @@ Each grammar is a `StratumGenerator` subclass implementing `layout(grid, rng)` a
 - Fixtures: none overhead; `emergency_box` red lights at aisle ends every 6 cells, rack LEDs per rack face (`02` §7). Groups: per aisle (Flicker uses emergency boxes and rack LEDs).
 - Props: `fan_grille` on the ceiling every 5 cells, `cable_tray` along aisle ceilings (visual), `rack_gap` hide spots: 3 per level, a 1-cell nook between two racks with a `HIDE_SPOT_HOST`.
 - Soft walls: none (racks are not walls). Noclip through a `RACK` cell is allowed as `WALL` (racks are 1 m deep; the shape cast decides).
-- Exit: `floor_hatch` at the end of an aisle, lit by one white light.
+- `spawn` room: a 3×3 stairwell landing on the perimeter; `exit` room: a 3×3 clearing at the end of an aisle holding the `floor_hatch`, lit by one white light.
 
 ### 5.6 Substrate (height 3.0 m)
 - Run the Halls grammar at 28×28 (Cycle 2: Offices grammar alternates), then **unfinish**:
@@ -106,7 +107,7 @@ Each grammar is a `StratumGenerator` subclass implementing `layout(grid, rng)` a
   - Offset `floor_y` of 25% of rooms by +0.25 or −0.25 m with short ramps at doorways (within the step height).
   - Replace all fixtures with none; place 6 to 10 `studio_light` at random walkable cells ≥ 6 cells apart; the exit pocket always has one.
   - Edges to `VOID` become `SOLID` and are drawn as the brighter grid (invisible walls in fiction, visible lines in render).
-- The **Threshold** is the exit: a `threshold_door` prefab at the far end of the critical path in a `pocket` room (3×3, lit). The critical path from spawn to Threshold is forced to ≥ 140 m and ≤ 220 m of walking (`05` §9 rule 8 is about Null's pressure, not distance).
+- `spawn` room: the Halls grammar's spawn room, kept finished (no `UNFINISHED`, no `VOID`) with a studio light. The **Threshold** is the exit: a `threshold_door` prefab at the far end of the critical path in a `pocket` room (3×3, lit). The critical path from spawn to Threshold is forced to ≥ 140 m and ≤ 220 m of walking (`05` §9 rule 8 is about Null's pressure, not distance).
 - Null's spawn point: the cell on the critical path at 55% distance from spawn, at least 20 m from the player (fairness rule), dormant for the calm window (`10`). Static ×2 off the critical path.
 - No lock. No hide spots. Soft walls: 6 (the Substrate is where noclip is most useful; the shader shows them clearly).
 
@@ -115,7 +116,7 @@ Each grammar is a `StratumGenerator` subclass implementing `layout(grid, rng)` a
 | Lock | Mechanic | HUD status | Where it may appear |
 |---|---|---|---|
 | **Open** | Walk in. | `EXIT: OPEN` | Depth 1 (not first run), 2, 3; Depth 6 always |
-| **Powered** | The exit is dark and dead until the level's `breaker` is thrown (hold `interact` 0.6 s). Throwing it emits a 25 m noise, runs the power wave, and powers the exit. Variant B (after unlock #4, 50% of Powered): the breaker has an empty fuse socket; a `fuse` item is placed in the level, or the player inserts one carried from earlier. | `EXIT: POWERED` then `EXIT: OPEN` | Depths 1 to 5 |
+| **Powered** | The exit is dark and dead until the level's `breaker` is thrown (hold `interact` 0.6 s). Throwing it emits a 25 m noise, runs the power wave, and powers the exit. Variant B (after unlock #4, 50% of Powered): the breaker has an empty fuse socket; **exactly one `fuse` item is always placed in the level**, reachable on foot (validation rule 3 covers it), at 35% to 70% critical-path distance; a player who already carries a fuse can skip the search. | `EXIT: POWERED` then `EXIT: OPEN` | Depths 1 to 5 |
 | **Keyed** | The exit has a card reader; a `keycard` item (glowing, visible from 20 m by a pulsing `ui_accent` emissive) is placed at 35% to 70% critical-path distance, off the direct path when the grammar allows. The keycard occupies no belt slot (it is a key, shown next to the depth label as a `key` glyph). | `EXIT: KEYED` then `EXIT: OPEN` | Depths 2 to 5 |
 | **Cycled** | The exit opens on a schedule: sealed 70 s, open 20 s, with an audible signal 5 s before opening (a long tone from the exit, `max_distance` 60 m, heard through walls) and the seal/unseal sounds. | `EXIT: SEALED 00:42` / `EXIT: OPEN 00:20` | Depths 4 and 5 |
 
@@ -141,14 +142,14 @@ The builder tags every wall collider with metadata `{cell, dir, wall_type}`. `No
 ### Validation (`LevelValidator`, runs on the data before build; also run headless over 1,000 seeds per stratum in tests)
 1. Spawn and exit exist, in distinct rooms, and `critical_path` exists.
 2. Critical path length within the stratum's band (Halls 80 to 160 m at depth 1 scaling by size; Substrate 140 to 220 m).
-3. Lock objective reachable from spawn, and exit reachable from the objective, without crossing `SOLID` or `GLASS` or deep water.
+3. Lock objective (breaker, keycard, and for Variant B the placed fuse) reachable from spawn, and exit reachable from the objective, without crossing `SOLID` or `GLASS` or deep water.
 4. Walkable cell count within ±25% of target.
 5. No wall edge thicker than 0.2 m between two walkable cells (by construction).
 6. Every room has at least one opening. No `DEAD_END` chain longer than 12 cells.
 7. Error spawn points: at least 6, each ≥ 20 m walking distance from spawn, none inside `SPAWN_ROOM` or `EXIT_ROOM`.
 8. Items, notes, and hide spots placed within their count ranges; no two items in the same cell.
 9. Soft walls each save ≥ 20 m of walking.
-10. Garage: both decks reachable; Pools: exit basin dry; Offices: breaker exists; Server: every cage has a gate; Substrate: Threshold pocket lit and `VOID` fraction 15% to 25%.
+10. Garage: both decks reachable; Pools: exit basin dry; Offices: breaker exists; Server: every cage has a gate; Substrate: Threshold pocket lit, `VOID` fraction 15% to 25%, and **no dead end longer than 4 cells** (so Null cannot corner the player; the unfinish step must repair longer dead ends by opening a soft wall at their end).
 11. After build (integration test): navigation bake succeeds and a path exists from spawn to exit on the navmesh.
 
 ## 9. Cycle 2 corruption (generator side)

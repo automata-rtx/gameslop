@@ -29,7 +29,7 @@ There is **no mid-run save** in v1.0. Quitting during a run abandons it (confirm
   "polaroids_seen": [0, 3],
   "stats": {
     "runs": 12, "wins": 1, "best_depth": 6, "best_score": 4880,
-    "deaths_by": { "still": 4, "echo": 2, "flicker": 1, "static": 1, "null": 3 },
+    "deaths_by": { "still": 4, "echo": 2, "flicker": 1, "static": 1, "null": 3, "substrate": 0 },
     "distance_walked_m": 15320.5, "walls_passed": 41, "floors_dropped": 7,
     "coherence_spent": 1180, "notes_total": 9, "evasions": 23, "time_played_s": 9120,
     "breakers_thrown": 10, "items_used": { "polaroid": 9, "glowstick": 12 }
@@ -56,7 +56,7 @@ Rules: unknown keys are preserved on load; missing keys get defaults; `version` 
 
 ## 4. Daily seed
 
-`run_seed = hash("NOCLIP:" + UTC date "YYYYMMDD")` using Godot's `hash()` on the string. One attempt per day: if `daily[today]` exists, the title's DAILY item shows the result and is not selectable. Local only; no network.
+`run_seed = hash("NOCLIP:" + UTC date as "YYYYMMDD")` using Godot's `hash()` on the string (the same expression as `05` §8). One attempt per day: if `daily[today]` exists, the title's DAILY item shows the result and is not selectable. Local only; no network.
 
 ## 5. The Archive (meta presentation, `04` §7)
 

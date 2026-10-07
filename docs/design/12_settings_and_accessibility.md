@@ -21,8 +21,8 @@
 | Resolution | enum | the monitor's modes ≥ 1280 × 720 | native | Windowed and exclusive only |
 | VSync | enum | Off, On, Adaptive | On | |
 | Max FPS | int | 30 to 360, or Unlimited | Unlimited (VSync governs) | |
-| Render scale | float | 0.5 to 1.5, step 0.05 | 1.0 | Below 1.0 uses FSR 2 when "Upscaling" is on |
-| Upscaling | enum | Off (bilinear), FSR 2 | FSR 2 | |
+| Render scale | float | 0.5 to 1.5, step 0.05 | 1.0 | Below 1.0 the "Upscaling" choice applies; above 1.0 is bilinear supersampling |
+| Upscaling | enum | Bilinear, FSR 2 | FSR 2 | Only active when render scale < 1.0. FSR 2 replaces anti-aliasing (the AA row is greyed and shows `FSR 2` while active) and is incompatible with MSAA |
 | UI scale | float | 0.75 to 1.5, step 0.05 | 1.0 at 1080p, auto-derived from height | |
 | Brightness (gamma) | float | 0.8 to 1.4, step 0.02 | 1.0 | Applied as the Environment's `adjustment_brightness`; a test strip with 8 greys and the words "the darkest bar should be barely visible" |
 | Field of view | int | 70 to 110, step 1 | 90 | Horizontal FOV at 16:9. Converted to vertical (`vfov = 2·atan(tan(hfov/2) × 9/16)`) and applied with `KEEP_HEIGHT`, so wider monitors gain width and never lose height |
@@ -64,7 +64,7 @@ Sliders map to dB with `linear_to_db(v / 100)` and −80 dB at 0. Each slider pl
 - **Invert Y:** toggle, default Off.
 - **Sprint:** Hold / Toggle, default Hold. **Crouch:** Hold / Toggle, default Hold.
 - **Raw mouse input:** toggle, default On (`Input.use_accumulated_input` off; `MOUSE_MODE_CAPTURED`).
-- **Key bindings:** every action in `06` §2 except the `ui_*` built-ins. Each row: action name, primary binding, secondary binding. Enter to rebind (captures the next key or mouse button; Esc cancels; Backspace clears). Conflicts: the other action loses its binding and both rows flash `ui_accent`; a `RESOLVE` hint is shown. Mouse buttons and wheel are bindable. Bindings display with `OS.get_keycode_string(DisplayServer.keyboard_get_keycode_from_physical(...))` so a French AZERTY player sees Z Q S D. Physical keycodes are stored.
+- **Key bindings:** every action in `06` §2 except the `ui_*` built-ins. Each row: action name, primary binding, secondary binding. Enter to rebind (captures the next key or mouse button; Esc cancels; Backspace clears). Conflicts: the two actions swap bindings (`04` §7) and both rows flash `ui_accent` for 2 s. Mouse buttons and wheel are bindable. Bindings display with `OS.get_keycode_string(DisplayServer.keyboard_get_keycode_from_physical(...))` so a French AZERTY player sees Z Q S D. Physical keycodes are stored.
 - `RESET TAB TO DEFAULTS` restores the default map.
 
 ## 6. ACCESSIBILITY
