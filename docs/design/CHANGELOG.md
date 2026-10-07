@@ -14,3 +14,4 @@ Entries are one line each: date, document, change, rationale. The design was loc
 - 2026-10-07 — 09, 05, 01 — Chalk is one stack of uses (cap 20); exit entry is a walk-in trigger; notes per level defined (2, or 1 on depth 6); `exit_status_changed(status, timer)`. Reason: contradictions and a pacing gap for Archive completion.
 - 2026-10-07 — 12, 04 — Rebind conflicts swap; FSR 2 only below render scale 1.0 and replaces AA; first-run hints and the Landing panel render key names from bindings. Reason: engine behaviour and rebinding correctness.
 - 2026-10-07 — 05, 07, 13 — One seed derivation function (`Seeds.derive`) and one daily seed expression. Reason: two-argument `hash()` does not exist.
+- 2026-10-07 — 15, CLAUDE.md — Continuous production with tagged checkpoints replaces milestone gates; human play only at cp-12 and cp-13. Reason: the user wants minimal playtesting and bisectable builds.

@@ -11,7 +11,7 @@ NOCLIP is a first-person horror roguelite built in Godot 4.7 (GDScript, Forward+
 ## Repository
 - `game/` is the Godot project. `tools/` holds scripts. `docs/` holds the design, QA checklists, and release notes. `third_party/` is reference only and is never shipped.
 - Layout, autoloads, the signal bus, conventions, layers, budgets, and testing: `docs/design/14_technical_architecture.md`.
-- Milestones, tasks, roles, and model recommendations: `docs/design/15_production_plan.md`.
+- Milestones, tasks, roles, model recommendations, and the checkpoint protocol: `docs/design/15_production_plan.md` §1. Production never waits for the human; it stops only to tag green checkpoints (`cp-NN-<slug>`) with a note in `docs/checkpoints.md`.
 
 ## Commands
 ```

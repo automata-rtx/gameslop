@@ -28,11 +28,40 @@ Working rules for agents:
 3. Every task delivers: code, tests (or bench scene updates), a `CHANGELOG.md` line if a design number moved, and a 10-line report (what, how verified, open questions).
 4. Agents never change an "Interfaces" section silently; they propose the change in the report.
 5. The orchestrator runs `tools/ci/test.sh` after every merge and never merges red.
-6. When an agent cannot verify visually (no GPU), it says so and lists what the human should look at.
+6. When an agent cannot verify visually (no GPU), it says so and lists what the human should look at in the next checkpoint note; it does not wait.
 
-### The human's 15 minutes (per milestone)
+### Continuous production and checkpoints (how the human stays out of the loop)
 
-The user wants minimal involvement. Each milestone ends with one request to the human: run one command, look at one list of things, paste back what they saw (or screenshots from `--tour`). The orchestrator writes that request as `docs/qa/human_check_M<n>.md` with numbered observations to make. Nothing else is asked of the human.
+The orchestrator does **not** wait for the human at milestone boundaries. It proceeds through every task in order, merging as the test gate allows, and stops only at **checkpoints**: states of the repository where the game is coherent enough to be built and tried. The human may test any checkpoint later to find where something broke, and is expected to play seriously only at the last two.
+
+**Checkpoint rules**
+1. A checkpoint is a git tag `cp-NN-<slug>` on `main` (NN two digits, in order), with a one-paragraph note in `docs/checkpoints.md`: what works, what is stubbed, known issues, and what a tester would look at.
+2. Before tagging: `tools/ci/test.sh` green; `$GODOT_BIN --headless --path game -- --smoke` exits 0 (the smoke mode must work headless: it boots, generates depth 1, runs 2 s of logic, and quits; no rendering required); and from cp-06 onward, `tools/ci/export.sh` produces the Windows and Linux zips headless (exports do not need a GPU; templates are fetched by `tools/godot/fetch.sh`).
+3. Builds for a checkpoint are attached to a GitHub release for that tag when the session has GitHub release access (`gh release create cp-NN-<slug> build/*.zip`); otherwise the note says "build from tag with `tools/ci/export.sh`".
+4. The orchestrator writes `docs/qa/human_check_cp-NN.md` for checkpoints marked **(human)** below, as a numbered list of observations. These are requests, not gates: production continues immediately.
+5. Nothing is tagged red. If a checkpoint cannot be reached green, the orchestrator fixes forward, never tags around it.
+
+**Planned checkpoints** (the orchestrator may add intermediate ones, never skip these):
+
+| Tag | Content | Human? |
+|---|---|---|
+| `cp-00-design` | The design documents (this tag exists before any code). | no |
+| `cp-01-foundation` | M0 complete: project opens headless, autoloads, data, tests, synth pipeline. | no |
+| `cp-02-halls` | Halls generates, builds, validates; a player can walk, look, light, crank; debug overlay; `--seed` launch. | no |
+| `cp-03-noclip` | Noclip through walls and floors; the Coherence renderer and world shader; HUD. | no |
+| `cp-04-still` | Static and Still with the Director's phases; contact, stun, hiding. | no |
+| `cp-05-loop` | Exit with Powered lock, Landing with item choice, drop arrival, death, summary, minimal title, Polaroid/Chalk/Glowstick, notes, audio for everything so far. | no |
+| `cp-06-slice` | M1 complete, reviewed by `design-reviewer`, first exported builds. | optional (first look, 10 minutes) |
+| `cp-07-pools-garage` | Pools and Garage grammars, water, two decks, their props and audio. | no |
+| `cp-08-offices-server` | Offices and Server grammars, dark groups, breaker dilemma, cages. | no |
+| `cp-09-echo-flicker` | Echo and Flicker complete, all four locks, Flare/Radio/Fuse/Keycard, all hide spots, scares. | no |
+| `cp-10-substrate` | Substrate, Null, the Threshold, the ending and variant, Cycle 2 corruption. | no |
+| `cp-11-meta` | Score, unlocks, loadouts, Daily, Endless, meta.json, Archive, complete settings with rebinding, captions, first-run guidance, music director. | no |
+| `cp-12-cohesion` | M3 complete: Feedback Contract audit, visual targets, mix pass, tuning from telemetry, performance pass, accessibility. | **yes** (30-minute play script) |
+| `cp-13-rc` | Release candidate: exports, icons, smoke, Steam templates, store page facts, credits, checklists. | **yes** (clean-machine run) |
+| `cp-14-release` | Fixes from the human's RC notes; the build uploaded to Steam. | yes (upload) |
+
+Between cp-06 and cp-12 the orchestrator runs its own simulated playtests (headless scripted runs with Director telemetry, `10` §9) and the `design-reviewer` after each checkpoint, so that the human's first real session at cp-12 is about taste and feel, not bugs.
 
 ## 2. Milestones
 
@@ -48,21 +77,21 @@ Goal: the loop exists and feels right in one stratum.
 
 Deliverables: player (`06` complete, including noclip wall and floor); Halls grammar, builder, validator, navigation (`07` for Halls only, including soft walls and the Powered lock with breaker); `LightPool` and fixtures; world shader and Coherence post stack (`02` §4 and §5 complete); HUD (`04` §6 complete); Static and Still (`08`); Director with phases and Still/Static only (`10`); exit, Landing with item choice, drop arrival (`05` §4); items Polaroid, Chalk, Glowstick (`09`); notes pickup and sheet; death and the Run Summary; a minimal title (DESCEND, SETTINGS placeholder, QUIT); audio: the synth pipeline with the player, Halls, Static, Still, and UI recipes; the Feedback Contract rows for everything above; the debug overlay and `--seed` launch; the screenshot tour.
 
-Acceptance: a human plays depth 1 to depth 2 repeatedly; Still never moves while observed; soft walls shimmer and pass; the breaker powers the exit with the wave; Coherence visibly degrades the image; the summary shows the cause; 1,000 Halls seeds validate; all M1 unit tests pass; the human check lists 12 observations and at least 10 are confirmed good.
+Acceptance: a human plays depth 1 to depth 2 repeatedly; Still never moves while observed; soft walls shimmer and pass; the breaker powers the exit with the wave; Coherence visibly degrades the image; the summary shows the cause; 1,000 Halls seeds validate; all M1 unit tests pass; the orchestrator's simulated runs and the design-reviewer confirm the loop; the optional cp-06 human look is recorded, not awaited.
 
 ### M2 — Breadth (every stratum, every error, every system)
 Goal: the whole game exists, rough.
 
 Deliverables: Pools, Garage (two decks), Offices, Server, Substrate grammars with validation; Echo, Flicker, Null; Flare, Radio, Fuse, Keycard; all four locks; Director scares and the Pursuit schedule; water; hide spots (all five kinds); vending, payphone; the full roster per depth; `GameState` with score, unlocks, loadouts, Daily, Endless; `meta.json`; the Archive; the complete settings menu with rebinding; captions; music director; all stratum audio recipes and the error recipes; the ending scene; the first-run guidance; Cycle 2 corruption.
 
-Acceptance: a full Descent to the Threshold is possible; every error has been observed to kill and be evaded by its counter in `error_arena.tscn`; 1,000 seeds per stratum validate; every setting persists; the sawtooth simulation test passes; the human check (15 observations) confirms at least 12.
+Acceptance: a full Descent to the Threshold is possible; every error has been observed to kill and be evaded by its counter in `error_arena.tscn`; 1,000 seeds per stratum validate; every setting persists; the sawtooth simulation test passes; simulated full Descents reach the Threshold; the design-reviewer passes; production continues without waiting for the human.
 
 ### M3 — Cohesion (the pass that makes it a game)
 Goal: greater than the sum of its parts.
 
 Deliverables: the Feedback Contract audit with every row ticked; visual targets T1 to T8 verified per stratum from the tour with fixes; audio mix pass (bus levels, ducking, occlusion, captions); tuning pass over the error roster, aggression, item weights, and level sizes from the Director telemetry of at least 20 agent-simulated and 5 human runs; the Still/Flicker light dilemma verified in Offices; performance pass to the budgets (`14` §10) including the Garage and Server at peak; accessibility options verified; the title screen's live corridor; the ending variant; the forbidden-words grep; every debug bench updated.
 
-Acceptance: `docs/qa/feedback_checklist.md` complete; tour frames pass the histogram script; 60 fps at Medium on the human's machine (or the human reports the frame rate); the human plays 30 minutes and reports no confusion about any error's rule.
+Acceptance: `docs/qa/feedback_checklist.md` complete; tour frames pass the histogram script; frame budgets verified by the profiler where measurable headless and by the cp-12 human play script (the first checkpoint that waits for nothing but is written for the human to play).
 
 ### M4 — Release
 Goal: a build the human can upload.
