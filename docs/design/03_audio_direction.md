@@ -151,3 +151,7 @@ There is no composed music. There is a **generative drone system** (`MusicDirect
 - `EventBus.noise_emitted(pos: Vector3, radius: float, kind: StringName)` (defined in `06`) is consumed by errors; `AudioManager` also listens to it to play the matching sample, so a noise and its sound are the same event.
 - `EventBus.audio_cue(text: String, pos: Vector3)` for captions.
 - `MusicDirector`: `set_intensity(v: float)`, `set_stratum(s)`, `silence(seconds)`.
+
+### Interface additions during production
+- `game/assets/audio/manifest.json` is the sample catalogue `AudioManager` loads: id → files, bus, loop, channels, `runtime` pitch range. Its ids are the ids `play_2d`/`play_3d` take. One-shot variations are wrapped in `AudioStreamRandomizer` with ±4% pitch (§6 rule 5).
+- `crank_loop` (ratchet) and `crank_whine` are separate loops so the whine pitch follows charge independently.
