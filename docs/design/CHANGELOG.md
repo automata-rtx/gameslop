@@ -22,3 +22,9 @@ Entries are one line each: date, document, change, rationale. The design was loc
 - 2026-10-07 — 14 — Pinned Godot 4.7.2 stable (newest 4.7 patch) in `tools/godot/VERSION`. Reason: 14 §1 asks for 4.7 stable; the patch release carries fixes only.
 - 2026-10-07 — 04 — Typing cursor is `▌` (U+258C) instead of `▮`. Reason: JetBrains Mono has no U+25AE, and font fallback is disabled so missing glyphs stay visible.
 - 2026-10-07 — 14 — Additive autoload API from M0.2 recorded under 14 Interfaces; project theme set to `noclip_theme.tres`. Reason: contracts other tasks will call.
+- 2026-10-07 — 04 — Boot line is `rendering` without the ellipsis. Reason: 01 §6 writing rules ban ellipses in UI strings and 01 wins.
+- 2026-10-07 — 04, 09 — Breaker prompt text is `FLIP BREAKER` and door prompts are `OPEN DOOR` / `CLOSE DOOR` (04 §6); the breaker stays a 0.6 s hold (06, 07, 09). Reason: 04 wins over 09's `THROW BREAKER` and `OPEN`.
+- 2026-10-07 — 02 — Substrate distance fog runs 25 m to 45 m (the §7 range); §6's "black at 40 m" is read as a point inside it. Reason: the two sections of 02 disagree.
+- 2026-10-07 — 11, 06 — Flicker lunge trauma 0.4 (11 §3) is superseded by the contact trauma 0.6 (06 §9) whenever a lunge lands. Reason: 06 wins; both values stay in `tuning.gd`.
+- 2026-10-07 — 04, 14 — `strings.gd` lives in `game/src/core/` (14 §2), not `game/data/` (04 §11). Reason: 14 owns the layout.
+- 2026-10-07 — 07, 05, 14 — `Seeds.derive` lives in `game/src/core/seeds.gd` (`class_name Seeds`); `tuning.gd` stays constants only and is exempt from the 400-line script limit. Unlock ids are `Tuning.UNLOCK_IDS` in milestone order. Reason: a const-only class cannot hold a function; unlock ids were unspecified.

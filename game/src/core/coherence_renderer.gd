@@ -14,9 +14,8 @@ const G_TIME := &"g_time"
 
 ## 14 §11 declared defaults; also the reset state at run start.
 const NULL_POS_ABSENT := Vector3(0.0, -1000.0, 0.0)
-## TODO(M0.3): move to Tuning (06 §9: Coherence max 100).
-const COHERENCE_MAX := 100.0
-## TODO(M0.3): move to Tuning (02 §4: noclip_commit pulse decays over 300 ms).
+const COHERENCE_MAX := Tuning.COHERENCE_MAX
+## M1.5 owns the commit pulse shape (hold during the pass, then decay); see docs/qa/open_items.md.
 const NOCLIP_COMMIT_DECAY_S := 0.3
 ## g_time wraps so float precision in shaders never degrades in long sessions.
 const TIME_WRAP_S := 3600.0
