@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://src/player/interactor.gd" id="3_interactor"]
 [ext_resource type="Script" path="res://src/player/camera_rig.gd" id="4_rig"]
 [ext_resource type="Script" path="res://src/player/flashlight.gd" id="5_flashlight"]
+[ext_resource type="Script" path="res://src/player/inventory.gd" id="6_inventory"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -69,6 +70,10 @@ shape = SubResource("CapsuleShape3D_body")
 [node name="StateMachine" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("2_sm")
+
+[node name="Inventory" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("6_inventory")
 
 [node name="Interactor" type="Node" parent="."]
 unique_name_in_owner = true

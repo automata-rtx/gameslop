@@ -726,6 +726,110 @@
     {"src": "sine", "freq": 30, "peak_db": 0, "env": {"type": "adsr", "a": 0.02, "d": 0.4, "s": 0.7, "r": 1.0}, "chain": [{"fx": "drive", "db": 6, "mix": 0.5}]}
    ],
    "expect": {"peak_hz": [25, 95]}
+  },
+
+  "item_pickup": {
+   "group": "player", "dur": 0.14, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.03, "gain_db": 0.7},
+   "norm": {"peak_db": -9},
+   "note": "03 item pickup: a short glass tick at 3 kHz, then a confirm sine at 660 Hz for 80 ms. The tick is a high sine with a fast exponential decay, the confirm a soft-edged tone with a quiet octave above.",
+   "layers": [
+    {"src": "sine", "freq": 3000, "dur": 0.03, "peak_db": -2, "env": {"type": "exp", "a": 0.0005, "t60": 0.025}},
+    {"src": "noise", "color": "white", "dur": 0.006, "peak_db": -14, "env": {"type": "exp", "a": 0.0003, "t60": 0.005}, "chain": [{"fx": "hp", "f": 5000}]},
+    {"src": "sine", "freq": 660, "at": 0.03, "dur": 0.08, "peak_db": 0, "env": {"type": "adsr", "a": 0.004, "d": 0.02, "s": 0.6, "r": 0.04}},
+    {"src": "sine", "freq": 1320, "at": 0.03, "dur": 0.07, "peak_db": -16, "env": {"type": "adsr", "a": 0.004, "d": 0.02, "s": 0.5, "r": 0.04}}
+   ],
+   "expect": {"peak_hz": [600, 3200]}
+  },
+
+  "note_pickup": {
+   "group": "player", "dur": 0.26, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "time": 0.01, "gain_db": 1.0, "dur": 0.1},
+   "norm": {"peak_db": -12},
+   "note": "03 note pickup: paper slide, pink noise high-passed at 2 kHz for about 200 ms. A rising swell as the sheet is dragged, a dry flick at the end.",
+   "layers": [
+    {"src": "noise", "color": "pink", "dur": 0.2, "peak_db": 0, "env": {"type": "adsr", "a": 0.07, "d": 0.05, "s": 0.55, "r": 0.07}, "chain": [{"fx": "hp", "f": 2000, "order": 2}, {"fx": "bp", "f": [2600, 4800], "q": 0.5}]},
+    {"src": "noise", "color": "white", "at": 0.19, "dur": 0.012, "peak_db": -10, "env": {"type": "exp", "a": 0.0005, "t60": 0.01}, "chain": [{"fx": "bp", "f": 5500, "q": 0.8}]}
+   ],
+   "expect": {"centroid": [2500, 9000]}
+  },
+
+  "polaroid_charge": {
+   "group": "player", "dur": 0.36, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.02, "gain_db": 0.5},
+   "norm": {"peak_db": -12},
+   "note": "03 Polaroid use, part one: the camera flash charging, a whine rising from 1.4 to 4.2 kHz over 0.3 s with a faint inductor buzz under it. The shutter is polaroid_shutter, played on the flash.",
+   "layers": [
+    {"src": "sine", "freq": [1400, 4200], "dur": 0.3, "peak_db": 0, "env": {"type": "adsr", "a": 0.04, "d": 0.05, "s": 0.8, "r": 0.1}},
+    {"src": "sine", "freq": [2800, 8400], "dur": 0.3, "peak_db": -20, "env": {"type": "adsr", "a": 0.04, "d": 0.05, "s": 0.6, "r": 0.1}},
+    {"src": "square", "freq": 120, "dur": 0.3, "peak_db": -26, "env": {"type": "adsr", "a": 0.05, "d": 0.05, "s": 0.7, "r": 0.1}, "chain": [{"fx": "lp", "f": 900}]}
+   ],
+   "expect": {"peak_hz": [1400, 4400]}
+  },
+
+  "polaroid_shutter": {
+   "group": "player", "dur": 0.2, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.002, "gain_db": 0.8},
+   "norm": {"peak_db": -4},
+   "note": "03 Polaroid use, part two: the shutter clack on the flash frame. A bright snap, a spring body, the blade closing 45 ms later, and the flash capacitor's short pop of noise.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.01, "peak_db": 0, "env": {"type": "exp", "a": 0.0003, "t60": 0.008}, "chain": [{"fx": "bp", "f": 2800, "q": 0.9}]},
+    {"src": "sine", "freq": [260, 150], "dur": 0.05, "peak_db": -6, "env": {"type": "exp", "a": 0.001, "t60": 0.04}},
+    {"src": "noise", "color": "white", "at": 0.045, "dur": 0.008, "peak_db": -4, "env": {"type": "exp", "a": 0.0003, "t60": 0.006}, "chain": [{"fx": "bp", "f": 3600, "q": 1.1}]},
+    {"src": "noise", "color": "pink", "at": 0.06, "dur": 0.1, "peak_db": -18, "env": {"type": "exp", "a": 0.002, "t60": 0.1}, "chain": [{"fx": "hp", "f": 3000}]}
+   ],
+   "expect": {"centroid": [900, 5000]}
+  },
+
+  "glowstick_crack": {
+   "group": "world", "dur": 0.4, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "time": 0.004, "gain_db": 1.0},
+   "norm": {"peak_db": -6},
+   "note": "03 glowstick crack: a plastic snap (noise, 10 ms) with a second smaller snap as the vial breaks, then a short burst of chemical fizz (pink noise, high-passed at 4 kHz). The sustained fizz is glowstick_fizz.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.012, "peak_db": 0, "env": {"type": "exp", "a": 0.0003, "t60": 0.009}, "chain": [{"fx": "bp", "f": 2400, "q": 0.7}]},
+    {"src": "noise", "color": "white", "at": 0.02, "dur": 0.008, "peak_db": -5, "env": {"type": "exp", "a": 0.0003, "t60": 0.006}, "chain": [{"fx": "bp", "f": 3400, "q": 1.0}]},
+    {"src": "sine", "freq": 620, "at": 0.002, "dur": 0.03, "peak_db": -12, "env": {"type": "exp", "a": 0.001, "t60": 0.025}},
+    {"src": "noise", "color": "pink", "at": 0.03, "dur": 0.3, "peak_db": -20, "env": {"type": "adsr", "a": 0.02, "d": 0.1, "s": 0.3, "r": 0.15}, "chain": [{"fx": "hp", "f": 4000, "order": 2}]}
+   ],
+   "expect": {"centroid": [1500, 9000]}
+  },
+
+  "glowstick_fizz": {
+   "group": "world", "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -44},
+   "runtime": {"max_distance": 8.0},
+   "note": "03 glowstick: the chemical fizz loop, pink noise high-passed at 4 kHz, very quiet (about -30 dB under the crack), heard only within a few metres. Gentle crackle bursts keep it alive.",
+   "layers": [
+    {"src": "noise", "color": "pink", "peak_db": 0, "chain": [{"fx": "hp", "f": 4000, "order": 2}, {"fx": "am", "wave": "random", "freq": 14, "depth": 0.5}]}
+   ],
+   "expect": {"centroid": [4500, 14000]}
+  },
+
+  "glowstick_land": {
+   "group": "world", "dur": 0.14, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.06, "gain_db": 1.0},
+   "norm": {"peak_db": -8},
+   "note": "09 §2 landing of a thrown glowstick (the 6 m impact noise): a light plastic tap on the floor, a dry knock with a short hollow ring.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.012, "peak_db": 0, "env": {"type": "exp", "a": 0.0003, "t60": 0.01}, "chain": [{"fx": "bp", "f": 1600, "q": 0.8}]},
+    {"src": "sine", "freq": [520, 380], "dur": 0.06, "peak_db": -4, "env": {"type": "exp", "a": 0.001, "t60": 0.05}},
+    {"src": "sine", "freq": 1240, "dur": 0.05, "peak_db": -14, "env": {"type": "exp", "a": 0.001, "t60": 0.04}}
+   ],
+   "expect": {"peak_hz": [300, 1800]}
+  },
+
+  "chalk_mark": {
+   "group": "world", "dur": 0.36, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "time": 0.004, "gain_db": 1.0},
+   "norm": {"peak_db": -9},
+   "note": "03 chalk mark: three short scrapes (noise, band-pass 5 kHz, 60 ms each), the middle one a touch louder, each with a grainy attack.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.06, "peak_db": -2, "env": {"type": "adsr", "a": 0.008, "d": 0.02, "s": 0.6, "r": 0.025}, "chain": [{"fx": "bp", "f": 5000, "q": 1.2}, {"fx": "am", "wave": "random", "freq": 90, "depth": 0.5}]},
+    {"src": "noise", "color": "white", "at": 0.1, "dur": 0.06, "peak_db": 0, "env": {"type": "adsr", "a": 0.008, "d": 0.02, "s": 0.6, "r": 0.025}, "chain": [{"fx": "bp", "f": 4600, "q": 1.2}, {"fx": "am", "wave": "random", "freq": 90, "depth": 0.5}]},
+    {"src": "noise", "color": "white", "at": 0.2, "dur": 0.06, "peak_db": -3, "env": {"type": "adsr", "a": 0.008, "d": 0.02, "s": 0.6, "r": 0.025}, "chain": [{"fx": "bp", "f": 5400, "q": 1.2}, {"fx": "am", "wave": "random", "freq": 90, "depth": 0.5}]}
+   ],
+   "expect": {"centroid": [3000, 8000]}
   }
  }
 }

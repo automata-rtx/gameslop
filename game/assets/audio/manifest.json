@@ -908,6 +908,136 @@
     2.0,
     2.0
    ]
+  },
+  "item_pickup": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/item_pickup_v01.wav",
+    "res://assets/audio/player/item_pickup_v02.wav",
+    "res://assets/audio/player/item_pickup_v03.wav"
+   ],
+   "length_s": [
+    0.142,
+    0.142,
+    0.142
+   ]
+  },
+  "note_pickup": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/note_pickup_v01.wav",
+    "res://assets/audio/player/note_pickup_v02.wav",
+    "res://assets/audio/player/note_pickup_v03.wav"
+   ],
+   "length_s": [
+    0.243271,
+    0.265792,
+    0.262875
+   ]
+  },
+  "polaroid_charge": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/polaroid_charge_v01.wav",
+    "res://assets/audio/player/polaroid_charge_v02.wav",
+    "res://assets/audio/player/polaroid_charge_v03.wav"
+   ],
+   "length_s": [
+    0.362,
+    0.362,
+    0.362
+   ]
+  },
+  "polaroid_shutter": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/polaroid_shutter_v01.wav",
+    "res://assets/audio/player/polaroid_shutter_v02.wav",
+    "res://assets/audio/player/polaroid_shutter_v03.wav"
+   ],
+   "length_s": [
+    0.202,
+    0.202,
+    0.202
+   ]
+  },
+  "glowstick_crack": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/glowstick_crack_v01.wav",
+    "res://assets/audio/world/glowstick_crack_v02.wav",
+    "res://assets/audio/world/glowstick_crack_v03.wav"
+   ],
+   "length_s": [
+    0.402,
+    0.402,
+    0.402
+   ]
+  },
+  "glowstick_fizz": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/glowstick_fizz_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ],
+   "runtime": {
+    "max_distance": 8.0
+   }
+  },
+  "glowstick_land": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/glowstick_land_v01.wav",
+    "res://assets/audio/world/glowstick_land_v02.wav",
+    "res://assets/audio/world/glowstick_land_v03.wav"
+   ],
+   "length_s": [
+    0.142,
+    0.142,
+    0.142
+   ]
+  },
+  "chalk_mark": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/chalk_mark_v01.wav",
+    "res://assets/audio/world/chalk_mark_v02.wav",
+    "res://assets/audio/world/chalk_mark_v03.wav"
+   ],
+   "length_s": [
+    0.362,
+    0.362,
+    0.362
+   ]
   }
  }
 }
