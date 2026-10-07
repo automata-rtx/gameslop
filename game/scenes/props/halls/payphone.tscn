@@ -1,0 +1,61 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Material" path="res://data/materials/halls/prop_metal.tres" id="1_metal"]
+[ext_resource type="Material" path="res://data/materials/halls/prop_black.tres" id="2_black"]
+[ext_resource type="Material" path="res://data/materials/halls/prop_cream.tres" id="3_cream"]
+
+[sub_resource type="BoxMesh" id="Mesh_box"]
+size = Vector3(0.35, 0.6, 0.22)
+
+[sub_resource type="BoxMesh" id="Mesh_handset"]
+size = Vector3(0.06, 0.24, 0.06)
+
+[sub_resource type="BoxMesh" id="Mesh_keypad"]
+size = Vector3(0.15, 0.18, 0.01)
+
+[sub_resource type="BoxMesh" id="Mesh_shelf"]
+size = Vector3(0.42, 0.03, 0.2)
+
+[sub_resource type="CylinderMesh" id="Mesh_cord"]
+top_radius = 0.006
+bottom_radius = 0.006
+height = 0.3
+radial_segments = 6
+rings = 1
+
+[sub_resource type="BoxShape3D" id="Shape_box"]
+size = Vector3(0.42, 0.7, 0.25)
+
+[node name="Payphone" type="Node3D"]
+
+[node name="Box" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0.24)
+mesh = SubResource("Mesh_box")
+material_override = ExtResource("1_metal")
+
+[node name="Handset" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 1.42, 0.2)
+mesh = SubResource("Mesh_handset")
+material_override = ExtResource("2_black")
+
+[node name="Cord" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.21, 1.17, 0.2)
+mesh = SubResource("Mesh_cord")
+material_override = ExtResource("2_black")
+
+[node name="Keypad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.03, 1.3, 0.125)
+mesh = SubResource("Mesh_keypad")
+material_override = ExtResource("3_cream")
+
+[node name="Shelf" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0.25)
+mesh = SubResource("Mesh_shelf")
+material_override = ExtResource("1_metal")
+
+[node name="Collider" type="StaticBody3D" parent="."]
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Collider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0.225)
+shape = SubResource("Shape_box")

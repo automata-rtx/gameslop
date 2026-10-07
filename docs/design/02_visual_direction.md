@@ -79,7 +79,7 @@ Props that must react differently (monitors, LEDs, water) get their own small sh
 ## 6. Lighting rules
 
 - **Fixtures are the light.** Every stratum has one fixture prefab: an emissive quad or tube (unlit emission in the world shader, `emission_strength` 4 to 12) with an `OmniLight3D` or `SpotLight3D` child. Fixtures are placed on the stratum's exact grid (T2).
-- **Light pooling.** Only the 24 fixtures nearest the player have their light node enabled (Medium: 16, Low: 10). The `LightPool` system (`14`) re-evaluates every 0.25 s. Disabled fixtures still glow (emission) so the room reads as lit. `distance_fade` on each light hides the swap.
+- **Light pooling.** Only the 24 fixtures nearest the player have their light node enabled (Medium: 16, Low: 10). "Nearest" is walking distance on the grid, and only fixtures the player can see on the grid (or will see within one step) get a light: pooled lights are unshadowed, so a light lent to a fixture behind a wall would leak through it. The `LightPool` system (`14`) re-evaluates every 0.25 s. Disabled fixtures still glow (emission) so the room reads as lit. `distance_fade` on each light hides the swap.
 - **Shadowed lights.** Flashlight always. Nearest 4 fixtures at High, 2 at Medium, 0 at Low. Shadow bias tuned per stratum once and stored in `StratumData`.
 - **Flashlight.** `SpotLight3D`, `spot_angle` 19° (a 38° full cone), range 22 m, energy 1.6 at full crank falling to 0.5 at empty, colour `#FFF4E0`, soft 1 px cookie-less edge via `spot_angle_attenuation 1.2`. A subtle secondary `OmniLight3D` (range 1.5 m, energy 0.15) at the player's hand so the near floor is never black with the beam on.
 - **Ambient.** Environment ambient light per stratum, low (energy 0.08 to 0.2). Sky colour is the fog colour. No sky texture; cameras never see a sky.
@@ -95,8 +95,8 @@ Hex values are the canonical palette. Agents set these in `StratumData` resource
 - **Walls:** wallpaper `#C9A227`, secondary `#B8921F` in 0.6 m vertical stripes (pattern 2), roughness 0.85, noise normal strength 0.25.
 - **Floor:** carpet `#8B7A3A` (pattern 3: carpet noise, scale 4), roughness 1.0.
 - **Ceiling:** drop tiles `#E8E2CF` (pattern 6: 0.6 m panels, thin seams), roughness 0.9.
-- **Fixture:** 1.2 m × 0.3 m recessed tube every 4 m, emission `#FFF2C4` × 8, light colour `#FFEFC2`, energy 1.0, range 7.
-- **Fog:** `#B49A3C`, density 0.02. **Ambient:** `#6E5A1E` 0.15. **Exposure:** 1.0.
+- **Fixture:** 1.2 m × 0.3 m recessed tube every 4 m, emission `#FFF2C4` × 8, light colour `#FFEFC2`, energy 1.4, range 7, decay 2 (inverse square), hung 0.7 m below the tube.
+- **Fog:** `#B49A3C`, density 0.02. **Ambient:** `#6E5A1E` 0.08. **Exposure:** 1.0.
 - **Props:** none in corridors; rooms get 0 to 2 of: vending machine, payphone, chair, wall clock (`09`).
 
 ### Pools
@@ -196,3 +196,7 @@ Every preset must pass T1, T3, T4, T5 and T6. Low may fail T2 only by fixture po
 - Global shader parameters (declared in `project.godot`): `g_coherence`, `g_noclip_charge`, `g_noclip_commit`, `g_null_pos`, `g_null_radius`, `g_time`.
 - `CoherenceRenderer` autoload: `set_coherence(v: float)`, `pulse(kind: StringName)`, `set_threat(v: float)`, `set_null(pos: Vector3, radius: float)`.
 - `LightPool` node in the level scene: `register_fixture(fixture: Node3D)`, `set_group_flicker(group_id: int, on: bool)`, `power_wave(origin: Vector3)`.
+
+### Interface additions during production
+- M1.2 `LightPool` (`game/src/lighting/light_pool.gd`): `configure(stratum_data, preset)`, `target` (the node it measures from), `grid` (enables walking-distance ranking and grid-sight lending), `register_fixture`, `set_group_flicker`, `power_wave(origin) -> float` (seconds to the last ignition), `set_group_powered`, `set_all_powered`, `is_lit(pos)` (a player light query: inside a powered fixture's range), `reevaluate()`, `fixtures()`, `group(id)`, `group_ids()`, `active_light_count()`, `shadowed_light_count()`. Selection is `LightSelector` (walking distance, grid sight cached per cell). Each lent light carries its fixture's hum loop (`fixture_hum_<stratum>`, one in six `fixture_buzz_<stratum>`).
+- M1.2 `Fixture` (`game/src/lighting/fixture.gd`, prefab per `StratumData.fixture_prefab_path`, group `fixtures`): `group_id`, `powered`, `intensity`, `set_powered(on)`, `power_on_wave(delay)`, `set_flicker(on)`, `is_emitting()`, signal `power_changed(on)`.

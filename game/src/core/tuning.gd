@@ -679,10 +679,17 @@ const NAV_AGENT_RADIUS := 0.4                       # m
 const NAV_AGENT_HEIGHT := 1.8                       # m
 const NAV_MAX_CLIMB := 0.3                          # m
 const NAV_CELL_SIZE := 0.25                         # m
+const NAV_CELL_HEIGHT := 0.1                        # m, voxel height (build-task constant: 1.8 m and 0.3 m divide it)
 const NAV_WATER_EXCLUDE_DEPTH := 1.3                # m, deeper water excluded
 const NAV_BAKE_BUDGET := 2.0                        # s, largest level (14 §10)
 const CHUNK_HIDE_DIST := 40.0                       # m
 const CHUNK_VISIBILITY_END := 45.0                  # m, with fade
+# Build-task constants (07 gives no number; M1.2).
+const LEVELBUILD_MESH_MAX_EDGE := 0.5               # m, level mesh subdivision so vertex jitter trembles (02 §5)
+const LEVELBUILD_DOOR_HEIGHT := 2.1                 # m, door opening; the edge strip is solid above it
+const LEVELBUILD_DOOR_LEAF_WIDTH := 1.0             # m, hinged leaf; jamb panels fill the rest of the 1.8 m strip
+const LEVELBUILD_SLICE_HEADROOM := 0.75             # start no job past 75% of the slice budget
+const LEVELBUILD_SHAPES_PER_JOB := 24               # collision shapes added per build job
 
 # 07 §5.1 Halls
 const HALLS_ROOMS_MIN := 5
@@ -861,6 +868,7 @@ const CYCLE2_SURFACE_UNRENDER_U := 0.2
 # 02 §3 renderer
 const RENDER_AO_RADIUS := 1.0
 const RENDER_AO_INTENSITY := 2.0
+const RENDER_AO_LIGHT_AFFECT := 0.5                 # AO darkens direct light too, so seams read under fixtures (render-task constant)
 const RENDER_GLOW_THRESHOLD := 1.0                  # HDR
 const RENDER_GLOW_INTENSITY := 0.6
 const RENDER_GLOW_BLOOM := 0.1
@@ -868,7 +876,7 @@ const RENDER_FRAME_BUDGET_MS := 16.6                # 14 §10
 const RENDER_FPS_TARGET := 60
 # Render-task implementation constants (02 gives no number; chosen against T1/T3 in the
 # render bench, M1.5). Volumetric fog: emission in the fog colour keeps unlit air visible.
-const RENDER_FOG_EMISSION_ENERGY := 0.6
+const RENDER_FOG_EMISSION_ENERGY := 0.2
 const RENDER_FOG_AMBIENT_INJECT := 1.0
 const RENDER_FOG_LENGTH := 64.0                     # m of froxel volume
 const RENDER_FOG_FROXEL_DEPTH := 64                 # froxel depth slices
@@ -941,6 +949,15 @@ const LIGHT_POOL_SIZE_MEDIUM := 16
 const LIGHT_POOL_SIZE_LOW := 10
 const LIGHT_POOL_SIZE_MIN := 10                     # 12 §3 range
 const LIGHT_POOL_SIZE_MAX := 32
+const LIGHT_POOL_SIGHT_CANDIDATES := 3              # x pool size: nearest fixtures tested for grid line of sight
+const LIGHT_POOL_FADE_IN := 0.2                     # s, a light re-assigned to a fixture ramps in (render-task constant)
+const LIGHT_POOL_DISTANCE_FADE_BEGIN := 18.0        # m, distance_fade on pooled lights hides the swap (render-task constant)
+const LIGHT_POOL_DISTANCE_FADE_LENGTH := 6.0        # m
+const LIGHT_FIXTURE_ATTENUATION := 2.0              # omni_attenuation of pooled fixture lights (render-task constant)
+const LIGHT_FIXTURE_KIND: Dictionary = {&"halls": &"omni"}   # pooled light per stratum: omni or spot (02 §6)
+const LIGHT_SPOT_ANGLE := 70.0                      # deg, spot fixtures: a wide downlight (render-task constant)
+const LIGHT_SPOT_ANGLE_ATTENUATION := 1.0
+const LIGHT_FIXTURE_DROP := 0.7                    # m, pooled light hangs below the tube so the ceiling reads lit
 const LIGHT_FIXTURE_EMISSION_MIN := 4.0
 const LIGHT_FIXTURE_EMISSION_MAX := 12.0
 const LIGHT_AMBIENT_ENERGY_MIN := 0.08
@@ -963,13 +980,13 @@ const STRATUM_FOG_DENSITY: Dictionary = {
 	&"halls": 0.02, &"pools": 0.035, &"garage": 0.015, &"offices": 0.02, &"server": 0.03, &"substrate": 0.0,
 }
 const STRATUM_AMBIENT_ENERGY: Dictionary = {
-	&"halls": 0.15, &"pools": 0.2, &"garage": 0.12, &"offices": 0.15, &"server": 0.1, &"substrate": 0.05,
+	&"halls": 0.08, &"pools": 0.2, &"garage": 0.12, &"offices": 0.15, &"server": 0.1, &"substrate": 0.05,
 }
 const STRATUM_EXPOSURE: Dictionary = {
 	&"halls": 1.0, &"pools": 1.05, &"garage": 0.95, &"offices": 1.0, &"server": 1.1, &"substrate": 1.0,
 }
 const STRATUM_FIXTURE_ENERGY: Dictionary = {
-	&"halls": 1.0, &"pools": 1.2, &"garage": 1.4, &"offices": 1.1, &"server": 0.5,
+	&"halls": 1.4, &"pools": 1.2, &"garage": 1.4, &"offices": 1.1, &"server": 0.5,
 }   # server: emergency box; substrate has no fixtures
 const STRATUM_FIXTURE_RANGE: Dictionary = {
 	&"halls": 7.0, &"pools": 10.0, &"garage": 12.0, &"offices": 6.0, &"server": 5.0,

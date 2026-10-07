@@ -63,6 +63,7 @@ static func _apply_occlusion(env: Environment, p: Dictionary) -> void:
 	env.ssao_enabled = bool(p[&"ssao"])
 	env.ssao_radius = Tuning.RENDER_AO_RADIUS
 	env.ssao_intensity = Tuning.RENDER_AO_INTENSITY
+	env.ssao_light_affect = Tuning.RENDER_AO_LIGHT_AFFECT
 	env.ssil_enabled = bool(p[&"ssil"])
 	env.ssr_enabled = false
 

@@ -1,0 +1,80 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://src/interactables/door.gd" id="1_door"]
+[ext_resource type="Script" path="res://src/interactables/interactable.gd" id="2_interactable"]
+[ext_resource type="Material" path="res://data/materials/halls/wallpaper.tres" id="3_wall"]
+[ext_resource type="Material" path="res://data/materials/halls/door_wood.tres" id="4_wood"]
+[ext_resource type="Material" path="res://data/materials/halls/prop_metal.tres" id="5_metal"]
+
+[sub_resource type="BoxMesh" id="Mesh_jamb"]
+size = Vector3(0.4, 2.1, 0.2)
+
+[sub_resource type="BoxShape3D" id="Shape_jamb"]
+size = Vector3(0.4, 2.1, 0.2)
+
+[sub_resource type="BoxMesh" id="Mesh_leaf"]
+size = Vector3(0.98, 2.08, 0.05)
+
+[sub_resource type="BoxShape3D" id="Shape_leaf"]
+size = Vector3(0.98, 2.08, 0.05)
+
+[sub_resource type="CylinderMesh" id="Mesh_knob"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 0.12
+radial_segments = 8
+rings = 1
+
+[node name="Door" type="Node3D"]
+script = ExtResource("1_door")
+
+[node name="JambL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, 1.05, 0)
+mesh = SubResource("Mesh_jamb")
+material_override = ExtResource("3_wall")
+
+[node name="JambR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 1.05, 0)
+mesh = SubResource("Mesh_jamb")
+material_override = ExtResource("3_wall")
+
+[node name="Jambs" type="StaticBody3D" parent="."]
+unique_name_in_owner = true
+collision_mask = 0
+
+[node name="ShapeL" type="CollisionShape3D" parent="Jambs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, 1.05, 0)
+shape = SubResource("Shape_jamb")
+
+[node name="ShapeR" type="CollisionShape3D" parent="Jambs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 1.05, 0)
+shape = SubResource("Shape_jamb")
+
+[node name="Hinge" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0)
+
+[node name="Leaf" type="AnimatableBody3D" parent="Hinge"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 0)
+collision_layer = 9
+collision_mask = 0
+sync_to_physics = false
+
+[node name="Mesh" type="MeshInstance3D" parent="Hinge/Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.04, 0)
+mesh = SubResource("Mesh_leaf")
+material_override = ExtResource("4_wood")
+
+[node name="KnobA" type="MeshInstance3D" parent="Hinge/Leaf"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.38, 1.0, 0)
+mesh = SubResource("Mesh_knob")
+material_override = ExtResource("5_metal")
+
+[node name="Shape" type="CollisionShape3D" parent="Hinge/Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.04, 0)
+shape = SubResource("Shape_leaf")
+
+[node name="Interactable" type="Node" parent="Hinge/Leaf"]
+unique_name_in_owner = true
+script = ExtResource("2_interactable")
