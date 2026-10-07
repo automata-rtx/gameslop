@@ -13,7 +13,9 @@ var unlocks: Dictionary = {}
 var notes_found: Array[StringName] = []
 var codex: Dictionary = {}
 var polaroids_seen: Array[int] = []
-var stats: Dictionary = {}
+## 13 §2 stats block. `depth_reached_counts` (string depth -> times a run reached it) backs
+## unlock #7, "reach depth 4 twice" (05 §6).
+var stats: Dictionary = {"depth_reached_counts": {}}
 var daily: Dictionary = {}
 var last_run: Dictionary = {}
 var endless_best_depth: int = 0
@@ -46,6 +48,15 @@ func note_found(id: StringName) -> bool:
 func codex_notice(id: StringName) -> int:
 	var n: int = int(codex.get(String(id), 0)) + 1
 	codex[String(id)] = n
+	return n
+
+
+## A run reached `depth`. Returns how many runs have reached it, this one included.
+func depth_reached(depth: int) -> int:
+	var counts: Dictionary = stats.get("depth_reached_counts", {})
+	var n: int = int(counts.get(str(depth), 0)) + 1
+	counts[str(depth)] = n
+	stats["depth_reached_counts"] = counts
 	return n
 
 

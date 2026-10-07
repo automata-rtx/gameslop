@@ -14,7 +14,17 @@ var items: Array = []
 var proper_exits: int = 0
 var drops_in_a_row: int = 0
 var notes_found: Array[StringName] = []
+## Total evasions (05 §5 score term); evasions_by holds the per-error split.
 var evasions: int = 0
+## error id -> evasion count this run (Unlock #6: Flicker x3 in one run).
+var evasions_by: Dictionary = {}
+## Deepest depth reached this run (05 §5 max_depth_reached).
+var max_depth: int = 1
+var walls_passed: int = 0
+## Every drop this run (drops_in_a_row resets on a proper exit; this does not).
+var drops_total: int = 0
+var coherence_spent: float = 0.0
+var distance_m: float = 0.0
 ## error id -> notice count this run.
 var encounters: Dictionary = {}
 var started_at_ms: int = 0

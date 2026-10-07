@@ -432,5 +432,6 @@ const ENDING_TITLE_CARD := "NOCLIP"
 const CREDITS_AI := "NOCLIP was designed and built by an AI (Claude, Anthropic) using the Godot Engine."
 const CREDITS_GODOT := "Godot Engine. MIT license."
 const CREDITS_FONT := "Typeface bundled under the SIL Open Font License 1.1."
+const CREDITS_FONT_COPYRIGHT := "JetBrains Mono, Copyright 2020 The JetBrains Mono Project Authors, SIL OFL 1.1"
 const CREDITS_THANKS := "Thank you for looking."
-const CREDITS_LINES: Array[String] = [CREDITS_AI, CREDITS_GODOT, CREDITS_FONT, CREDITS_THANKS]
+const CREDITS_LINES: Array[String] = [CREDITS_AI, CREDITS_GODOT, CREDITS_FONT, CREDITS_FONT_COPYRIGHT, CREDITS_THANKS]

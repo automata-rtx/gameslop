@@ -29,11 +29,13 @@ const TYPE_ROLES: Array[Array] = [
 	[&"ColdLabel", "DEPTH 06 · SUBSTRATE"],
 ]
 
+## Theme variation, note id, header (Strings), for the gallery's sample sheets. Bodies are the
+## real notes from DataRegistry.
 const NOTE_VOICES: Array[Array] = [
-	[&"NoteSheetFaller", "NOTE H3 · HANDWRITTEN", "I counted the doors twice and got two answers."],
-	[&"NoteSheetBuilder", "RENDER NOTE 0014", "Corridor tiling exceeds budget. Left as is."],
-	[&"NoteSheetStray", "FOUND OBJECT", "A receipt for one coffee, dated tomorrow."],
-	[&"NoteSheet", "NOTE", "Default backing."],
+	[&"NoteSheetFaller", &"H3", Strings.NOTE_HEADER_FALLER],
+	[&"NoteSheetBuilder", &"H4", Strings.NOTE_HEADER_BUILDER],
+	[&"NoteSheetStray", &"H6", Strings.NOTE_HEADER_STRAY],
+	[&"NoteSheet", &"H3", Strings.NOTE_HEADER_FALLER],
 ]
 
 @onready var _content: VBoxContainer = %Content
@@ -229,12 +231,13 @@ func _note_sheets() -> Control:
 		var v := VBoxContainer.new()
 		var header := Label.new()
 		header.theme_type_variation = &"NoteHeader"
-		header.text = voice[1]
+		var note: NoteData = DataRegistry.note(voice[1])
+		header.text = String(voice[2]).format({"id": voice[1], "number": "0014"})
 		v.add_child(header)
 		var body := Label.new()
 		body.theme_type_variation = &"NoteBody"
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		body.text = voice[2]
+		body.text = note.text if note != null else ""
 		v.add_child(body)
 		sheet.add_child(v)
 		box.add_child(sheet)

@@ -32,7 +32,7 @@ There is **no mid-run save** in v1.0. Quitting during a run abandons it (confirm
     "deaths_by": { "still": 4, "echo": 2, "flicker": 1, "static": 1, "null": 3, "substrate": 0 },
     "distance_walked_m": 15320.5, "walls_passed": 41, "floors_dropped": 7,
     "coherence_spent": 1180, "notes_total": 9, "evasions": 23, "time_played_s": 9120,
-    "breakers_thrown": 10, "items_used": { "polaroid": 9, "glowstick": 12 }
+    "breakers_thrown": 10, "depth_reached_counts": { "3": 5, "4": 2 }, "items_used": { "polaroid": 9, "glowstick": 12 }
   },
   "daily": { "20261007": { "score": 2310, "depth": 3, "cause": "still" } },
   "last_run": { "cause": "still", "depth": 3, "stratum": "garage", "score": 2310, "seed": 123456789 },

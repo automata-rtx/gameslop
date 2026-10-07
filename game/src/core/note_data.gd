@@ -8,6 +8,9 @@ extends Resource
 const VOICES: Array[StringName] = [&"faller", &"builder", &"stray", &"builder_final"]
 ## Tier value for U6: Archive only, never placed in a level.
 const TIER_ARCHIVE_ONLY := 3
+## 01 §6: tier 1 can appear from the first run; tier 2 only once the stratum has been reached.
+const TIER_FIRST_RUN := 1
+const TIER_STRATUM_REACHED := 2
 
 @export var id: StringName = &""
 @export var stratum: StringName = &""

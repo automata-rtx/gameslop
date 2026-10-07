@@ -15,7 +15,11 @@ const DEFAULTS: Dictionary = {
 	&"mouse_sensitivity": Tuning.PLAYER_MOUSE_SENS_DEFAULT,
 	&"fov": Tuning.SETTINGS_FOV_DEFAULT,
 	&"head_bob": Tuning.SETTINGS_HEAD_BOB_DEFAULT,
-	&"shake": Tuning.SETTINGS_SHAKE_DEFAULT,
+	&"screen_shake": Tuning.SETTINGS_SHAKE_DEFAULT,
+	&"invert_y": false,
+	&"sprint_mode": &"hold",   # &"hold" or &"toggle" (12 §5)
+	&"crouch_mode": &"hold",
+	&"hold_to_press": false,   # 12 §6 accessibility
 	&"render_scale": Tuning.SETTINGS_RENDER_SCALE_DEFAULT,
 	&"ui_scale": Tuning.SETTINGS_UI_SCALE_DEFAULT,
 	&"text_size": Tuning.SETTINGS_TEXT_SIZE_DEFAULT,

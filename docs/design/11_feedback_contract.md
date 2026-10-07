@@ -32,7 +32,7 @@ The tables below are the contract. An agent implementing an action implements it
 | Interact hold | underline fills on the prompt | low tick per 0.2 s | — | fill bar |
 | Item select | held item lower-in/raise-out 0.5 s | UI tick | hand bob 1 cycle | slot underline moves, glyph pulses 1.15× |
 | Item use (each) | per `09` (flash, throw arc, flame, stamp decal, LED) | per `03` | throw: 2° pitch recoil; Polaroid: 1 s view narrows 3° then flash | count decrements with a 100 ms `ui_accent` blink |
-| Noclip charge | unrender preview grows at the target; scanline shimmer; held flashlight dims 30% | rising sine cluster tracks charge | FOV −6° over the charge; sway 0.003 m | arc fills in `ui_cold`, target glyph, readiness ring at 90% |
+| Noclip charge | unrender preview grows at the target; scanline shimmer; held flashlight dims 30% | rising sine cluster tracks charge | FOV −6° over the charge; sway 0.003 m | arc fills in `ui_cold`, target glyph, readiness ring completes 100 ms before commit |
 | Noclip cancel | preview collapses 100 ms | descending tone | FOV returns 150 ms | arc shutters out |
 | Noclip commit (wall) | 80 ms hitstop; world lines within 3 m; CA 0.05 pulse; grain spike | sub thump, tear, 60 ms gap | FOV +8° punch, 250 ms pass, 0.8 trauma | Coherence −10 loss animation; `[tear]` caption |
 | Noclip commit (floor) | as wall, then 1.2 s black with grain | as wall plus a falling sine | camera pitches down 10° during the fall | Coherence −30; `DROPPED · THEY ARE AWAKE` |
