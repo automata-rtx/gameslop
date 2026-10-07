@@ -39,7 +39,7 @@ The tables below are the contract. An agent implementing an action implements it
 | Noclip invalid | preview dashed | dull tone once | — | reason word under the crosshair |
 | Chalk stamp | decal appears with a 100 ms scale-in | three scrapes | 1° pitch nod | count decrements |
 | Enter hide spot | camera slides 0.6 s; view mask | cloth plus the spot's sound (car scrape, locker click) | — | HUD dims, eye glyph |
-| Leave hide spot | reverse | — | — | HUD restores |
+| Leave hide spot | view mask lifts | cloth (the entry sound reversed in order, not in time) | camera slides out 0.6 s | HUD restores |
 
 ## 3. Things that happen to the player
 
