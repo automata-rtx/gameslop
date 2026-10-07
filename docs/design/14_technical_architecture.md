@@ -202,3 +202,5 @@ Every system document's "Interfaces" section is the contract; this document owns
 - `CoherenceRenderer`: `set_noclip_charge(v)`.
 - `GameState`: `is_run_active()`, `last_cause()`. Helper scripts `RunState` and `MetaState` live beside it.
 - `SettingsManager`: `REBINDABLE_ACTIONS`.
+- `CoherenceRenderer` (M1.5): `post_quad()`, `screen_layer()`, `pulse_frames(kind)`, read-only `post_params`, `reduce_noise`, `reduce_flashing`; it listens to `SettingsManager.changed` for `reduce_visual_noise` and `reduce_flashing`, and on `run_started` takes the start Coherence from `GameState.run.coherence`. Pure curves in `CoherencePost` (`game/src/core/coherence_post.gd`).
+- Rendering helpers (M1.5): `StratumEnvironment.build(data, preset) -> Environment`, `StratumEnvironment.apply_viewport_preset(viewport, preset)`, `DustMotes.create(particle_scale)` with `follow` (`game/src/lighting/`). Halls materials in `game/data/materials/halls/`.

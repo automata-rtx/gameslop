@@ -50,9 +50,12 @@ func test_coherence_renderer_feeding() -> void:
 	CoherenceRenderer.pulse(&"noclip_commit")
 	assert_lt(CoherenceRenderer.pulse_age(&"noclip_commit"), 0.05)
 	assert_eq(CoherenceRenderer.noclip_commit, 1.0, "commit global raised by the pulse")
-	await Clock.wall_timer(0.35).timeout
+	await Clock.wall_timer(0.1).timeout
 	await get_tree().process_frame
-	assert_eq(CoherenceRenderer.noclip_commit, 0.0, "decayed after 300 ms (02 §4)")
+	assert_eq(CoherenceRenderer.noclip_commit, 1.0, "held at 1.0 during the 250 ms pass (06 §8)")
+	await Clock.wall_timer(0.5).timeout
+	await get_tree().process_frame
+	assert_eq(CoherenceRenderer.noclip_commit, 0.0, "decayed 300 ms after the pass (02 §4)")
 	EventBus.run_started.emit(&"descent", 1)
 	assert_approx(CoherenceRenderer.coherence01, 1.0, 0.0001, "reset at run start")
 	assert_eq(CoherenceRenderer.null_radius, 0.0)
