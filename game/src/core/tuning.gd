@@ -592,6 +592,12 @@ const POLAROID_IMAGE_SIZE := 256                    # px
 const POLAROID_NARROW_DEG := 3.0                    # view narrows 3 deg over 1 s (11)
 const POLAROID_NARROW_TIME := 1.0
 const POLAROID_FRAMES := 12                         # floating frames converging (02 §10)
+# Implementation numbers 09 leaves open (M1.10): the cone an error must stand in for the flash to
+# reach it (Player -> error `on_polaroid(origin, dir)` hook, no effect is defined by 09), and
+# how long the frames take to converge before the flash.
+const POLAROID_CONE_DEG := 35.0                     # half angle around the view axis
+const POLAROID_RANGE := 30.0                        # m, same as the observation range (08 §4)
+const POLAROID_FRAMES_TIME := 0.4                   # s, ends on the flash
 
 const GLOWSTICK_THROW_DIST := 8.0                   # m at 45 deg
 const GLOWSTICK_THROW_ANGLE := 45.0                 # deg
@@ -601,6 +607,7 @@ const GLOWSTICK_LIGHT_RANGE := 4.0                  # m
 const GLOWSTICK_LIFETIME := 90.0                    # s
 const GLOWSTICK_DIM_TIME := 20.0                    # s, dimming over the last 20 s
 const GLOWSTICK_OBSERVE_DIST := STILL_OBSERVE_GLOWSTICK_DIST
+const GLOWSTICK_BOUNCE := 0.35                      # bounces once, then settles (09 §2)
 
 const FLARE_BURN_TIME := 40.0                       # s
 const FLARE_LIGHT_ENERGY := 2.2

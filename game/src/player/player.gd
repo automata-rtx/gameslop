@@ -43,6 +43,8 @@ const HALT_STATES: Array[StringName] = [
 @onready var rig: CameraRig = %CameraRig
 @onready var flashlight: Flashlight = %Flashlight
 @onready var interactor: Interactor = %Interactor
+## The belt (09): select by keys and wheel, use_item uses the selected kind. Routed below.
+@onready var inventory: Inventory = %Inventory
 @onready var collision: CollisionShape3D = %Collision
 
 ## M1.4 seam: a NoclipTargeting component with physics_update(player, held, delta) and
@@ -109,6 +111,7 @@ func reset_for_run(start_coherence: float = Tuning.COHERENCE_MAX) -> void:
 	rig.fov_hold(0.0, 0.0, CameraRig.HOLD_SPRINT)
 	rig.fov_hold(0.0, 0.0, CameraRig.HOLD_NOCLIP)
 	state_machine.reset()
+	inventory.reset()
 	_feed_coherence()
 	coherence_changed.emit(coherence, 0.0, &"reset")
 
@@ -317,6 +320,8 @@ func _physics_process(delta: float) -> void:
 	input.poll(not (has_agency() or hidden))
 	tick_timers(delta)
 	light.physics_update(delta)
+	# 09: use_item acts on the selected belt kind (not while cranking or without agency).
+	inventory.feed_use(input.use_item_pressed, input.use_item_held, delta, can_use_item())
 	if hidden:
 		interactor.physics_update(self, input.interact_held, input.interact_pressed, delta, hiding.is_hidden())
 	elif not has_agency():

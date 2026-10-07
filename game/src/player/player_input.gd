@@ -22,6 +22,7 @@ var flashlight_pressed: bool = false
 var crank: bool = false
 var noclip: bool = false
 var use_item_pressed: bool = false
+var use_item_held: bool = false
 
 var _prev: Dictionary = {}
 var _sprint_latched: bool = false
@@ -52,6 +53,7 @@ func poll(locked: bool = false) -> void:
 	crank = now[&"crank"]
 	noclip = now[&"noclip"]
 	use_item_pressed = just.call(&"use_item")
+	use_item_held = now[&"use_item"]
 	_prev = now
 
 
