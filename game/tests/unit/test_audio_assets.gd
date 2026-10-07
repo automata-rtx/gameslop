@@ -1,5 +1,5 @@
 extends TestCase
-## M0.6: every sound tools/audio/synth.py lists in the manifest imports as an
+## M0.6, M1.11a: every sound tools/audio/synth.py lists in the manifest imports as an
 ## AudioStreamWAV with the format, variant count, and loop setup 03 §2 asks for.
 ## Regenerate with: python3 tools/audio/synth.py --out game/assets/audio
 
@@ -18,6 +18,12 @@ const REQUIRED: Array[StringName] = [
 	&"coherence_loss_tick", &"coherence_gain", &"heartbeat", &"error_contact_hit", &"dissolve",
 	&"ui_move", &"ui_confirm", &"ui_back", &"ui_slider_step", &"ui_glitch_transition",
 	&"ui_title_boot", &"ui_unlock", &"ui_summary_stamp", &"ui_shutter", &"ui_type", &"ui_hold_tick",
+	# M1.11a: Halls, doors, breaker, power wave, exit, noclip passes, Static, Still.
+	&"noclip_pass_wall", &"noclip_pass_soft",
+	&"room_tone_halls", &"fixture_hum_halls", &"fixture_buzz_halls", &"power_wave_ignite",
+	&"door_open", &"door_close", &"door_slam", &"breaker_lever",
+	&"exit_open", &"exit_latch", &"exit_tone",
+	&"static_hum", &"static_band", &"still_tick", &"still_contact",
 ]
 
 var _sounds: Dictionary = {}
@@ -81,3 +87,12 @@ func test_every_file_loads_as_audio_stream_wav() -> void:
 				assert_eq(stream.loop_end, int(loop_frames[i]), "%s loop end" % path)
 			else:
 				assert_eq(stream.loop_mode, AudioStreamWAV.LOOP_DISABLED, "%s should not loop" % path)
+
+
+## 03 §6 rule 6: every caption a sound names is a Strings constant.
+func test_runtime_captions_are_strings() -> void:
+	var consts := (load("res://src/core/strings.gd") as GDScript).get_script_constant_map()
+	for id: String in _sounds:
+		var rt: Dictionary = (_sounds[id] as Dictionary).get("runtime", {})
+		if rt.has("caption"):
+			assert_contains(consts, String(rt["caption"]), "%s caption" % id)

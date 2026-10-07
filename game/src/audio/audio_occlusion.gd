@@ -1,0 +1,59 @@
+class_name AudioOcclusion
+extends RefCounted
+## 03 §3 occlusion: every 3D emitter on the Errors and Interact buses is checked every
+## 0.2 s with a ray to the listener on the `world` layer; occluded emitters get a low-pass
+## at 800 Hz and -6 dB, tweened over 100 ms. Sounds marked `through_walls` in the manifest
+## (Static, Null, the Cycled exit tone) are never occluded.
+
+const BUSES: Array[StringName] = [&"Errors", &"Interact"]
+const WORLD_MASK := 1                 # physics layer 1 `world` (14 §7)
+const OPEN_CUTOFF_HZ := 20500.0       # AudioStreamPlayer3D: this value disables the filter
+const META_OCCLUDED := &"audio_occluded"
+const META_THROUGH := &"audio_through_walls"
+
+
+static func wants_check(p: AudioStreamPlayer3D) -> bool:
+	return p.playing and p.bus in BUSES and not bool(p.get_meta(META_THROUGH, false))
+
+
+## True when level geometry blocks the straight line from `p` to `listener_pos`.
+static func is_occluded(p: AudioStreamPlayer3D, listener_pos: Vector3) -> bool:
+	if not p.is_inside_tree():
+		return false
+	var space := p.get_world_3d().direct_space_state
+	if space == null:
+		return false
+	var q := PhysicsRayQueryParameters3D.create(p.global_position, listener_pos, WORLD_MASK)
+	q.hit_from_inside = false
+	return not space.intersect_ray(q).is_empty()
+
+
+## Tweens `p` to the occluded or open state if it changed.
+static func set_occluded(p: AudioStreamPlayer3D, occluded: bool) -> void:
+	if bool(p.get_meta(META_OCCLUDED, false)) == occluded:
+		return
+	p.set_meta(META_OCCLUDED, occluded)
+	var t := p.create_tween().set_parallel(true)
+	var secs := Tuning.AUDIO_OCCLUSION_TWEEN_MS / 1000.0
+	var cutoff := Tuning.AUDIO_OCCLUSION_LOWPASS_HZ if occluded else OPEN_CUTOFF_HZ
+	t.tween_property(p, ^"attenuation_filter_cutoff_hz", cutoff, secs)
+	var from_db := float(p.get_meta(AudioLoop.META_OCCLUSION, 0.0))
+	var to_db := Tuning.AUDIO_OCCLUSION_DB if occluded else 0.0
+	t.tween_method(func(v: float) -> void: AudioLoop.set_part(p, AudioLoop.META_OCCLUSION, v), from_db, to_db, secs)
+
+
+## Resets a pooled player to the open state immediately.
+static func reset(p: AudioStreamPlayer3D) -> void:
+	p.set_meta(META_OCCLUDED, false)
+	p.attenuation_filter_cutoff_hz = OPEN_CUTOFF_HZ
+	p.set_meta(AudioLoop.META_OCCLUSION, 0.0)
+
+
+## One 0.2 s pass over `players`.
+static func tick(players: Array, listener_pos: Vector3) -> void:
+	for p: Variant in players:
+		if not is_instance_valid(p):
+			continue
+		var p3 := p as AudioStreamPlayer3D
+		if p3 != null and wants_check(p3):
+			set_occluded(p3, is_occluded(p3, listener_pos))

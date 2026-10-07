@@ -276,7 +276,10 @@
     0.452,
     0.452,
     0.452
-   ]
+   ],
+   "runtime": {
+    "caption": "CAPTION_NOCLIP_COMMIT"
+   }
   },
   "noclip_fall": {
    "group": "player",
@@ -404,7 +407,10 @@
     1.152,
     1.152,
     1.152
-   ]
+   ],
+   "runtime": {
+    "caption": "CAPTION_CONTACT"
+   }
   },
   "dissolve": {
    "group": "player",
@@ -605,6 +611,302 @@
     0.022,
     0.022,
     0.022
+   ]
+  },
+  "noclip_pass_wall": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/noclip_pass_wall_v01.wav",
+    "res://assets/audio/player/noclip_pass_wall_v02.wav",
+    "res://assets/audio/player/noclip_pass_wall_v03.wav"
+   ],
+   "length_s": [
+    0.3,
+    0.3,
+    0.3
+   ]
+  },
+  "noclip_pass_soft": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/noclip_pass_soft_v01.wav",
+    "res://assets/audio/player/noclip_pass_soft_v02.wav",
+    "res://assets/audio/player/noclip_pass_soft_v03.wav"
+   ],
+   "length_s": [
+    0.3,
+    0.3,
+    0.3
+   ]
+  },
+  "room_tone_halls": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ambience/room_tone_halls_v01.wav"
+   ],
+   "length_s": [
+    8.000021
+   ],
+   "loop_frames": [
+    384000
+   ],
+   "runtime": {
+    "level_db": -30
+   }
+  },
+  "fixture_hum_halls": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_hum_halls_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "fixture_buzz_halls": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_buzz_halls_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "power_wave_ignite": {
+   "group": "world",
+   "bus": "Ambience",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/power_wave_ignite_v01.wav",
+    "res://assets/audio/world/power_wave_ignite_v02.wav",
+    "res://assets/audio/world/power_wave_ignite_v03.wav"
+   ],
+   "length_s": [
+    0.422,
+    0.422,
+    0.422
+   ],
+   "runtime": {
+    "pitch_hash": 0.05,
+    "caption": "CAPTION_POWER_WAVE"
+   }
+  },
+  "door_open": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/door_open_v01.wav",
+    "res://assets/audio/world/door_open_v02.wav",
+    "res://assets/audio/world/door_open_v03.wav"
+   ],
+   "length_s": [
+    0.438625,
+    0.397313,
+    0.432021
+   ]
+  },
+  "door_close": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/door_close_v01.wav",
+    "res://assets/audio/world/door_close_v02.wav",
+    "res://assets/audio/world/door_close_v03.wav"
+   ],
+   "length_s": [
+    0.419646,
+    0.452854,
+    0.441
+   ]
+  },
+  "door_slam": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/door_slam_v01.wav",
+    "res://assets/audio/world/door_slam_v02.wav",
+    "res://assets/audio/world/door_slam_v03.wav"
+   ],
+   "length_s": [
+    0.902,
+    0.902,
+    0.902
+   ],
+   "runtime": {
+    "caption": "CAPTION_DOOR_SLAM"
+   }
+  },
+  "breaker_lever": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/breaker_lever_v01.wav",
+    "res://assets/audio/world/breaker_lever_v02.wav",
+    "res://assets/audio/world/breaker_lever_v03.wav"
+   ],
+   "length_s": [
+    0.502,
+    0.502,
+    0.502
+   ],
+   "runtime": {
+    "caption": "CAPTION_BREAKER"
+   }
+  },
+  "exit_open": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/exit_open_v01.wav",
+    "res://assets/audio/world/exit_open_v02.wav",
+    "res://assets/audio/world/exit_open_v03.wav"
+   ],
+   "length_s": [
+    1.902,
+    1.902,
+    1.902
+   ]
+  },
+  "exit_latch": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/exit_latch_v01.wav",
+    "res://assets/audio/world/exit_latch_v02.wav",
+    "res://assets/audio/world/exit_latch_v03.wav"
+   ],
+   "length_s": [
+    0.302,
+    0.302,
+    0.302
+   ]
+  },
+  "exit_tone": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/exit_tone_v01.wav",
+    "res://assets/audio/world/exit_tone_v02.wav",
+    "res://assets/audio/world/exit_tone_v03.wav"
+   ],
+   "length_s": [
+    3.0,
+    3.0,
+    3.0
+   ],
+   "runtime": {
+    "max_distance": 60.0,
+    "through_walls": true
+   }
+  },
+  "static_hum": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/static_hum_v01.wav"
+   ],
+   "length_s": [
+    4.000021
+   ],
+   "loop_frames": [
+    192000
+   ],
+   "runtime": {
+    "max_distance": 40.0,
+    "through_walls": true,
+    "caption": "CAPTION_STATIC"
+   }
+  },
+  "static_band": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/static_band_v01.wav"
+   ],
+   "length_s": [
+    3.000021
+   ],
+   "loop_frames": [
+    144000
+   ],
+   "runtime": {
+    "max_distance": 40.0,
+    "through_walls": true
+   }
+  },
+  "still_tick": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/still_tick_v01.wav",
+    "res://assets/audio/errors/still_tick_v02.wav",
+    "res://assets/audio/errors/still_tick_v03.wav"
+   ],
+   "length_s": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "runtime": {
+    "caption": "CAPTION_STILL_TICK"
+   }
+  },
+  "still_contact": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/still_contact_v01.wav",
+    "res://assets/audio/errors/still_contact_v02.wav",
+    "res://assets/audio/errors/still_contact_v03.wav"
+   ],
+   "length_s": [
+    2.0,
+    2.0,
+    2.0
    ]
   }
  }

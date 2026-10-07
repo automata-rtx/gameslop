@@ -216,6 +216,7 @@
    "group": "player", "dur": 0.45, "variants": 3, "lead": 0.002,
    "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0},
    "norm": {"rms_db": -11},
+   "runtime": {"caption": "CAPTION_NOCLIP_COMMIT"},
    "note": "03: sub thump (45 Hz decaying 250 ms) + digital tear (white noise through an 8-bit crush, 120 ms) + a 60 ms silence gap. The gap runs 20 to 80 ms, inside the 80 ms hitstop: the impact, then the frozen world is silent, then the tear resumes as the pass begins.",
    "layers": [
     {"src": "sine", "freq": [75, 42], "dur": 0.32, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.25}, "chain": [{"fx": "drive", "db": 6}]},
@@ -320,6 +321,7 @@
    "group": "player", "dur": 1.15, "variants": 3, "lead": 0.002,
    "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0},
    "norm": {"rms_db": -8},
+   "runtime": {"caption": "CAPTION_CONTACT"},
    "note": "03: the noclip commit tear at 2x length (240 ms) + sub 40 Hz + a 1 s decaying noise band at 400 Hz. The bite.",
    "layers": [
     {"src": "noise", "color": "white", "dur": 0.24, "peak_db": -3, "env": {"type": "adsr", "a": 0.001, "d": 0.05, "s": 0.7, "r": 0.1}, "chain": [{"fx": "bp", "f": [6000, 700], "q": 0.7}, {"fx": "crush", "bits": 8, "hold": 6}, {"fx": "drive", "db": 12}, {"fx": "am", "wave": "square", "freq": 32, "depth": 0.6}]},
@@ -482,6 +484,248 @@
     {"src": "sine", "freq": 300, "dur": 0.016, "peak_db": 0, "env": {"type": "exp", "a": 0.001, "t60": 0.014}}
    ],
    "expect": {"centroid": [200, 2500]}
+  },
+
+  "noclip_pass_wall": {
+   "group": "player", "dur": 0.3, "variants": 3,
+   "jitter": {"pitch": 0.05, "gain_db": 1.0},
+   "norm": {"lufs": -20},
+   "note": "11 noclip commit (wall): the 250 ms pass after the commit's gap. A pressure whoosh swept up through the wall's thickness, a crushed grid crackle (the unrender lines within 3 m), and a low ring as the far face opens.",
+   "layers": [
+    {"src": "noise", "color": "pink", "dur": 0.28, "peak_db": 0, "env": {"type": "adsr", "a": 0.03, "d": 0.08, "s": 0.7, "r": 0.12}, "chain": [{"fx": "bp", "f": [400, 2600], "q": 1.1}]},
+    {"src": "noise", "color": "white", "dur": 0.25, "peak_db": -10, "env": {"type": "adsr", "a": 0.01, "d": 0.05, "s": 0.6, "r": 0.1}, "chain": [{"fx": "crush", "bits": 5, "hold": 10}, {"fx": "am", "wave": "square", "freq": 40, "duty": 0.3, "depth": 0.9}, {"fx": "hp", "f": 1500}]},
+    {"src": "sine", "freq": [90, 140], "dur": 0.26, "peak_db": -6, "env": {"type": "adsr", "a": 0.02, "d": 0.06, "s": 0.6, "r": 0.12}}
+   ],
+   "fx": [{"fx": "hp", "f": 50, "track": false}],
+   "expect": {"centroid": [300, 4000]}
+  },
+
+  "noclip_pass_soft": {
+   "group": "player", "dur": 0.3, "variants": 3,
+   "jitter": {"pitch": 0.05, "gain_db": 1.0},
+   "norm": {"lufs": -24},
+   "note": "09 soft wall: the cheap pass through a shimmering wall. Lighter than the wall pass: an airy shimmer (30 Hz flutter like the wall's shimmer) over a short falling glide, no sub, no crackle.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.27, "peak_db": -2, "env": {"type": "adsr", "a": 0.03, "d": 0.08, "s": 0.6, "r": 0.12}, "chain": [{"fx": "hp", "f": 2800}, {"fx": "am", "wave": "sine", "freq": 30, "depth": 0.7}]},
+    {"src": "sine", "freq": [880, 620], "dur": 0.24, "peak_db": 0, "env": {"type": "adsr", "a": 0.02, "d": 0.08, "s": 0.5, "r": 0.1}},
+    {"src": "sine", "freq": [1320, 930], "dur": 0.2, "peak_db": -12, "env": {"type": "adsr", "a": 0.02, "d": 0.06, "s": 0.4, "r": 0.08}}
+   ],
+   "fx": [{"fx": "hp", "f": 200, "track": false}],
+   "expect": {"centroid": [700, 6000]}
+  },
+
+  "room_tone_halls": {
+   "group": "ambience", "dur": 8.0, "loop": true, "variants": 1, "decorrelate": true,
+   "norm": {"lufs": -30},
+   "runtime": {"level_db": -30},
+   "note": "03 §1 place: the Halls room tone, carpet-damped. A dark brown-noise body (the building), carpet-absorbed air with no highs, the bank of 120 Hz tubes far down the corridor, and a slow random swell so the loop does not breathe audibly. 03 §6 rule 3: AudioManager never ducks it below -40 dB.",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": 0, "chain": [{"fx": "lp", "f": 260, "q": 0.6}]},
+    {"src": "noise", "color": "pink", "peak_db": -14, "chain": [{"fx": "bp", "f": 900, "q": 0.7}, {"fx": "lp", "f": 2500}]},
+    {"src": "sine", "freq": 120, "peak_db": -15},
+    {"src": "sine", "freq": 240, "peak_db": -26},
+    {"src": "sine", "freq": 360, "peak_db": -32}
+   ],
+   "fx": [{"fx": "am", "wave": "random", "freq": 0.25, "depth": 0.3}, {"fx": "hp", "f": 30}]
+  },
+
+  "fixture_hum_halls": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -28},
+   "note": "03 fixture hum loop, Halls colour: brighter, 120 Hz fundamental with 240 Hz at -12 dB and a faint pink-noise air; a thin ballast buzz on top. Mono: one per fixture, started by the fixture with AudioManager.start_loop.",
+   "layers": [
+    {"src": "sine", "freq": 120, "peak_db": 0},
+    {"src": "sine", "freq": 240, "peak_db": -12},
+    {"src": "sine", "freq": 360, "peak_db": -22},
+    {"src": "saw", "freq": 120, "peak_db": -30, "chain": [{"fx": "hp", "f": 2000}]},
+    {"src": "noise", "color": "pink", "peak_db": -30, "chain": [{"fx": "hp", "f": 800}]}
+   ],
+   "expect": {"peak_hz": [110, 250]}
+  },
+
+  "fixture_buzz_halls": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -27},
+   "note": "03 Halls fixtures, buzz colour: a tired tube whose ballast buzzes. A band-passed 120 Hz saw with a 120 Hz rattle and a slow irregular level, over the same hum. Some fixtures carry it instead of fixture_hum_halls; it is not Flicker's stutter (that is gated at 8 to 20 Hz with clicks).",
+   "layers": [
+    {"src": "saw", "freq": 120, "peak_db": 0, "chain": [{"fx": "bp", "f": 2400, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 3, "depth": 0.4}]},
+    {"src": "sine", "freq": 120, "peak_db": -4},
+    {"src": "sine", "freq": 240, "peak_db": -14},
+    {"src": "noise", "color": "white", "peak_db": -22, "chain": [{"fx": "bp", "f": 4000, "q": 1.0}, {"fx": "am", "wave": "square", "freq": 120, "duty": 0.2, "depth": 0.8}]}
+   ],
+   "expect": {"centroid": [150, 3000]}
+  },
+
+  "power_wave_ignite": {
+   "group": "world", "bus": "Ambience", "dur": 0.42, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.02, "time": 0.004, "gain_db": 1.0},
+   "norm": {"lufs": -24},
+   "runtime": {"pitch_hash": 0.05, "caption": "CAPTION_POWER_WAVE"},
+   "note": "03: power wave fixture ignite, ballast tink (sine 4 kHz 8 ms) + hum fade-in 300 ms, per fixture; AudioManager hashes the pitch +-5% from the fixture's position. The hum hands over to the fixture's hum loop.",
+   "layers": [
+    {"src": "sine", "freq": 4000, "dur": 0.012, "peak_db": 0, "env": {"type": "exp", "a": 0.0005, "t60": 0.008}},
+    {"src": "noise", "color": "white", "dur": 0.006, "peak_db": -10, "env": {"type": "exp", "a": 0.0003, "t60": 0.005}, "chain": [{"fx": "hp", "f": 3000}]},
+    {"src": "sine", "freq": 120, "at": 0.01, "dur": 0.4, "peak_db": -2, "env": {"type": "points", "points": [[0, 0], [0.3, 1.0], [0.36, 1.0], [0.4, 0]]}},
+    {"src": "sine", "freq": 240, "at": 0.01, "dur": 0.4, "peak_db": -14, "env": {"type": "points", "points": [[0, 0], [0.3, 1.0], [0.36, 1.0], [0.4, 0]]}},
+    {"src": "saw", "freq": 120, "at": 0.01, "dur": 0.4, "peak_db": -26, "env": {"type": "points", "points": [[0, 0], [0.05, 1.0], [0.3, 0.4], [0.4, 0]]}, "chain": [{"fx": "hp", "f": 2000}]}
+   ]
+  },
+
+  "door_open": {
+   "group": "world", "dur": 0.42, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "time": 0.006, "gain_db": 1.0, "dur": 0.08},
+   "norm": {"lufs": -24},
+   "note": "03: latch click, then the wood creak (saw 80 Hz FM'd by 0.5 Hz, 300 ms). Stick-slip grain (random AM) through a hinge resonance makes the saw read as wood.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.01, "peak_db": -2, "env": {"type": "exp", "a": 0.0003, "t60": 0.008}, "chain": [{"fx": "bp", "f": 2500, "q": 1.0}]},
+    {"src": "sine", "freq": 1400, "dur": 0.02, "peak_db": -10, "env": {"type": "exp", "a": 0.0005, "t60": 0.015}},
+    {"src": "saw", "freq": 80, "fm": {"freq": 0.5, "dev": 30}, "at": 0.06, "dur": 0.3, "peak_db": 0, "env": {"type": "adsr", "a": 0.04, "d": 0.08, "s": 0.7, "r": 0.1}, "chain": [{"fx": "bp", "f": 900, "q": 1.4}, {"fx": "am", "wave": "random", "freq": 35, "depth": 0.7}]},
+    {"src": "saw", "freq": 80, "fm": {"freq": 0.5, "dev": 30}, "at": 0.06, "dur": 0.3, "peak_db": -10, "env": {"type": "adsr", "a": 0.04, "d": 0.08, "s": 0.7, "r": 0.1}, "chain": [{"fx": "lp", "f": 300}]}
+   ],
+   "fx": [{"fx": "hp", "f": 60, "track": false}],
+   "expect": {"centroid": [400, 3000]}
+  },
+
+  "door_close": {
+   "group": "world", "dur": 0.45, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.05, "time": 0.006, "gain_db": 1.0, "dur": 0.08},
+   "norm": {"peak_db": -8},
+   "note": "03: a short creak, the latch click, and the thud (sine 60 Hz 120 ms) of the door meeting its frame.",
+   "layers": [
+    {"src": "saw", "freq": 85, "fm": {"freq": 0.5, "dev": 25}, "dur": 0.2, "peak_db": -2, "env": {"type": "adsr", "a": 0.03, "d": 0.06, "s": 0.7, "r": 0.06}, "chain": [{"fx": "bp", "f": 1000, "q": 1.4}, {"fx": "am", "wave": "random", "freq": 35, "depth": 0.7}]},
+    {"src": "sine", "freq": [75, 55], "at": 0.2, "dur": 0.13, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.12}},
+    {"src": "noise", "color": "brown", "at": 0.2, "dur": 0.08, "peak_db": -6, "env": {"type": "exp", "a": 0.001, "t60": 0.07}, "chain": [{"fx": "lp", "f": 500}]},
+    {"src": "noise", "color": "white", "at": 0.205, "dur": 0.01, "peak_db": -4, "env": {"type": "exp", "a": 0.0003, "t60": 0.008}, "chain": [{"fx": "bp", "f": 2500, "q": 1.0}]},
+    {"src": "sine", "freq": 1400, "at": 0.205, "dur": 0.02, "peak_db": -12, "env": {"type": "exp", "a": 0.0005, "t60": 0.015}}
+   ],
+   "fx": [{"fx": "hp", "f": 35, "track": false}],
+   "expect": {"centroid": [150, 2500]}
+  },
+
+  "door_slam": {
+   "group": "world", "dur": 0.9, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0},
+   "norm": {"peak_db": -1.5},
+   "runtime": {"caption": "CAPTION_DOOR_SLAM"},
+   "note": "03: the door's thud at three times the gain, with a short room reverb pre-baked. A fast whoosh of the swing, the frame impact, the latch rattling in its keeper.",
+   "layers": [
+    {"src": "noise", "color": "pink", "dur": 0.1, "peak_db": -12, "env": {"type": "adsr", "a": 0.06, "d": 0.02, "s": 0.5, "r": 0.02}, "chain": [{"fx": "bp", "f": [400, 1200], "q": 0.8}]},
+    {"src": "sine", "freq": [85, 48], "at": 0.1, "dur": 0.25, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.22}, "chain": [{"fx": "drive", "db": 6}]},
+    {"src": "noise", "color": "brown", "at": 0.1, "dur": 0.12, "peak_db": -3, "env": {"type": "exp", "a": 0.001, "t60": 0.1}, "chain": [{"fx": "lp", "f": 700}]},
+    {"src": "noise", "color": "white", "at": 0.1, "dur": 0.012, "peak_db": -4, "env": {"type": "exp", "a": 0.0003, "t60": 0.01}, "chain": [{"fx": "bp", "f": 2200, "q": 0.9}]},
+    {"src": "noise", "color": "white", "at": 0.13, "dur": 0.006, "peak_db": -12, "env": {"type": "exp", "a": 0.0003, "t60": 0.005}, "chain": [{"fx": "bp", "f": 3200, "q": 1.5}], "repeat": {"count": 3, "every": 0.03, "jitter": 0.006, "decay_db": -4, "gain_jitter_db": 2}}
+   ],
+   "fx": [{"fx": "reverb", "room": 0.45, "damp": 0.5, "wet": 0.22}, {"fx": "hp", "f": 35, "track": false}],
+   "expect": {"centroid": [100, 2000]}
+  },
+
+  "breaker_lever": {
+   "group": "world", "dur": 0.5, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0},
+   "norm": {"peak_db": -2},
+   "runtime": {"caption": "CAPTION_BREAKER"},
+   "note": "03: heavy relay, square 150 Hz 20 ms + metal clank (noise BP 3 kHz 40 ms) + sub 50 Hz. The handle's travel, the contacts closing, the panel ringing briefly.",
+   "layers": [
+    {"src": "square", "freq": 150, "dur": 0.02, "peak_db": -2, "env": {"type": "adsr", "a": 0.001, "d": 0.008, "s": 0.6, "r": 0.008}},
+    {"src": "noise", "color": "white", "dur": 0.04, "peak_db": 0, "env": {"type": "exp", "a": 0.0005, "t60": 0.04}, "chain": [{"fx": "bp", "f": 3000, "q": 1.2}, {"fx": "drive", "db": 6}]},
+    {"src": "sine", "freq": [58, 46], "dur": 0.3, "peak_db": -1, "env": {"type": "exp", "a": 0.003, "t60": 0.28}},
+    {"src": "sine", "freq": 1870, "dur": 0.2, "peak_db": -18, "env": {"type": "exp", "a": 0.001, "t60": 0.18}},
+    {"src": "sine", "freq": 2710, "dur": 0.15, "peak_db": -22, "env": {"type": "exp", "a": 0.001, "t60": 0.12}}
+   ],
+   "fx": [{"fx": "hp", "f": 30, "track": false}],
+   "expect": {"centroid": [100, 3000]}
+  },
+
+  "exit_open": {
+   "group": "world", "dur": 1.9, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.03, "time": 0.01, "gain_db": 1.0},
+   "norm": {"lufs": -18},
+   "note": "03: exit elevator / stairwell door, a long hydraulic hiss (noise LP 2 kHz 1.5 s) + heavy latch + fixture tink. 11: enter exit and exit unlocked.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 1.5, "peak_db": 0, "env": {"type": "adsr", "a": 0.08, "d": 0.4, "s": 0.6, "r": 0.5}, "chain": [{"fx": "lp", "f": 2000, "q": 0.7}, {"fx": "hp", "f": 250}]},
+    {"src": "noise", "color": "brown", "dur": 1.5, "peak_db": -10, "env": {"type": "adsr", "a": 0.1, "d": 0.4, "s": 0.6, "r": 0.5}, "chain": [{"fx": "lp", "f": 200}]},
+    {"src": "sine", "freq": [95, 60], "at": 1.45, "dur": 0.2, "peak_db": -1, "env": {"type": "exp", "a": 0.002, "t60": 0.18}},
+    {"src": "noise", "color": "white", "at": 1.45, "dur": 0.03, "peak_db": -4, "env": {"type": "exp", "a": 0.0005, "t60": 0.03}, "chain": [{"fx": "bp", "f": 1800, "q": 1.0}, {"fx": "drive", "db": 6}]},
+    {"src": "sine", "freq": 4000, "at": 1.65, "dur": 0.012, "peak_db": -14, "env": {"type": "exp", "a": 0.0005, "t60": 0.008}}
+   ],
+   "fx": [{"fx": "hp", "f": 35, "track": false}],
+   "expect": {"centroid": [300, 3000]}
+  },
+
+  "exit_latch": {
+   "group": "world", "dur": 0.3, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0},
+   "norm": {"peak_db": -6},
+   "note": "11: the exit's heavy latch alone, for exit seen (Open, Powered, Keyed) and the Cycled seal and unseal.",
+   "layers": [
+    {"src": "sine", "freq": [95, 60], "dur": 0.2, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.18}},
+    {"src": "noise", "color": "white", "dur": 0.03, "peak_db": -3, "env": {"type": "exp", "a": 0.0005, "t60": 0.03}, "chain": [{"fx": "bp", "f": 1800, "q": 1.0}, {"fx": "drive", "db": 6}]},
+    {"src": "noise", "color": "white", "at": 0.05, "dur": 0.02, "peak_db": -10, "env": {"type": "exp", "a": 0.0005, "t60": 0.02}, "chain": [{"fx": "bp", "f": 2600, "q": 1.2}]}
+   ],
+   "fx": [{"fx": "hp", "f": 35, "track": false}],
+   "expect": {"centroid": [100, 3000]}
+  },
+
+  "exit_tone": {
+   "group": "world", "dur": 3.0, "variants": 3,
+   "jitter": {"pitch": 0.01, "gain_db": 0.5},
+   "norm": {"lufs": -18},
+   "runtime": {"max_distance": 60.0, "through_walls": true},
+   "note": "07 Cycled lock: the long tone from the exit 5 s before it opens, max_distance 60 m, heard through walls. 11: also the exit-seen tone for a Cycled exit. A plain 196 Hz tone with a soft octave, slow swell and fall.",
+   "layers": [
+    {"src": "sine", "freq": 196, "peak_db": 0, "env": {"type": "adsr", "a": 0.4, "d": 0.5, "s": 0.8, "r": 1.0}},
+    {"src": "sine", "freq": 392, "peak_db": -12, "env": {"type": "adsr", "a": 0.5, "d": 0.5, "s": 0.7, "r": 1.0}},
+    {"src": "triangle", "freq": 196, "peak_db": -18, "env": {"type": "adsr", "a": 0.4, "d": 0.5, "s": 0.8, "r": 1.0}}
+   ],
+   "expect": {"peak_hz": [190, 400]}
+  },
+
+  "static_hum": {
+   "group": "errors", "dur": 4.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -20},
+   "runtime": {"max_distance": 40.0, "through_walls": true, "caption": "CAPTION_STATIC"},
+   "note": "03 Static: hum loop, 50 Hz + 100 Hz sines with slow beating (each a pair 0.5 Hz apart). Soft saturation adds 150 and 250 Hz so the hum carries on small speakers. Heard through walls to 40 m. The noise band is static_band, a separate loop whose gain the field raises.",
+   "layers": [
+    {"src": "sine", "freq": 50, "detune": [0, 17.2], "peak_db": 0},
+    {"src": "sine", "freq": 100, "detune": [0, -8.6], "peak_db": -4}
+   ],
+   "fx": [{"fx": "drive", "db": 8, "mix": 0.6}],
+   "expect": {"peak_hz": [45, 105]}
+  },
+
+  "static_band": {
+   "group": "errors", "dur": 3.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -22},
+   "runtime": {"max_distance": 40.0, "through_walls": true},
+   "note": "03 Static: the white-noise band at 3 kHz whose gain rises inside the field (the Static code sets its volume on the loop handle). A fast irregular crackle in it so it reads as interference, not air.",
+   "layers": [
+    {"src": "noise", "color": "white", "peak_db": 0, "chain": [{"fx": "bp", "f": 3000, "q": 1.6}, {"fx": "am", "wave": "random", "freq": 12, "depth": 0.5}]},
+    {"src": "noise", "color": "white", "peak_db": -12, "chain": [{"fx": "crush", "bits": 4, "hold": 12}, {"fx": "bp", "f": 3000, "q": 3.0}]}
+   ],
+   "expect": {"centroid": [2000, 5000]}
+  },
+
+  "still_tick": {
+   "group": "errors", "dur": 0.014, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.02, "gain_db": 0.5},
+   "norm": {"peak_db": -14},
+   "runtime": {"caption": "CAPTION_STILL_TICK"},
+   "note": "03 Still: the render-line tick, a 6 kHz blip 10 ms, with the 1 px line (02 §8) after 2 s of observation.",
+   "layers": [
+    {"src": "sine", "freq": 6000, "dur": 0.01, "env": {"type": "adsr", "a": 0.0005, "d": 0.003, "s": 0.7, "r": 0.004}}
+   ],
+   "expect": {"peak_hz": [5800, 6200]}
+  },
+
+  "still_contact": {
+   "group": "errors", "dur": 2.0, "variants": 3,
+   "jitter": {"pitch": 0.03, "gain_db": 0.5},
+   "norm": {"rms_db": -12},
+   "note": "03 Still: on contact, a single sine 30 Hz 2 s, played with error_contact_hit. A touch of saturation adds 60 and 90 Hz so it is felt and heard.",
+   "layers": [
+    {"src": "sine", "freq": 30, "peak_db": 0, "env": {"type": "adsr", "a": 0.02, "d": 0.4, "s": 0.7, "r": 1.0}, "chain": [{"fx": "drive", "db": 6, "mix": 0.5}]}
+   ],
+   "expect": {"peak_hz": [25, 95]}
   }
  }
 }
