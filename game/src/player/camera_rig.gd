@@ -17,6 +17,11 @@ const KICK_DECAY := 8.0              # roll kicks and nods return at this expone
 const STEP_SMOOTH := 14.0            # a step-up lift is absorbed over ~0.1 s
 const SHAKE_NOISE_HZ := 18.0         # trauma noise frequency
 
+## fov_hold keys the player uses (one hold per key; holds sum).
+const HOLD_DEFAULT := &"default"
+const HOLD_SPRINT := &"sprint"       # +4 while sprinting (11 §2)
+const HOLD_NOCLIP := &"noclip"       # -6 over the noclip charge (06 §8, 11 §2)
+
 @onready var _motion: Node3D = %Motion
 @onready var camera: Camera3D = %Camera
 
@@ -25,9 +30,10 @@ var trauma: float = 0.0
 var bob_scale: float = 1.0           # set_bob_scale (11 Interfaces); stacks with the setting
 
 var _hfov_base: float = float(Tuning.CAMERA_FOV_DEFAULT)
-var _fov_hold: float = 0.0           # deg, tweened
 var _fov_punch: float = 0.0          # deg, tweened
-var _hold_tween: Tween
+## fov_hold: key -> held offset in deg (tweened); the holds sum (06 Interfaces).
+var _holds: Dictionary = {}
+var _hold_tweens: Dictionary = {}
 var _punch_tween: Tween
 var _height_tween: Tween
 var _dip_tween: Tween
@@ -156,15 +162,40 @@ func fov_punch(delta_deg: float, up_ms: float, down_ms: float) -> void:
 	_punch_tween.tween_property(self, ^"_fov_punch", 0.0, maxf(down_ms, 1.0) / 1000.0)
 
 
-## A held FOV offset (sprint +4, noclip charge -6). A new hold replaces the previous one.
-func fov_hold(delta_deg: float, ms: float = Tuning.FEEDBACK_FOV_TWEEN_MIN_MS) -> void:
-	if _hold_tween:
-		_hold_tween.kill()
-	if ms <= 0.0:
-		_fov_hold = delta_deg
+## A held FOV offset under `key` (sprint +4, noclip charge -6), tweened over `ms`
+## (0 snaps). One hold per key; a new hold on a key replaces that key's hold only, and
+## the holds sum, so releasing sprint never wipes the noclip pull-in.
+func fov_hold(delta_deg: float, ms: float = Tuning.FEEDBACK_FOV_TWEEN_MIN_MS, key: StringName = HOLD_DEFAULT) -> void:
+	var old: Variant = _hold_tweens.get(key)
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	_hold_tweens.erase(key)
+	if ms <= 0.0 or not is_inside_tree():
+		_set_hold(delta_deg, key)
 		return
-	_hold_tween = create_tween().set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	_hold_tween.tween_property(self, ^"_fov_hold", delta_deg, ms / 1000.0)
+	var tw := create_tween().set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	tw.tween_method(_set_hold.bind(key), float(_holds.get(key, 0.0)), delta_deg, ms / 1000.0)
+	_hold_tweens[key] = tw
+
+
+## The current (tweened) hold under `key`, in degrees.
+func fov_hold_of(key: StringName) -> float:
+	return float(_holds.get(key, 0.0))
+
+
+## Sum of every hold, in degrees.
+func fov_hold_total() -> float:
+	var t := 0.0
+	for v: float in _holds.values():
+		t += v
+	return t
+
+
+func _set_hold(v: float, key: StringName) -> void:
+	if is_zero_approx(v):
+		_holds.erase(key)
+	else:
+		_holds[key] = v
 
 
 func set_bob_scale(v: float) -> void:
@@ -278,7 +309,7 @@ func bob_amount() -> float:
 
 
 func current_hfov() -> float:
-	return clampf(_hfov_base + _fov_hold + _fov_punch, 1.0, 170.0)
+	return clampf(_hfov_base + fov_hold_total() + _fov_punch, 1.0, 170.0)
 
 
 func _apply_fov() -> void:

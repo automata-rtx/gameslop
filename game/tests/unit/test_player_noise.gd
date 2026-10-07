@@ -59,8 +59,8 @@ func test_fixed_action_radii() -> void:
 
 func test_walls_attenuate_35_percent_each() -> void:
 	var world := PlayerFixture.make_world(self)
-	PlayerFixture.box(world, Vector3(0.2, 3, 6), Vector3(2, 1.5, 0))
-	PlayerFixture.box(world, Vector3(0.2, 3, 6), Vector3(4, 1.5, 0))
+	PlayerFixture.wall(world, Vector3(0.2, 3, 6), Vector3(2, 1.5, 0))
+	PlayerFixture.wall(world, Vector3(0.2, 3, 6), Vector3(4, 1.5, 0))
 	await await_physics_frames(2)
 	var space := world.get_world_3d().direct_space_state
 	var from := Vector3(0, 1, 0)
@@ -69,6 +69,22 @@ func test_walls_attenuate_35_percent_each() -> void:
 	assert_approx(NoiseModel.effective_radius(space, from, to, 20.0), 20.0 * 0.65 * 0.65, 0.001)
 	assert_false(NoiseModel.can_hear(space, from, to, 10.0), "6 m away through 2 walls: 4.2 m effective")
 	assert_true(NoiseModel.can_hear(space, from, Vector3(1.5, 1, 0), 10.0), "no wall in between")
+	world.free()
+
+
+func test_only_wall_colliders_count() -> void:
+	var world := PlayerFixture.make_world(self)
+	PlayerFixture.wall(world, Vector3(0.2, 3, 6), Vector3(2, 1.5, 0))
+	PlayerFixture.box(world, Vector3(0.6, 1.5, 0.6), Vector3(3, 0.75, 0))  # a prop: not a wall
+	PlayerFixture.box(world, Vector3(0.2, 3, 6), Vector3(4, 1.5, 0))  # no meta: not a wall
+	PlayerFixture.wall(world, Vector3(0.2, 3, 6), Vector3(5, 1.5, 0), &"perimeter")
+	await await_physics_frames(2)
+	var space := world.get_world_3d().direct_space_state
+	assert_eq(NoiseModel.count_walls(space, Vector3(0, 1, 0), Vector3(6, 1, 0)), 2,
+			"the prop and the unmarked box are stepped over")
+	assert_eq(NoiseModel.count_walls(space, Vector3(2.5, 1, 0), Vector3(4.5, 1, 0)), 0)
+	assert_true(NoiseModel.is_wall(world.get_child(1)))
+	assert_false(NoiseModel.is_wall(world.get_child(2)))
 	world.free()
 
 

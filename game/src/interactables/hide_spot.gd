@@ -11,12 +11,17 @@ extends Node3D
 signal occupied_changed(on: bool)
 
 const KIND_LOCKER := &"locker"
+## 14 canvas layers: -20 hide masks, -10 Coherence screen pass, 0+ HUD, menus above.
+const MASK_CANVAS_LAYER := -20
 
 @export var kind: StringName = KIND_LOCKER
 @export var yaw_limit_deg: float = Tuning.HIDE_LOCKER_YAW_LIMIT
 ## Geometry between the view point and the room (a locker door): hidden while occupied,
 ## because the view mask stands in for it.
 @export var occluders: Array[Node3D] = []
+## Manifest id of the spot's own sound (car scrape, locker click), played on entering
+## and leaving (11 §2). Empty: `hide_<kind>`.
+@export var sound: StringName = &""
 
 @onready var view_point: Marker3D = %ViewPoint
 @onready var exit_point: Marker3D = %ExitPoint
@@ -33,10 +38,13 @@ func _ready() -> void:
 	_refresh_prompt()
 
 
-## 09 §6: entering requires no error within 3 m.
+## 09 §6: entering requires no error within 3 m. The HIDE prompt shows only when the
+## player's state machine can enter Hidden now (not mid-noclip, stunned, landing...).
 func _can_use(player: Node) -> bool:
 	if occupant != null:
 		return occupant == player
+	if player != null and player.has_method(&"can_hide") and not bool(player.call(&"can_hide")):
+		return false
 	for e in get_tree().get_nodes_in_group(&"errors"):
 		if e is Node3D and (e as Node3D).global_position.distance_to(global_position) < Tuning.HIDE_ENTER_MIN_ERROR_DIST:
 			return false
@@ -60,6 +68,10 @@ func set_occupant(player: Node) -> void:
 		if o != null:
 			o.visible = player == null
 	occupied_changed.emit(player != null)
+
+
+func sound_id() -> StringName:
+	return sound if sound != &"" else StringName("hide_%s" % kind)
 
 
 func view_transform() -> Transform3D:
@@ -93,7 +105,8 @@ func _show_mask(on: bool) -> void:
 ## locker_slats shader lands (M2); the slits sit in the middle third of the screen.
 func _build_locker_mask() -> CanvasLayer:
 	var layer := CanvasLayer.new()
-	layer.layer = -1  # under the HUD, over the world
+	# Below the Coherence screen pass (-10), so grain and CA land on the mask too (14).
+	layer.layer = MASK_CANVAS_LAYER
 	var slits := Tuning.HIDE_LOCKER_SLITS
 	var band_top := 0.3
 	var band_bottom := 0.7

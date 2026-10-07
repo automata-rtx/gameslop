@@ -109,16 +109,47 @@ func test_stun_speed_cap_and_end() -> void:
 	assert_false(_p.is_stunned(), "stun ends after 1.2 s")
 
 
-func test_three_second_exclusivity() -> void:
+func test_no_player_side_cooldown_exclusivity_is_the_directors() -> void:
+	# 10 §4 (CHANGELOG): the Player holds no 3 s clock; the Director's gate refuses.
 	var e := _error(&"flicker", Vector3(0, 0.5, -1))
 	assert_true(_p.contact(e, Tuning.COHERENCE_CONTACT_FLICKER))
-	assert_false(_p.contact(e, Tuning.COHERENCE_CONTACT_FLICKER), "refused immediately")
-	_p.tick_timers(2.9)
-	assert_false(_p.contact(e, Tuning.COHERENCE_CONTACT_FLICKER), "refused at 2.9 s")
-	assert_approx(_p.coherence, 70.0, 0.0001, "refused contacts cost nothing")
-	_p.tick_timers(0.11)
-	assert_true(_p.contact(e, Tuning.COHERENCE_CONTACT_FLICKER), "allowed after 3 s")
+	assert_true(_p.contact(e, Tuning.COHERENCE_CONTACT_FLICKER), "no gate: a second contact lands")
 	assert_approx(_p.coherence, 40.0)
+	var asked := []
+	_p.contact_gate = func(err: Node3D) -> bool:
+		asked.append(err)
+		return false
+	assert_false(_p.contact(e, Tuning.COHERENCE_CONTACT_FLICKER), "the gate refuses")
+	assert_eq(asked, [e], "the gate is asked with the error")
+	assert_approx(_p.coherence, 40.0, 0.0001, "refused contacts cost nothing")
+	_p.contact_gate = func(_err: Node3D) -> bool: return true
+	assert_true(_p.contact(e, 10.0))
+	assert_approx(_p.coherence, 30.0)
+
+
+func test_own_state_refusals_do_not_ask_the_gate() -> void:
+	var e := _error(&"still", Vector3(0, 0.5, -1))
+	var asked := [0]
+	_p.contact_gate = func(_err: Node3D) -> bool:
+		asked[0] += 1
+		return true
+	for s in [PlayerStateMachine.LANDING, PlayerStateMachine.DROPPING]:
+		_p.state_machine.reset()
+		assert_true(_p.state_machine.transition_to(s))
+		assert_false(_p.contact(e, 35.0), "refused in %s" % s)
+	_p.state_machine.reset()
+	_p.begin_noclip_charge()
+	_p.state_machine.transition_to(PlayerStateMachine.NOCLIP_PASS)
+	assert_false(_p.contact(e, 35.0), "refused in the noclip pass")
+	assert_eq(asked[0], 0, "own refusals never consume the Director's clock")
+	assert_approx(_p.coherence, 100.0)
+
+
+func test_contact_amount_is_clamped_to_the_single_hit_cap() -> void:
+	var e := _error(&"still", Vector3(0, 0.5, -1))
+	assert_true(_p.contact(e, 80.0))
+	assert_approx(_p.coherence, 100.0 - Tuning.COHERENCE_MAX_SINGLE_HIT)
+	assert_false(_p.is_dissolving())
 
 
 func test_contact_refused_during_noclip_pass_and_dissolve() -> void:

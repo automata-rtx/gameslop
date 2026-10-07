@@ -7,7 +7,8 @@ extends Node3D
 ## The Player owns input, speed caps and the noise events; this node owns charge and visuals.
 
 signal charge_changed(value: float)
-signal toggled(on: bool)
+## `quiet` is true for a silent reset (reset_for_run): no click, no kick, no noise.
+signal toggled(on: bool, quiet: bool)
 ## Crank started or stopped turning (stops by itself when full).
 signal crank_changed(turning: bool)
 ## Every CRANK_NOISE_INTERVAL while the wheel turns (the Player emits the 12 m noise).
@@ -20,6 +21,11 @@ const WHEEL_RAD_PER_CHARGE := 0.9
 const HELD_BOB := 0.006
 const LENS_EMISSION_ON := 6.0
 const LENS_EMISSION_OFF := 0.0
+## 11 §2 crank row "lens brightens": with the light off, the turning wheel's dynamo gives
+## the lens a faint glow, this bright at full charge (never enough to light the room).
+const LENS_EMISSION_CRANK := 1.5
+## Glow from the dynamo at empty charge, as a share of LENS_EMISSION_CRANK.
+const LENS_EMISSION_CRANK_MIN := 0.35
 
 @onready var beam: SpotLight3D = %Beam
 @onready var hand_light: OmniLight3D = %HandLight
@@ -41,6 +47,9 @@ var _held_rest: Vector3
 
 func _ready() -> void:
 	_held_rest = held.position
+	# The beam leaves the held lens (it sits under %Held, so it bobs with the hand), but
+	# points along the camera's view axis, not the model's slight inward tilt.
+	beam.basis = held.basis.inverse()
 	beam.spot_range = Tuning.FLASH_RANGE
 	beam.spot_attenuation = Tuning.FLASH_ATTENUATION_ANGLE
 	beam.shadow_enabled = true
@@ -81,12 +90,13 @@ static func step_charge(c: float, dt: float, light_on: bool, cranking: bool, is_
 
 # --- control (called by the Player) ---------------------------------------------------
 
-func set_on(v: bool) -> void:
+## `quiet` skips the toggle's click, kick and noise (a new run resets the light silently).
+func set_on(v: bool, quiet: bool = false) -> void:
 	if v == on:
 		return
 	on = v
 	_apply_visuals()
-	toggled.emit(on)
+	toggled.emit(on, quiet)
 
 
 func toggle() -> void:
@@ -115,6 +125,7 @@ func set_charge(v: float) -> void:
 
 
 ## Beam axis in world space (06 Interfaces: observation is within 25 deg of it).
+## The beam leaves the held lens (02 §9), so origin and axis follow the hand.
 func beam_axis() -> Vector3:
 	return -beam.global_transform.basis.z
 
@@ -159,4 +170,15 @@ func _apply_visuals() -> void:
 	hand_light.light_energy = Tuning.FLASH_HAND_LIGHT_ENERGY * (1.0 - dim)
 	var mat := lens.material_override as StandardMaterial3D
 	if mat:
-		mat.emission_energy_multiplier = (LENS_EMISSION_ON * e / Tuning.FLASH_ENERGY_MAX) if on else LENS_EMISSION_OFF
+		mat.emission_energy_multiplier = lens_emission()
+
+
+## Lens emissive: the beam's energy while on; a faint dynamo glow while the wheel turns
+## with the light off (11 §2 crank: "lens brightens"); dark otherwise.
+func lens_emission() -> float:
+	if on:
+		return LENS_EMISSION_ON * energy_for(charge) * (1.0 - dim) / Tuning.FLASH_ENERGY_MAX
+	if _turning:
+		var c := clampf(charge / Tuning.FLASH_CHARGE_MAX, 0.0, 1.0)
+		return LENS_EMISSION_CRANK * lerpf(LENS_EMISSION_CRANK_MIN, 1.0, c)
+	return LENS_EMISSION_OFF

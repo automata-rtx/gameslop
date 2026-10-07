@@ -1096,6 +1096,7 @@ const AUDIO_ROOM_TONE_FLOOR_DB := -40.0
 const AUDIO_STILL_SILENCE_FLOOR_DB := -46.0
 const AUDIO_SAMPLE_FADE_IN_MS := 2
 const AUDIO_PITCH_VARIATION := 0.04                 # +-4%
+const AUDIO_LOSS_TICK_MAX_HZ := 20.0                # Coherence loss tick, one per unit lost, rate-limited (03)
 const AUDIO_VARIATIONS_MIN := 3                     # per one-shot
 const AUDIO_VARIATIONS_MAX := 5
 const AUDIO_REVERB_CROSSFADE := 1.0                 # s on level load

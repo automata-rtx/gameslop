@@ -3,8 +3,8 @@ extends Node3D
 ## dark corner, a low beam (crouch), a 0.2 m step, and a locker hide spot.
 ## Click to capture the mouse, Esc to release. Debug keys (bench only): K = a 35 contact
 ## from a dummy error in front, J = +25 Coherence, L = -10 Coherence (static).
-## `-- --bench-shots <dir>` saves three frames (room, flashlight in the dark corner,
-## inside the locker) and quits; use it with tools/ci/render.sh.
+## `-- --bench-shots <dir>` saves four frames (room, flashlight in the dark corner,
+## cranking with the light off there, inside the locker) and quits; use it with tools/ci/render.sh.
 
 const ROOM := Vector3(12.0, 3.0, 12.0)
 const WALL_T := 0.2
@@ -86,6 +86,11 @@ func _shots(dir: String) -> void:
 	await _settle(40)
 	_save(dir + "/bench_dark_corner_flashlight.png")
 	player.flashlight.set_on(false)
+	player.flashlight.set_charge(0.0)
+	Input.action_press(&"crank")
+	await _settle(4)
+	_save(dir + "/bench_crank_dark.png")
+	Input.action_release(&"crank")
 	_pose(Vector3(-4.5, 0.0, 0.0), deg_to_rad(90.0), 0.0)
 	await _settle(10)
 	player.enter_hide(locker)
@@ -118,13 +123,13 @@ func _build_room() -> void:
 	var h := ROOM.y
 	_box(Vector3(ROOM.x, WALL_T, ROOM.z), Vector3(0, -WALL_T * 0.5, 0), _floor_mat)
 	_box(Vector3(ROOM.x, WALL_T, ROOM.z), Vector3(0, h + WALL_T * 0.5, 0), _ceiling_mat)
-	_box(Vector3(ROOM.x, h, WALL_T), Vector3(0, h * 0.5, -ROOM.z * 0.5), _wall_mat)
-	_box(Vector3(ROOM.x, h, WALL_T), Vector3(0, h * 0.5, ROOM.z * 0.5), _wall_mat)
-	_box(Vector3(WALL_T, h, ROOM.z), Vector3(-ROOM.x * 0.5, h * 0.5, 0), _wall_mat)
-	_box(Vector3(WALL_T, h, ROOM.z), Vector3(ROOM.x * 0.5, h * 0.5, 0), _wall_mat)
+	_box(Vector3(ROOM.x, h, WALL_T), Vector3(0, h * 0.5, -ROOM.z * 0.5), _wall_mat, &"perimeter")
+	_box(Vector3(ROOM.x, h, WALL_T), Vector3(0, h * 0.5, ROOM.z * 0.5), _wall_mat, &"perimeter")
+	_box(Vector3(WALL_T, h, ROOM.z), Vector3(-ROOM.x * 0.5, h * 0.5, 0), _wall_mat, &"perimeter")
+	_box(Vector3(WALL_T, h, ROOM.z), Vector3(ROOM.x * 0.5, h * 0.5, 0), _wall_mat, &"perimeter")
 	# The dark corner (north-east): an L of partitions that keeps the fixture's light out.
-	_box(Vector3(3.0, h, WALL_T), Vector3(2.5, h * 0.5, -2.5), _partition_mat)
-	_box(Vector3(WALL_T, h, 1.6), Vector3(1.0, h * 0.5, -3.3), _partition_mat)
+	_box(Vector3(3.0, h, WALL_T), Vector3(2.5, h * 0.5, -2.5), _partition_mat, &"interior")
+	_box(Vector3(WALL_T, h, 1.6), Vector3(1.0, h * 0.5, -3.3), _partition_mat, &"interior")
 	# A low beam to crouch under (1.25 m clearance) and a 0.2 m step.
 	_box(Vector3(2.0, 0.25, 1.2), Vector3(-3.0, 1.375, -4.5), _partition_mat)
 	_box(Vector3(2.0, 0.2, 2.0), Vector3(3.5, 0.1, 3.5), _partition_mat)
@@ -142,8 +147,11 @@ func _build_room() -> void:
 	add_child(tube)
 
 
-func _box(size: Vector3, pos: Vector3, mat: Material) -> void:
+## `wall_kind` marks walls for noise attenuation (06 Interfaces), as the level builder does.
+func _box(size: Vector3, pos: Vector3, mat: Material, wall_kind: StringName = &"") -> void:
 	var body := StaticBody3D.new()
+	if wall_kind != &"":
+		body.set_meta(NoiseModel.WALL_META, wall_kind)
 	body.collision_layer = PlayerLayers.WORLD_MASK
 	body.collision_mask = 0
 	body.position = pos

@@ -35,7 +35,9 @@ func physics_update(player: Node, held: bool, pressed: bool, dt: float, active: 
 	if t != null and not t.can_interact(player):
 		t = null
 	if t != target:
+		# A new target needs its own press: a key held from the previous target never arms it.
 		target = t
+		_armed = false
 		_reset_hold()
 	_announce()
 	if target == null:
@@ -71,6 +73,7 @@ static func effective_hold(i: Interactable) -> float:
 func clear() -> void:
 	target = null
 	forced = null
+	_armed = false
 	_reset_hold()
 	_announce()
 

@@ -31,6 +31,13 @@ const CAUSE_SUBSTRATE := &"substrate"
 const SOURCE_UNKNOWN_ERROR := &"error"
 ## 11 §3 dissolve: the camera drifts 0.02 m (down) over the 1.5 s sequence.
 const DISSOLVE_DRIFT_DIR := Vector3.DOWN
+## States in which the player has no legs of their own: entering one halts locomotion
+## (sprint ends with its FOV hold and breath loop). Stunned keeps crouch-speed movement.
+const HALT_STATES: Array[StringName] = [
+	PlayerStateMachine.STUNNED, PlayerStateMachine.HIDDEN, PlayerStateMachine.NOCLIP_PASS,
+	PlayerStateMachine.LANDING, PlayerStateMachine.DROPPING, PlayerStateMachine.DISSOLVING,
+	PlayerStateMachine.CINEMATIC,
+]
 
 @onready var state_machine: PlayerStateMachine = %StateMachine
 @onready var rig: CameraRig = %CameraRig
@@ -48,11 +55,17 @@ var coherence: float = Tuning.COHERENCE_MAX
 var input := PlayerInput.new()
 var locomotion: PlayerLocomotion
 var hiding: PlayerHiding
+## Sound for every Feedback Contract row (one-shots and loop handles; 03 Interfaces).
+var sounds: PlayerAudio
+## Flashlight and crank wiring (06 §5, 11 §2).
+var light: PlayerLight
+## Contact exclusivity hook (10 §4): the Director sets this to its try_contact,
+## (error: Node3D) -> bool. Asked only after the player's own state allows a contact.
+var contact_gate: Callable
 ## Water depth under the player (Pools): > 0 steps in water, > 0.3 m wading (06 §3).
 var water_depth: float = 0.0
 
 var _stun_left: float = 0.0
-var _contact_cooldown: float = 0.0
 var _last_damage_source: StringName = &""
 var _light_queries: Array[Callable] = []
 
@@ -60,6 +73,8 @@ var _light_queries: Array[Callable] = []
 func _init() -> void:
 	locomotion = PlayerLocomotion.new(self)
 	hiding = PlayerHiding.new(self)
+	sounds = PlayerAudio.new()
+	light = PlayerLight.new(self)
 
 
 func _ready() -> void:
@@ -74,17 +89,13 @@ func _ready() -> void:
 	locomotion.stamina.changed.connect(func(v: float) -> void: stamina_changed.emit(v))
 	locomotion.stamina_exhausted.connect(func() -> void: stamina_exhausted.emit())
 	locomotion.sprint_changed.connect(func(on: bool) -> void: sprint_changed.emit(on))
-	flashlight.charge_changed.connect(func(v: float) -> void: charge_changed.emit(v))
-	flashlight.toggled.connect(_on_flashlight_toggled)
-	flashlight.crank_changed.connect(_on_crank_changed)
-	flashlight.crank_tick.connect(_on_crank_tick)
-	flashlight.crank_full.connect(func() -> void: AudioManager.play_2d(&"crank_full"))
+	light.setup()
 	interactor.prompt_changed.connect(func(t: String, h: float) -> void: prompt_changed.emit(t, h))
 	interactor.prompt_progress.connect(func(f: float) -> void: prompt_progress.emit(f))
-	interactor.hold_tick.connect(func() -> void: AudioManager.play_2d(&"ui_tick"))
+	interactor.hold_tick.connect(func() -> void: sounds.play(&"ui_hold_tick"))
 	interactor.interacted.connect(func(_t: Interactable) -> void: rig.nod(Tuning.FEEDBACK_INTERACT_NOD_DEG))
-	state_machine.state_changed.connect(func(a: StringName, b: StringName) -> void: state_changed.emit(a, b))
-	CoherenceRenderer.set_coherence(coherence)
+	state_machine.state_changed.connect(_on_state_changed)
+	_feed_coherence()
 
 
 ## A new Descent re-uses the persistent player (14 §5): full meters, Idle, light off.
@@ -92,12 +103,13 @@ func reset_for_run(start_coherence: float = Tuning.COHERENCE_MAX) -> void:
 	coherence = clampf(start_coherence, 0.0, Tuning.COHERENCE_MAX)
 	_last_damage_source = &""
 	_stun_left = 0.0
-	_contact_cooldown = 0.0
 	locomotion.reset()
-	flashlight.set_on(false)
-	flashlight.set_charge(Tuning.FLASH_CHARGE_MAX)
+	light.reset()  # silent: a new run is not a toggle
+	sounds.reset()
+	rig.fov_hold(0.0, 0.0, CameraRig.HOLD_SPRINT)
+	rig.fov_hold(0.0, 0.0, CameraRig.HOLD_NOCLIP)
 	state_machine.reset()
-	CoherenceRenderer.set_coherence(coherence)
+	_feed_coherence()
 	coherence_changed.emit(coherence, 0.0, &"reset")
 
 
@@ -109,6 +121,18 @@ func eye_position() -> Vector3:
 
 func is_hidden() -> bool:
 	return hiding.is_hidden()
+
+
+## True when a hide spot may take the player now (the state machine can enter Hidden).
+func can_hide() -> bool:
+	return hiding.spot == null and state_machine.can_transition(PlayerStateMachine.HIDDEN)
+
+
+## 08 Interfaces (Echo): every step event, oldest first, as a RingBuffer of
+## {position: Vector3, time: float (s, Time ticks), surface: StringName, speed_kind:
+## StringName (walk / sprint / crouch)}.
+func step_trail() -> RingBuffer:
+	return locomotion.trail
 
 
 func is_stunned() -> bool:
@@ -138,6 +162,16 @@ func remove_light_query(query: Callable) -> void:
 	_light_queries.erase(query)
 
 
+## Coherence feeds the renderer (image) and the audio bed/heartbeat floor (sound).
+func _feed_coherence() -> void:
+	CoherenceRenderer.set_coherence(coherence)
+	AudioManager.set_coherence(coherence)
+
+
+func _exit_tree() -> void:
+	sounds.release_all()
+
+
 ## 06 §9: the only way Coherence changes. Clamped 0..100; no passive regeneration.
 func apply_coherence(delta: float, source: StringName) -> void:
 	if is_dissolving() or is_zero_approx(delta):
@@ -149,15 +183,23 @@ func apply_coherence(delta: float, source: StringName) -> void:
 		return
 	if applied < 0.0 and is_death_cause(source):
 		_last_damage_source = source
-	CoherenceRenderer.set_coherence(coherence)
+	_feed_coherence()
 	coherence_changed.emit(coherence, applied, source)
+	if applied < 0.0:
+		# 11 §3 Coherence loss (any source): the loss tick per unit lost, rate-limited.
+		sounds.add_loss(-applied)
 	if applied > 0.0:
 		# 11 §3 Coherence gain: saturation overshoot, warm chord, FOV +2 then back 400 ms.
 		CoherenceRenderer.pulse(&"coherence_gain")
-		AudioManager.play_2d(&"coherence_gain")
+		sounds.play(&"coherence_gain")
 		rig.fov_punch(Tuning.FEEDBACK_GAIN_FOV_DEG, Tuning.FEEDBACK_FOV_TWEEN_MIN_MS, Tuning.FEEDBACK_GAIN_FOV_MS)
 	elif coherence <= 0.0:
 		_dissolve(death_cause(source))
+
+
+## Whole Coherence loss ticks still to play (11 §3).
+func loss_ticks_pending() -> int:
+	return sounds.loss_ticks_pending()
 
 
 ## 06 §9: an error id or the Substrate. Noclip is never a cause (06 §8 TOO THIN).
@@ -171,13 +213,16 @@ func death_cause(source: StringName) -> StringName:
 	return _last_damage_source if _last_damage_source != &"" else source
 
 
-## 06 §9 contact rules: cost, 1.2 s stun, 1.5 m push, trauma 0.6, 60 ms hitstop. Refused
-## (false) within 3 s of the previous contact, while passing through a wall, and when the
-## player has no body in the level (dropping, landing, dissolving, cinematic).
+## 06 §9 contact rules: cost (at most COHERENCE_MAX_SINGLE_HIT, 05 §9 rule 5), 1.2 s
+## stun, 1.5 m push, trauma 0.6, 60 ms hitstop. Refused (false, nothing applied) when
+## the player has no body to touch: passing through a wall, Landing, dropping,
+## dissolving, cinematic. Contact exclusivity (3 s) belongs to the Director (10 §4):
+## `contact_gate` is asked after the player's own refusals and may refuse too.
 func contact(error: Node3D, amount: float) -> bool:
 	if not can_be_contacted():
 		return false
-	_contact_cooldown = Tuning.CONTACT_EXCLUSIVITY_TIME
+	if contact_gate.is_valid() and not bool(contact_gate.call(error)):
+		return false
 	var id := _error_id(error)
 	if hiding.spot != null:
 		hiding.eject()
@@ -185,7 +230,7 @@ func contact(error: Node3D, amount: float) -> bool:
 			and noclip_targeting.has_method(&"cancel"):
 		noclip_targeting.call(&"cancel")
 	contacted.emit(id)
-	apply_coherence(-absf(amount), id)
+	apply_coherence(-minf(absf(amount), Tuning.COHERENCE_MAX_SINGLE_HIT), id)
 	if is_dissolving():
 		return true
 	if state_machine.transition_to(PlayerStateMachine.STUNNED) or is_stunned():
@@ -198,22 +243,18 @@ func contact(error: Node3D, amount: float) -> bool:
 	# 11 §3 error contact: flash/CA/grain (post), contact hit, push + trauma + stun, readout.
 	rig.add_trauma(Tuning.CONTACT_TRAUMA)
 	CoherenceRenderer.pulse(&"hit")
-	AudioManager.play_2d(&"contact_hit")
+	sounds.play(&"error_contact_hit")
 	NoiseModel.emit(global_position, Tuning.NOISE_CONTACT_RADIUS, Tuning.NOISE_KIND_TEAR)
 	Clock.hitstop(Tuning.CONTACT_HITSTOP_MS)
 	return true
 
 
+## The player's own refusals only (06 Interfaces readings): no contact during the noclip
+## pass, the Landing, a drop, the dissolve or the ending.
 func can_be_contacted() -> bool:
-	if _contact_cooldown > 0.0:
-		return false
 	var s := state_machine.state
 	return PlayerStateMachine.is_locomotion(s) or s in [
 		PlayerStateMachine.NOCLIP_CHARGE, PlayerStateMachine.STUNNED, PlayerStateMachine.HIDDEN]
-
-
-func contact_cooldown_left() -> float:
-	return _contact_cooldown
 
 
 func _error_id(error: Node3D) -> StringName:
@@ -235,8 +276,9 @@ func _dissolve(cause: StringName) -> void:
 	var tw := create_tween()
 	tw.tween_method(rig.drift, Vector3.ZERO, DISSOLVE_DRIFT_DIR * Tuning.FEEDBACK_DISSOLVE_DRIFT,
 			Tuning.COHERENCE_DISSOLVE_TIME)
+	sounds.clear_loss()
 	CoherenceRenderer.pulse(&"dissolve")
-	AudioManager.play_2d(&"dissolve")
+	sounds.play(&"dissolve")
 	# The run flow (M1.9) plays the 1.5 s sequence and then calls GameState.end_run(cause).
 	dissolved.emit(cause)
 
@@ -274,23 +316,24 @@ func _physics_process(delta: float) -> void:
 	var hidden := hiding.spot != null
 	input.poll(not (has_agency() or hidden))
 	tick_timers(delta)
-	_update_light_and_crank(delta)
+	light.physics_update(delta)
 	if hidden:
 		interactor.physics_update(self, input.interact_held, input.interact_pressed, delta, hiding.is_hidden())
-		return
-	if not has_agency():
+	elif not has_agency():
 		velocity = Vector3.ZERO
 		interactor.physics_update(self, false, false, delta, false)
-		return
-	if noclip_targeting != null and noclip_targeting.has_method(&"physics_update"):
-		noclip_targeting.call(&"physics_update", self, input.noclip and can_noclip(), delta)
-	locomotion.physics_update(delta)
-	interactor.physics_update(self, input.interact_held, input.interact_pressed, delta, true)
+	else:
+		if noclip_targeting != null and noclip_targeting.has_method(&"physics_update"):
+			noclip_targeting.call(&"physics_update", self, input.noclip and can_noclip(), delta)
+		locomotion.physics_update(delta)
+		interactor.physics_update(self, input.interact_held, input.interact_pressed, delta, true)
+	# 06 §4: stamina ticks every frame (regeneration continues while hidden or passing).
+	locomotion.end_frame(delta)
 
 
-## Countdown timers (stun, contact exclusivity, bob cut). Public so tests can step time.
+## Countdown timers (stun, bob cut, loss ticks). Public so tests can step time.
 func tick_timers(dt: float) -> void:
-	_contact_cooldown = maxf(0.0, _contact_cooldown - dt)
+	sounds.tick(dt)
 	if _stun_left > 0.0:
 		_stun_left -= dt
 		if _stun_left <= 0.0:
@@ -308,21 +351,6 @@ func is_speed_capped() -> bool:
 
 func is_wading() -> bool:
 	return water_depth > Tuning.PLAYER_WADE_DEPTH
-
-
-## 06 §6 step radius for the current floor, water and gait.
-func step_radius(gait: StringName) -> float:
-	return NoiseModel.step_radius(floor_surface(), gait, water_depth > 0.0, is_wading())
-
-
-func floor_surface() -> StringName:
-	for i in get_slide_collision_count():
-		var c := get_slide_collision(i)
-		if c.get_normal().y > 0.7 and c.get_collider() != null:
-			var col := c.get_collider()
-			if col.has_meta(&"surface"):
-				return StringName(col.get_meta(&"surface"))
-	return default_surface
 
 
 # --- noclip seam (06 §8, task M1.4) -------------------------------------------------------
@@ -350,34 +378,14 @@ func report_noclip(charge: float, target: StringName, valid: bool, reason: Strin
 	noclip_state.emit(charge, target, valid, reason)
 
 
-# --- flashlight and crank (06 §5) --------------------------------------------------------
-
-func _update_light_and_crank(delta: float) -> void:
-	var alive := not is_dissolving()
-	if input.flashlight_pressed and alive:
-		flashlight.toggle()
-	flashlight.set_cranking(input.crank and alive)
-	flashlight.tick(delta, rig.bob_phase(), rig.bob_amount())
-
-
-func _on_flashlight_toggled(on: bool) -> void:
-	# 11 §2: beam + lens (Flashlight), relay click, 0.3 deg roll kick toward the hand, 2 m noise.
-	AudioManager.play_2d(&"relay_click")
-	rig.roll_kick(-Tuning.FEEDBACK_FLASHLIGHT_ROLL_KICK_DEG)
-	NoiseModel.emit(global_position, Tuning.NOISE_FLASHLIGHT_TOGGLE_RADIUS, Tuning.NOISE_KIND_MECH)
-	flashlight_toggled.emit(on)
-
-
-func _on_crank_changed(turning: bool) -> void:
-	# 11 §2 crank: wheel (Flashlight), ratchet loop, 1 Hz 0.004 m sway, gauge (HUD).
-	rig.set_sway(Tuning.FEEDBACK_CRANK_SWAY if turning else 0.0)
-	if turning:
-		AudioManager.play_2d(&"crank_ratchet")
-	crank_changed.emit(turning)
-
-
-func _on_crank_tick() -> void:
-	NoiseModel.emit(global_position, Tuning.NOISE_CRANK_RADIUS, Tuning.NOISE_KIND_MECH)
+func _on_state_changed(from: StringName, to: StringName) -> void:
+	if to in HALT_STATES:
+		locomotion.halt()
+	if from == PlayerStateMachine.NOCLIP_CHARGE:
+		# The charge's -6 deg pull-in (key HOLD_NOCLIP, set by the targeting) returns in
+		# 150 ms on any exit; the commit adds its own +8 punch on top.
+		rig.fov_hold(0.0, Tuning.FEEDBACK_NOCLIP_CANCEL_FOV_MS, CameraRig.HOLD_NOCLIP)
+	state_changed.emit(from, to)
 
 
 # --- hiding (06 §10, 09 §6) --------------------------------------------------------------

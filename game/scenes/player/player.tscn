@@ -94,17 +94,6 @@ far = 120.0
 unique_name_in_owner = true
 script = ExtResource("5_flashlight")
 
-[node name="Beam" type="SpotLight3D" parent="CameraRig/Motion/Camera/Flashlight"]
-unique_name_in_owner = true
-position = Vector3(0.12, -0.12, -0.2)
-visible = false
-light_color = Color(1, 0.957, 0.878, 1)
-light_energy = 1.6
-shadow_enabled = true
-spot_range = 22.0
-spot_attenuation = 1.2
-spot_angle = 19.0
-
 [node name="HandLight" type="OmniLight3D" parent="CameraRig/Motion/Camera/Flashlight"]
 unique_name_in_owner = true
 position = Vector3(0.12, -0.3, -0.55)
@@ -138,6 +127,17 @@ rotation = Vector3(1.5708, 0, 0)
 cast_shadow = 0
 mesh = SubResource("Mesh_lens")
 material_override = SubResource("Mat_lens")
+
+[node name="Beam" type="SpotLight3D" parent="CameraRig/Motion/Camera/Flashlight/Held"]
+unique_name_in_owner = true
+position = Vector3(0, 0, -0.13)
+visible = false
+light_color = Color(1, 0.957, 0.878, 1)
+light_energy = 1.6
+shadow_enabled = true
+spot_range = 22.0
+spot_attenuation = 1.2
+spot_angle = 19.0
 
 [node name="Wheel" type="Node3D" parent="CameraRig/Motion/Camera/Flashlight/Held"]
 unique_name_in_owner = true

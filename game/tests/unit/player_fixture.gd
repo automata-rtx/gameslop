@@ -33,6 +33,14 @@ static func box(parent: Node, size: Vector3, pos: Vector3, layer: int = PlayerLa
 	return body
 
 
+## A wall body: a box on the world layer carrying the level builder's `wall_kind` meta
+## (06 Interfaces), so noise attenuation counts it.
+static func wall(parent: Node, size: Vector3, pos: Vector3, kind: StringName = &"interior") -> StaticBody3D:
+	var b := box(parent, size, pos)
+	b.set_meta(NoiseModel.WALL_META, kind)
+	return b
+
+
 static func spawn_player(world: Node3D, pos: Vector3 = Vector3.ZERO) -> Player:
 	var p := (load(PLAYER_SCENE) as PackedScene).instantiate() as Player
 	world.add_child(p)

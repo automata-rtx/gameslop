@@ -82,3 +82,20 @@ func test_fov_hold_and_punch() -> void:
 	rig.fov_punch(8.0, 50.0, 100.0)
 	await get_tree().create_timer(0.3).timeout
 	assert_approx(rig.current_hfov(), 90.0, 0.01, "punch returns")
+
+
+func test_fov_holds_are_keyed_and_sum() -> void:
+	var rig := _p.rig
+	rig.fov_hold(-6.0, 0.0, CameraRig.HOLD_NOCLIP)
+	rig.fov_hold(4.0, 0.0, CameraRig.HOLD_SPRINT)
+	assert_approx(rig.current_hfov(), 88.0, 0.0001, "90 - 6 + 4")
+	rig.fov_hold(0.0, 0.0, CameraRig.HOLD_SPRINT)
+	assert_approx(rig.fov_hold_of(CameraRig.HOLD_NOCLIP), -6.0, 0.0001, "sprint release keeps the noclip pull-in")
+	assert_approx(rig.current_hfov(), 84.0, 0.0001)
+	rig.fov_hold(-3.0, 50.0, CameraRig.HOLD_NOCLIP)
+	rig.fov_hold(2.0, 0.0)
+	await get_tree().create_timer(0.2).timeout
+	assert_approx(rig.current_hfov(), 89.0, 0.01, "a tweened key replaces only itself; default key sums too")
+	rig.fov_hold(0.0, 0.0, CameraRig.HOLD_NOCLIP)
+	rig.fov_hold(0.0, 0.0)
+	assert_approx(rig.fov_hold_total(), 0.0)

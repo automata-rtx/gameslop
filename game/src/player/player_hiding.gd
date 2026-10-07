@@ -3,12 +3,17 @@ extends RefCounted
 ## Hiding for the Player (06 §10, 09 §6, 11 §2). Inside: the eye slides 0.6 s to the
 ## spot's view point, the body leaves the physics world (no collision), movement stops,
 ## look is limited to the spot's yaw, and `hidden_changed` / EventBus.hide_state announce
-## it. Leaving is the spot's 0.6 s hold; the eye slides back to the exit point.
+## it, and the breath loop plays. Leaving is the spot's 0.6 s hold; the spot's sound and
+## cloth play and the eye slides back to the exit point.
 ## Hiding is silent to errors (no noise event) and does not stop Static or Null drain.
 
 ## The spot occupied (also while sliding out).
 var spot: HideSpot = null
 var leaving: bool = false
+
+const CLOTH := &"crouch"                  # the cloth rustle (03)
+## The hidden breath: the breath loop sample under the hide-breath key (03 has one breath).
+const BREATH := &"sprint_breath_loop"
 
 var _p: Player
 var _saved_layers := Vector2i.ZERO
@@ -36,14 +41,20 @@ func enter(s: HideSpot) -> void:
 	_p.global_position = s.global_position
 	_p.interactor.forced = s.interactable
 	s.set_occupant(_p)
-	AudioManager.play_2d(&"cloth")
-	AudioManager.play_3d(StringName("hide_%s" % s.kind), s.global_position, &"World")
+	_p.sounds.play(CLOTH)
+	_p.sounds.play_at(s.sound_id(), s.global_position, &"World")
+	# 06 §10, 09 §6: breathing is audible inside (Player bus; never a noise event).
+	_p.sounds.start_loop(PlayerAudio.LOOP_HIDE_BREATH, BREATH, Tuning.HIDE_CAMERA_SLIDE_TIME)
 	_p.hidden_changed.emit(true)
 	EventBus.hide_state.emit(true)
 
 
+## 11 §2 leave hide spot: view mask lifts, the spot's sound then cloth (the entry in
+## reverse order), camera slides out 0.6 s, HUD restores (hidden_changed).
 func leave() -> void:
 	if spot != null and not leaving:
+		_p.sounds.play_at(spot.sound_id(), spot.global_position, &"World")
+		_p.sounds.play(CLOTH)
 		_end(Tuning.HIDE_CAMERA_SLIDE_TIME)
 
 
@@ -56,6 +67,7 @@ func eject() -> void:
 func _end(seconds: float) -> void:
 	var s := spot
 	leaving = true
+	_p.sounds.stop_loop(PlayerAudio.LOOP_HIDE_BREATH, Tuning.FEEDBACK_SPRINT_BREATH_OUT)
 	var ex := s.exit_transform()
 	_p.global_position = ex.origin
 	_p.rotation = Vector3(0.0, ex.basis.get_euler().y, 0.0)

@@ -12,9 +12,15 @@ const GAIT_CROUCH := &"crouch"
 
 ## Surface used when the floor carries no `surface` meta.
 const DEFAULT_SURFACE := &"carpet"
+## Step surface id while standing in water (06 §6; Echo replays the water sample).
+const SURFACE_WATER := &"water"
 
 ## Metres a follow-up ray starts inside the wall it just counted.
 const WALL_STEP_IN := 0.02
+## Meta a wall collider carries (any value, e.g. &"interior", &"perimeter", &"soft").
+const WALL_META := &"wall_kind"
+## Non-wall colliders a wall count may step over before it gives up.
+const MAX_SKIPPED := 4
 
 ## Metres walked since the last step.
 var _stride: float = 0.0
@@ -91,20 +97,36 @@ static func can_hear(space: PhysicsDirectSpaceState3D, pos: Vector3, listener: V
 	return pos.distance_to(listener) < effective_radius(space, pos, listener, radius, exclude)
 
 
+## Walls on the straight line `from` -> `to`, up to NOISE_WALL_RAYCASTS of them. Only
+## colliders the level builder marks as walls count: a collider with the `wall_kind`
+## meta (any value; 06 Interfaces). Floors, props, doors' frames and error bodies on the
+## world layer are stepped over without counting, at most MAX_SKIPPED of them.
 static func count_walls(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3, exclude: Array[RID] = []) -> int:
 	if space == null:
 		return 0
 	var walls := 0
+	var skipped := 0
 	var origin := from
 	var dir := (to - from).normalized()
-	for i in Tuning.NOISE_WALL_RAYCASTS:
-		var q := PhysicsRayQueryParameters3D.create(origin, to, PlayerLayers.WORLD_MASK, exclude)
+	var ignore: Array[RID] = exclude.duplicate()
+	while walls < Tuning.NOISE_WALL_RAYCASTS and skipped <= MAX_SKIPPED:
+		var q := PhysicsRayQueryParameters3D.create(origin, to, PlayerLayers.WORLD_MASK, ignore)
 		# Each next ray starts just inside the wall it hit; back faces and the inside of
 		# convex shapes are not hits, so it finds the next wall (merged chunk colliders too).
 		q.hit_back_faces = false
 		var hit := space.intersect_ray(q)
 		if hit.is_empty():
 			break
-		walls += 1
-		origin = (hit["position"] as Vector3) + dir * WALL_STEP_IN
+		if is_wall(hit["collider"]):
+			walls += 1
+			origin = (hit["position"] as Vector3) + dir * WALL_STEP_IN
+		else:
+			skipped += 1
+			ignore.append(hit["rid"] as RID)
 	return walls
+
+
+## A wall collider for noise attenuation: carries the `wall_kind` meta (set by the level
+## builder on wall and partition bodies; 06 Interfaces).
+static func is_wall(collider: Object) -> bool:
+	return collider != null and collider.has_meta(WALL_META)

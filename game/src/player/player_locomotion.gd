@@ -10,6 +10,8 @@ signal stamina_exhausted
 const MOVING_EPSILON := 0.2  # m/s below which the player counts as still (bob 0)
 ## Seconds over which the 1.5 m contact push is applied (fast, but it respects walls).
 const PUSH_TIME := 0.15
+## Steps the trail keeps (08 §6 Echo): about 5 s of sprinting, 13 s of walking.
+const STEP_TRAIL_CAPACITY := 64
 const BOB_CUT_SCALE := 1.0 - Tuning.FEEDBACK_STAMINA_EMPTY_BOB_CUT
 ## Crouch-up probe margins: a slimmer, shorter standing capsule lifted off the floor.
 const STAND_PROBE_RADIUS_INSET := 0.02
@@ -27,7 +29,13 @@ var _shape_crouch: CapsuleShape3D
 var _step_odd: bool = false
 var _bob_cut_left: float = 0.0
 var _push_dir: Vector3 = Vector3.ZERO
+## Push distance still to travel (m). The push is its own displacement, moved and slid
+## separately from the walking velocity, so it never feeds back into the velocity.
 var _push_left: float = 0.0
+## Every step event, oldest first (08 Interfaces: Player.step_trail()).
+var trail := RingBuffer.new(STEP_TRAIL_CAPACITY)
+## Set when physics_update ran this frame; end_frame() ticks stamina otherwise.
+var _moved_this_frame: bool = false
 
 
 func _init(player: Player) -> void:
@@ -43,11 +51,22 @@ func setup() -> void:
 
 
 func reset() -> void:
+	halt()
 	stamina.reset()
 	_bob_cut_left = 0.0
-	_push_left = 0.0
+	trail.clear()
+	noise.reset_stride()
 	if crouched:
 		_set_crouched(false)
+
+
+## Every loss of agency (hide, Landing, drop, noclip pass, dissolve, stun): stop dead and
+## end the sprint properly (sprint_changed, the sprint FOV hold released, the breath
+## loop fading out). A toggled sprint does not resume by itself afterwards.
+func halt() -> void:
+	_p.velocity = Vector3.ZERO
+	_push_left = 0.0
+	_p.input.clear_sprint_latch()
 	_set_sprinting(false)
 
 
@@ -61,11 +80,15 @@ func tick_timers(dt: float) -> void:
 		_p.rig.set_bob_scale(1.0)
 
 
-## 06 §9: pushed 1.5 m away from the error.
+## 06 §9: pushed 1.5 m away from the error (over PUSH_TIME; walls stop it).
 func push(dir: Vector3) -> void:
 	dir.y = 0.0
 	_push_dir = dir.normalized() if dir.length_squared() > 0.0001 else _p.global_transform.basis.z
-	_push_left = PUSH_TIME
+	_push_left = Tuning.CONTACT_PUSH_DIST
+
+
+func is_pushing() -> bool:
+	return _push_left > 0.0
 
 
 func current_gait() -> StringName:
@@ -82,11 +105,23 @@ func can_sprint() -> bool:
 
 ## One physics frame of locomotion.
 func physics_update(delta: float) -> void:
+	_moved_this_frame = true
 	_update_crouch()
 	var before := _p.global_position
 	_move(delta)
+	_apply_push(delta)
 	var moved := Vector3(_p.global_position.x - before.x, 0.0, _p.global_position.z - before.z).length()
 	_after_move(moved, delta)
+
+
+## Called by the Player at the end of every physics frame: stamina ticks every frame,
+## so regeneration continues while hidden, passing, landing or dissolving (06 §4).
+func end_frame(delta: float) -> void:
+	if not _moved_this_frame:
+		stamina.tick(delta, false, _p.is_wading())
+		if sprinting:
+			_set_sprinting(false)
+	_moved_this_frame = false
 
 
 func _move(delta: float) -> void:
@@ -100,19 +135,35 @@ func _move(delta: float) -> void:
 		_p.velocity.y = 0.0
 	else:
 		_p.velocity.y -= Tuning.PLAYER_GRAVITY * delta
-	var extra := Vector3.ZERO
-	if _push_left > 0.0:
-		var dt := minf(delta, _push_left)
-		_push_left -= dt
-		extra = _push_dir * (Tuning.CONTACT_PUSH_DIST / PUSH_TIME) * (dt / delta)
-	_p.velocity += extra
 	var intended := Vector3(_p.velocity.x, 0.0, _p.velocity.z) * delta
 	_p.move_and_slide()
-	_p.velocity -= extra
 	if _p.is_on_wall():
 		var lift := PlayerMovement.try_step_up(_p, intended)
 		if lift > 0.0:
 			_p.rig.absorb_step(lift)
+
+
+## The contact push as a displacement of its own: moved and slid along walls, its
+## distance counted whether or not a wall ate it, and never added to the velocity, so
+## a slide can never turn it into a velocity back into the wall.
+func _apply_push(delta: float) -> void:
+	if _push_left <= 0.0:
+		return
+	var step := minf(_push_left, Tuning.CONTACT_PUSH_DIST / PUSH_TIME * delta)
+	_push_left -= step
+	var motion := _push_dir * step
+	for i in 3:
+		var col := _p.move_and_collide(motion)
+		if col == null:
+			break
+		var n := col.get_normal()
+		n.y = 0.0
+		motion = col.get_remainder()
+		if n.length_squared() > 0.0001:
+			motion = motion.slide(n.normalized())  # a wall: slide along it
+		motion.y = 0.0  # a floor touch: carry on level
+		if motion.length_squared() < 0.000001:
+			break
 
 
 func _after_move(moved: float, delta: float) -> void:
@@ -133,7 +184,7 @@ func _after_move(moved: float, delta: float) -> void:
 			sm.transition_to(s)
 	if noise.advance(moved, gait):
 		_step_odd = not _step_odd
-		NoiseModel.emit(_p.global_position, _p.step_radius(gait), Tuning.NOISE_KIND_STEP)
+		_step(gait)
 	var amp := 0.0
 	if moving:
 		amp = Tuning.CAMERA_BOB_SPRINT_MULT if sprinting else 1.0
@@ -141,27 +192,69 @@ func _after_move(moved: float, delta: float) -> void:
 	_p.rig.feed_motion(noise.stride_phase(gait), _step_odd, amp, clampf(lateral, -1.0, 1.0))
 
 
+## One step (06 §6, 11 §2 walk step): the noise event (AudioManager plays the surface
+## sample from it), the trail entry Echo reads (08 §6), and the bob (fed by _after_move).
+func _step(gait: StringName) -> void:
+	var pos := _p.global_position
+	var surface := step_surface()
+	# AudioManager plays foot_<surface> from the step noise itself (03 Interfaces).
+	AudioManager.set_step_surface(surface)
+	NoiseModel.emit(pos, step_radius(gait), Tuning.NOISE_KIND_STEP)
+	trail.push({
+		&"position": pos,
+		&"time": Time.get_ticks_usec() / 1_000_000.0,
+		&"surface": surface,
+		&"speed_kind": gait,
+	})
+	# TODO(M2): 11 §2 walk step image channel, dust stir near the feet in Halls, Garage and
+	# Offices: a one-shot GPUParticles3D at `pos` chosen by `surface` (godot-particles).
+
+
 func _set_sprinting(on: bool) -> void:
 	if on == sprinting:
 		return
 	sprinting = on
-	# 11 §2 sprint start/stop: FOV +4 over 200 ms / back over 300 ms; bob x1.6; breath loop.
+	# 11 §2 sprint start/stop: FOV +4 over 200 ms / back over 300 ms; bob x1.6 (fed by
+	# _after_move); breath loop fades in over 2 s / out over 1 s (03).
 	if on:
-		_p.rig.fov_hold(Tuning.FEEDBACK_SPRINT_FOV_DEG, Tuning.FEEDBACK_SPRINT_FOV_UP_MS)
-		AudioManager.play_2d(&"sprint_breath_in")
-	elif stamina.can_sprint():
-		_p.rig.fov_hold(0.0, Tuning.FEEDBACK_SPRINT_FOV_DOWN_MS)
-		AudioManager.play_2d(&"sprint_breath_out")
+		_p.rig.fov_hold(Tuning.FEEDBACK_SPRINT_FOV_DEG, Tuning.FEEDBACK_SPRINT_FOV_UP_MS, CameraRig.HOLD_SPRINT)
+		_p.sounds.start_loop(PlayerAudio.LOOP_SPRINT_BREATH, &"sprint_breath_loop", Tuning.FEEDBACK_SPRINT_BREATH_IN)
+	else:
+		var back_ms: float = float(Tuning.FEEDBACK_SPRINT_FOV_DOWN_MS) if stamina.can_sprint() else 0.0
+		_p.rig.fov_hold(0.0, back_ms, CameraRig.HOLD_SPRINT)
+		_p.sounds.stop_loop(PlayerAudio.LOOP_SPRINT_BREATH, Tuning.FEEDBACK_SPRINT_BREATH_OUT)
 	sprint_changed.emit(on)
 
 
 func _on_stamina_exhausted() -> void:
 	# 11 §2 stamina empty: gasp; FOV snaps back; bob -20% for 2 s; the HUD arc turns danger.
 	_p.input.clear_sprint_latch()
-	_p.rig.fov_hold(0.0, 0.0)
+	_p.rig.fov_hold(0.0, 0.0, CameraRig.HOLD_SPRINT)
 	_bob_cut_left = Tuning.FEEDBACK_STAMINA_EMPTY_BOB_TIME
-	AudioManager.play_2d(&"gasp")
+	_p.sounds.play(&"stamina_empty_gasp")
 	stamina_exhausted.emit()
+
+
+# --- surfaces (06 §6) ------------------------------------------------------------------
+
+## 06 §6 step radius for the current floor, water and gait.
+func step_radius(gait: StringName) -> float:
+	return NoiseModel.step_radius(floor_surface(), gait, _p.water_depth > 0.0, _p.is_wading())
+
+
+## The surface a step sounds on: water when standing in it, else the floor's.
+func step_surface() -> StringName:
+	return NoiseModel.SURFACE_WATER if _p.water_depth > 0.0 else floor_surface()
+
+
+func floor_surface() -> StringName:
+	for i in _p.get_slide_collision_count():
+		var c := _p.get_slide_collision(i)
+		if c.get_normal().y > 0.7 and c.get_collider() != null:
+			var col := c.get_collider()
+			if col.has_meta(&"surface"):
+				return StringName(col.get_meta(&"surface"))
+	return _p.default_surface
 
 
 # --- crouch (06 §3) --------------------------------------------------------------------
@@ -178,7 +271,7 @@ func _set_crouched(on: bool) -> void:
 	_set_shape(on)
 	# 11 §2 crouch/stand: cloth rustle; camera height 120 ms with a 0.05 m dip.
 	_p.rig.set_eye_height(Tuning.PLAYER_CAMERA_HEIGHT_CROUCH if on else Tuning.PLAYER_CAMERA_HEIGHT)
-	AudioManager.play_2d(&"cloth")
+	_p.sounds.play(&"crouch")
 
 
 ## 06 §3: standing is blocked under a low ceiling (a shape query of the standing capsule).
