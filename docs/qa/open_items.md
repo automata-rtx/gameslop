@@ -17,3 +17,4 @@ Deferred work found during production. Each line names the task that should abso
 - M1.2 follow-up / M3.5: `apply_viewport_preset` (game/src/lighting/stratum_environment.gd) needs FSR 2 when render scale < 1.0.
 - M2.11: add a `texture_detail` settings key; CoherenceRenderer.apply_texture_detail is ready.
 - M3.2: noclip commit frame: grid lines are lost under grain spike and jitter; make "lines within 3 m" read.
+- M1.9/M2.10: GameState must subscribe to note_found and record notes into run/meta; add meta.stats.strata_reached (ItemSpawner uses found notes as a proxy for tier 2).
