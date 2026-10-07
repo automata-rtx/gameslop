@@ -4,7 +4,7 @@
 
 **Top level:** `seed`, `format`, `groups` (`dir`, default `bus`, `channels`, `ceiling_db`, allowed `variants`/`variants_loop`, `dur_range`), `recipes` keyed by id (`03`'s row name in snake case; footsteps are `foot_<surface>`).
 
-**Recipe:** `group`, `bus` (override), `dur` (s; the loop length for loops), `loop`, `variants`, `lead` (s of silence so a transient clears the 2 ms fade-in), `fade_out`, `decorrelate` (stereo noise per channel), `jitter` {`pitch`, `time`, `gain_db`, `dur`} per variant, `norm` (exactly one of `peak_db`, `rms_db` (50 ms), `krms_db` (K-weighted 50 ms), `lufs` (momentary 400 ms max)), `layers`, `fx` (master chain), `expect` {`centroid`, `peak_hz`, `attack_ms`, ...: [lo, hi]}, `runtime` (e.g. pitch range for pitch-tracked loops), `note`.
+**Recipe:** `group`, `bus` (override), `dur` (s; the loop length for loops), `loop`, `variants`, `lead` (s of silence so a transient clears the 2 ms fade-in), `fade_out`, `decorrelate` (stereo noise per channel), `jitter` {`pitch`, `time`, `gain_db`, `dur`} per variant, `norm` (exactly one of `peak_db`, `rms_db` (50 ms), `krms_db` (K-weighted 50 ms), `lufs` (momentary 400 ms max)), `layers`, `fx` (master chain), `expect` {`centroid`, `peak_hz`, `attack_ms`, ...: [lo, hi]}, `runtime` (hints AudioManager reads from the manifest: `pitch_min`/`pitch_max`/`follows` for pitch-tracked loops, `caption` = the `Strings` constant of its 04 §10 caption, `max_distance` in m, `through_walls` (never occluded), `pitch_hash` (+- spread hashed from the emitter position), `level_db` (a room tone's rendered level, for the 03 §6 rule-3 floor)), `note`.
 
 **Layer:** `src` = `sine|square|saw|triangle|pulse` (`freq`, `detune` cents list, `fm` {`freq` or `ratio`, `dev` Hz or `index`}, `duty`, `phase`), `noise` (`color` white/pink/brown/blue/violet), `silence`, or `ref` (another one-shot recipe's mix). `at`, `dur`, `env` (`adsr` a/d/s/r, `exp` a/t60, `points`), `chain` (effects), `peak_db` (this layer's own peak: the balance) or `gain_db`, `pan` (stereo), `repeat` {`count`, `every`, `jitter`, `gain_jitter_db`, `decay_db`, `pitch_jitter`}, `fixed_pitch`.
 
@@ -13,3 +13,7 @@
 **Loops** render circularly: noise is shaped over the loop length, oscillator/LFO frequencies and repeat spacing are quantised to whole cycles per loop, and stateful effects are pre-rolled over earlier periods, so the loop is exactly periodic. Files carry a `smpl` chunk plus one guard frame, which Godot imports as a forward loop over the loop length.
 
 **Finish:** gain to the `norm` target through a 1 ms look-ahead limiter at the group ceiling, then the 2 ms fade-in and end fade, then DC removal. Seeds come from `seed`, the id, the variant, and the layer, so renders are byte-identical. Imported CC0 recordings, if ever used, go in `CREDITS.md`.
+
+**Bus layout:** `game/default_bus_layout.tres` is generated from `game/src/audio/audio_buses.gd` (the 03 §3 tree and its effects): `$GODOT_BIN --headless --path game --script ../tools/audio/make_bus_layout.gd`. AudioManager rebuilds the same tree in code if the file is missing or stale.
+
+**Ids for M1.11a:** room tones are `room_tone_<stratum>` (AudioManager starts the one for the stratum on `level_entered`; a stratum without one is silent); fixture loops `fixture_hum_<stratum>` / `fixture_buzz_<stratum>`; errors sounds are prefixed with the error's id.
