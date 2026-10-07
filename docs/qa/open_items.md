@@ -13,3 +13,7 @@ Deferred work found during production. Each line names the task that should abso
 - M2 / Static: inside Static the post grain goes to 0.6 and CA to 0.02 (02 §8); `CoherenceRenderer` has no feed for it yet. Proposed: `CoherenceRenderer.set_static(amount)`.
 - Lighting task: the Halls fixture prefab (`scenes/props/halls/fixture_tube.tscn`) can reuse `data/materials/halls/fixture_emissive.tres`; the render bench hangs the omni 0.3 m below the tube so the ceiling reads lit.
 - M1.10/M3.6: typed note text wraps with a leading space on the new line (note sheet, 1280x720 H3); UI scale for 720p arrives in M3.6; ui_dim text over bright fixtures has no backing.
+- M1.11b/M2.14: AudioManager heartbeat should lock to `CoherenceRenderer.heartbeat_phase()` instead of its own timer.
+- M1.2 follow-up / M3.5: `apply_viewport_preset` (game/src/lighting/stratum_environment.gd) needs FSR 2 when render scale < 1.0.
+- M2.11: add a `texture_detail` settings key; CoherenceRenderer.apply_texture_detail is ready.
+- M3.2: noclip commit frame: grid lines are lost under grain spike and jitter; make "lines within 3 m" read.
