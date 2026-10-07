@@ -1,0 +1,15 @@
+# Audio synthesis (`03` §2)
+
+`python3 tools/audio/synth.py --out game/assets/audio [--only id,id] [--verify] [--report]` renders `recipes.json` to 48 kHz 16-bit WAVs (`<group dir>/<id>_vNN.wav`) and `manifest.json` (id → files, bus, loop, channels, lengths, loop frames, `runtime` hints). `--verify` writes nothing: it re-renders every recipe and fails on stale, missing or stray files, a stale manifest, missed loudness targets, peaks above the group ceiling, clipping, DC, missing 2 ms fade-in, loop seams, more than 6 dB of limiting, near-identical variants, and failed `expect` ranges. `--report` prints timbre numbers (centroid, peak Hz, attack, decay, loudness).
+
+**Top level:** `seed`, `format`, `groups` (`dir`, default `bus`, `channels`, `ceiling_db`, allowed `variants`/`variants_loop`, `dur_range`), `recipes` keyed by id (`03`'s row name in snake case; footsteps are `foot_<surface>`).
+
+**Recipe:** `group`, `bus` (override), `dur` (s; the loop length for loops), `loop`, `variants`, `lead` (s of silence so a transient clears the 2 ms fade-in), `fade_out`, `decorrelate` (stereo noise per channel), `jitter` {`pitch`, `time`, `gain_db`, `dur`} per variant, `norm` (exactly one of `peak_db`, `rms_db` (50 ms), `krms_db` (K-weighted 50 ms), `lufs` (momentary 400 ms max)), `layers`, `fx` (master chain), `expect` {`centroid`, `peak_hz`, `attack_ms`, ...: [lo, hi]}, `runtime` (e.g. pitch range for pitch-tracked loops), `note`.
+
+**Layer:** `src` = `sine|square|saw|triangle|pulse` (`freq`, `detune` cents list, `fm` {`freq` or `ratio`, `dev` Hz or `index`}, `duty`, `phase`), `noise` (`color` white/pink/brown/blue/violet), `silence`, or `ref` (another one-shot recipe's mix). `at`, `dur`, `env` (`adsr` a/d/s/r, `exp` a/t60, `points`), `chain` (effects), `peak_db` (this layer's own peak: the balance) or `gain_db`, `pan` (stereo), `repeat` {`count`, `every`, `jitter`, `gain_jitter_db`, `decay_db`, `pitch_jitter`}, `fixed_pitch`.
+
+**Effects** (`{"fx": ...}`): `lp hp bp notch peak lowshelf highshelf` (RBJ biquads: `f`, `q` or `bw`, `gain_db`, `order`), `lp1 hp1`, `drive` (soft clip, knee `db` below the signal's peak), `crush` (`bits`, `hold`), `am` (`freq`, `depth`, `wave` sine/square/saw/triangle/random/shape), `ring`, `gap` (`at`, `dur`), `fade`, `delay` (`time`, `fb`, `mix`, `damp`), `reverb` (Freeverb: `room`, `damp`, `wet`, `predelay`). Frequencies follow the variant pitch unless `"track": false`. Any number may be a `[start, end]` sweep or `{"points": [[t, v], ...]}` (not in loops).
+
+**Loops** render circularly: noise is shaped over the loop length, oscillator/LFO frequencies and repeat spacing are quantised to whole cycles per loop, and stateful effects are pre-rolled over earlier periods, so the loop is exactly periodic. Files carry a `smpl` chunk plus one guard frame, which Godot imports as a forward loop over the loop length.
+
+**Finish:** gain to the `norm` target through a 1 ms look-ahead limiter at the group ceiling, then the 2 ms fade-in and end fade, then DC removal. Seeds come from `seed`, the id, the variant, and the layer, so renders are byte-identical. Imported CC0 recordings, if ever used, go in `CREDITS.md`.
