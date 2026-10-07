@@ -39,7 +39,19 @@ static func from_args(args: CliArgs) -> DirectLevel:
 
 
 func _ready() -> void:
+	add_to_group(DebugOverlay.GROUP)
 	_run.call_deferred()
+
+
+## Lines for the F3 overlay (14 §9).
+func debug_info() -> Dictionary:
+	var info := {"seed": run_seed, "stratum": "%s depth %d" % [stratum, depth]}
+	if player != null and data != null and data.grid != null:
+		info["cell"] = data.grid.cell_of(player.global_position)
+		info["coherence"] = "%.1f" % player.coherence
+	if level != null and level.light_pool != null:
+		info["lights"] = level.light_pool.active_light_count()
+	return info
 
 
 func _run() -> void:

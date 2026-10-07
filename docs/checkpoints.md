@@ -13,3 +13,9 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Stubbed:** title is a placeholder label; SettingsManager, SaveManager, AudioManager are API stubs; no level, player, or rendering yet; `--smoke` does not generate a level yet.
 - **Known issues:** none blocking. Deferred items are in `docs/qa/open_items.md`.
 - **Tester:** nothing to play. Optionally open `game/scenes/debug/ui_gallery.tscn` in the editor to see the font, colours and glyphs.
+
+## cp-02-halls — 2026-10-07
+- **Works:** Halls generates (1,000 seeds validate, deterministic, worker thread), builds time-sliced into merged, subdivided meshes with collision metadata, navigation bakes on a worker thread, and the light pool lends lights only to fixtures in view. The player walks, sprints, crouches, looks, toggles and cranks the flashlight, hides in lockers, and takes contact. World shader and Coherence post stack (two passes) are in, plus the HUD, inventory with Polaroid, Chalk and Glowstick, and the AudioManager with the Halls, player, UI, Static and Still sounds. `--seed N --depth 1 --stratum halls` launches into a walkable level; `--smoke` builds depth 1 headless; F3 shows a minimal debug overlay. 494 tests green.
+- **Stubbed:** no title, run flow, exit, Landing, or death screen yet (direct launch only, without the HUD). No errors or Director. Noclip charge input is a seam only. Items spawn only through the bench and tests, not in levels yet.
+- **Known issues:** see `docs/qa/open_items.md` (camera judder risk without physics interpolation, FSR 2 on Low, commit-frame lines lost under grain, note text wrap).
+- **Tester:** optional. `godot --path game -- --seed 1 --depth 1 --stratum halls`, walk around, F to toggle the light, hold the crank key, F3 for the overlay. Look for: mouse feel, the light pools every 4 m, the hum.

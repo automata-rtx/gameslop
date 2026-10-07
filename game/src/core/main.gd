@@ -9,6 +9,10 @@ const SMOKE_WAIT_S := 2.0
 
 func _ready() -> void:
 	SceneRouter.set_host(%Content)
+	if OS.is_debug_build():
+		var overlay := DebugOverlay.new()
+		overlay.name = "DebugOverlay"
+		add_child(overlay)
 	var args := CliArgs.current()
 	if args.smoke:
 		_run_smoke()
