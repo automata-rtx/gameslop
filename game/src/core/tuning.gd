@@ -866,6 +866,13 @@ const RENDER_GLOW_INTENSITY := 0.6
 const RENDER_GLOW_BLOOM := 0.1
 const RENDER_FRAME_BUDGET_MS := 16.6                # 14 §10
 const RENDER_FPS_TARGET := 60
+# Render-task implementation constants (02 gives no number; chosen against T1/T3 in the
+# render bench, M1.5). Volumetric fog: emission in the fog colour keeps unlit air visible.
+const RENDER_FOG_EMISSION_ENERGY := 0.6
+const RENDER_FOG_AMBIENT_INJECT := 1.0
+const RENDER_FOG_LENGTH := 64.0                     # m of froxel volume
+const RENDER_FOG_FROXEL_DEPTH := 64                 # froxel depth slices
+const RENDER_FOG_LOW_LIGHT_ENERGY := 1.0            # Low preset distance fog
 
 # 02 §4 Coherence renderer (post stack)
 const POST_CA_MAX := 0.012                          # lerp(0, 0.012, drain)
@@ -896,6 +903,7 @@ const POST_STATIC_GRAIN := 0.6                      # inside Static (02 §8)
 const POST_STATIC_CA := 0.02
 const POST_DISSOLVE_GRID := Vector2i(48, 27)        # quads (02 §10)
 const POST_PULSE_KINDS: Array[StringName] = [&"hit", &"noclip_commit", &"coherence_gain", &"dissolve", &"flash"]
+const POST_TIME_WRAP_S := 3600.0                    # g_time and grain time wrap (render-task constant: shader float precision)
 
 # 02 §5 world shader
 const WORLD_JITTER_MAX := 0.012
@@ -912,6 +920,9 @@ const WORLD_SOFT_BAND_HZ := 0.5
 const WORLD_SOFT_BAND_AMPLITUDE := 0.03
 const WORLD_SOFT_PREVIEW_U := 0.3
 const WORLD_SOFT_PREVIEW_DIST := 2.0                # m crosshair range
+const WORLD_SOFT_PREVIEW_SPAN := 1.2                # m around the aimed point (render-task constant)
+const WORLD_NOCLIP_PREVIEW_U := 0.9                 # charge preview peak, below WORLD_UNRENDER_FULL so a
+                                                    # cancelled charge never shows what is behind a wall
 const WORLD_PLACEHOLDER_CHECKER := 1.0              # m checker, magenta #FF00FF and black
 const WORLD_SUBSTRATE_U_FLOOR := 0.55
 const WORLD_NOISE_TEXTURE_MAX := 1024               # px (14 §10)

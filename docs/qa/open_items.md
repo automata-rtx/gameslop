@@ -10,3 +10,5 @@ Deferred work found during production. Each line names the task that should abso
 - M1.12/M3.1: camera parented to the body without physics interpolation may judder; consider enabling `physics/common/physics_interpolation` and mouse look in `_process`. Needs a human with a mouse.
 - M1.5 follow-up: held flashlight should use the world shader with `held=1`; locker mask should use `locker_slats.gdshader`; dust particles.
 - M2.4 (Echo): `Player.step_trail()` is not implemented.
+- M2 / Static: inside Static the post grain goes to 0.6 and CA to 0.02 (02 §8); `CoherenceRenderer` has no feed for it yet. Proposed: `CoherenceRenderer.set_static(amount)`.
+- Lighting task: the Halls fixture prefab (`scenes/props/halls/fixture_tube.tscn`) can reuse `data/materials/halls/fixture_emissive.tres`; the render bench hangs the omni 0.3 m below the tube so the ceiling reads lit.
