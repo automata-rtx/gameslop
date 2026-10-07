@@ -11,7 +11,12 @@ if [[ ! -x "$GODOT_BIN" ]]; then
 fi
 [[ -x "$GODOT_BIN" ]] || { echo "test.sh: no Godot at $GODOT_BIN; run tools/godot/fetch.sh" >&2; exit 2; }
 # Import refreshes the global class cache so class_name types resolve in --script mode.
-"$GODOT_BIN" --headless --path "$ROOT/game" --import >/dev/null 2>&1 || true
+# The first import of many new assets can crash the editor process (seen with 4.7.2 after a
+# large WAV batch); a second pass finishes from the partial cache. Retry up to 3 times.
+for attempt in 1 2 3; do
+  if "$GODOT_BIN" --headless --path "$ROOT/game" --import >/dev/null 2>&1; then break; fi
+  echo "test.sh: import pass $attempt failed, retrying" >&2
+done
 LOG="$(mktemp)"
 set +e
 "$GODOT_BIN" --headless --path "$ROOT/game" --script tests/run_tests.gd -- "$@" 2>&1 | tee "$LOG"
