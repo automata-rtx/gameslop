@@ -93,7 +93,7 @@ Counter conflicts, by design: Still wants your light on it; Flicker wants your l
 - **Unrender radius:** inside 12 m the world shader renders geometry as lines with alpha 0.85, so the player sees through walls: the layout, soft walls, Static's distortion, and the Threshold's warm strip are visible. This is the player's gift and the designer's tool: the Substrate chase is a routing puzzle solved with information Null provides by being near. Chalk marks remain visible through unrender (`09`).
 - **Pressure and fairness:** Null is slower than walking; it cannot be outrun forever only because the Threshold is behind it (spawned at the 55% point of the critical path, `07` §5.6). Since it moves straight, a player who swings wide around it gains the far side of it, and Null then follows at 2.4 m/s while the player walks at 3.2 m/s. There is no state where Null corners the player against `SOLID` without a soft wall or a corridor out: the validator asserts the Substrate layout has no dead end longer than 4 cells.
 - **Static** in the Substrate does what it always does; two Statics drifting across the path while Null approaches from the Threshold side is the designed peak of the game.
-- **Codex:** `RENDER NOTE. Draw distance implemented as an entity. Speed 2.4 m/s. Passes all geometry. Nothing inside it. Do not name it.`
+- **Codex:** `RENDER NOTE. Draw distance implemented as an object. Speed 2.4 m/s. Passes all geometry. Nothing inside it. Do not name it.`
 
 ## 8. Aggression mapping
 

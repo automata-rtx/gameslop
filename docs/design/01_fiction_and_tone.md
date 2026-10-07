@@ -124,7 +124,7 @@ Each note has an ID, a stratum, a voice, and a tier. Levels carry two notes (one
 
 | ID | Voice | Tier | Text |
 |---|---|---|---|
-| U1 | B | 1 | RENDER NOTE 0500. Draw distance limit implemented as an entity so it can be moved. It walks the boundary. Where it walks, nothing is drawn. Do not name it. Naming things makes people look for them. |
+| U1 | B | 1 | RENDER NOTE 0500. Draw distance limit implemented as an object so it can be moved. It walks the boundary. Where it walks, nothing is drawn. Do not name it. Naming things makes people look for them. |
 | U2 | F | 1 | I can see through the walls here. Everything is lines. I can see the door from anywhere. I can also see it coming from anywhere. |
 | U3 | B | 2 | RENDER NOTE 0511. Placeholder material (magenta/black) left on 3,400 surfaces. Shipping anyway. No one will see this floor. |
 | U4 | F | 1 | If you are reading this you got further than me. Don't look back at the lines. Run at the door. It opens. I didn't. |
