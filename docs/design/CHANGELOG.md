@@ -21,3 +21,4 @@ Entries are one line each: date, document, change, rationale. The design was loc
 - 2026-10-07 — 01, 08 — Note U1 and Null's codex say "object" instead of "entity". Reason: "entity" is a forbidden word (01 §2); the rule outranks the two passages that broke it.
 - 2026-10-07 — 14 — Pinned Godot 4.7.2 stable (newest 4.7 patch) in `tools/godot/VERSION`. Reason: 14 §1 asks for 4.7 stable; the patch release carries fixes only.
 - 2026-10-07 — 04 — Typing cursor is `▌` (U+258C) instead of `▮`. Reason: JetBrains Mono has no U+25AE, and font fallback is disabled so missing glyphs stay visible.
+- 2026-10-07 — 14 — Additive autoload API from M0.2 recorded under 14 Interfaces; project theme set to `noclip_theme.tres`. Reason: contracts other tasks will call.

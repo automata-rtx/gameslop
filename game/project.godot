@@ -39,6 +39,10 @@ window/size/viewport_height=1080
 window/size/mode=0
 window/stretch/mode="disabled"
 
+[gui]
+
+theme/custom="res://assets/ui/noclip_theme.tres"
+
 [input]
 
 move_forward={

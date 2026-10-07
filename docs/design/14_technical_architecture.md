@@ -195,3 +195,10 @@ Declared in `project.godot` under `[shader_globals]`: `g_coherence` (float 1.0),
 ## Interfaces
 
 Every system document's "Interfaces" section is the contract; this document owns the autoload list, the signal bus, the layout, and the conventions. Changes here are breaking changes and go through the orchestrator with a `CHANGELOG.md` entry.
+
+### Interface additions during production
+- `Clock`: `set_menu_pause(on)`, `is_menu_paused()`, `is_hitstopping()`, `hitstop_remaining_ms()`, `wall_timer(s) -> Clock.WallTimer`, `start_run_timer()`, `stop_run_timer()`, `run_seconds()`. The pause menu calls `set_menu_pause`; nothing else writes `get_tree().paused` except `Clock.hitstop`. The run timer excludes pause-menu time. `g_time` freezes during hitstop and pause.
+- `SceneRouter`: `set_host`, `get_host`, `change_to`, `is_loading`, `current_path`, `current_scene`, signals `scene_changed`/`scene_failed` (local to SceneRouter, not on the bus), `transition` property.
+- `CoherenceRenderer`: `set_noclip_charge(v)`.
+- `GameState`: `is_run_active()`, `last_cause()`. Helper scripts `RunState` and `MetaState` live beside it.
+- `SettingsManager`: `REBINDABLE_ACTIONS`.
