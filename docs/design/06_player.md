@@ -161,3 +161,11 @@ Hide spots (`09` §6) are entered with `interact`. Inside: the camera moves to t
 - `Player.apply_coherence(delta: float, source: StringName)`; `Player.contact(error: Node3D, amount: float) -> bool` (applies the contact rules; returns false when the Director refuses it under the 3 s exclusivity, `10` §4); `Player.is_observing(node: Node3D) -> bool` (frustum, distance ≤ 30 m, unoccluded, and lit per `08` §4: flashlight on and within 25° of the beam axis, or a glowstick within 4 m or a burning flare within 8 m of the node, or the node inside the light range of a powered fixture); `Player.eye_position() -> Vector3`; `Player.is_hidden() -> bool`.
 - `EventBus.noise_emitted(pos, radius, kind)`.
 - `tuning.gd` constants for every number in this document.
+
+### Interface additions during production
+- Player signals: `dissolved(cause)`, `state_changed`, `sprint_changed`, `stamina_exhausted`, `stun_changed`, `flashlight_toggled`, `crank_changed`, `prompt_changed(text, hold_time)`, `prompt_progress(f)`.
+- Player methods: `add_light_query`/`remove_light_query`, `reset_for_run`, `enter_hide`/`leave_hide`, `can_use_item`, `is_stunned`, `is_dissolving`; noclip seam `begin_noclip_charge`, `end_noclip_charge`, `report_noclip`, `can_noclip`, and an exported `noclip_targeting` called as `physics_update(player, held, delta)`.
+- Player properties: `water_depth`, `default_surface`; floor colliders may carry a `surface` meta.
+- `CameraRig.fov_hold(delta_deg, ms = 200)`. `Interactable` has `prompt`, `enabled`, `condition`, `interacted`, `find_on()`.
+- Settings keys read by the player: `fov`, `mouse_sensitivity`, `invert_y`, `head_bob`, `screen_shake`, `sprint_mode`, `crouch_mode` (`&"hold"`/`&"toggle"`), `hold_to_press`.
+- Readings: wall attenuation of noise compounds ×0.65 per wall; wading noise is 10 m × 1.6; contact is refused during the noclip pass, the Landing and a drop; hold interactions need a fresh press; the hidden body has collision off; the crank stops at 100 and goes silent.
