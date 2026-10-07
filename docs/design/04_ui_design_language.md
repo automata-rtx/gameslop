@@ -39,7 +39,7 @@ Rules: at most two colours on screen besides `ui_fg` and `ui_dim` at any time. A
 - **Lines:** 1 px at 1080p (scaled with UI scale, minimum 1 px). Bars are 2 px tall tracks with a 4 px fill.
 - **Panels:** no borders except a single 1 px top rule on menus. No background on HUD elements except prompts and captions.
 - **Motion:** values tween with `TRANS_EXPO`/`EASE_OUT` over 180 ms. Elements appear with a 120 ms **slice-in**: the element is revealed by 6 horizontal bands opening at staggered 10 ms offsets (a shutter), never by fade or scale. Elements leave by the same shutter closing. Screen transitions use a 120 ms glitch: the previous frame is held, sliced horizontally into 8 to 14 bands offset by ±12 px with CA 0.02, then cut.
-- **Typing effect:** notifications and the summary's lines print at 60 characters per second with a block cursor `▮` that blinks at 2 Hz and disappears when the line finishes.
+- **Typing effect:** notifications and the summary's lines print at 60 characters per second with a block cursor `▌` (U+258C, present in the bundled font) that blinks at 2 Hz and disappears when the line finishes.
 - **Sound:** every motion has its UI sound (`03` §4).
 
 ## 5. Glyphs
