@@ -68,7 +68,7 @@ Eight images, generated procedurally at startup into 256 × 256 textures by `Pol
 
 - **Under car (Garage):** the player slides under (0.6 s), camera at 0.35 m, view toward one side, yaw ±35°. Still's feet are visible when it passes (the column's bottom 0.4 m).
 - **Under desk (Offices):** camera at 0.5 m behind the desk's modesty panel, view through the 0.3 m gap at the floor.
-- **Locker (Offices closets, Halls closets):** door closes with a click; slatted view (a shader mask of 6 horizontal slits); yaw ±20°.
+- **Locker (Offices closets, Halls closets):** door closes with a click; slatted view (a shader mask of 6 horizontal slits); yaw ±35°.
 - **Pump room corner (Pools):** the room's door closes; view at the door's small window.
 - **Rack gap (Server):** a 1-cell nook; view along the aisle; the LEDs light the player's hands (none visible; the HUD dims).
 - Rules: entering requires no error within 3 m; errors that saw the player enter know the spot (`08`). Leaving is a 0.6 s hold. The player's breathing is audible inside and is not a noise event (hiding is silent to errors).
