@@ -93,3 +93,4 @@ Entries are one line each: date, document, change, rationale. The design was loc
 - 2026-10-08 — 08 §2, 05 §5 — Static records one notice per engagement (re-armed after ≥ 5 s outside or an evasion); Static evasions count toward the Archive and codex only, not the score. Reason: 509 notices in one level and farmable score.
 - 2026-10-08 — 07, 05 §10 — The breaker room sits at ≥ 50% of the critical-path length away from the exit, and on the first Descent the first Static is placed between them. Reason: depth 1 lasted 30–60 s with no decision (00 §5, a decision every 60 s).
 - 2026-10-08 — 04 §6/§7 — The HUD and the summary both name the stratum that was generated, not the planned one.
+- 2026-10-08 — 07 §5.3 — Garage decks are split-level (deck 1 beside deck 0 at +3.2 m, joined by ramps), not stacked. Reason: stacked decks would break every system that reads one cell per grid position; the split keeps two decks, ramps and the drop between them.
