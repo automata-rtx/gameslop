@@ -240,6 +240,12 @@ const NOCLIP_REASON_TOO_FAR := &"TOO FAR"
 const NOCLIP_REASON_TOO_THIN := &"TOO THIN"         # coherence <= cost: a noclip can never kill (06 §8)
 const NOCLIP_DIRECTOR_RELIEF_DROP := 0.20           # intensity drop for a pass that broke line of sight (10 §2)
 const NOCLIP_DIRECTOR_RELIEF_TIME := 15.0           # s the Director stays lowered (06 §8)
+# Noclip task constants (M1.4; 06 gives no number, CHANGELOG):
+const NOCLIP_PROBE_RANGE := 30.0                    # m: the aim names targets beyond 2.5 m so TOO FAR can show
+const NOCLIP_LANDING_STEP := 0.05                   # m between capsule probes across the free-space band
+const NOCLIP_LANDING_LIFT := 0.02                   # m the landing capsule sits above the floor
+const NOCLIP_FLOOR_PROBE := 1.0                     # m above and below the body the landing floor is looked for
+const NOCLIP_INVALID_PREVIEW := 0.15                # g_noclip_charge shown while invalid, so the dashed preview reads (11 §2)
 
 # 06 §9  Coherence
 const COHERENCE_MAX := 100.0
