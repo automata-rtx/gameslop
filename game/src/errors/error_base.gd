@@ -62,6 +62,8 @@ var _has_hint: bool = false
 var _engaged: bool = false
 var _contact_frames: int = 0
 var _satiated_left: float = 0.0
+## bind_level() was called: a freed level (compares equal to null) stops the error.
+var _level_bound: bool = false
 
 
 ## Instances the scene for `id` (Director: spawn_error). Null for an unknown id.
@@ -118,6 +120,7 @@ func setup(p_player: Player, p_level: Level = null, p_seed: int = 0) -> void:
 
 func bind_level(p_level: Level) -> void:
 	level = p_level
+	_level_bound = true
 	if level.data != null:
 		grid = level.data.grid
 	if level.is_ready():
@@ -209,14 +212,14 @@ func distance_to_player() -> float:
 ## True while the player is a live node in the tree. A freed player is forgotten here
 ## (the run or a tour may free it while the level lives on): nothing ticks against it.
 func has_player() -> bool:
-	if player != null and not is_instance_valid(player):
+	if not is_instance_valid(player):
 		player = null
 	return player != null and player.is_inside_tree()
 
 
 ## The player when it is alive (in or out of the tree), else null.
 func live_player() -> Player:
-	if player != null and not is_instance_valid(player):
+	if not is_instance_valid(player):
 		player = null
 	return player
 
@@ -335,7 +338,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _process_error(delta: float) -> void:
-	if live_player() == null or (level != null and not is_instance_valid(level)):
+	if live_player() == null or (_level_bound and not is_instance_valid(level)):
 		# No player to hunt (freed) or the level is gone: nothing ticks (R9 item 16).
 		_on_player_gone()
 		return
