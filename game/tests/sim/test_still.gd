@@ -250,17 +250,140 @@ func test_fixture_navigation_map_is_ready() -> void:
 	assert_approx(q.z, 5.0, 0.5)
 
 
+## Was flaky (R5): 120 frames (2 s) at Search speed 3.24 m/s left about 6.5 m minus the
+## avoidance start-up, against a 6 m bound. Now it walks until it is 6 m off (or 8 s of
+## game time pass), so the frame timing of the first path no longer decides the result.
 func test_satiated_retreats_away() -> void:
 	var s := _still(Vector3(0, 0, 0.8))
 	s.wake()
 	await await_physics_frames(10)
 	assert_eq(s.state, Tuning.ERROR_STATE_SATIATED)
+	assert_gt(ErrorFixture.flat(s._target, _p.global_position), Tuning.ERROR_SATIATED_RETREAT_DIST - 1.0,
+		"its retreat point is about 20 m off (or the floor's edge)")
 	var hits := [0]
 	s.contacted_player.connect(func(_c: float) -> void: hits[0] += 1)
 	Engine.time_scale = 4.0
-	await await_physics_frames(120)
+	var t := 0.0
+	while t < 8.0 and s.distance_to_player() <= 6.0:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
 	assert_eq(hits[0], 0, "no contact while satiated")
-	assert_gt(s.distance_to_player(), 6.0, "it retreats")
+	assert_gt(s.distance_to_player(), 6.0, "it retreats (%.1f s)" % t)
+	assert_eq(s.state, Tuning.ERROR_STATE_SATIATED)
+
+
+## Review item 12: in Search, Still stands through its reaction window as in Wander.
+func test_search_stands_while_it_sees_the_player() -> void:
+	var s := _still(Vector3(0, 0, 10), 0.25)  # behind, dark: unobserved, in sight
+	s.start_search(Vector3(15, 0, 25))
+	await await_physics_frames(2)
+	assert_eq(s.state, Tuning.ERROR_STATE_SEARCH)
+	var at := s.body_position()
+	await await_physics_frames(int(1.2 * Engine.physics_ticks_per_second))
+	assert_false(s.observed)
+	assert_true(s.senses.sees_player)
+	assert_eq(s.state, Tuning.ERROR_STATE_SEARCH, "inside the 1.5 s reaction window")
+	assert_lt(s.body_position().distance_to(at), 0.01, "it stands while it reacts")
+	await await_physics_frames(int(0.5 * Engine.physics_ticks_per_second))
+	assert_eq(s.state, Tuning.ERROR_STATE_CHASE)
+
+
+## Review: start_search before navigation is ready ends in Search once it is.
+func test_start_search_before_navigation_ready() -> void:
+	var s := ErrorBase.create(&"still") as ErrorStill
+	s.setup(_p, null, 3)
+	_world.add_child(s)
+	s.place_at(Vector3(0, 0, 20))
+	s.start_search(Vector3(10, 0, 20))
+	await await_physics_frames(3)
+	assert_eq(s.state, Tuning.ERROR_STATE_DORMANT)
+	s.set_navigation_ready(true)
+	assert_eq(s.state, Tuning.ERROR_STATE_SEARCH, "the remembered search applies")
+	assert_approx(s.senses.last_known_pos.x, 10.0, 0.001)
+	var st := ErrorBase.create(&"static") as ErrorStatic
+	st.setup(_p, null, 4)
+	_world.add_child(st)
+	st.global_position = Vector3(20, 0, 20)
+	st.start_search(Vector3(20, 0, 10))
+	st.set_navigation_ready(true)
+	assert_eq(st.state, Tuning.ERROR_STATE_SEARCH)
+	st.free()
+
+
+## Review item 8: a refused hide-spot check leaves the Director's retreat in place.
+func test_refused_hide_spot_contact_keeps_the_retreat() -> void:
+	var s := _still(Vector3(0, 0, 3))  # behind, dark
+	s.senses.sight_range = 0.0
+	s.contact_request = func(e: ErrorBase) -> bool:
+		e.retreat(Tuning.DIRECTOR_CONTACT_REFUSED_RETREAT)  # as the Director answers it
+		return false
+	var spot := HideSpot.new()
+	spot.occupant = _p
+	s.start_search(s.body_position())
+	await await_physics_frames(1)
+	s._search_arrived = true
+	s.state_time = 0.0
+	s._inspect = [{"pos": s.body_position(), "spot": spot}]
+	s._target = s.body_position()
+	s._has_target = true
+	await await_physics_frames(3)
+	assert_eq(s.state, Tuning.ERROR_STATE_SATIATED, "the retreat stands")
+	assert_approx(_p.coherence, Tuning.COHERENCE_MAX, 0.0001)
+	spot.free()
+
+
+## Review item 14: a chase the Director retreats at once (Calm) is no encounter unless
+## the player saw Still; one the player saw is.
+func test_retreated_chase_notices_only_when_seen() -> void:
+	var notices := [0]
+	var retreat := func(_f: StringName, to: StringName, e: ErrorBase) -> void:
+		if to == Tuning.ERROR_STATE_CHASE:
+			e.retreat(5.0)
+	var dark := _still(Vector3(0, 0, 10), 1.0)  # behind: unobserved
+	dark.noticed_player.connect(func() -> void: notices[0] += 1)
+	dark.state_changed.connect(retreat.bind(dark))
+	dark.wake()
+	for i in 120:
+		await get_tree().physics_frame
+		if dark.state == Tuning.ERROR_STATE_SATIATED:
+			break
+	assert_eq(dark.state, Tuning.ERROR_STATE_SATIATED, "it chased and was retreated")
+	assert_eq(notices[0], 0, "unseen: no encounter")
+	assert_false(dark.is_engaged())
+	dark.free()
+	_p.flashlight.set_on(true)
+	var lit := _still(Vector3(0, 0, -8), 1.0)  # ahead, lit: observed
+	lit.noticed_player.connect(func() -> void: notices[0] += 1)
+	lit.state_changed.connect(retreat.bind(lit))
+	lit.wake()
+	for i in 120:
+		await get_tree().physics_frame
+		if lit.state == Tuning.ERROR_STATE_SATIATED:
+			break
+	assert_eq(lit.state, Tuning.ERROR_STATE_SATIATED)
+	assert_eq(notices[0], 1, "seen: one encounter")
+	assert_false(lit.is_engaged(), "the engagement ended with the retreat")
+
+
+## Review item 15: the render-line height has its own rng; behaviour stays seeded alone.
+func test_render_tick_uses_a_presentation_rng() -> void:
+	var s := _still(Vector3(0, 0, -6))
+	var before := s.rng.state
+	s._play_tick()
+	s._play_tick()
+	assert_eq(s.rng.state, before, "the behaviour rng did not advance")
+	assert_eq(s.ticks, 2)
+
+
+## Review item 18: the errors' script time is measured and exposed to F3 (Performance).
+func test_script_time_monitor() -> void:
+	var s := _still(Vector3(0, 0, 10))
+	s.wake()
+	await await_physics_frames(5)
+	assert_true(Performance.has_custom_monitor(ErrorTiming.MONITOR))
+	assert_gt(ErrorTiming.error_ms(&"still"), 0.0)
+	assert_gt(ErrorTiming.errors_ms(), 0.0)
+	assert_gt(float(Performance.get_custom_monitor(ErrorTiming.MONITOR)), 0.0)
 
 
 ## 08 §9: Still 25 m away, the player stands facing away: contact within 40 s.

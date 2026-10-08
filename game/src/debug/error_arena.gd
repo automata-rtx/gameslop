@@ -5,6 +5,8 @@ extends Node3D
 ## capture their signature frames (02 §13).
 ##   Keys: 1 spawn Static, 2 spawn Still, L fixtures on/off, K remove every error.
 ##   F (the player's own flashlight) toggles the beam.
+## The log shows the errors' script time per physics frame (ErrorTiming.MONITOR, also in the
+## Performance custom monitors / F3), refreshed 4 times a second.
 ##   -- --shots <dir>   capture still_lit_6m, still_dark, still_tick, static_outside,
 ##                      static_inside into <dir> (relative to the repository) and quit.
 ## Errors spawn the Director's way: an `error_spawns` marker >= 20 m away and outside the
@@ -24,6 +26,7 @@ var aggression: float = 0.25
 var _spawned: int = 0
 var _log: Label
 var _lights_on: bool = true
+var _cost_acc: float = 0.0
 
 
 func _ready() -> void:
@@ -157,6 +160,13 @@ func _build_ui() -> void:
 	box.add_child(_log)
 
 
+func _process(delta: float) -> void:
+	_cost_acc += delta
+	if _cost_acc >= 0.25:
+		_cost_acc = 0.0
+		_refresh_log()
+
+
 func _on_aggression(v: float) -> void:
 	aggression = v
 	for e in errors:
@@ -168,7 +178,9 @@ func _on_aggression(v: float) -> void:
 func _refresh_log() -> void:
 	if _log == null:
 		return
-	var lines: PackedStringArray = ["AGGRESSION %.2f" % aggression]
+	var lines: PackedStringArray = ["AGGRESSION %.2f" % aggression,
+		"ERRORS %.3f MS (STATIC %.3f, STILL %.3f)" % [ErrorTiming.errors_ms(), ErrorTiming.error_ms(&"static"),
+			ErrorTiming.error_ms(&"still")]]
 	for e in errors:
 		if is_instance_valid(e):
 			lines.append_array(e.log_lines)
