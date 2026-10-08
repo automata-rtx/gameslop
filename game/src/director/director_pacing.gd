@@ -251,6 +251,10 @@ func _enter(to: StringName, relief_time: float = -1.0) -> void:
 				_rng.randf_range(Tuning.DIRECTOR_RELIEF_MIN_TIME, Tuning.DIRECTOR_RELIEF_MAX_TIME)
 			# Relief is space (M1.13 ruling): intensity at most 0.5, every hunter away now.
 			intensity = minf(intensity, Tuning.DIRECTOR_RELIEF_INTENSITY_CAP)
+			# Any chase still running when Relief begins (a second hunter after a contact) is
+			# retreated, not only hinted: Still and Flicker store a hint while chasing (R12).
+			if not actions.has(ACT_RETREAT_CHASERS):
+				actions.append(ACT_RETREAT_CHASERS)
 			actions.append(ACT_HINT_AWAY_NOW)
 			_hint_left = Tuning.DIRECTOR_HINT_INTERVAL
 		PURSUIT:
