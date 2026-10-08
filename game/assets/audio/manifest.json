@@ -1509,7 +1509,8 @@
    ],
    "runtime": {
     "max_distance": 40.0,
-    "through_walls": true
+    "through_walls": true,
+    "caption": "CAPTION_PAYPHONE"
    }
   },
   "payphone_line": {
@@ -1609,6 +1610,399 @@
     0.502,
     0.502,
     0.502
+   ]
+  },
+  "flicker_stutter": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/flicker_stutter_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ],
+   "runtime": {
+    "max_distance": 20.0,
+    "caption": "CAPTION_FLICKER_PRESENT"
+   }
+  },
+  "flicker_stutter_fast": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/flicker_stutter_fast_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ],
+   "runtime": {
+    "max_distance": 20.0,
+    "caption": "CAPTION_FLICKER_PRESENT"
+   }
+  },
+  "flicker_spark": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/flicker_spark_v01.wav",
+    "res://assets/audio/errors/flicker_spark_v02.wav",
+    "res://assets/audio/errors/flicker_spark_v03.wav",
+    "res://assets/audio/errors/flicker_spark_v04.wav"
+   ],
+   "length_s": [
+    0.302,
+    0.302,
+    0.302,
+    0.302
+   ],
+   "runtime": {
+    "max_distance": 30.0,
+    "caption": "CAPTION_FLICKER_JUMP"
+   }
+  },
+  "flicker_lunge": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/flicker_lunge_v01.wav",
+    "res://assets/audio/errors/flicker_lunge_v02.wav",
+    "res://assets/audio/errors/flicker_lunge_v03.wav"
+   ],
+   "length_s": [
+    0.132,
+    0.132,
+    0.132
+   ],
+   "runtime": {
+    "max_distance": 40.0,
+    "caption": "CAPTION_FLICKER_LUNGE"
+   }
+  },
+  "echo_foot_carpet": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/echo_foot_carpet_v01.wav",
+    "res://assets/audio/errors/echo_foot_carpet_v02.wav",
+    "res://assets/audio/errors/echo_foot_carpet_v03.wav",
+    "res://assets/audio/errors/echo_foot_carpet_v04.wav",
+    "res://assets/audio/errors/echo_foot_carpet_v05.wav"
+   ],
+   "length_s": [
+    0.49425,
+    0.474833,
+    0.465021,
+    0.471813,
+    0.487583
+   ],
+   "runtime": {
+    "caption": "CAPTION_ECHO_FOOTSTEP"
+   }
+  },
+  "echo_foot_tile": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/echo_foot_tile_v01.wav",
+    "res://assets/audio/errors/echo_foot_tile_v02.wav",
+    "res://assets/audio/errors/echo_foot_tile_v03.wav",
+    "res://assets/audio/errors/echo_foot_tile_v04.wav",
+    "res://assets/audio/errors/echo_foot_tile_v05.wav"
+   ],
+   "length_s": [
+    0.429708,
+    0.441437,
+    0.445229,
+    0.437333,
+    0.4315
+   ],
+   "runtime": {
+    "caption": "CAPTION_ECHO_FOOTSTEP"
+   }
+  },
+  "echo_foot_water": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/echo_foot_water_v01.wav",
+    "res://assets/audio/errors/echo_foot_water_v02.wav",
+    "res://assets/audio/errors/echo_foot_water_v03.wav",
+    "res://assets/audio/errors/echo_foot_water_v04.wav",
+    "res://assets/audio/errors/echo_foot_water_v05.wav"
+   ],
+   "length_s": [
+    0.562958,
+    0.541104,
+    0.534,
+    0.547167,
+    0.531021
+   ],
+   "runtime": {
+    "caption": "CAPTION_ECHO_FOOTSTEP"
+   }
+  },
+  "echo_foot_concrete": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/echo_foot_concrete_v01.wav",
+    "res://assets/audio/errors/echo_foot_concrete_v02.wav",
+    "res://assets/audio/errors/echo_foot_concrete_v03.wav",
+    "res://assets/audio/errors/echo_foot_concrete_v04.wav",
+    "res://assets/audio/errors/echo_foot_concrete_v05.wav"
+   ],
+   "length_s": [
+    0.439958,
+    0.453875,
+    0.436833,
+    0.450729,
+    0.430312
+   ],
+   "runtime": {
+    "caption": "CAPTION_ECHO_FOOTSTEP"
+   }
+  },
+  "echo_foot_raised_floor": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/echo_foot_raised_floor_v01.wav",
+    "res://assets/audio/errors/echo_foot_raised_floor_v02.wav",
+    "res://assets/audio/errors/echo_foot_raised_floor_v03.wav",
+    "res://assets/audio/errors/echo_foot_raised_floor_v04.wav",
+    "res://assets/audio/errors/echo_foot_raised_floor_v05.wav"
+   ],
+   "length_s": [
+    0.484375,
+    0.495375,
+    0.482292,
+    0.486938,
+    0.464125
+   ],
+   "runtime": {
+    "caption": "CAPTION_ECHO_FOOTSTEP"
+   }
+  },
+  "echo_foot_substrate": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/echo_foot_substrate_v01.wav",
+    "res://assets/audio/errors/echo_foot_substrate_v02.wav",
+    "res://assets/audio/errors/echo_foot_substrate_v03.wav",
+    "res://assets/audio/errors/echo_foot_substrate_v04.wav",
+    "res://assets/audio/errors/echo_foot_substrate_v05.wav"
+   ],
+   "length_s": [
+    0.398604,
+    0.403,
+    0.399542,
+    0.404521,
+    0.406146
+   ],
+   "runtime": {
+    "caption": "CAPTION_ECHO_FOOTSTEP"
+   }
+  },
+  "music_pad_a1": {
+   "group": "music",
+   "bus": "Music",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/music/music_pad_a1_v01.wav",
+    "res://assets/audio/music/music_pad_a1_v02.wav",
+    "res://assets/audio/music/music_pad_a1_v03.wav"
+   ],
+   "length_s": [
+    12.000021,
+    12.000021,
+    12.000021
+   ],
+   "loop_frames": [
+    576000,
+    576000,
+    576000
+   ],
+   "runtime": {
+    "note_hz": 55.0
+   }
+  },
+  "music_pad_a2": {
+   "group": "music",
+   "bus": "Music",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/music/music_pad_a2_v01.wav",
+    "res://assets/audio/music/music_pad_a2_v02.wav",
+    "res://assets/audio/music/music_pad_a2_v03.wav"
+   ],
+   "length_s": [
+    12.000021,
+    12.000021,
+    12.000021
+   ],
+   "loop_frames": [
+    576000,
+    576000,
+    576000
+   ],
+   "runtime": {
+    "note_hz": 110.0
+   }
+  },
+  "music_pad_a3": {
+   "group": "music",
+   "bus": "Music",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/music/music_pad_a3_v01.wav",
+    "res://assets/audio/music/music_pad_a3_v02.wav",
+    "res://assets/audio/music/music_pad_a3_v03.wav"
+   ],
+   "length_s": [
+    12.000021,
+    12.000021,
+    12.000021
+   ],
+   "loop_frames": [
+    576000,
+    576000,
+    576000
+   ],
+   "runtime": {
+    "note_hz": 220.0
+   }
+  },
+  "music_ending": {
+   "group": "music",
+   "bus": "Music",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/music/music_ending_v01.wav"
+   ],
+   "length_s": [
+    8.000021
+   ],
+   "loop_frames": [
+    384000
+   ]
+  },
+  "room_tone_substrate": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ambience/room_tone_substrate_v01.wav"
+   ],
+   "length_s": [
+    8.000021
+   ],
+   "loop_frames": [
+    384000
+   ],
+   "runtime": {
+    "level_db": -30
+   }
+  },
+  "room_tone_ending": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ambience/room_tone_ending_v01.wav"
+   ],
+   "length_s": [
+    8.000021
+   ],
+   "loop_frames": [
+    384000
+   ],
+   "runtime": {
+    "level_db": -34
+   }
+  },
+  "fixture_dropout": {
+   "group": "world",
+   "bus": "Ambience",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/fixture_dropout_v01.wav",
+    "res://assets/audio/world/fixture_dropout_v02.wav",
+    "res://assets/audio/world/fixture_dropout_v03.wav"
+   ],
+   "length_s": [
+    0.702,
+    0.702,
+    0.702
+   ],
+   "runtime": {
+    "pitch_hash": 0.05,
+    "max_distance": 40.0
+   }
+  },
+  "threshold_open": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/threshold_open_v01.wav",
+    "res://assets/audio/world/threshold_open_v02.wav",
+    "res://assets/audio/world/threshold_open_v03.wav"
+   ],
+   "length_s": [
+    1.802,
+    1.802,
+    1.802
+   ]
+  },
+  "threshold_tone": {
+   "group": "player",
+   "bus": "Player",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/player/threshold_tone_v01.wav",
+    "res://assets/audio/player/threshold_tone_v02.wav",
+    "res://assets/audio/player/threshold_tone_v03.wav"
+   ],
+   "length_s": [
+    1.4,
+    1.4,
+    1.4
    ]
   }
  }
