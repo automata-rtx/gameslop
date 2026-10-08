@@ -406,7 +406,11 @@ func test_fsr2_below_render_scale_1() -> void:
 	assert_eq(vp.msaa_3d, Viewport.MSAA_4X)
 	assert_false(vp.use_taa)
 	StratumEnvironment.apply_viewport_preset(vp, &"low")
-	assert_eq(vp.scaling_3d_mode, Viewport.SCALING_3D_MODE_FSR2, "Low (0.8) upscales with FSR 2")
+	assert_eq(vp.scaling_3d_mode, Viewport.SCALING_3D_MODE_BILINEAR, "a bare 02 §12 Low preset stays FXAA, bilinear")
+	SettingsManager.apply_preset(&"low")
+	await _noise_settled()
+	assert_true(SettingsApply.fsr_active({&"render_scale": SettingsManager.get_value(&"render_scale"),
+			&"upscaling": SettingsManager.get_value(&"upscaling")}), "the player's Low upscales with FSR 2 (12 §2 default)")
 	vp.free()
 
 

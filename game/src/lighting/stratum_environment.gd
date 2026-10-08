@@ -43,12 +43,13 @@ static func apply_viewport_preset(vp: Viewport, preset: StringName = Tuning.QUAL
 
 ## The same from a profile dictionary (a preset, or SettingsApply.graphics_profile with the
 ## player's individual options). 12 §2: below render scale 1.0 the `upscaling` choice
-## applies (FSR 2 by default); FSR 2 replaces anti-aliasing and is incompatible with MSAA.
+## applies (the settings default is FSR 2); FSR 2 replaces anti-aliasing and is incompatible with MSAA.
 ## Above 1.0 is bilinear supersampling.
 static func apply_viewport_profile(vp: Viewport, p: Dictionary) -> void:
 	var aa: StringName = p.get(&"aa", &"taa")
 	var scale := float(p.get(&"render_scale", 1.0))
-	var fsr := scale < 1.0 and StringName(p.get(&"upscaling", &"fsr2")) == &"fsr2"
+	# A bare 02 §12 preset has no upscaling entry: Low is FXAA at 0.8 bilinear as 02 lists it.
+	var fsr := scale < 1.0 and StringName(p.get(&"upscaling", &"bilinear")) == &"fsr2"
 	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR2 if fsr else Viewport.SCALING_3D_MODE_BILINEAR
 	vp.scaling_3d_scale = scale
 	vp.use_taa = aa == &"taa" and not fsr
