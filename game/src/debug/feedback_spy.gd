@@ -166,9 +166,15 @@ func _image(tree: SceneTree) -> Dictionary:
 		d["level.content"] = lvl.content.get_child_count()
 		d["level.children"] = lvl.get_child_count()
 		var lit := 0
+		var flash := 0
+		var dark := 0
 		for f in lvl.light_pool.fixtures():
 			lit += 1 if f.powered else 0
+			flash += 1 if f.is_flashing() else 0
+			dark += 1 if f.is_lunge_dark() else 0
 		d["fixtures.powered"] = lit
+		d["fixtures.flash"] = flash
+		d["fixtures.lunge_dark"] = dark
 	d["root.children"] = tree.root.get_child_count()
 	if tree.current_scene != null:
 		d["scene.children"] = tree.current_scene.get_child_count()
