@@ -44,6 +44,10 @@ var native: StringName = &""
 var last_contact_ms: int = -1
 var contacts: int = 0
 var refused: int = 0
+## Hunter chases the Director let run (entered Chase/Follow/Stalk outside Calm and Relief),
+## and chases it sent away because they started in Calm or Relief (not encounters, cp-04).
+var encounters: int = 0
+var retreated_chases: int = 0
 var telemetry := DirectorTelemetry.new()
 var scares := Scares.new()
 var rng: RandomNumberGenerator = Seeds.rng(0)
@@ -60,6 +64,7 @@ var _telemetry_left: float = 0.0
 var _los_check_at: float = -1.0
 var _los_chasers: Array[ErrorBase] = []
 var _exit: Node
+var _flashlight: Node
 
 
 func _init() -> void:
@@ -106,6 +111,7 @@ func begin(p_level: Level, p_player: Player, p_arrival: StringName = Tuning.RUN_
 					break
 		hunters.spawn_roster(roster)
 		hunters.awake_arrivals(DirectorRules.awake_hunters(drops_in_a_row))
+		hunters.bound_statics_off_path()
 	_apply_aggression(true)
 	EventBus.director_phase.emit(pacing.phase)
 
@@ -190,7 +196,8 @@ func update() -> void:
 func _tick(dt: float) -> void:
 	var s := hunters.survey()
 	var before := pacing.phase
-	pacing.step(dt, s.nearest, s.chasing, s.hunters)
+	# The hunter count only gates the 0.8 wake: none may be woken where 05 §10 forbids it.
+	pacing.step(dt, s.nearest, s.chasing, s.hunters if wake_allowed() else 0)
 	for a in pacing.take_actions():
 		hunters.act(a)
 	if pacing.phase != before:
@@ -219,6 +226,12 @@ func _tick(dt: float) -> void:
 			player.coherence if player != null and is_instance_valid(player) else 0.0, s.chasing)
 
 
+## 05 §10: the first Descent's depth 1 has no active hunter; one placed there anyway (a
+## bench, a test) stays dormant through Build and the 0.8 wake (cp-04 review).
+func wake_allowed() -> bool:
+	return not (first_descent and DirectorRules.cycle_depth(depth) == 1)
+
+
 ## 10 §3: applied to every error whenever it changes, at most once per second.
 func _apply_aggression(force: bool) -> void:
 	var a := DirectorRules.aggression(depth, drops_in_a_row, pacing.level_time, cycle)
@@ -240,6 +253,10 @@ func _connect() -> void:
 		player.coherence_changed.connect(_on_coherence)
 		if player.has_signal(&"noclip_committed"):
 			player.noclip_committed.connect(_on_noclip_committed)
+		# 10 §2 crank row (per 0.5 s): the Flashlight's own tick, not a radius match.
+		_flashlight = player.get(&"flashlight") as Node
+		if _flashlight != null and _flashlight.has_signal(&"crank_tick"):
+			_flashlight.connect(&"crank_tick", _on_crank_tick)
 	_exit = null
 	if level != null:
 		for n in get_tree().get_nodes_in_group(&"exits") if is_inside_tree() else []:
@@ -260,22 +277,28 @@ func _disconnect() -> void:
 			player.coherence_changed.disconnect(_on_coherence)
 		if player.noclip_committed.is_connected(_on_noclip_committed):
 			player.noclip_committed.disconnect(_on_noclip_committed)
+	if _flashlight != null and is_instance_valid(_flashlight) and _flashlight.is_connected(&"crank_tick", _on_crank_tick):
+		_flashlight.disconnect(&"crank_tick", _on_crank_tick)
+	_flashlight = null
 	if _exit != null and is_instance_valid(_exit) and _exit.is_connected(&"seen", _on_exit_seen):
 		_exit.disconnect(&"seen", _on_exit_seen)
 	_exit = null
 
 
-## Only the player's own noises count (a sprint step, the crank); the breaker and the
-## noclip commit arrive by their own signals.
-func _on_noise(pos: Vector3, radius: float, kind: StringName) -> void:
+## Only the player's own sprint steps count here; the crank (the Flashlight's
+## `crank_tick`), the breaker and the noclip commit arrive by their own signals.
+func _on_noise(pos: Vector3, _radius: float, kind: StringName) -> void:
 	if player == null or not is_instance_valid(player) or not player.is_inside_tree():
 		return
 	if pos.distance_to(player.global_position) > Tuning.DIRECTOR_PLAYER_NOISE_DIST:
 		return
 	if kind == Tuning.NOISE_KIND_STEP and player.state_machine.is_in(PlayerStateMachine.SPRINT):
 		pacing.on_sprint_step()
-	elif kind == Tuning.NOISE_KIND_MECH and is_equal_approx(radius, Tuning.NOISE_CRANK_RADIUS):
-		pacing.on_crank()
+
+
+## One crank noise tick (every 0.5 s while the wheel turns): +0.10.
+func _on_crank_tick() -> void:
+	pacing.on_crank()
 
 
 func _on_note(_id: StringName) -> void:
@@ -333,9 +356,21 @@ func on_error_lost(e: ErrorBase) -> void:
 
 
 ## 10 §7 rule 2: no hunter chases during Calm; one that starts is sent away for the rest.
+## A chase that starts in Relief is sent away the same way (relief is space; cp-04). Those
+## are not encounters; every other hunter chase is.
 func on_error_state(_from: StringName, to: StringName, e: ErrorBase) -> void:
-	if pacing.phase == DirectorPacing.CALM and DirectorRules.is_chasing_state(to) and DirectorRules.is_hunter(e.error_id):
-		e.retreat(maxf(pacing.calm_left(), Tuning.DIRECTOR_CONTACT_REFUSED_RETREAT))
+	if not DirectorRules.is_chasing_state(to) or not DirectorRules.is_hunter(e.error_id):
+		return
+	var left := -1.0
+	if pacing.phase == DirectorPacing.CALM:
+		left = pacing.calm_left()
+	elif pacing.phase == DirectorPacing.RELIEF:
+		left = pacing.relief_left()
+	if left < 0.0:
+		encounters += 1
+		return
+	retreated_chases += 1
+	e.retreat(maxf(left, Tuning.DIRECTOR_CONTACT_REFUSED_RETREAT))
 
 
 ## 14 §9 F3 overlay lines (each error adds its own state and distance).
@@ -344,5 +379,6 @@ func debug_info() -> Dictionary:
 		"director": "%s %.0f s" % [String(pacing.phase).to_upper(), pacing.phase_time],
 		"intensity": "%.2f" % pacing.intensity,
 		"aggression": "%.2f" % aggression,
-		"threat": "%.2f   contacts %d (refused %d)" % [threat, contacts, refused],
+		"threat": "%.2f   contacts %d (refused %d)  chases %d (sent away %d)" % [threat, contacts, refused,
+			encounters, retreated_chases],
 	}
