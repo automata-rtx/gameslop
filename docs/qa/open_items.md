@@ -18,3 +18,4 @@ Deferred work found during production. Each line names the task that should abso
 - M2.11: add a `texture_detail` settings key; CoherenceRenderer.apply_texture_detail is ready.
 - M3.2: noclip commit frame: grid lines are lost under grain spike and jitter; make "lines within 3 m" read.
 - M1.9/M2.10: GameState must subscribe to note_found and record notes into run/meta; add meta.stats.strata_reached (ItemSpawner uses found notes as a proxy for tier 2).
+- M3.2: Static reads as dark smoke (offset pulls in the dark corridor end); 02 §8 wants a faint refraction shimmer. Still column top is rounded like a door arch; consider a flat top.
