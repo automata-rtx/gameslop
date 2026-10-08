@@ -357,14 +357,19 @@ func test_pause_abandon_ends_the_run_and_shows_the_summary() -> void:
 	var confirm := pm.shell.current() as ConfirmPage
 	assert_eq(confirm.list.selected_id(), ConfirmPage.ITEM_NO, "BACK is selected first")
 	assert_eq(confirm.message, Strings.PAUSE_ABANDON_CONFIRM)
+	# The world must stay frozen until the next scene is in. A cached summary scene can swap
+	# within the same frame, so sample the pause at the moment the swap lands rather than after.
+	var paused_at_swap: Array[bool] = []
+	var probe := func(_path: String) -> void: paused_at_swap.append(Clock.is_menu_paused())
+	SceneRouter.scene_changed.connect(probe, CONNECT_ONE_SHOT)
 	confirm.list.activate(0)
 	assert_false(GameState.is_run_active())
 	assert_eq(GameState.last_cause(), &"abandoned")
-	assert_true(Clock.is_menu_paused(), "the world stays frozen through the cut")
 	var end := Time.get_ticks_msec() + 5000
 	while not (SceneRouter.current_scene() is RunSummary) and Time.get_ticks_msec() < end:
 		await get_tree().process_frame
 	assert_true(SceneRouter.current_scene() is RunSummary)
+	assert_eq(paused_at_swap, [true] as Array[bool], "the world stays frozen through the cut")
 	assert_false(Clock.is_menu_paused(), "the pause lifts once the summary is in")
 	assert_eq(RunSummary.top_line().split(" · ")[0], "DESCENT ABANDONED")
 

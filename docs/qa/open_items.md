@@ -49,3 +49,4 @@ Deferred work found during production. Each line names the task that should abso
 - M2 levelgen/sim: 5 of 10 Garage sim runs end "stuck" (bot stuck on the level); check Garage navigation (ramps, cars, pillars) and the bot's unstick logic.
 - Intermittent (R10): a sim child crashed with signal 11 ("propagate_notification" from a worker thread) during level start under load; another left unreadable JSON. Strong lead for the existing worker-thread race item: find what touches nodes off the main thread during level build/start.
 - M2.14: Echo footsteps lack the "20 ms extra reverb" from 03 (AudioManager has no per-sound reverb send).
+- Intermittent under load: unit/test_noclip_targeting.gd::test_release_cancels_at_no_cost failed once in a full gate (passes 3/3 alone; the per-test detail line was lost from the log). If it recurs, capture the message; suspect frame timing around hitstop in _run_frames.
