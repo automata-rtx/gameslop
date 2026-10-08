@@ -5,7 +5,7 @@ extends Control
 ## scrolling up at ENDING_CREDITS_SPEED from below the screen until "Thank you for looking."
 ## stands at the centre; it holds there ENDING_THANKS_HOLD, then `finished`. Typography (04
 ## §2): the disclosure and section lines at menu size in ui_fg, headings in ui_dim, notices
-## and the component list (two columns) at HUD size in ui_dim. Driven by advance(dt) from the
+## and the component list (two wrapped columns) at HUD size in ui_dim. Driven by advance(dt) from the
 ## Ending so tests can step it; it never processes on its own.
 
 signal finished
@@ -62,7 +62,7 @@ func _add_entry(e: Dictionary) -> void:
 				_grid.add_theme_constant_override(&"h_separation", UiTokens.GRID * 4)
 				_grid.add_theme_constant_override(&"v_separation", 0)
 				column.add_child(_grid)
-			var l := _label(String(e["text"]), &"TitleSubline", false)
+			var l := _label(String(e["text"]), &"TitleSubline", true)
 			l.custom_minimum_size.x = (COLUMN_WIDTH - UiTokens.GRID * 4) * 0.5
 			_grid.add_child(l)
 		Credits.STYLE_HEADING:
@@ -88,8 +88,6 @@ func _label(t: String, variation: StringName, wrap: bool) -> Label:
 	if wrap:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = COLUMN_WIDTH
-	else:
-		l.clip_text = true
 	return l
 
 

@@ -166,3 +166,8 @@ When a note is picked up (`09_items_and_interactables.md`), the game does not pa
 
 - `NoteData` resource: `id: StringName`, `stratum: StringName`, `voice: StringName` (`faller|builder|stray|builder_final`), `tier: int`, `text: String`. Defined in `game/data/notes/*.tres`, authored from the tables above verbatim.
 - Signal `EventBus.note_found(id: StringName)` emitted by the pickup; consumed by HUD (sheet), Archive (persistence), Director (brief relief window, see `10`).
+
+### Interface additions during production
+
+- M2.15 `Ending` (`scenes/ending.tscn`, `src/core/ending.gd`): phases `white`, `fade`, `walk`, `card`, `credits`, `done` (signal `phase_changed`); static `variant_for(meta)` (unlock #14), `is_skippable(meta)` (wins ≥ 2: the first win plays whole), `coherence_at(t, from)`, `white_alpha(t, soft)`, `printed_texts()`, `cut_to_white(parent)` (the run's white layer and `threshold_tone`; `cut_at_ms` hands the time to the ending); `advance(dt)`, `skip() -> bool`, `descend()` (the variant), `time_scale` (tests and benches). `EndingCorridor` builds the corridor (`build(with_menu)`, `spawn_transform()`, `distance_to_far_wall(pos)`, `menu_items()`, signal `descend_chosen`); `EndingEnvironment.build()`. `Credits.entries()`/`text()` (16 §6, reusable by the Archive) and `CreditsRoll` (`start()`, `advance(dt)`, signal `finished`). `ThresholdDoor.is_in_view(cam)` and `in_view`: the door itself calls `MusicDirector.set_threshold_in_view` while it stands in a level. Bench: `scenes/debug/ending_bench.tscn -- --shots <dir> [--variant]`.
+

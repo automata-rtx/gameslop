@@ -56,6 +56,7 @@ var time_scale: float = 1.0
 var restore_t: float = 0.0
 var start_coherence: float = Tuning.COHERENCE_MAX
 var depth_label: UiTypedLabel
+var depth_box: Control
 var card: Control
 var card_label: UiTypedLabel
 var credits: CreditsRoll
@@ -182,6 +183,9 @@ func _setup_player() -> void:
 		nt.set_physics_process(false)
 	player.global_transform = corridor.spawn_transform()
 	player.velocity = Vector3.ZERO
+	# Daylight needs no torch: the hand is empty here (the flashlight stays off and unseen).
+	player.flashlight.set_on(false, true)
+	player.flashlight.visible = false
 	# Held still under the white (look only), like the Landing.
 	player.state_machine.transition_to(PlayerStateMachine.LANDING)
 	player.rig.camera.make_current()
@@ -200,34 +204,48 @@ func _setup_presentation() -> void:
 
 
 func _build_ui() -> void:
+	# DEPTH 0 where the HUD's depth line stood (04 §6, top-right), small, on the readout's backing.
 	depth_label = UiTypedLabel.new()
 	depth_label.theme_type_variation = &"HudLabel"
-	depth_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	depth_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, UiTokens.SAFE_MARGIN)
-	depth_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	ui.add_child(depth_label)
-	card = TitlePage.WordmarkGrid.new()
-	var stock := (card as TitlePage.WordmarkGrid).label
-	card.remove_child(stock)
+	depth_box = _backing(depth_label)
+	depth_box.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, UiTokens.SAFE_MARGIN)
+	depth_box.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	depth_box.visible = false
+	# The console-style title card: the title's wordmark and grid (04 §7), typed with the cursor.
+	var grid := TitlePage.WordmarkGrid.new()
+	var stock := grid.label
+	grid.remove_child(stock)
 	stock.free()
 	card_label = UiTypedLabel.new()
 	card_label.theme_type_variation = &"Wordmark"
-	card.add_child(card_label)
-	(card as TitlePage.WordmarkGrid).label = card_label
+	grid.add_child(card_label)
+	grid.label = card_label
+	card = _backing(grid)
 	card.position = Vector2(UiTokens.SAFE_MARGIN * 4, UiTokens.GRID * 40)
 	card.visible = false
-	ui.add_child(card)
 	credits = CreditsRoll.new()
 	credits.finished.connect(_finish)
 	ui.add_child(credits)
 	skip_label = Label.new()
 	skip_label.theme_type_variation = &"HudLabel"
 	skip_label.text = Strings.ENDING_SKIP.replace("{key}", UiKeys.key_name(SKIP_ACTION))
-	skip_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, UiTokens.SAFE_MARGIN)
-	skip_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	skip_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var skip_box := _backing(skip_label)
+	skip_box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, UiTokens.SAFE_MARGIN)
+	skip_box.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	skip_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	skip_label.visibility_changed.connect(func() -> void: skip_box.visible = skip_label.visible)
 	skip_label.visible = false
-	ui.add_child(skip_label)
+	skip_box.visible = false
+
+
+## 04 §2: text over the world sits on the ui_bg 60% backing.
+func _backing(content: Control) -> PanelContainer:
+	var box := PanelContainer.new()
+	box.theme_type_variation = &"Backing"
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(content)
+	ui.add_child(box)
+	return box
 
 
 # --- the sequence ----------------------------------------------------------------------------
@@ -261,6 +279,7 @@ func advance(dt: float) -> void:
 		PHASE_WALK:
 			if _near_the_window() or restore_t >= Tuning.ENDING_WALK_MAX_TIME:
 				_set_phase(PHASE_CARD)
+				depth_box.visible = true
 				depth_label.type_text(Strings.ENDING_DEPTH)
 		PHASE_CARD:
 			_advance_card()
@@ -277,7 +296,7 @@ func _advance_card() -> void:
 		# The card and DEPTH 0 make way for the roll.
 		var tw := create_tween().set_parallel(true)
 		tw.tween_property(card, ^"modulate:a", 0.0, Tuning.ENDING_FADE_IN_TIME)
-		tw.tween_property(depth_label, ^"modulate:a", 0.0, Tuning.ENDING_FADE_IN_TIME)
+		tw.tween_property(depth_box, ^"modulate:a", 0.0, Tuning.ENDING_FADE_IN_TIME)
 		credits.start()
 
 

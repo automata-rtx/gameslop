@@ -262,6 +262,7 @@ const CAUSE_EXPLANATIONS: Dictionary = {
 	&"null": "Nothing was drawn where you stood.",
 	&"substrate": "The unfinished floor stopped drawing you.",
 	&"abandoned": "The Descent was left unfinished.",
+	&"threshold": "The front door opened onto daylight.",   # the win (01 §8); M2.15
 }
 const CAUSE_EXPLANATION_DEFAULT := "Coherence reached zero."
 const SUMMARY_VALUE_PENDING := "—"                                         # score until M2.10
