@@ -352,15 +352,23 @@ func _start_bake() -> void:
 	NavigationServer3D.bake_from_source_geometry_data_async(nm, src, _on_baked.bind(nm))
 
 
-## The jambs' box shapes as navigation obstacles (their faces, in world space).
+## The jambs' box shapes as navigation obstacles (their faces, in world space), each moved
+## back NAV_DOOR_JAMB_INSET from the opening. Rasterised at 0.2 m and eroded by the 0.4 m
+## agent radius (two cells a side), the exact 1.0 m opening closed: no path crossed a
+## doorway and errors stopped dead at every door. Inset, the bake keeps one lane through
+## the middle; the bodies still collide with the real jambs.
 static func _add_jamb_faces(src: NavigationMeshSourceGeometryData3D, door: Door) -> void:
 	for child in door.jambs.get_children():
 		var cs := child as CollisionShape3D
 		if cs == null or not (cs.shape is BoxShape3D):
 			continue
 		var box := BoxMesh.new()
-		box.size = (cs.shape as BoxShape3D).size
-		src.add_faces(box.get_faces(), cs.global_transform)
+		var size := (cs.shape as BoxShape3D).size
+		box.size = Vector3(maxf(size.x - Tuning.NAV_DOOR_JAMB_INSET, 0.01), size.y, size.z)
+		# The jambs sit at ±x in the door's frame; the opening is toward x = 0.
+		var away := signf(cs.position.x) * Tuning.NAV_DOOR_JAMB_INSET * 0.5
+		var xf := cs.global_transform * Transform3D(Basis.IDENTITY, Vector3(away, 0.0, 0.0))
+		src.add_faces(box.get_faces(), xf)
 
 
 func _on_baked(nm: NavigationMesh) -> void:

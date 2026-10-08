@@ -60,6 +60,13 @@ func _configure() -> void:
 	senses.hearing_mult = Tuning.STILL_HEARING_MULT
 	body.collision_layer = 1 << (Tuning.LAYER_ERRORS - 1)
 	body.collision_mask = 1 << (Tuning.LAYER_WORLD - 1)
+	# The body collides as the navigation agent (0.4 x 1.8 m); the column draws 0.5 x 2.6 m
+	# (02 §8) and would otherwise wedge in every 1.0 m doorway under its 2.1 m header.
+	var col := body.get_node_or_null(^"Collision") as CollisionShape3D
+	if col != null and col.shape is CapsuleShape3D:
+		(col.shape as CapsuleShape3D).radius = Tuning.STILL_BODY_RADIUS
+		(col.shape as CapsuleShape3D).height = Tuning.STILL_BODY_HEIGHT
+		col.position = Vector3.UP * Tuning.STILL_BODY_HEIGHT * 0.5
 	column.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	column.mesh = column_mesh()
 	column.position = Vector3.ZERO

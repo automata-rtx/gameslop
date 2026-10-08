@@ -403,6 +403,8 @@ const STATIC_FLARE_GROUP := &"flares_burning"       # burning flares join this g
 # 08 §4  Still
 const STILL_CAPSULE_RADIUS := 0.5                   # m (reading: "0.5 x 2.6" = radius x height, as Echo/player)
 const STILL_CAPSULE_HEIGHT := 2.6                   # m
+const STILL_BODY_RADIUS := NAV_AGENT_RADIUS         # m, collision only (R7): the 0.5 m column must pass a 1.0 m doorway
+const STILL_BODY_HEIGHT := NAV_AGENT_HEIGHT         # m, collision only (R7): ... and its 2.1 m header (the column draws 2.6 m)
 const STILL_WANDER_SPEED := 1.8                     # m/s
 const STILL_SEARCH_SPEED := 3.6
 const STILL_CHASE_SPEED := 5.0
@@ -733,6 +735,7 @@ const NAV_AGENT_RADIUS := 0.4                       # m
 const NAV_AGENT_HEIGHT := 1.8                       # m
 const NAV_MAX_CLIMB := 0.3                          # m
 const NAV_CELL_SIZE := 0.2                          # m (agent radius 0.4 is two cells)
+const NAV_DOOR_JAMB_INSET := 0.1                    # m (R7): jambs enter the bake 0.1 m back from the opening, so a 1.0 m doorway stays one lane after the 2-cell erosion
 const NAV_CELL_HEIGHT := 0.1                        # m, voxel height (build-task constant: 1.8 m and 0.3 m divide it)
 const NAV_WATER_EXCLUDE_DEPTH := 1.3                # m, deeper water excluded
 const NAV_BAKE_BUDGET := 2.0                        # s, largest level (14 §10)
