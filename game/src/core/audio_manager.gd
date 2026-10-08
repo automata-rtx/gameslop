@@ -9,6 +9,10 @@ extends Node
 ## are baked by the synth; 5 one-shots play through AudioStreamRandomizer at +-4% pitch.
 ## noise_emitted: `step` noises play the footstep for the current surface here (06 §6, a
 ## noise and its sound are one event); every other kind is played by its emitter.
+## M2.14: the MusicDirector child (`music`); the Null grid tone (GeneratorLayers) fed from
+## CoherenceRenderer's g_null_pos and the listener, with the 2 m core muting everything
+## else; the heartbeat locked to CoherenceRenderer.heartbeat_phase(); Echo's footsteps
+## played as their echo_foot_* variants (the 20 ms extra reverb); occlusion decided at play.
 
 const STEP_SURFACE: Dictionary = {   # 03 §4 footstep table: the surface a stratum walks on
 	&"halls": &"carpet", &"pools": &"tile", &"garage": &"concrete",
@@ -27,9 +31,14 @@ const NOCLIP_DUCK_BUSES: Array[StringName] = [&"World", &"Music", &"UI"]  # ever
 const DUCK_ERRORS_NEAR := &"errors_near"
 const DUCK_STILL := &"still_silence"
 const DUCK_NOTE := &"note"
+## Buses whose silence() is total, so the drone follows (Flicker's lunge).
+const SILENCE_TOTAL_BUSES: Array[StringName] = [&"Master", &"World", &"Ambience"]
 
 var library: SoundLibrary
 var bed: GeneratorLayers
+var music: MusicDirector
+## Heartbeat and Null tone feeds (AudioFeeds).
+var feeds := AudioFeeds.new(self)
 var pool: AudioPool
 var _loops3d: Array = []                  # 3D loop players, for occlusion
 var _loops_root: Node
@@ -41,10 +50,8 @@ var _reverb_to: Dictionary = {}
 var _reverb_t: float = 1.0
 var _room_tone: AudioLoop
 var _fading_tones: Array[AudioLoop] = []
-var _near: Dictionary = {}                # error id -> last distance (error_proximity)
 var _threat: float = 0.0
 var _coherence: float = 100.0
-var _heartbeat_wait: float = 0.0
 var _occlusion_wait: float = 0.0
 var _listener: Node3D
 var _step_surface: StringName = &""
@@ -66,6 +73,10 @@ func _ready() -> void:
 	bed = GeneratorLayers.new()
 	bed.name = "GeneratorLayers"
 	add_child(bed)
+	music = MusicDirector.new()
+	music.name = "MusicDirector"
+	add_child(music)
+	music.setup(library)
 	for key: StringName in SETTINGS_BUSES:
 		var v: Variant = SettingsManager.get_value(key)
 		ducker.set_slider(SETTINGS_BUSES[key], float(v) if v != null else float(SETTINGS_DEFAULTS[key]))
@@ -73,8 +84,8 @@ func _ready() -> void:
 	EventBus.level_entered.connect(_on_level_entered)
 	EventBus.level_left.connect(_on_level_left)
 	EventBus.run_started.connect(_on_run_started)
-	EventBus.noise_emitted.connect(_on_noise_emitted)
-	EventBus.error_proximity.connect(_on_error_proximity)
+	EventBus.noise_emitted.connect(feeds.on_noise_emitted)
+	EventBus.error_proximity.connect(feeds.on_error_proximity)
 	EventBus.threat_changed.connect(func(t: float) -> void: _threat = t)
 	EventBus.note_found.connect(func(_id: StringName) -> void: hold_duck(DUCK_NOTE, &"Music", Tuning.AUDIO_NOTE_DUCK_MUSIC_DB))
 	ducker.apply(DUCK_STILL)
@@ -95,6 +106,7 @@ func stop_all() -> void:
 	_fading_tones.clear()
 	_room_tone = null
 	_stratum = &""
+	music.stop(0.05)
 
 
 # --------------------------------------------------------------------------- playback
@@ -122,6 +134,13 @@ func play_3d(id: StringName, pos: Vector3, bus: StringName = &"", volume_db: flo
 	var p := pool.take_3d()
 	p.stream = s
 	p.bus = bus if bus != &"" else library.bus(id)
+	if p.bus == &"Errors" and String(id).begins_with("foot_"):
+		# 03 Echo: the player's own step, 20 ms extra reverb (echo_foot_<surface>).
+		var echo_id := StringName("echo_" + String(id))
+		var es := _one_shot_stream(echo_id) if library.has(echo_id) else null
+		if es != null:
+			id = echo_id
+			p.stream = es
 	p.global_position = pos
 	var rt := library.runtime(id)
 	p.max_distance = float(rt.get("max_distance", 0.0))
@@ -131,6 +150,9 @@ func play_3d(id: StringName, pos: Vector3, bus: StringName = &"", volume_db: flo
 		pitch *= AudioMix.hashed_pitch(pos, float(rt["pitch_hash"]))
 	p.pitch_scale = maxf(pitch, 0.01)
 	var captioned := pool.start(p, id, volume_db, _clock)
+	var l := listener_node()
+	if l != null and AudioOcclusion.wants_check(p):
+		AudioOcclusion.apply_now(p, AudioOcclusion.is_occluded(p, l.global_position))
 	_after_play(id, pos, p.bus, captioned)
 	return p
 
@@ -230,6 +252,8 @@ func release_duck(key: StringName) -> void:
 ## Total silence on a bus for `seconds`, past the room-tone floor (Flicker's lunge, 03 §6).
 func silence(bus: StringName, seconds: float) -> void:
 	ducker.silence(bus, seconds)
+	if bus in SILENCE_TOTAL_BUSES:
+		music.silence(seconds)
 
 
 ## The duck offset applied to `bus` right now, after rule 3.
@@ -281,11 +305,20 @@ func tick(delta: float) -> void:
 	if _occlusion_wait <= 0.0:
 		_occlusion_wait = Tuning.AUDIO_OCCLUSION_INTERVAL
 		_loops3d = _loops3d.filter(func(p: Variant) -> bool: return is_instance_valid(p))
-		var l := _listener_node()
+		var l := listener_node()
 		if l != null:
 			AudioOcclusion.tick(pool.players_3d, l.global_position)
 			AudioOcclusion.tick(_loops3d, l.global_position)
-	_tick_heartbeat(delta)
+	feeds.tick(_threat, _coherence)
+
+
+## The listener's distance to Null (INF when none) and whether it is in the core.
+func null_distance() -> float:
+	return feeds.null_distance
+
+
+func in_null_core() -> bool:
+	return feeds.null_core
 
 
 # --------------------------------------------------------------------------- internals
@@ -314,32 +347,25 @@ func _caption(id: StringName, pos: Vector3, bus: StringName) -> void:
 		key = "CAPTION_ECHO_FOOTSTEP"
 	if key.is_empty():
 		return
+	caption_key(key, pos)
+
+
+func caption_key(key: String, pos: Vector3) -> void:
 	if not _captions.has(key):
-		push_error("AudioManager: caption %s for %s is not in Strings" % [key, id])
+		push_error("AudioManager: caption %s is not in Strings" % key)
 		return
 	EventBus.audio_cue.emit(AudioMix.format_caption(String(_captions[key]), _listener_transform(), pos), pos)
 
 
-func _listener_node() -> Node3D:
+func listener_node() -> Node3D:
 	if _listener != null and is_instance_valid(_listener) and _listener.is_inside_tree():
 		return _listener
 	return get_viewport().get_camera_3d() if get_viewport() != null else null
 
 
 func _listener_transform() -> Transform3D:
-	var l := _listener_node()
+	var l := listener_node()
 	return l.global_transform if l != null else Transform3D.IDENTITY
-
-
-func _tick_heartbeat(delta: float) -> void:
-	var level := AudioMix.heartbeat_level(_threat, _coherence)
-	if level <= 0.0 or get_tree().paused:
-		_heartbeat_wait = 0.0
-		return
-	_heartbeat_wait -= delta
-	if _heartbeat_wait <= 0.0:
-		play_2d(&"heartbeat", linear_to_db(level))
-		_heartbeat_wait = 60.0 / AudioMix.heartbeat_bpm(_threat, _coherence)
 
 
 # --------------------------------------------------------------------------- bus events
@@ -367,41 +393,8 @@ func _on_run_started(_mode: StringName, _seed: int) -> void:
 
 
 func _clear_level_state() -> void:
-	_near.clear()
+	feeds.near.clear()
 	_step_surface = &""
 	release_duck(DUCK_ERRORS_NEAR)
 	release_duck(DUCK_STILL)
 	release_duck(DUCK_NOTE)
-
-
-func _on_noise_emitted(pos: Vector3, radius: float, kind: StringName) -> void:
-	if kind != Tuning.NOISE_KIND_STEP:
-		return
-	var surface := step_surface()
-	var walk := Tuning.NOISE_STEP_WATER_RADIUS if surface == &"water" \
-		else float(Tuning.NOISE_STEP_RADIUS.get(surface, radius))
-	# Sprint, crouch and wading scale the noise radius; the step's level follows it.
-	play_3d(StringName("foot_%s" % surface), pos, &"", linear_to_db(maxf(radius, 0.01) / maxf(walk, 0.01)))
-
-
-## 03 §3 ducking: Ambience -4 dB with any error within 10 m; 08 Still: -6 dB within 8 m
-## (the room goes quiet, captioned `[silence]`).
-func _on_error_proximity(id: StringName, distance: float) -> void:
-	_near[id] = distance
-	var any_near := false
-	for d: float in _near.values():
-		any_near = any_near or d < Tuning.AUDIO_ERRORS_DUCK_DIST
-	if any_near:
-		if not ducker.has(DUCK_ERRORS_NEAR):
-			hold_duck(DUCK_ERRORS_NEAR, &"Ambience", Tuning.AUDIO_ERRORS_DUCK_AMBIENCE_DB)
-	else:
-		release_duck(DUCK_ERRORS_NEAR)
-	var still_near := id == &"still" and distance < Tuning.STILL_SILENCE_RANGE
-	if id == &"still":
-		if still_near and not ducker.has(DUCK_STILL):
-			hold_duck(DUCK_STILL, &"Ambience", Tuning.STILL_SILENCE_DB)
-			var at := _listener_transform().origin
-			EventBus.audio_cue.emit(Strings.CAPTION_STILL_SILENCE, at)
-		elif not still_near:
-			release_duck(DUCK_STILL)
-

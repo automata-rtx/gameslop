@@ -20,6 +20,9 @@ ceiling_db = -6.0
 cutoff_hz = 90.0
 gain = 1.2589254
 
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_dqt2m"]
+cutoff_hz = 600.0
+
 [resource]
 bus/0/effect/0/effect = SubResource("AudioEffectHardLimiter_j3pel")
 bus/0/effect/0/enabled = true
@@ -73,6 +76,8 @@ bus/7/mute = false
 bus/7/bypass_fx = false
 bus/7/volume_db = 0.0
 bus/7/send = &"Master"
+bus/7/effect/0/effect = SubResource("AudioEffectLowPassFilter_dqt2m")
+bus/7/effect/0/enabled = true
 bus/8/name = &"UI"
 bus/8/solo = false
 bus/8/mute = false

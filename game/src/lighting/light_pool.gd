@@ -24,6 +24,10 @@ var shadow_bias: float = 0.05
 var light_kind: StringName = &"omni"
 ## Metres the pooled light hangs below its fixture (02 §6 tuning: deeper = stronger pools).
 var light_drop: float = Tuning.LIGHT_FIXTURE_DROP
+## Metres a wall- or pillar-mounted fixture's light stands out from the face it hangs on
+## (M2.13a Garage: a light on the face itself is half hidden by its own pillar, which then
+## throws a 180 degree shadow over the floor behind it). Needs `grid`; 0 = on the fixture.
+var light_out: float = 0.0
 var spot_angle: float = 70.0
 var spot_attenuation: float = 1.0
 ## Hum loop ids (03): most fixtures hum, a hashed few buzz.
@@ -48,11 +52,14 @@ var _topology: FixtureGroups
 var grid: LevelGrid:
 	set(g):
 		grid = g
+		_anchors.clear()
 		_selector = LightSelector.new(g)
 		for f in _fixtures:
 			_selector.add(f.global_position)
 		_topology = null
 var _selector: LightSelector = LightSelector.new()
+## Fixture -> its light's anchor (fixtures never move; cleared when the light fields change).
+var _anchors: Dictionary = {}
 
 
 ## Reads the stratum's fixture light (02 §7) and the preset's pool size and shadow count.
@@ -64,6 +71,8 @@ func configure(data: StratumData, preset: StringName = Tuning.QUALITY_PRESET_DEF
 	light_attenuation = float(Tuning.LIGHT_FIXTURE_ATTENUATION_STRATUM.get(data.id, Tuning.LIGHT_FIXTURE_ATTENUATION))
 	light_kind = Tuning.LIGHT_FIXTURE_KIND.get(data.id, &"omni")
 	light_drop = float(Tuning.LIGHT_FIXTURE_DROP_STRATUM.get(data.id, Tuning.LIGHT_FIXTURE_DROP))
+	light_out = float(Tuning.LIGHT_FIXTURE_OUT_STRATUM.get(data.id, 0.0))
+	_anchors.clear()
 	spot_angle = Tuning.LIGHT_SPOT_ANGLE
 	spot_attenuation = Tuning.LIGHT_SPOT_ANGLE_ATTENUATION
 	shadow_bias = data.shadow_bias
@@ -74,6 +83,7 @@ func configure(data: StratumData, preset: StringName = Tuning.QUALITY_PRESET_DEF
 
 ## Re-creates the pooled lights after a change to the light fields (tuning, preset).
 func rebuild_lights() -> void:
+	_anchors.clear()
 	_make_lights(pool_size, shadowed)
 	reevaluate()
 
@@ -271,9 +281,20 @@ func is_lit(pos: Vector3) -> bool:
 	return false
 
 
-## Where a fixture's pooled light hangs.
+## Where a fixture's pooled light hangs: `light_drop` below it and, for a fixture mounted on
+## the face of a cell nobody walks in (a Garage pillar), `light_out` out from that face.
 func anchor_of(f: Fixture) -> Vector3:
-	return f.global_position - Vector3(0.0, float(f.light_value(&"drop", light_drop)), 0.0)
+	if _anchors.has(f):
+		return _anchors[f]
+	var a := f.global_position - Vector3(0.0, float(f.light_value(&"drop", light_drop)), 0.0)
+	if light_out > 0.0 and grid != null and f.is_inside_tree():
+		var c := grid.cell_of(a)
+		var off := a - grid.world_of(c)
+		off.y = 0.0
+		if grid.in_bounds(c) and not grid.is_walkable(c) and off.length() > 0.01:
+			a += off.normalized() * light_out
+		_anchors[f] = a
+	return a
 
 
 func active_light_count() -> int:

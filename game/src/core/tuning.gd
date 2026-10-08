@@ -1013,6 +1013,7 @@ const CYCLE2_SURFACE_UNRENDER_U := 0.2
 # 02 §3 renderer
 const RENDER_AO_RADIUS := 1.0
 const RENDER_AO_INTENSITY := 2.0
+const RENDER_AO_INTENSITY_STRATUM: Dictionary = {&"garage": 1.5}   # M2.13a: per-stratum SSAO strength (Garage corners and car flanks went flat black, T3)
 const RENDER_AO_LIGHT_AFFECT := 0.5                 # AO darkens direct light too, so seams read under fixtures (render-task constant)
 const RENDER_GLOW_THRESHOLD := 1.0                  # HDR
 const RENDER_GLOW_INTENSITY := 0.6
@@ -1022,7 +1023,10 @@ const RENDER_FPS_TARGET := 60
 # Render-task implementation constants (02 gives no number; chosen against T1/T3 in the
 # render bench, M1.5). Volumetric fog: emission in the fog colour keeps unlit air visible.
 const RENDER_FOG_EMISSION_ENERGY := 0.2
-const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 0.8, &"server": 4.5}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3; M2.2: Server surfaces are #0A0C10, only lit fog shows the aisles, T1/T3)
+const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 3.0, &"server": 4.5}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3; M2.13a: 0.8 -> 3.0, the deep shadows hold amber air; M2.2: Server surfaces are #0A0C10, only lit fog shows the aisles)
+# M2.13a: strata whose surfaces reflect the background (the fog colour, 02 §6 "sky colour is
+# the fog colour"): Pools' wet tile and chrome take a faint teal sheen; elsewhere reflections stay off.
+const RENDER_REFLECT_BACKGROUND_STRATA: Array[StringName] = [&"pools"]
 const RENDER_FOG_AMBIENT_INJECT := 1.0
 const RENDER_FOG_LENGTH := 64.0                     # m of froxel volume
 const RENDER_FOG_FROXEL_DEPTH := 64                 # froxel depth slices
@@ -1130,6 +1134,7 @@ const LIGHT_SPOT_ANGLE := 70.0                      # deg, spot fixtures: a wide
 const LIGHT_SPOT_ANGLE_ATTENUATION := 1.0
 const LIGHT_FIXTURE_DROP := 0.7                    # m, pooled light hangs below the tube so the ceiling reads lit
 const LIGHT_FIXTURE_DROP_STRATUM: Dictionary = {&"garage": 0.25}   # M2.1: sodium lamps on pillars light from the lamp (short pillar shadows, T1)
+const LIGHT_FIXTURE_OUT_STRATUM: Dictionary = {&"garage": 0.6}   # m, M2.13a: a pillar lamp's light stands this far out from the pillar face (its own pillar no longer shadows half the deck, T1)
 const LIGHT_FIXTURE_BUZZ_ENERGY := 0.85             # the one-in-six buzzing fixtures: tube and light energy (R4 V3)
 const LIGHT_FIXTURE_BUZZ_TINT := Color(0.9, 1.0, 0.86)   # and a slightly greener tube and light (multiplier)
 const LIGHT_FIXTURE_GLOW_ENERGY := 1.0              # ceiling halo around a lit tube (fixture_glow.gdshader; R4 V3)
@@ -1157,7 +1162,7 @@ const STRATUM_FOG_DENSITY: Dictionary = {
 	&"halls": 0.02, &"pools": 0.035, &"garage": 0.015, &"offices": 0.02, &"server": 0.03, &"substrate": 0.0,
 }
 const STRATUM_AMBIENT_ENERGY: Dictionary = {
-	&"halls": 0.08, &"pools": 0.2, &"garage": 0.12, &"offices": 0.15, &"server": 0.1, &"substrate": 0.05,
+	&"halls": 0.08, &"pools": 0.2, &"garage": 0.2, &"offices": 0.15, &"server": 0.1, &"substrate": 0.05,
 }
 const STRATUM_EXPOSURE: Dictionary = {
 	&"halls": 1.0, &"pools": 1.05, &"garage": 0.95, &"offices": 1.0, &"server": 1.1, &"substrate": 1.0,
@@ -1177,7 +1182,7 @@ const STRATUM_FIXTURE_SPACING: Dictionary = {
 const STRATUM_COLORS: Dictionary = {
 	&"halls": {&"fog": "#B49A3C", &"ambient": "#6E5A1E", &"fixture_light": "#FFEFC2", &"fixture_emission": "#FFF2C4"},
 	&"pools": {&"fog": "#5FA8A3", &"ambient": "#1F4A47", &"fixture_light": "#DDF0EE", &"fixture_emission": "#E8F6F5"},
-	&"garage": {&"fog": "#4A3A22", &"ambient": "#2A221A", &"fixture_light": "#FFA94D", &"fixture_emission": "#FF9A2E"},
+	&"garage": {&"fog": "#4A3A22", &"ambient": "#6A5032", &"fixture_light": "#FFA94D", &"fixture_emission": "#FF9A2E"},
 	&"offices": {&"fog": "#8E96A0", &"ambient": "#3A4048", &"fixture_light": "#DCE8F5", &"fixture_emission": "#E6F0FF"},
 	&"server": {&"fog": "#0D1B2A", &"ambient": "#0C1220", &"fixture_light": "#FF3B3B", &"fixture_emission": "#FF3B3B"},
 	&"substrate": {&"fog": "#000000", &"ambient": "#101010"},

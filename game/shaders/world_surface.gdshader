@@ -71,6 +71,19 @@ uniform float floor_seam = 0.0;
 uniform float floor_seam_width = 0.25;
 uniform float wear = 0.0;
 uniform float wear_from = 0.55;
+// Tiles (02 §7 Pools): the grout's roughness (< 0: the tile's), and a bevel of this width (m;
+// 0 = off) where the glazed tile's edge rolls into the grout, so fixture highlights break on
+// the grid. The bevel fades out once a tile is a few pixels wide (no shimmer under TAA).
+uniform float grout_roughness = -1.0;
+uniform float tile_bevel = 0.0;
+// Wet sheen (02 §7 Pools): `wet` makes the whole surface wet (basin interiors); `puddles` is
+// the share of a floor under standing water, in low-frequency noise patches about
+// `puddle_scale` metres across. Wet tile is darker and near-mirror smooth.
+uniform float wet = 0.0;
+uniform float puddles = 0.0;
+uniform float puddle_scale = 3.0;
+uniform float wet_roughness = 0.05;
+uniform float wet_darken = 0.12;
 
 // Constants mirrored from Tuning (02 §5); a test parses each line against tuning.gd.
 const float GRID_SPACING = 0.5;          // WORLD_GRID_SPACING
@@ -186,10 +199,22 @@ void fragment() {
 	float nz = texture(noise_albedo, puv * triplanar_scale).r;
 	vec3 base = a;
 	bool unlit = false;
+	float grout = 0.0;
+	vec2 bevel_n = vec2(0.0);
 	if (pattern_mode == 1) {
 		vec2 cell = floor(puv / pattern_scale);
 		float tint = (coh_hash12(cell) - 0.5) * 0.05;
-		base = mix(a * (1.0 + tint), b, seam_mask(puv, pattern_scale, pattern_detail));
+		grout = seam_mask(puv, pattern_scale, pattern_detail);
+		base = mix(a * (1.0 + tint), b, grout);
+		if (tile_bevel > 0.0) {
+			// Distance to the tile's edge along each axis (m); the bevel rolls the normal toward
+			// the grout over tile_bevel, faded out when a tile is under ~6 px.
+			vec2 f = (fract(puv / pattern_scale) - 0.5) * pattern_scale;
+			vec2 edge = 0.5 * (pattern_scale - pattern_detail) - abs(f);
+			vec2 roll = (1.0 - smoothstep(0.0, tile_bevel, edge)) * sign(f) * step(0.0, edge);
+			float tiles_px = pattern_scale / max(max(fwidth(puv.x), fwidth(puv.y)), 1e-5);
+			bevel_n = roll * 0.35 * smoothstep(6.0, 14.0, tiles_px);
+		}
 	} else if (pattern_mode == 2) {
 		// Vertical stripes: secondary of width pattern_detail every pattern_scale metres.
 		float x = fract(puv.x / pattern_scale) * pattern_scale;
@@ -261,6 +286,23 @@ void fragment() {
 	if (!vertical && n.y > 0.5 && floor_seam > 0.0) {
 		base *= 1.0 - floor_seam * (1.0 - smoothstep(0.0, floor_seam_width, COLOR.b));
 	}
+	if (grout_roughness >= 0.0) {
+		rough = mix(rough, grout_roughness, grout);
+	}
+	float wetness = wet;
+	if (puddles > 0.0 && n.y > 0.5) {
+		float pn = texture(noise_albedo, puv / puddle_scale * 0.25 + 0.13).r;
+		// The noise texture sits around 0.5 (p50 0.49, p98 0.8), so the threshold for a share
+		// `puddles` of the floor runs from 0.8 (none) down to the median (half), soft-edged.
+		float th = mix(0.8, 0.49, clamp(puddles * 2.0, 0.0, 1.0));
+		wetness = max(wetness, smoothstep(th - 0.05, th + 0.05, pn));
+	}
+	if (wetness > 0.0) {
+		// Water fills the grout first: a wet floor is smooth over the grid too.
+		base *= 1.0 - wet_darken * wetness;
+		rough = mix(rough, wet_roughness, wetness);
+		bevel_n *= 1.0 - wetness;
+	}
 
 	// 02 §5 soft walls: a faint moving interference band, 0.5 Hz, amplitude 0.08 (R11: 0.03
 	// did not read). Bands about 1 m apart drift up the wall at the band rate, their strength
@@ -292,9 +334,10 @@ void fragment() {
 	float u = max(u_other, u_prev) * (1.0 - held);
 
 	// ---- normal (noise, triplanar dominant plane) ----
-	if (normal_strength > 0.0) {
+	if (normal_strength > 0.0 || tile_bevel > 0.0) {
 		vec2 nm = texture(noise_normal, puv * triplanar_scale).xy * 2.0 - 1.0;
-		vec3 nw = normalize(n + (ta * nm.x + tb * nm.y) * normal_strength * (1.0 - u));
+		vec2 tilt = (nm * normal_strength + bevel_n) * (1.0 - u);
+		vec3 nw = normalize(n + ta * tilt.x + tb * tilt.y);
 		NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 	}
 
