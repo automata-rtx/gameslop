@@ -1,19 +1,13 @@
 class_name ErrorBase
 extends Node3D
-## The shared architecture of the five errors (08 §2). Each error has one rule, one
-## counter, one tell and one cost (08 §1); this base holds only what they share: the
-## state machine with canonical ids (Tuning.ERROR_STATE_*), honest senses (a Senses
-## child), notice and evasion events, contact through Player.contact, the Director link,
-## and the processing budget. Subclasses implement the rule in _tick().
-##
-## Director link (10): set_aggression(a), hint(pos), wake(), sleep(), retreat(seconds),
-## start_search(pos) (awake arrivals, 10 §4). The Director may put an error near the
-## player; it never tells it where the player is. A chase starts only from Senses.
-## Errors stay Dormant until the level's navigation is ready (07 §3, 14 §12): wake()
-## before that is remembered and applied when it is.
-## Contact (08 §2): `contact_request` (error) -> bool, injected by the Director, is asked
-## first; then Player.contact(self, cost), whose own `contact_gate` may refuse too. Use one
-## of the two for the 3 s exclusivity, not both (each approval starts the 3 s window).
+## The shared architecture of the five errors (08 §2): one rule, counter, tell and cost
+## each (08 §1); this base holds the state machine (Tuning.ERROR_STATE_*), honest senses
+## (%Senses), notice and evasion, contact, the Director link and the processing budget.
+## Subclasses implement the rule in _tick(). The Director may put an error near the player
+## (hint, wake, retreat, start_search); it never tells it where the player is: a chase
+## starts only from Senses, and a contact only from a chase (can_contact). Errors stay
+## Dormant until the level's navigation is ready (07 §3, 14 §12). Contact asks
+## `contact_request` (Director) then Player.contact (its `contact_gate`): wire one, not both.
 
 signal state_changed(from: StringName, to: StringName)
 signal contacted_player(cost: float)
@@ -23,6 +17,10 @@ signal lost_player
 signal noticed_player
 
 const GROUP := &"errors"
+## The states a contact may come from (R12, pillar 2): the Director's chase states plus
+## Flicker's Lunge, which only a Stalk or Attached charge enters.
+const CONTACT_STATES: Array[StringName] = [Tuning.ERROR_STATE_CHASE, Tuning.ERROR_STATE_FOLLOW,
+	Tuning.ERROR_STATE_STALK, Tuning.ERROR_STATE_ATTACHED, Tuning.ERROR_STATE_LUNGE]
 const SCENES: Dictionary = {
 	&"static": "res://scenes/errors/static.tscn",
 	&"still": "res://scenes/errors/still.tscn",
@@ -152,13 +150,17 @@ func set_aggression(a: float) -> void:
 
 
 ## A suggested destination, used only in Wander, Search and the Satiated retreat.
-## `immediate` (10 §2 Relief, 2026-10-08): in Wander or Search the error re-targets to it
-## at once instead of when its current leg ends. In any other state it is only stored.
+## `immediate` (10 §2 Relief): Wander and Search re-target at once; a chase state may let
+## go for it (_release_for_hint, R12: Echo's Follow); otherwise it is only stored.
 func hint(destination: Vector3, immediate: bool = false) -> void:
 	_hint = destination
 	_has_hint = true
-	if immediate and (state == Tuning.ERROR_STATE_WANDER or state == Tuning.ERROR_STATE_SEARCH):
+	if not immediate:
+		return
+	if state == Tuning.ERROR_STATE_WANDER or state == Tuning.ERROR_STATE_SEARCH:
 		_retarget_to_hint()
+	elif Tuning.DIRECTOR_CHASE_STATES.has(state):
+		_release_for_hint()
 
 
 func clear_hint() -> void:
@@ -298,10 +300,16 @@ func _evade() -> void:
 	GameState.record_evasion(error_id)
 
 
-## The 08 §2 contact test, called each physics frame by an error that contacts: within
-## `radius` (XZ, one floor) for 2 consecutive physics frames and not hidden.
+## Pillar 2 (2026-10-08 ruling, R12): a contact follows a notice and a chase, so only a
+## chase state may make one; elsewhere both contact paths refuse before any gate is asked.
+func can_contact() -> bool:
+	return CONTACT_STATES.has(state)
+
+
+## The 08 §2 contact test, each physics frame: within `radius` (XZ, one floor) for 2
+## consecutive physics frames, not hidden, and in a chase state (can_contact).
 func contact_step(radius: float, cost: float) -> bool:
-	if not has_player() or player.is_hidden():
+	if not has_player() or player.is_hidden() or not can_contact():
 		_contact_frames = 0
 		return false
 	var a := body_position()
@@ -317,7 +325,7 @@ func contact_step(radius: float, cost: float) -> bool:
 ## Contact through the gates: contact_request (Director), then Player.contact (which
 ## applies cost, stun, push and asks its own contact_gate). On success: Satiated 20 s.
 func try_contact(cost: float) -> bool:
-	if not has_player():
+	if not has_player() or not can_contact():
 		return false
 	if contact_request.is_valid() and not bool(contact_request.call(self)):
 		return false
@@ -388,3 +396,5 @@ func _on_contact() -> void: pass
 func _on_player_gone() -> void: pass
 ## A hint marked immediate arrived in Wander or Search: re-target to `_hint` now.
 func _retarget_to_hint() -> void: pass
+## An immediate hint in a chase state (Relief entry): Echo lets go; default: stored only.
+func _release_for_hint() -> void: pass
