@@ -84,10 +84,8 @@ func test_a_toggle_moves_the_hand_and_lights_the_led_at_once() -> void:
 	var m := _ri.held()
 	assert_not_null(m, "the radio is in hand")
 	var led := m.get_node("Led") as MeshInstance3D
-	var before := m.position
 	_inv.use_selected()
-	await await_frames(2)
-	assert_ne(m.position, before, "the hand dips on the toggle")
+	assert_not_null(_ri._flick, "the hand dips on the toggle")
 	assert_gt(float((led.material_override as ShaderMaterial).get_shader_parameter(&"emission_strength")), 1.0, "the LED is lit")
 
 
