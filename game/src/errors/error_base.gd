@@ -47,8 +47,12 @@ var senses: Senses
 var state_time: float = 0.0
 ## Recent transitions, `STILL: Wander → Chase (seen 1.5 s)` (14 §9 debug overlay).
 var log_lines: PackedStringArray = []
+## The seed given to setup() (presentation rngs derive from it).
+var seed_value: int = 0
 
 var _wake_pending: bool = false
+## start_search() before navigation was ready: enter Search (not Wander) once it is.
+var _search_pending: bool = false
 var _dormant_acc: float = 0.0
 var _sense_acc: float = 0.0
 var _prox_acc: float = 0.0
@@ -85,6 +89,7 @@ static func aggr_lerp(low: float, high: float, a: float) -> float:
 func _init() -> void:
 	add_to_group(GROUP)
 	add_to_group(DebugOverlay.GROUP)
+	ErrorTiming.ensure_monitor()
 
 
 func _ready() -> void:
@@ -102,9 +107,10 @@ func _ready() -> void:
 
 ## Call before or after adding to the tree. `level` may be null in hand-built rooms (then
 ## call set_navigation_ready yourself). `seed_value`: Seeds.derive(level_seed, seed_label()).
-func setup(p_player: Player, p_level: Level = null, seed_value: int = 0) -> void:
+func setup(p_player: Player, p_level: Level = null, p_seed: int = 0) -> void:
 	player = p_player
-	rng = Seeds.rng(seed_value)
+	seed_value = p_seed
+	rng = Seeds.rng(p_seed)
 	_on_seeded()
 	if p_level != null:
 		bind_level(p_level)
@@ -126,7 +132,11 @@ func set_navigation_ready(ok: bool) -> void:
 	navigation_ready = ok
 	if ok and _wake_pending:
 		_wake_pending = false
-		wake()
+		if _search_pending:
+			_search_pending = false
+			transition_to(Tuning.ERROR_STATE_SEARCH, "awake", true)
+		else:
+			wake()
 
 
 # --- Director link (08 §2, 10) --------------------------------------------------------
@@ -160,6 +170,7 @@ func wake() -> void:
 
 func sleep() -> void:
 	_wake_pending = false
+	_search_pending = false
 	_engaged = false
 	transition_to(Tuning.ERROR_STATE_DORMANT, "sleep")
 
@@ -174,13 +185,15 @@ func retreat(seconds: float) -> void:
 
 
 ## 10 §4 awake arrivals: Search from a Director-chosen point (never the player's).
+## Before navigation is ready the Search is remembered and entered when it is.
 func start_search(pos: Vector3) -> void:
-	if not navigation_ready:
-		_wake_pending = true
 	senses.last_known_pos = pos
 	senses.last_known_time = senses.clock
-	if navigation_ready:
-		transition_to(Tuning.ERROR_STATE_SEARCH, "awake", true)
+	if not navigation_ready:
+		_wake_pending = true
+		_search_pending = true
+		return
+	transition_to(Tuning.ERROR_STATE_SEARCH, "awake", true)
 
 
 func distance_to_player() -> float:
@@ -297,6 +310,12 @@ func try_contact(cost: float) -> bool:
 # --- processing budget (08 §2) -----------------------------------------------------------
 
 func _physics_process(delta: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	_process_error(delta)
+	ErrorTiming.account(error_id, Time.get_ticks_usec() - t0)
+
+
+func _process_error(delta: float) -> void:
 	if state == Tuning.ERROR_STATE_DORMANT:
 		# Dormant errors run only a 1 s timer.
 		_dormant_acc += delta
@@ -320,7 +339,8 @@ func _physics_process(delta: float) -> void:
 ## 14 §9 debug overlay line.
 func debug_info() -> Dictionary:
 	var d := distance_to_player()
-	return {String(error_id): "%s %s" % [state, "-" if is_inf(d) else "%.1f m" % d]}
+	return {String(error_id): "%s %s" % [state, "-" if is_inf(d) else "%.1f m" % d],
+		"errors ms": "%.3f" % ErrorTiming.errors_ms()}
 
 
 # --- virtuals -------------------------------------------------------------------------------

@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/levelgen/props/pool_drip.gd" id="1_r"]
+
+[sub_resource type="ParticleProcessMaterial" id="Process_drop"]
+gravity = Vector3(0, -9.8, 0)
+direction = Vector3(0, -1, 0)
+spread = 0.0
+initial_velocity_min = 0.0
+initial_velocity_max = 0.0
+
+[sub_resource type="StandardMaterial3D" id="Mat_drop"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.909804, 0.964706, 0.960784, 0.55)
+billboard_mode = 2
+
+[sub_resource type="QuadMesh" id="Mesh_drop"]
+material = SubResource("Mat_drop")
+size = Vector2(0.008, 0.06)
+
+[node name="Drip" type="Node3D"]
+script = ExtResource("1_r")
+
+[node name="Drops" type="GPUParticles3D" parent="."]
+unique_name_in_owner = true
+cast_shadow = 0
+amount = 1
+lifetime = 4.0
+visibility_aabb = AABB(-0.5, -9, -0.5, 1, 9.5, 1)
+process_material = SubResource("Process_drop")
+draw_pass_1 = SubResource("Mesh_drop")

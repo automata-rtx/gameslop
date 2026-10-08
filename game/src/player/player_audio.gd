@@ -24,8 +24,12 @@ var _on: Dictionary = {}
 ## key -> last pitch01
 var _pitch01: Dictionary = {}
 ## Coherence units lost and not yet ticked, and the wait before the next tick.
+const LOSS_QUIET_S := 1.0
 var _loss_pending: float = 0.0
 var _loss_wait: float = 0.0
+## Seconds since the last loss; a loss after a quiet spell ticks at once even when it is
+## a fraction of a unit (11 §3: the sound channel within 50 ms of the first loss).
+var _since_loss: float = INF
 
 
 func play(id: StringName) -> void:
@@ -71,12 +75,19 @@ func stop_loop(key: StringName, fade_out: float = 0.0) -> void:
 ## AUDIO_LOSS_TICK_MAX_HZ. Fractions (Static's 4 per second) accumulate; the first tick
 ## of a loss plays at once.
 func add_loss(units: float) -> void:
-	_loss_pending += maxf(units, 0.0)
+	if units <= 0.0:
+		return
+	var fresh := _since_loss >= LOSS_QUIET_S
+	_since_loss = 0.0
+	_loss_pending += units
+	if fresh and _loss_wait <= 0.0 and _loss_pending < 1.0:
+		_loss_pending = 1.0  # the first tick of a new loss pays for its fraction
 	tick(0.0)
 
 
 ## Advances the loss-tick rate limit; called every physics frame by the Player.
 func tick(dt: float) -> void:
+	_since_loss += dt
 	_loss_wait = maxf(0.0, _loss_wait - dt)
 	if _loss_wait > 0.0 or _loss_pending < 1.0:
 		return
@@ -98,6 +109,7 @@ func reset() -> void:
 	stop_all()
 	clear_loss()
 	_loss_wait = 0.0
+	_since_loss = INF
 
 
 func stop_all() -> void:

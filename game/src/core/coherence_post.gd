@@ -115,10 +115,11 @@ static func flash_amount(frames_since: int, age_s: float, reduce_flashing: bool)
 ## The full uniform set. `ages` maps pulse kind -> seconds since it fired (INF or < 0 when
 ## never), plus `drop_arrival`; `frames` maps kind -> process frames since it fired (-1 when
 ## never). `beat_phase`: the heartbeat phase. `static_amount`: 0..1 inside Static's field.
+## `drain_floor`: the drain never reads below it (08 §3, 0.6 inside Static).
 static func compute(coherence01: float, noclip_charge: float, threat: float, ages: Dictionary,
 		frames: Dictionary, beat_phase: float, reduce_noise: bool, reduce_flashing: bool,
-		static_amount: float = 0.0) -> Dictionary:
-	var drain := drain_of(coherence01)
+		static_amount: float = 0.0, drain_floor: float = 0.0) -> Dictionary:
+	var drain := maxf(drain_of(coherence01), clampf(drain_floor, 0.0, 1.0))
 	var hit_age: float = ages.get(&"hit", INF)
 	var hit := expo_decay(hit_age, Tuning.POST_PULSE_HIT_DECAY_MS / 1000.0)
 	var commit := commit_envelope(ages.get(&"noclip_commit", INF))

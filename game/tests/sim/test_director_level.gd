@@ -166,3 +166,82 @@ func test_end_releases_the_gate() -> void:
 	assert_false(_p.contact_gate.is_valid())
 	_advance(40.0)
 	assert_eq(_d.phase, DirectorPacing.CALM, "an ended Director no longer runs")
+
+
+func _into_build() -> void:
+	_advance(Tuning.DIRECTOR_CALM_TIME + 0.05)
+	assert_eq(_d.phase, DirectorPacing.BUILD)
+
+
+## cp-04 review: a chase that starts in Relief is sent away as in Calm, and is not an encounter.
+func test_a_chase_in_relief_is_sent_away() -> void:
+	_begin()
+	var h := _hunter()
+	_into_build()
+	_d.pacing._enter(DirectorPacing.RELIEF, 30.0)
+	h.transition_to(Tuning.ERROR_STATE_CHASE, "test")
+	assert_eq(h.state, Tuning.ERROR_STATE_SATIATED, "no chase in Relief")
+	assert_approx(h._satiated_left, 30.0, 0.15, "sent away for the rest of Relief")
+	assert_eq(_d.retreated_chases, 1)
+	assert_eq(_d.encounters, 0, "a sent-away chase is not an encounter")
+	_d.pacing._enter(DirectorPacing.BUILD)
+	h.transition_to(Tuning.ERROR_STATE_CHASE, "test")
+	assert_eq(h.state, Tuning.ERROR_STATE_CHASE, "Build lets a chase run")
+	assert_eq(_d.encounters, 1)
+
+
+## 05 §10: on the first Descent depth 1 keeps a hunter dormant through Build and the 0.8
+## wake, and Static drifts inside a side loop off the critical path.
+func test_first_descent_keeps_hunters_dormant_and_static_off_path() -> void:
+	var was := _level.data.first_run
+	_level.data.first_run = true
+	_begin()
+	_level.data.first_run = was
+	assert_eq(_d.roster, [&"static"] as Array[StringName], "first Descent depth 1: Static only")
+	var h := _hunter()
+	_into_build()
+	assert_true(h.is_dormant(), "Build does not wake it")
+	_d.pacing.intensity = 0.9
+	_advance(0.2)
+	assert_true(h.is_dormant(), "nor does intensity 0.8")
+	assert_eq(_d.phase, DirectorPacing.BUILD, "no Peak without a hunter it may wake")
+	var f := _d.hunters.bound_statics_off_path()
+	assert_true(f.is_valid(), "a side-loop filter for Static")
+	var g := _level.data.grid
+	for c in _level.data.critical_path:
+		assert_false(bool(f.call(c)), "critical path cell %s is outside the loop" % c)
+		assert_false(bool(f.call(g.world_of(c))), "also as a world position")
+	var inside := 0
+	for i in g.cell_count():
+		inside += 1 if bool(f.call(g.cell_at(i))) else 0
+	assert_true(inside >= 3, "the loop has room to drift (%d cells)" % inside)
+
+
+## 10 §2 crank row: the Flashlight's crank tick counts, a 12 m mech noise alone does not.
+func test_crank_counts_from_the_flashlight_tick() -> void:
+	_begin()
+	_into_build()
+	var i0 := _d.intensity
+	EventBus.noise_emitted.emit(_p.global_position, Tuning.NOISE_CRANK_RADIUS, Tuning.NOISE_KIND_MECH)
+	assert_approx(_d.intensity, i0, 0.0001, "a mech noise of the crank's radius is not a crank")
+	_p.flashlight.crank_tick.emit()
+	assert_approx(_d.intensity, i0 + Tuning.INTENSITY_NOISE_CRANK, 0.0001, "+0.10 per crank tick")
+
+
+## cp-04 review (Peak pressure): the 0.8 wake enters Peak and, while no chase starts, the
+## woken hunter is hinted again to a cell 12 m from the player every 20 s.
+func test_peak_without_a_chase_rehints_the_woken_hunter() -> void:
+	_begin()
+	var h := _hunter()
+	_into_build()
+	_d.pacing.intensity = 0.85
+	_advance(0.1)
+	assert_eq(_d.phase, DirectorPacing.PEAK)
+	assert_eq(_d.hunters.peak_hunter, h, "the woken hunter is tracked")
+	h.clear_hint()
+	_advance(Tuning.DIRECTOR_HINT_INTERVAL + 0.05)
+	assert_eq(_d.phase, DirectorPacing.PEAK)
+	assert_true(h.has_hint(), "hinted again after 20 s")
+	var d := DirectorSpawn.flat_dist(h._hint, _p.global_position)
+	assert_true(absf(d - Tuning.DIRECTOR_WAKE_HINT_DIST) <= Tuning.DIRECTOR_HINT_DIST_TOLERANCE + 0.01,
+		"to a cell 12 m out, not the player (%.1f m)" % d)

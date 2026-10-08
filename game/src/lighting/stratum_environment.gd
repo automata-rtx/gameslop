@@ -108,7 +108,7 @@ static func _apply_fog(env: Environment, data: StratumData, p: Dictionary) -> vo
 		env.volumetric_fog_density = data.fog_density
 		env.volumetric_fog_albedo = data.fog_color
 		env.volumetric_fog_emission = data.fog_color
-		env.volumetric_fog_emission_energy = Tuning.RENDER_FOG_EMISSION_ENERGY
+		env.volumetric_fog_emission_energy = float(Tuning.RENDER_FOG_EMISSION_STRATUM.get(data.id, Tuning.RENDER_FOG_EMISSION_ENERGY))
 		env.volumetric_fog_ambient_inject = Tuning.RENDER_FOG_AMBIENT_INJECT
 		env.volumetric_fog_length = Tuning.RENDER_FOG_LENGTH
 		env.volumetric_fog_sky_affect = 0.0

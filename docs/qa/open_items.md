@@ -26,7 +26,6 @@ Deferred work found during production. Each line names the task that should abso
 - HUD owner: needs a dim keyless prompt (`FUSE MISSING` for Variant B breaker without a fuse); clear the exit line while in the cabin.
 - M2.1: depths 2+ generate as Halls until the other grammars exist (HUD shows HALLS, summary names the planned stratum).
 - M2.2: decide rack noclip (07 §7 says racks are WALL on all four faces, but a rack cell is not walkable so the query says NO SPACE). Proposal: a rack face passes through the whole rack to the far walkable cell.
-- Errors owner: `sim/test_still.gd::test_satiated_retreats_away` failed once and passed on rerun (R5 report). Find the nondeterminism (physics timing, nav bake timing) and make it deterministic.
 - M2.10: use a custom user folder (`application/config/use_custom_user_dir`, name `NOCLIP`) so saves live in %APPDATA%\NOCLIP and ~/.local/share/NOCLIP; update README.txt.in. Windows build smoke must be run on Windows by the human at cp-13.
 - Errors owner: `ErrorBase.start_search` before navigation is ready ends in Wander, not Search (Director re-calls it on navigation_ready as a workaround).
 - M2.14: Director should feed `MusicDirector.set_intensity` once it exists.
@@ -35,3 +34,15 @@ Deferred work found during production. Each line names the task that should abso
 - M2.11: title shows `SaveManager.consume_reset_notice()` and the Daily result; title asks `GameState.is_mode_available`/`is_loadout_available` before start_run.
 - Player/run owner: apply `RunState.crank_rate_mult` (player crank) and `flicker_attract_mult` (Flicker, M2.5); update `RunState.distance_m` from player movement.
 - (M2.10 done: custom user dir, note recording, strata_reached, score via Clock.)
+
+- M1.12 feedback gaps (bench rows pinned as `gap` in `game/src/debug/feedback_rows.gd`; promote to implemented when closed): `Unlock earned` plays no sound (`ui_unlock` is in the manifest, nothing calls it; `Hud._on_unlock_earned` should `AudioManager.play_2d(&"ui_unlock")`); `Still within 8 m` shows no `[silence]` caption (AudioManager emits `audio_cue`, no HUD subscriber until captions, M2.12).
+- M1.12 timing nits (rows pass on other channels): `Leave hide spot` lifts the view mask at the end of the 0.6 s slide, not at the start (11 §2 lists it as the Image channel); `Enter exit` shows `DESCENDING` at the end of the 0.6 s tween (`level_left`), not on entering; `Arrival (proper)` door sound plays when the cabin door opens, about 1 s before `level_entered` and the depth label; `Item use: Polaroid` count and Coherence land at 1.2 s by design (late in the bench).
+- M1.12 contract nits for the design owner: `Crouch / stand` lists only Sound and Motion (two channels, below the three of 11 §1; not in the CHANGELOG exceptions); `Interact hold` lists the prompt underline as Image and the fill bar as Readout, which are one widget, so the bench counts it on both.
+- M1.12 / TODO(M2) in `player_locomotion.gd`: the walk step's dust stir (11 §2 Image, Halls/Garage/Offices) is not implemented; the step's Image channel today is the held flashlight and item bob.
+- M1.12: `tools/ci/test.sh --filter X` now skips files with no matching test, so a slow `before_all` no longer runs for them.
+- M3.2: Still's drawn column (0.5 × 2.6 m) is taller than its body (0.4 × 1.8 m), so a Still frozen in a doorway shows its top inside the 2.1 m header. Consider freezing only outside doorways or shortening the column in doorways.
+- M3.5: error budget: Still 0.15–0.18 ms + Static 0.07 ms headless; depth 4+ with two hunters will likely exceed 0.3 ms. Profile and budget.
+- Errors owner: Static records a notice on every field entry (31–277 per run in sims); 08 §3 notice for Static should fire once per encounter (e.g. not again until evasion). Also verify the hide path end to end (the cautious bot never reached a locker).
+- Intermittent: the sim child engine (tests/sim/test_sim_run.gd) aborted once with exit 134 during a gate run under load; it did not reproduce in 4 standalone runs. The test now prints the child's last 60 lines on failure. If it recurs, root-cause it (suspect worker-thread level build or nav bake race). Not a flake to ignore.
+- Watch: LevelBuilder slice p90 measured 4.91 ms once under machine load (budget 4 ms); passes when the machine is quieter. M3.5 should measure on a real machine.
+- M2.13: Garage fails T1 near the camera (floor 0.04–0.05 at 2–4 m in pillar shadows; black corners in ramp and soft-wall frames). LevelShots measures floor brightness only at y = 0 (no T1 for deck 1). Garage corridor_long pose can start inside a parked car.

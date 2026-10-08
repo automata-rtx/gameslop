@@ -113,18 +113,19 @@ func test_plan_is_deterministic() -> void:
 	assert_eq(again.boxes.size(), _plan.boxes.size())
 
 
-## R4 #3: the plan models Halls only until M2.1 (heights, ramps, basins, racks); any other
-## stratum is reported loudly instead of being built wrong in silence.
+## R4 #3 / M2.1: the plan models Halls, Pools and Garage (heights, ramps, basins, pillars);
+## a stratum whose special cells it does not model yet is reported loudly.
 func test_unsupported_stratum_is_reported() -> void:
 	assert_eq(_plan.errors.size(), 0, "Halls is supported")
-	# The Pools grammar arrives with M2; a Halls grid labelled Pools stands in for it.
+	for st: StringName in [&"pools", &"garage"]:
+		assert_true(BuildPlan.SUPPORTED_STRATA.has(st))
+	# The Offices grammar arrives with M2.2; a Halls grid labelled Offices stands in for it.
 	var was := _level.stratum
-	_level.stratum = &"pools"
+	_level.stratum = &"offices"
 	var p := BuildPlan.make(_level, 3.0)
 	_level.stratum = was
 	assert_eq(p.errors.size(), 1)
-	assert_contains(p.errors[0], "M2.1")
-	assert_false(BuildPlan.SUPPORTED_STRATA.has(&"pools"))
+	assert_false(BuildPlan.SUPPORTED_STRATA.has(&"offices"))
 
 
 ## R4 #2: every void cell next to walkable space has a solid block.

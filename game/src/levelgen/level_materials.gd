@@ -6,6 +6,8 @@ extends RefCounted
 ## Door parts (not BuildPlan mesh classes; LevelPlacer asks for them per door).
 const C_DOOR_LEAF := 100
 const C_DOOR_HANDLE := 101
+## Pools water surface (water.gdshader, M2.1).
+const C_WATER := 102
 
 ## Surface material per class for each stratum (02 §7); a stratum without a table gets
 ## plain world-shader materials from its StratumData colours.
@@ -17,6 +19,24 @@ const MATERIALS: Dictionary = {
 		BuildPlan.C_SOFT: "res://data/materials/halls/soft_wall.tres",
 		C_DOOR_LEAF: "res://data/materials/halls/door_wood.tres",
 		C_DOOR_HANDLE: "res://data/materials/halls/prop_metal.tres",
+	},
+	&"pools": {
+		BuildPlan.C_FLOOR: "res://data/materials/pools/tile_floor.tres",
+		BuildPlan.C_CEILING: "res://data/materials/pools/tile_ceiling.tres",
+		BuildPlan.C_WALL: "res://data/materials/pools/tile_wall.tres",
+		BuildPlan.C_SOFT: "res://data/materials/pools/soft_wall.tres",
+		BuildPlan.C_BASIN: "res://data/materials/pools/basin_tile.tres",
+		C_DOOR_LEAF: "res://data/materials/pools/door_metal.tres",
+		C_DOOR_HANDLE: "res://data/materials/pools/prop_chrome.tres",
+		C_WATER: "res://data/materials/pools/water.tres",
+	},
+	&"garage": {
+		BuildPlan.C_FLOOR: "res://data/materials/garage/concrete_floor.tres",
+		BuildPlan.C_CEILING: "res://data/materials/garage/concrete_ceiling.tres",
+		BuildPlan.C_WALL: "res://data/materials/garage/concrete_wall.tres",
+		BuildPlan.C_SOFT: "res://data/materials/garage/soft_wall.tres",
+		C_DOOR_LEAF: "res://data/materials/garage/barrier.tres",
+		C_DOOR_HANDLE: "res://data/materials/garage/fixture_cage.tres",
 	},
 }
 const WORLD_SHADER := "res://shaders/world_surface.gdshader"

@@ -1,0 +1,123 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Material" path="res://data/materials/pools/prop_white.tres" id="1_r"]
+[ext_resource type="Material" path="res://data/materials/pools/prop_red.tres" id="2_r"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
+top_radius = 0.012
+bottom_radius = 0.012
+height = 2
+radial_segments = 6
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_2"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_3"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_4"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_5"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_6"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_7"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_8"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_9"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+rings = 1
+
+[node name="LaneRope" type="Node3D"]
+
+[node name="Rope" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_1")
+material_override = ExtResource("1_r")
+
+[node name="Float1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -0.875)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_2")
+material_override = ExtResource("2_r")
+
+[node name="Float2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -0.625)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_3")
+material_override = ExtResource("1_r")
+
+[node name="Float3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -0.375)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_4")
+material_override = ExtResource("2_r")
+
+[node name="Float4" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -0.125)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_5")
+material_override = ExtResource("1_r")
+
+[node name="Float5" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0.125)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_6")
+material_override = ExtResource("2_r")
+
+[node name="Float6" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0.375)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_7")
+material_override = ExtResource("1_r")
+
+[node name="Float7" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0.625)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_8")
+material_override = ExtResource("2_r")
+
+[node name="Float8" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0.875)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_9")
+material_override = ExtResource("1_r")

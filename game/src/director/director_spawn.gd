@@ -250,3 +250,70 @@ static func static_cuts_path(grid: LevelGrid, centre: Vector3, radius: float, fr
 			seen[n] = true
 			queue.append(n)
 	return true
+
+
+# --- 05 §10 first-Descent Static side loop ---------------------------------------------------
+
+## The cells Static may drift through on the first Descent: the walkable region reachable
+## from `from` without coming within the off-path clearance (6 m) of a critical-path cell,
+## the spawn room or the exit room. When that region is too small to drift in (fewer than
+## 3 cells), only the critical path and those rooms are excluded. Cell -> true.
+static func side_loop_cells(grid: LevelGrid, path: Array[Vector2i], from: Vector3) -> Dictionary:
+	for clearance: float in [Tuning.DIRECTOR_STATIC_OFF_PATH_CLEARANCE, 0.0]:
+		var ok := _region(grid, path, from, clearance)
+		if ok.size() >= 3:
+			return ok
+	return {}
+
+
+static func _region(grid: LevelGrid, path: Array[Vector2i], from: Vector3, clearance: float) -> Dictionary:
+	var clear_cells := clearance / CS
+	var allowed := func(c: Vector2i) -> bool:
+		if not grid.in_bounds(c) or not grid.is_walkable(c):
+			return false
+		if grid.has_flag(c, LevelGrid.F_CRITICAL_PATH) or grid.has_flag(c, LevelGrid.F_SPAWN_ROOM) \
+				or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+			return false
+		if clear_cells > 0.0:
+			for p in path:
+				if Vector2(p - c).length() < clear_cells:
+					return false
+		return true
+	# Start at the allowed cell nearest (walking) to `from`.
+	var start := grid.cell_of(from)
+	if not grid.in_bounds(start) or not grid.is_walkable(start):
+		return {}
+	if not bool(allowed.call(start)):
+		var walk := grid.distance_field(start)
+		var best := LevelData.NO_CELL
+		var best_w := 1 << 30
+		for i in walk.size():
+			if walk[i] >= 0 and walk[i] < best_w and bool(allowed.call(grid.cell_at(i))):
+				best = grid.cell_at(i)
+				best_w = walk[i]
+		if best == LevelData.NO_CELL:
+			return {}
+		start = best
+	var out: Dictionary = {start: true}
+	var queue: Array[Vector2i] = [start]
+	var head := 0
+	while head < queue.size():
+		var c := queue[head]
+		head += 1
+		for d in 4:
+			if not grid.can_step(c, d):
+				continue
+			var n := c + LevelGrid.DIRS[d]
+			if out.has(n) or not bool(allowed.call(n)):
+				continue
+			out[n] = true
+			queue.append(n)
+	return out
+
+
+## A wander filter over `allowed` cells: takes a grid cell (Vector2i) or a world position
+## (Vector3) and answers whether Static may drift there.
+static func cell_filter(grid: LevelGrid, allowed: Dictionary) -> Callable:
+	return func(where: Variant) -> bool:
+		var c: Vector2i = grid.cell_of(where) if where is Vector3 else where
+		return allowed.has(c)

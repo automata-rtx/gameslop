@@ -19,6 +19,8 @@ var director: Director
 ## Static instance id -> seconds its field has cut the only route (08 §3).
 var _cut_time: Dictionary = {}
 var _counts: Dictionary = {}
+## The hunter woken at a Peak entered by intensity (re-hinted while no chase starts).
+var peak_hunter: ErrorBase = null
 
 
 func live() -> Array[ErrorBase]:
@@ -171,17 +173,28 @@ func survey() -> Survey:
 func act(a: StringName) -> void:
 	match a:
 		DirectorPacing.ACT_WAKE_ONE:
-			var h := _nearest(true)
+			# 05 §10 keeps the first Descent's depth 1 free of active hunters.
+			var h := _nearest(true) if director.wake_allowed() else null
 			if h != null:
 				h.wake()
 		DirectorPacing.ACT_WAKE_NEAREST:
+			peak_hunter = null
+			if not director.wake_allowed():
+				return
 			var h := _nearest(true)
 			if h == null:
 				h = _nearest(false)
 			if h != null:
 				h.wake()
-				_hint_ring(h, Tuning.DIRECTOR_WAKE_HINT_DIST - Tuning.DIRECTOR_HINT_DIST_TOLERANCE,
-					Tuning.DIRECTOR_WAKE_HINT_DIST + Tuning.DIRECTOR_HINT_DIST_TOLERANCE)
+				peak_hunter = h
+				_hint_wake_ring(h)
+		DirectorPacing.ACT_HINT_PEAK:
+			# Peak pressure: the woken hunter again to 12 m while it takes hints.
+			var h := peak_hunter
+			if h == null or not is_instance_valid(h) or not h.is_inside_tree():
+				h = _nearest(false)
+			if h != null and _free_hunters().has(h):
+				_hint_wake_ring(h)
 		DirectorPacing.ACT_HINT_TOWARD:
 			for h in _free_hunters():
 				_hint_ring(h, Tuning.DIRECTOR_HINT_RANGE_MIN, Tuning.DIRECTOR_HINT_RANGE_MAX)
@@ -226,6 +239,12 @@ func _nearest(dormant: bool) -> ErrorBase:
 	return best
 
 
+## 10 §2: "hints it to 12 m" (within the hint tolerance).
+func _hint_wake_ring(h: ErrorBase) -> void:
+	_hint_ring(h, Tuning.DIRECTOR_WAKE_HINT_DIST - Tuning.DIRECTOR_HINT_DIST_TOLERANCE,
+		Tuning.DIRECTOR_WAKE_HINT_DIST + Tuning.DIRECTOR_HINT_DIST_TOLERANCE)
+
+
 ## A hint to a random walkable cell `rmin` to `rmax` m from the player.
 func _hint_ring(h: ErrorBase, rmin: float, rmax: float) -> void:
 	if not _player_ok() or _grid() == null:
@@ -248,6 +267,27 @@ func _hint_off_path(st: ErrorStatic, nudge: bool) -> void:
 
 
 # --- fairness (10 §7) ---------------------------------------------------------------------------
+
+## 05 §10 first Descent: Static is placed off the critical path and its drift is bounded to
+## a side loop. The Director hands each Static a wander filter over grid cells (the errors'
+## `ErrorStatic.set_wander_filter`, called only when it exists). Returns the filter given,
+## or an invalid Callable when none applies.
+func bound_statics_off_path() -> Callable:
+	var d := director
+	if not d.first_descent or DirectorRules.cycle_depth(d.depth) != 1 or _grid() == null:
+		return Callable()
+	var statics := _statics()
+	if statics.is_empty():
+		return Callable()
+	var allowed := DirectorSpawn.side_loop_cells(_grid(), d.data.critical_path, statics[0].global_position)
+	if allowed.is_empty():
+		return Callable()
+	var filter := DirectorSpawn.cell_filter(_grid(), allowed)
+	for st in statics:
+		if st.has_method(&"set_wander_filter"):
+			st.call(&"set_wander_filter", filter)
+	return filter
+
 
 ## Once per second: Calm keeps awake hunters ≥ 30 m (rule 2); chaser caps (rule 6): over the
 ## cap the farthest chasers retreat 5 s, at the cap the others are hinted away.

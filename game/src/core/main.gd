@@ -23,6 +23,9 @@ func _ready() -> void:
 	if args.smoke:
 		_run_smoke()
 		return
+	if args.tour:
+		_run_tour(args.tour_dir)
+		return
 	if args.validate_levels > 0:
 		_run_validate_levels(args.validate_levels)
 		return
@@ -38,6 +41,14 @@ func _run_smoke() -> void:
 	await get_tree().create_timer(SMOKE_WAIT_S).timeout
 	print("smoke: ok")
 	get_tree().quit(0)
+
+
+## 14 §9 --tour [out_dir]: the screenshot tour (02 §13). Needs a renderer; quits when done.
+func _run_tour(out_dir: String) -> void:
+	var tour := ScreenshotTour.new()
+	tour.name = "ScreenshotTour"
+	%Content.add_child(tour)
+	tour.run(out_dir)
 
 
 ## 14 §9 --validate-levels N: N levels per stratum with a grammar; prints one report line

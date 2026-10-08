@@ -1,14 +1,19 @@
 extends TestCase
 ## 08 §9 behaviour test on a generated level (Halls, seed 1; Garage has no grammar yet):
 ## Still spawned about 25 m of walking away while the player stands unobserving (fixtures
-## off, flashlight off) reaches contact within 40 s, with the Director's Build-phase hints
-## played by the test (a cell near the player, never the player's position). Then the
-## same Still freezes while lit and observed.
+## off, flashlight off) reaches contact while unobserved. The test plays only what the
+## Director may do in Build (10 §2): every 20 s a hint to a random walkable cell 15 to
+## 30 m from the player, never nearer. Finding the player is left to Still's honest senses
+## (sight, 25 m, no light needed). Then the same Still freezes while lit and observed.
 
 const LEVEL_SCENE := preload("res://scenes/level.tscn")
 const MAX_FRAMES := 1500
-const HINT_EVERY := 5.0
 const SPAWN_CELLS := 12          # ~25 m walking (2 m cells)
+## The honest bound (review item 6). With hints only at the Build ring and a player who
+## never moves or makes a sound, Still must find the player by sight in a maze: over ten
+## seeds (R7) contact took 11 to 138 s (median about 35 s), so 08 §9's 40 s (stated for
+## an open Garage floor; test_still.gd keeps it on a flat floor) is raised to 180 s here.
+const CONTACT_LIMIT_S := 180.0
 
 var _level: Level
 var _p: Player
@@ -49,7 +54,22 @@ func _cell_at_walk(from: Vector2i, cells: int) -> Vector2i:
 	return from
 
 
-func test_contact_within_40_s_unobserved() -> void:
+## The Director's Build hint (10 §2): a random walkable cell 15 to 30 m (straight line)
+## from the player. Never the player's position or anything nearer.
+func _build_ring_cell(rng: RandomNumberGenerator) -> Vector2i:
+	var g := _level.data.grid
+	var pool: Array[Vector2i] = []
+	for i in g.cell_count():
+		var c := g.cell_at(i)
+		if not g.is_walkable(c):
+			continue
+		var d := ErrorFixture.flat(g.world_of(c), _p.global_position)
+		if d >= Tuning.DIRECTOR_HINT_RANGE_MIN and d <= Tuning.DIRECTOR_HINT_RANGE_MAX:
+			pool.append(c)
+	return pool[rng.randi_range(0, pool.size() - 1)] if not pool.is_empty() else LevelData.NO_CELL
+
+
+func test_contact_while_unobserved_with_build_hints_only() -> void:
 	assert_true(_level.builder.navigation_ok)
 	var g := _level.data.grid
 	_level.light_pool.set_all_powered(false)
@@ -63,20 +83,30 @@ func test_contact_within_40_s_unobserved() -> void:
 	still.wake()
 	var hits := [0]
 	still.contacted_player.connect(func(_c: float) -> void: hits[0] += 1)
-	var observed := [0]
+	var observed := 0
+	var nearest_hint := INF
 	Engine.time_scale = 4.0
 	var t := 0.0
 	var next_hint := 0.0
+	var frames := 0
+	var usec := 0
 	var rng := make_rng(5)
-	while hits[0] == 0 and t < 40.0:
-		if t >= next_hint:
-			next_hint += HINT_EVERY
-			var near := g.world_of(_cell_at_walk(pc, rng.randi_range(1, 2)))
-			still.hint(near)
+	while hits[0] == 0 and t < CONTACT_LIMIT_S:
+		if t >= next_hint and still.state != Tuning.ERROR_STATE_CHASE:
+			next_hint += Tuning.DIRECTOR_HINT_INTERVAL
+			var c := _build_ring_cell(rng)
+			if c != LevelData.NO_CELL:
+				nearest_hint = minf(nearest_hint, ErrorFixture.flat(g.world_of(c), _p.global_position))
+				still.hint(g.world_of(c))
 		await get_tree().physics_frame
 		t += get_physics_process_delta_time()
-		observed[0] += 1 if still.observed else 0
-	assert_eq(observed[0], 0, "never observed in the dark")
+		observed += 1 if still.observed else 0
+		frames += 1
+		usec += ErrorTiming.frame_usec
+	print("  # still_halls: contact after %.1f s (state %s), Still script %.3f ms/frame headless" % [
+		t, still.state, usec / 1000.0 / maxf(frames, 1)])
+	assert_gt(nearest_hint, Tuning.DIRECTOR_HINT_RANGE_MIN - 0.01, "hints only at the Build ring")
+	assert_eq(observed, 0, "never observed in the dark")
 	assert_eq(hits[0], 1, "contact after %.1f s (state %s)" % [t, still.state])
 	_level.light_pool.set_all_powered(true)
 

@@ -15,19 +15,9 @@ var _level: Level
 
 
 func capture(level: Level, dir: String) -> void:
-	_level = level
 	var abs_dir := dir if dir.is_absolute_path() else ProjectSettings.globalize_path("res://").path_join("..").path_join(dir).simplify_path()
 	DirAccess.make_dir_recursive_absolute(abs_dir)
-	_camera = Camera3D.new()
-	var hfov := deg_to_rad(float(Tuning.CAMERA_FOV_DEFAULT))
-	_camera.fov = rad_to_deg(2.0 * atan(tan(hfov * 0.5) * Tuning.CAMERA_ASPECT_REF))
-	_camera.near = Tuning.CAMERA_NEAR
-	_camera.far = Tuning.CAMERA_FAR
-	level.add_child(_camera)
-	_camera.make_current()
-	level.light_pool.target = _camera
-	if level.dust != null:
-		level.dust.follow = _camera
+	begin(level)
 	var manifest: Dictionary = {&"seed": level.data.run_seed, &"stratum": level.data.stratum,
 		&"depth": level.data.depth, &"shots": {}, &"overrides": _apply_overrides(level)}
 	for pose in poses(level.data):
@@ -50,6 +40,28 @@ func capture(level: Level, dir: String) -> void:
 	f.store_string(JSON.stringify(manifest, "  "))
 	f.close()
 	print("level_shots: ", abs_dir)
+
+
+## Puts a reference camera in `level` (the player's field of view), makes it current and
+## points the light pool and the dust at it. The screenshot tour (ScreenshotTour) shares it.
+func begin(level: Level) -> Camera3D:
+	_level = level
+	_camera = Camera3D.new()
+	var hfov := deg_to_rad(float(Tuning.CAMERA_FOV_DEFAULT))
+	_camera.fov = rad_to_deg(2.0 * atan(tan(hfov * 0.5) * Tuning.CAMERA_ASPECT_REF))
+	_camera.near = Tuning.CAMERA_NEAR
+	_camera.far = Tuning.CAMERA_FAR
+	level.add_child(_camera)
+	_camera.make_current()
+	level.light_pool.target = _camera
+	if level.dust != null:
+		level.dust.follow = _camera
+	return _camera
+
+
+## T1 and T3 numbers of a captured frame (see _measure).
+func measure(img: Image) -> Dictionary:
+	return _measure(img)
 
 
 ## Tuning aid: `--shot-light-kind omni|spot --shot-spot-angle A --shot-spot-attenuation S
@@ -154,6 +166,7 @@ static func poses(data: LevelData) -> Array[Dictionary]:
 		var sv := LevelGrid.DIRS[e.z]
 		from = g.world_of(sc) + eye - Vector3(sv.x, 0, sv.y) * 0.4
 		out.append({&"name": "soft_wall", &"from": from, &"to": from + Vector3(sv.x, -0.15, sv.y) * 3.0})
+	out.append_array(StratumShots.poses(data))
 	return out
 
 
