@@ -343,7 +343,8 @@ func _after_play(id: StringName, pos: Vector3, bus: StringName, captioned: bool)
 ## Errors bus event emit EventBus.audio_cue; footsteps on Errors are Echo's.
 func _caption(id: StringName, pos: Vector3, bus: StringName) -> void:
 	var key := String(library.runtime(id).get("caption", ""))
-	if key.is_empty() and bus == &"Errors" and String(id).begins_with("foot_"):
+	# Echo's steps play as echo_foot_<surface> (the 20 ms reverb variant) after play_3d's swap.
+	if key.is_empty() and bus == &"Errors" and (String(id).begins_with("foot_") or String(id).begins_with("echo_foot_")):
 		key = "CAPTION_ECHO_FOOTSTEP"
 	if key.is_empty():
 		return

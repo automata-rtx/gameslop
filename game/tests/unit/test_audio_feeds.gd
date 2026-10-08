@@ -207,3 +207,12 @@ func test_occlusion_is_decided_at_play_time() -> void:
 	lp.player.position = Vector3(0.8, 0, 0)
 	assert_false(AudioOcclusion.is_occluded(lp.player as AudioStreamPlayer3D, Vector3.ZERO), "its own body never occludes it")
 	lp.release()
+
+
+func test_echo_step_on_errors_bus_is_captioned_after_the_reverb_swap() -> void:
+	var cues: Array[String] = []
+	var cb := func(text: String, _pos: Vector3) -> void: cues.append(text)
+	EventBus.audio_cue.connect(cb)
+	AudioManager.play_3d(&"foot_carpet", Vector3(0, 0, -6), &"Errors")
+	EventBus.audio_cue.disconnect(cb)
+	assert_eq(cues.size(), 1, "Echo's footstep keeps its caption (04 §10)")
