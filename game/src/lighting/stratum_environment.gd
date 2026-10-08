@@ -24,14 +24,16 @@ static func build(data: StratumData, preset: StringName = Tuning.QUALITY_PRESET_
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = data.ambient_color
 	env.ambient_light_energy = data.ambient_energy
-	env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+	# M2.13a: Pools reflects its air (the background is the fog colour); elsewhere no reflections.
+	var reflects := Tuning.RENDER_REFLECT_BACKGROUND_STRATA.has(data.id)
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_BG if reflects else Environment.REFLECTION_SOURCE_DISABLED
 	# 02 §3: AgX, exposure 1.0 with the stratum's offset.
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_exposure = data.exposure
 	# 02 §3: no GI in v1.0.
 	env.sdfgi_enabled = false
 	_apply_glow(env)
-	_apply_occlusion(env, p)
+	_apply_occlusion(env, p, data)
 	_apply_fog(env, data, p)
 	return env
 
@@ -75,10 +77,10 @@ static func _apply_glow(env: Environment) -> void:
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 
 
-static func _apply_occlusion(env: Environment, p: Dictionary) -> void:
+static func _apply_occlusion(env: Environment, p: Dictionary, data: StratumData) -> void:
 	env.ssao_enabled = bool(p[&"ssao"])
 	env.ssao_radius = Tuning.RENDER_AO_RADIUS
-	env.ssao_intensity = Tuning.RENDER_AO_INTENSITY
+	env.ssao_intensity = float(Tuning.RENDER_AO_INTENSITY_STRATUM.get(data.id, Tuning.RENDER_AO_INTENSITY))
 	env.ssao_light_affect = Tuning.RENDER_AO_LIGHT_AFFECT
 	env.ssil_enabled = bool(p[&"ssil"])
 	env.ssr_enabled = false
