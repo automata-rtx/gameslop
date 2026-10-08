@@ -24,6 +24,8 @@ extends Node
 static var enabled: bool = true
 
 var held: bool = false
+## Frames the guard has covered (tests).
+var locks: int = 0
 
 
 ## Adds the guard under `parent` when this process runs headless. Returns it, or null.
@@ -48,6 +50,7 @@ func _process(_delta: float) -> void:
 	if enabled and not held:
 		AudioServer.lock()
 		held = true
+		locks += 1
 
 
 ## Lets the mix thread run again (the start of every physics step and process step).

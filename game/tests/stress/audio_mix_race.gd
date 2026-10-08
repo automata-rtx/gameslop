@@ -2,13 +2,14 @@ extends SceneTree
 ## Stress repro for the engine audio race behind RCA1 (see AudioMixGuard): many positional
 ## players change their bus volumes every frame on an unthrottled headless main loop while
 ## short one-shots start and finish. Run several copies at once to load the machine:
-##   godot --headless --path game --script tests/stress/audio_mix_race.gd -- [--seconds 60] [--no-guard]
+##   godot --headless --fixed-fps 60 --path game --script tests/stress/audio_mix_race.gd -- \
+##         [--seconds 60] [--players 24] [--no-guard]
 ## Exit 0 after the time is up; without the guard, loaded runs crash (signal 11 in the
 ## audio thread, or abort) within minutes. Not part of the gate (no test_ prefix).
 
-const PLAYERS := 48
 
 var _seconds: float = 60.0
+var _count: int = 24
 var _players: Array[AudioStreamPlayer3D] = []
 var _flat: Array[AudioStreamPlayer] = []
 var _cam: Camera3D
@@ -21,6 +22,8 @@ func _initialize() -> void:
 	for i in a.size():
 		if a[i] == "--seconds" and i + 1 < a.size():
 			_seconds = a[i + 1].to_float()
+		elif a[i] == "--players" and i + 1 < a.size():
+			_count = maxi(a[i + 1].to_int(), 1)
 		elif a[i] == "--no-guard":
 			AudioMixGuard.enabled = false
 	var world := Node3D.new()
@@ -30,9 +33,10 @@ func _initialize() -> void:
 	_cam.make_current()
 	var blip := _tone(0.04, false)
 	var hum := _tone(0.5, true)
-	for i in PLAYERS:
+	for i in _count:
 		var p := AudioStreamPlayer3D.new()
 		p.stream = hum if i % 3 == 0 else blip
+		p.max_polyphony = 4
 		p.position = Vector3(i % 8, 0.0, i / 8)
 		world.add_child(p)
 		_players.append(p)
@@ -42,7 +46,7 @@ func _initialize() -> void:
 		root.add_child(f)
 		_flat.append(f)
 	_t0 = Time.get_ticks_msec()
-	print("audio_mix_race: guard %s, %d players, %.0f s" % ["on" if AudioMixGuard.enabled else "off", PLAYERS, _seconds])
+	print("audio_mix_race: guard %s, %d players, %.0f s" % ["on" if AudioMixGuard.enabled else "off", _count, _seconds])
 
 
 func _process(_delta: float) -> bool:
@@ -52,7 +56,7 @@ func _process(_delta: float) -> bool:
 	for i in _players.size():
 		var p := _players[i]
 		p.position.y = sin(t * 5.0 + i)
-		if not p.playing:
+		if not p.playing or _frames % 7 == i % 7:
 			p.play()
 	for i in _flat.size():
 		if not _flat[i].playing:

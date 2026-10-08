@@ -58,6 +58,7 @@ func _ready() -> void:
 	library = SoundLibrary.new()
 	_captions = (load("res://src/core/strings.gd") as GDScript).get_script_constant_map()
 	pool = AudioPool.new(self)
+	AudioMixGuard.install(self)  # RCA1: engine mix race in headless runs
 	_loops_root = Node.new()
 	_loops_root.name = "Loops"
 	_loops_root.process_mode = Node.PROCESS_MODE_PAUSABLE
