@@ -3,7 +3,8 @@ extends Node3D
 ## 08 §9 error arena: a built Halls level (seed 1) with the player, spawn buttons per error,
 ## a light toggle, an aggression slider and the state log. Used to tune errors and to
 ## capture their signature frames (02 §13).
-##   Keys: 1 spawn Static, 2 spawn Still, L fixtures on/off, K remove every error.
+##   Keys: 1 spawn Static, 2 spawn Still, L fixtures on/off, K remove every error,
+##   H hint every error away at once (10 §2 Relief: hint(pos, true)).
 ##   F (the player's own flashlight) toggles the beam.
 ## The log shows the errors' script time per physics frame (ErrorTiming.MONITOR, also in the
 ## Performance custom monitors / F3), refreshed 4 times a second.
@@ -103,6 +104,23 @@ func clear_errors() -> void:
 	_refresh_log()
 
 
+## 10 §2 Relief: every error hinted to the walkable cell farthest from the player (at
+## least 25 m when the level has one), re-targeting at once in Wander and Search.
+func hint_away() -> void:
+	var g := data.grid
+	var best := player.global_position
+	var best_d := -1.0
+	for i in g.cell_count():
+		var c := g.cell_at(i)
+		var d := g.world_of(c).distance_to(player.global_position) if g.is_walkable(c) else -1.0
+		if d > best_d:
+			best_d = d
+			best = g.world_of(c)
+	for e in errors:
+		if is_instance_valid(e):
+			e.hint(best, true)
+
+
 func set_lights(on: bool) -> void:
 	_lights_on = on
 	level.light_pool.set_all_powered(on)
@@ -121,6 +139,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			set_lights(not _lights_on)
 		KEY_K:
 			clear_errors()
+		KEY_H:
+			hint_away()
 
 
 # --- UI ------------------------------------------------------------------------------------
@@ -139,6 +159,11 @@ func _build_ui() -> void:
 		var id: StringName = spec[1]
 		b.pressed.connect(func() -> void: spawn(id).wake())
 		box.add_child(b)
+	var away := Button.new()
+	away.text = "HINT AWAY [H]"
+	away.focus_mode = Control.FOCUS_NONE
+	away.pressed.connect(hint_away)
+	box.add_child(away)
 	var lights := Button.new()
 	lights.text = "FIXTURES ON/OFF [L]"
 	lights.focus_mode = Control.FOCUS_NONE
