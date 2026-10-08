@@ -38,7 +38,9 @@ func get_host() -> Node:
 
 ## Load `path` on a worker thread, play the transition out, swap, play it in.
 ## Returns when the change is complete (or failed). Requests while loading are refused.
-func change_to(path: String) -> void:
+## `with_transition` false swaps without the glitch (M2.15: the Threshold's cut to white is
+## its own transition, 01 §8; the glitch and its sound would break the single low tone).
+func change_to(path: String, with_transition: bool = true) -> void:
 	if is_loading():
 		push_warning("SceneRouter: change_to(%s) ignored while loading %s" % [path, _loading_path])
 		return
@@ -52,15 +54,18 @@ func change_to(path: String) -> void:
 		scene_failed.emit(path)
 		return
 	_loading_path = path
-	await _play_transition(&"out")
+	if with_transition:
+		await _play_transition(&"out")
 	var packed := await _await_threaded(path)
 	_loading_path = ""
 	if packed == null:
-		await _play_transition(&"in")
+		if with_transition:
+			await _play_transition(&"in")
 		scene_failed.emit(path)
 		return
 	_swap(packed.instantiate(), path)
-	await _play_transition(&"in")
+	if with_transition:
+		await _play_transition(&"in")
 	scene_changed.emit(path)
 
 

@@ -272,6 +272,27 @@ const COHERENCE_GAIN_PROPER_EXIT := 20.0
 const COHERENCE_GAIN_POLAROID := 25.0
 const COHERENCE_ENDING_RESTORE_TO := 100.0
 const COHERENCE_ENDING_RESTORE_TIME := 6.0          # s (01 §8)
+
+# 01 §8  The ending (M2.15; the readings behind every number but the first are in CHANGELOG)
+const ENDING_WHITE_TIME := 1.2                      # s of hard white from the crossing (01 §8 step 1)
+const ENDING_WHITE_SOFT_FADE := 0.4                 # s: Reduce flashing turns the hard cut into a fade to white (12 §6)
+const ENDING_FADE_IN_TIME := 1.5                    # s white to the sunlit corridor (01 §8 step 2)
+const ENDING_CARD_DISTANCE := 4.0                   # m from the far wall: DEPTH 0, then the title card (step 3)
+const ENDING_WALK_MAX_TIME := 30.0                  # s after the fade: the card prints even if nobody walks
+const ENDING_CARD_DELAY := 2.0                      # s from DEPTH 0 to NOCLIP
+const ENDING_CARD_HOLD := 4.0                       # s the NOCLIP card holds before the credits roll
+const ENDING_CREDITS_SPEED := 70.0                  # px/s at 1080p (UI scale multiplies)
+const ENDING_THANKS_HOLD := 4.0                     # s the last credits line holds, centred
+const ENDING_SKIP_CONFIRM_TIME := 3.0               # s the skip line waits for the second press
+const ENDING_CORRIDOR_LENGTH := 20.0                # m, a Halls corridor (2 m wide, 3 m ceiling)
+const ENDING_BAY_SIZE := Vector2(6.0, 4.0)          # m, the window bay at the far end (a 3 x 2 cell room)
+const ENDING_WINDOW_SIZE := Vector2(1.4, 1.5)       # m
+const ENDING_WINDOW_SILL := 0.9                     # m; the soft wall shimmer fills the wall under it
+const ENDING_SUN_ENERGY := 3.0
+const ENDING_SUN_COLOR := Color("#FFE2B8")
+const ENDING_DAYLIGHT_COLOR := Color("#FFF7E0")     # the Threshold's daylight (02 §7), now a whole window
+const ENDING_DAYLIGHT_EMISSION := 6.0
+const ENDING_WALL_COLOR := Color("#ECE8DF")         # clean white walls (01 §8)
 const COHERENCE_LOSS_STATIC_PER_S := 4.0            # at the field centre, scaled by falloff
 const COHERENCE_LOSS_NULL_PER_S := 12.0             # inside the 2 m core
 const COHERENCE_LOSS_CYCLE2_SUBSTRATE_PER_S := 0.2  # ambient drain, Substrate only, Cycle 2
