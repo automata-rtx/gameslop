@@ -19,17 +19,27 @@ extends RefCounted
 ## - cautious: flashlight on; walks the path but stops every ~12 s to look behind for
 ##   2.5 s; cranks when low and nothing is near; when a hunter chases it hides in a nearby
 ##   hide spot (leaving with the 0.6 s hold once nothing chases), else faces the chaser and
-##   backs away along the path.
+##   backs away along the path; when Echo follows it stands still (08 §6: the trail ends in
+##   6 s). M2.7: it picks up items a few cells off its way and uses the counters it has items
+##   for (SimBotItems: Polaroid when low, a flare against Static on the only way, a
+##   glowstick at a chasing Still, as a lure for Echo, or as light when Flicker is near).
+## Explorer and cautious play Flicker's counter (08 §5, M2.7): the flashlight goes off while
+## an awake Flicker's group is within 12 m (or it stalks or attaches; the off switch sheds
+## it) and back on 18 m clear; while it stalks they leave its lit area by the nearest cell.
 ## Explorer and cautious know Static's counter: they path around its field when a detour
 ## exists, otherwise wait outside it (explorer drops a room after 15 s), and walk out of a
-## field by the nearest clear cell. `linger` makes any profile visit the explorer's rooms
-## before its objective, so direct and cautious also meet the later phases.
+## field by the nearest clear cell. `linger` (the explorer's default in sim_run since M2.7)
+## makes a profile visit more rooms and dead ends before its objective (7 and 3, up to 360 s;
+## without it the explorer visits 4 and 2), so every phase of the sawtooth is met.
+## Doors (M2.7): only a closed door the next waypoints pass through is opened; a stuck bot
+## also closes an open door off its path whose leaf stands in its corridor.
 ## The bot never moves the player by hand: when it makes no progress for 2 s it records a
 ## stuck event, opens doors in reach, repaths and strafes; 30 s without progress ends the
 ## run as `stuck`. Doors, the breaker and hide spots are used through their Interactable
 ## within the player's 2.2 m reach (what pressing E there does).
 ##
-## SIMBOT_DEBUG in the environment prints a line per second (position, goal, Static).
+## SIMBOT_DEBUG in the environment prints a line per second (position, goal, Static);
+## SIMBOT_TRACE one per 0.5 s (position, cell, next waypoints, goal, stuck time).
 ##
 ## Result keys: seed, profile, depth, stratum, outcome (exit, dissolved, stuck, timeout,
 ## relief, error), time_s, contacts (Director), contact_log ([t, error id, instance, phase,
@@ -39,7 +49,10 @@ extends RefCounted
 ## runs), phase_counts, max_intensity, coherence, roster, skipped, stuck_events, hides,
 ## hide_tries,
 ## cranks, sprints, explored, peaks_with_chase, nav_wait_s, physics_dt, telemetry_rows,
-## stuck_at (when stuck).
+## stuck_at (when stuck); M2.7: scares (count), scare_kinds, scare_contacts (contacts within
+## 5 s after a scare: pillar 3), decisions (noclip, item use, hide, crank start, light switch),
+## dpm (decisions per minute), max_decision_gap_s (00 §5: one every 60 s), decision_kinds,
+## items_used, pickups.
 
 const RUN_SCENE := "res://scenes/run.tscn"
 const PROFILE_DIRECT := &"direct"
@@ -64,6 +77,15 @@ const REPATH_INTERVAL := 2.0
 const EXPLORE_ROOMS := 4
 const EXPLORE_DEAD_ENDS := 2
 const EXPLORE_MAX_S := 300.0
+const LINGER_ROOMS := 7
+const LINGER_DEAD_ENDS := 3
+const LINGER_MAX_S := 360.0
+const ECHO_STILL_MAX := 15.0
+const SCARE_CONTACT_WINDOW := 5.0
+const SIDESTEP := 1.0
+const SIDESTEP_HOLD := 3.0
+const FLICKER_DARK_DIST := 12.0
+const FLICKER_CLEAR_DIST := 18.0
 const SPRINT_BURST_EVERY := 25.0
 const SPRINT_BURST_TIME := 3.0
 const CRANK_BELOW := 35.0
@@ -137,6 +159,17 @@ var _peak_marked: bool = false
 var _watched: Dictionary = {}
 ## Error instance id -> it entered a chasing state since its last contact.
 var _chased_since: Dictionary = {}
+## Decision events [t, kind] (M2.7: the 00 §5 proxy), the cautious bot's belt, and the item
+## it is fetching.
+var _decisions: Array = []
+var items := SimBotItems.new()
+var _pickup: ItemPickup = null
+var _echo_still: float = 0.0
+## The light went off for Flicker (back on when clear); where the bot leaves a lit area to.
+var _dark_for_flicker: bool = false
+var _flicker_goal: Vector3 = Vector3.INF
+## Seconds the inserted step-around waypoints are kept (no periodic repath meanwhile).
+var _sidestep_left: float = 0.0
 
 
 ## Plays `run_seed` at `depth` (first Descent off, so depth 1 carries a hunter).
@@ -167,6 +200,11 @@ func play(run_seed: int) -> Dictionary:
 	result[&"stratum"] = GameState.stratum_for(depth)
 	result[&"nav_wait_s"] = snappedf(await _wait_navigation(), 0.1)
 	_plan_profile()
+	items.bot = self
+	var on_item := func(kind: StringName) -> void: _decide("item:%s" % kind)
+	var on_noclip := func(_k: StringName, _a: Vector3, _b: Vector3) -> void: _decide("noclip")
+	EventBus.item_used.connect(on_item)
+	run.player.noclip_committed.connect(on_noclip)
 	var max_i := 0.0
 	var outcome := &"timeout"
 	while _t < max_seconds:
@@ -186,6 +224,10 @@ func play(run_seed: int) -> Dictionary:
 			outcome = &"relief"
 			break
 		_think(dt)
+		if OS.has_environment("SIMBOT_TRACE") and fmod(_t, 0.5) < dt:
+			print("trace t=%.1f p=%s cell=%s wp=%s tight=%s goal=%s stuck=%.0f ev=%d" % [_t, run.player.global_position.snappedf(0.01),
+				run.data.grid.cell_of(run.player.global_position), _waypoints.slice(0, 3), _tight.slice(0, 3),
+				run.data.grid.cell_of(_goal), _stuck_time, _stuck_events])
 		if OS.has_environment("SIMBOT_DEBUG") and fmod(_t, 1.0) < dt:
 			for n in tree.get_nodes_in_group(ErrorBase.GROUP):
 				var st := n as ErrorStatic
@@ -196,6 +238,11 @@ func play(run_seed: int) -> Dictionary:
 			outcome = &"stuck"
 			break
 	PlayerFixture.release_all()
+	items.release()
+	EventBus.item_used.disconnect(on_item)
+	if is_instance_valid(run.player) and run.player.noclip_committed.is_connected(on_noclip):
+		run.player.noclip_committed.disconnect(on_noclip)
+	_scare_results(result)
 	result[&"outcome"] = outcome
 	result[&"time_s"] = snappedf(_t, 0.1)
 	result[&"contacts"] = director.contacts
@@ -237,6 +284,75 @@ func play(run_seed: int) -> Dictionary:
 		director.telemetry.dump_csv(csv_path)
 	await _teardown(meta)
 	return result
+
+
+## M2.7 result keys: the scares that ran, contacts soon after one, and the decision proxy.
+func _scare_results(result: Dictionary) -> void:
+	var fired: Array = director.scares.fired
+	result[&"scares"] = fired.size()
+	var kinds := {}
+	for f: Dictionary in fired:
+		kinds[String(f[&"kind"])] = int(kinds.get(String(f[&"kind"]), 0)) + 1
+	result[&"scare_kinds"] = kinds
+	# Scare times are Director level time; the bot's clock also counts the navigation wait.
+	var offset := float(result.get(&"nav_wait_s", 0.0))
+	var times: Array = fired.map(func(f: Dictionary) -> float: return float(f[&"time"]))
+	result[&"scare_contacts"] = scare_contacts(times, _contact_log.map(func(e: Array) -> float: return float(e[0]) - offset))
+	var dt: Array = _decisions.map(func(e: Array) -> float: return float(e[0]))
+	result[&"decisions"] = _decisions.size()
+	result[&"dpm"] = snappedf(_decisions.size() / maxf(_t / 60.0, 0.001), 0.01)
+	result[&"max_decision_gap_s"] = snappedf(max_gap(dt, _t), 0.1)
+	result[&"decision_kinds"] = _kinds(_decisions)
+	result[&"items_used"] = items.uses.duplicate()
+	result[&"pickups"] = items.pickups
+
+
+## Contacts (seconds) that land within 5 s after a scare (seconds): pillar 3 says none should.
+static func scare_contacts(scare_times: Array, contact_times: Array) -> int:
+	var n := 0
+	for c in contact_times:
+		for s in scare_times:
+			if float(c) >= float(s) and float(c) - float(s) <= SCARE_CONTACT_WINDOW:
+				n += 1
+				break
+	return n
+
+
+## The longest stretch (s) with no decision between 0 and `end`, decisions at `times`.
+static func max_gap(times: Array, end: float) -> float:
+	var sorted := times.duplicate()
+	sorted.sort()
+	var prev := 0.0
+	var best := 0.0
+	for t in sorted:
+		best = maxf(best, float(t) - prev)
+		prev = float(t)
+	return maxf(best, end - prev)
+
+
+static func _kinds(log: Array) -> Dictionary:
+	var out := {}
+	for e: Array in log:
+		var k := String(e[1]).get_slice(":", 0)
+		out[k] = int(out.get(k, 0)) + 1
+	return out
+
+
+func _decide(kind: String) -> void:
+	_decisions.append([snappedf(_t, 0.01), kind])
+
+
+## Public for SimBotItems.
+func tap(action: StringName) -> void:
+	_tap(action)
+
+
+func time() -> float:
+	return _t
+
+
+func hunter_within(dist: float) -> bool:
+	return _hunter_within(dist)
 
 
 func _teardown(meta: MetaState) -> void:
@@ -358,7 +474,7 @@ func _plan_profile() -> void:
 		# Light on: one press of the flashlight key.
 		_tap(&"flashlight")
 	if profile == PROFILE_EXPLORER or linger:
-		_targets = _explore_targets()
+		_targets = _explore_targets(LINGER_ROOMS if linger else EXPLORE_ROOMS, LINGER_DEAD_ENDS if linger else EXPLORE_DEAD_ENDS)
 		_sprint_next = _rng.randf_range(10.0, SPRINT_BURST_EVERY)
 	if profile == PROFILE_CAUTIOUS:
 		_look_next = _rng.randf_range(6.0, LOOK_BACK_EVERY)
@@ -367,7 +483,7 @@ func _plan_profile() -> void:
 
 
 ## Off-path rooms and dead ends, visited nearest first.
-func _explore_targets() -> Array[Vector2i]:
+func _explore_targets(rooms_n: int, ends_n: int) -> Array[Vector2i]:
 	var grid := run.data.grid
 	var pool: Array[Vector2i] = []
 	var rooms := grid.rooms()
@@ -378,14 +494,14 @@ func _explore_targets() -> Array[Vector2i]:
 		if grid.is_walkable(c) and not grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
 			pool.append(c)
 	_shuffle(pool)
-	var out: Array[Vector2i] = pool.slice(0, EXPLORE_ROOMS)
+	var out: Array[Vector2i] = pool.slice(0, rooms_n)
 	var ends: Array[Vector2i] = []
 	for i in grid.cell_count():
 		var c := grid.cell_at(i)
 		if grid.has_flag(c, LevelGrid.F_DEAD_END) and not grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
 			ends.append(c)
 	_shuffle(ends)
-	out.append_array(ends.slice(0, EXPLORE_DEAD_ENDS))
+	out.append_array(ends.slice(0, ends_n))
 	return out
 
 
@@ -399,6 +515,7 @@ func _shuffle(a: Array[Vector2i]) -> void:
 
 func _think(dt: float) -> void:
 	var p := run.player
+	items.tick(dt)
 	_use_in_reach()
 	if p.is_hidden() or (_hide_spot != null and _leave_left > 0.0):
 		_hidden_tick(dt)
@@ -420,6 +537,11 @@ func _think(dt: float) -> void:
 			_follow(_escape_goal, dt, false)
 			return
 	_escape_goal = Vector3.INF
+	if items.busy():
+		_halt()
+		return
+	if profile != PROFILE_DIRECT and _flicker_counter(dt):
+		return
 	match profile:
 		PROFILE_EXPLORER:
 			_explorer(dt, chaser, chase_d)
@@ -442,6 +564,7 @@ func _explorer(dt: float, chaser: ErrorBase, chase_d: float) -> void:
 	elif f.on and f.charge < CRANK_BELOW and chaser == null and not _in_static():
 		_cranking = true
 		_cranks += 1
+		_decide("crank")
 		Input.action_press(&"crank")
 		_halt()
 		return
@@ -461,6 +584,14 @@ func _cautious(dt: float, chaser: ErrorBase, chase_d: float) -> void:
 		if _cranking:
 			_cranking = false
 			Input.action_release(&"crank")
+		if chaser.error_id == &"echo" and _echo_still < ECHO_STILL_MAX:
+			# 08 §6: stop and the trail ends in 6 s; throw a lure ahead if there is one.
+			_echo_still += dt
+			var away := p.global_position - chaser.body_position()
+			_halt(Vector3(away.x, 0.0, away.z))
+			items.maybe_glowstick(chaser, chase_d)
+			return
+		items.maybe_glowstick(chaser, chase_d)
 		if _hide_spot == null:
 			_hide_spot = _nearby_spot()
 			if _hide_spot != null:
@@ -473,6 +604,19 @@ func _cautious(dt: float, chaser: ErrorBase, chase_d: float) -> void:
 		_follow(_goal_now(), dt, false, Vector3(to.x, 0.0, to.z))
 		return
 	_hide_spot = null
+	if chaser == null:
+		_echo_still = 0.0
+	if items.maybe_polaroid(_hunter_within(HIDE_CHASE_DIST)) or items.maybe_flare(_field_wait):
+		_halt()
+		return
+	if _pickup == null or not is_instance_valid(_pickup) or _pickup.picked:
+		_pickup = items.nearby_pickup()
+	if _pickup != null and not _cranking:
+		if items.take_in_reach(_pickup):
+			_pickup = null
+		else:
+			_follow(_pickup.global_position, dt, false)
+			return
 	if _cranking:
 		if f.charge >= CRANK_UNTIL or _in_static():
 			_cranking = false
@@ -483,6 +627,7 @@ func _cautious(dt: float, chaser: ErrorBase, chase_d: float) -> void:
 	elif f.on and f.charge < CRANK_BELOW and not _hunter_within(HIDE_CHASE_DIST) and not _in_static():
 		_cranking = true
 		_cranks += 1
+		_decide("crank")
 		Input.action_press(&"crank")
 		_halt()
 		return
@@ -542,26 +687,27 @@ func _use_in_reach() -> void:
 			_hide_spot.interactable.interact(p)
 			if p.is_hidden():
 				_hides += 1
+				_decide("hide")
 				_hidden_for = 0.0
 				_quiet_for = 0.0
 				_clear_path()
 				return
 	if _waypoints.is_empty():
 		return
-	var ahead := _waypoints[0] - p.global_position
 	for n in tree.get_nodes_in_group(&"doors"):
 		var d := n as Door
 		if d == null or d.is_open or not run.level.is_ancestor_of(d):
 			continue
-		var to := d.global_position - p.global_position
-		if Vector2(to.x, to.z).length() < REACH and Vector2(to.x, to.z).dot(Vector2(ahead.x, ahead.z)) > 0.0:
+		# Only a door the path goes through (M2.7): opening one beside the path swings its
+		# leaf into the corridor (a 1-cell corridor is then blocked).
+		if DirectorSpawn.flat_dist(d.global_position, p.global_position) < REACH and _door_on_path(d):
 			d.interactable.interact(p)
 
 
 ## The next room to explore (explorer, or any profile with `linger`), else the objective.
 func _goal_now() -> Vector3:
 	var p := run.player
-	while not _targets.is_empty() and _t < EXPLORE_MAX_S:
+	while not _targets.is_empty() and _t < (LINGER_MAX_S if linger else EXPLORE_MAX_S):
 		var c := _targets[0]
 		var here := run.data.grid.cell_of(p.global_position)
 		if _field_wait > FIELD_GIVE_UP:
@@ -613,7 +759,8 @@ func _follow(goal: Vector3, dt: float, sprint: bool, look: Vector3 = Vector3.ZER
 	_repath_left -= dt
 	# No periodic repath inside a doorway: the cell under the body flips at the edge.
 	var in_doorway := not _tight.is_empty() and _tight[0]
-	if goal != _goal or (_repath_left <= 0.0 and not in_doorway) or _waypoints.is_empty():
+	_sidestep_left -= dt
+	if goal != _goal or (_repath_left <= 0.0 and not in_doorway and _sidestep_left <= 0.0) or _waypoints.is_empty():
 		_goal = goal
 		_repath_left = REPATH_INTERVAL
 		_plan_path(goal)
@@ -821,11 +968,27 @@ func _check_stuck(dt: float) -> void:
 		_waypoints.remove_at(0)
 		_tight.remove_at(0)
 	elif DirectorSpawn.flat_dist(p.global_position, _stuck_from) < STUCK_MIN_MOVE:
-		# No teleport: count it, repath and strafe out (doors in reach open in _use_in_reach).
+		# No teleport: count it, open every closed door in reach (E), repath and strafe out.
+		_open_doors_in_reach()
 		_stuck_events += 1
 		_stuck_time += STUCK_WINDOW
-		_clear_path()
-		if _stuck_events % 2 == 1:
+		if not _waypoints.is_empty() and not _tight[0]:
+			# On open floor something the grid does not hold (a pillar, a car's corner) is in
+			# the way: step around it, alternating sides (M2.7).
+			var to := _waypoints[0] - p.global_position
+			var dir := Vector3(to.x, 0.0, to.z).normalized()
+			var side := dir.cross(Vector3.UP) * _wiggle_side * SIDESTEP
+			_wiggle_side = -_wiggle_side
+			_waypoints.insert(0, p.global_position + side + dir * SIDESTEP * 1.3)
+			_tight.insert(0, false)
+			_waypoints.insert(0, p.global_position + side - dir * 0.2)
+			_tight.insert(0, false)
+			_sidestep_left = SIDESTEP_HOLD
+		else:
+			_clear_path()
+		if _sidestep_left > 0.0:
+			pass
+		elif _stuck_events % 2 == 1:
 			_backoff_left = BACKOFF_TIME
 		else:
 			_wiggle_left = WIGGLE_TIME
@@ -834,6 +997,96 @@ func _check_stuck(dt: float) -> void:
 		_stuck_time = 0.0
 	_stuck_left = STUCK_WINDOW
 	_stuck_from = p.global_position
+
+
+## True when one of the next doorway waypoints (the lined-up pair either side of an edge
+## crossing) belongs to door `d`.
+func _door_on_path(d: Door) -> bool:
+	for i in mini(_waypoints.size(), 6):
+		if _tight[i] and DirectorSpawn.flat_dist(_waypoints[i], d.global_position) < DOOR_APPROACH + 0.4:
+			return true
+	return false
+
+
+## A stuck bot presses E on the doors in reach: a closed door on its path opens; an open door
+## off its path closes (its leaf stands in the corridor).
+func _open_doors_in_reach() -> void:
+	var p := run.player
+	for n in tree.get_nodes_in_group(&"doors"):
+		var d := n as Door
+		if d == null or not run.level.is_ancestor_of(d) \
+				or DirectorSpawn.flat_dist(d.global_position, p.global_position) >= REACH + 0.5:
+			continue
+		if d.is_open != _door_on_path(d):
+			d.interactable.interact(p)
+
+
+# --- Flicker's counter (08 §5) ------------------------------------------------------------------
+
+## The nearest awake Flicker (by its group centroid).
+func _flicker() -> ErrorFlicker:
+	var best: ErrorFlicker = null
+	var best_d := INF
+	for n in tree.get_nodes_in_group(ErrorBase.GROUP):
+		var fl := n as ErrorFlicker
+		if fl == null or fl.is_dormant() or fl.despawned:
+			continue
+		var d := fl.distance_to_player()
+		if d < best_d:
+			best = fl
+			best_d = d
+	return best
+
+
+## Darkness is the counter: light off near Flicker's group or when it stalks or attaches, on
+## again when clear; while it stalks, walk out of its lit area by the nearest cell. True when
+## the bot moved for it this frame.
+func _flicker_counter(dt: float) -> bool:
+	var p := run.player
+	var fl := _flicker()
+	var d := fl.distance_to_player() if fl != null else INF
+	var near := fl != null and (d < FLICKER_DARK_DIST or fl.state == Tuning.ERROR_STATE_ATTACHED \
+		or fl.state == Tuning.ERROR_STATE_STALK)
+	if near and p.flashlight.on:
+		if _cranking:
+			_cranking = false
+			Input.action_release(&"crank")
+		_tap(&"flashlight")
+		_dark_for_flicker = true
+		_decide("light")
+		if profile == PROFILE_CAUTIOUS:
+			# Chemical light: Flicker cannot use it (09). Dropped at the feet.
+			items.use(&"glowstick", Tuning.GLOWSTICK_DROP_HOLD + 0.1)
+	elif _dark_for_flicker and not p.flashlight.on and (fl == null or d > FLICKER_CLEAR_DIST):
+		_tap(&"flashlight")
+		_dark_for_flicker = false
+		_decide("light")
+	if fl == null or fl.state != Tuning.ERROR_STATE_STALK or fl.pool() == null \
+			or not FlickerHabitat.in_lit_area(fl.pool(), fl.current_group, p.global_position):
+		_flicker_goal = Vector3.INF
+		return false
+	if _flicker_goal == Vector3.INF or DirectorSpawn.flat_dist(p.global_position, _flicker_goal) < ARRIVE_DIST:
+		_flicker_goal = _unlit_cell(fl)
+	if _flicker_goal == Vector3.INF:
+		return false
+	_follow(_flicker_goal, dt, true)
+	return true
+
+
+## The nearest cell (walking) outside the stalking Flicker's lit area.
+func _unlit_cell(fl: ErrorFlicker) -> Vector3:
+	var grid := run.data.grid
+	var walk := grid.distance_field(grid.cell_of(run.player.global_position))
+	var best := Vector3.INF
+	var best_w := 1 << 30
+	for i in walk.size():
+		if walk[i] < 0 or walk[i] >= best_w:
+			continue
+		var w := grid.world_of(grid.cell_at(i))
+		if not FlickerHabitat.in_lit_area(fl.pool(), fl.current_group, w):
+			best = w
+			best_w = walk[i]
+	return best
 
 
 ## Where the bot gave up: its position, cell, the next waypoint's cell and the edge kinds.

@@ -206,7 +206,7 @@ func test_first_descent_keeps_hunters_dormant_and_static_off_path() -> void:
 	assert_true(h.is_dormant(), "nor does intensity 0.8")
 	assert_eq(_d.phase, DirectorPacing.BUILD, "no Peak without a hunter it may wake")
 	_level.data.first_run = true
-	var f := _d.hunters.bound_statics_off_path()
+	var f := _d.statics.bound_statics_off_path()
 	_level.data.first_run = was
 	assert_true(f.is_valid(), "a wander filter for Static")
 	var g := _level.data.grid

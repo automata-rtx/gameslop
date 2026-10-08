@@ -88,3 +88,14 @@ func test_contact_check_can_fail() -> void:
 	assert_true(v[0].begins_with("satiated"))
 	var both := [[10.0, "still", 1], [11.0, "still", 1]]
 	assert_eq(SimBot.contact_violations(both).size(), 2, "both rules at once")
+
+
+## M2.7 report helpers: the longest stretch without a decision (00 §5) and contacts that land
+## within 5 s after a scare (pillar 3).
+func test_decision_gap_and_scare_contact_helpers() -> void:
+	assert_approx(SimBot.max_gap([], 90.0), 90.0, 0.001, "no decision: the whole run")
+	assert_approx(SimBot.max_gap([10.0, 30.0, 100.0], 120.0), 70.0, 0.001)
+	assert_approx(SimBot.max_gap([50.0, 5.0], 60.0), 45.0, 0.001, "unsorted input")
+	assert_eq(SimBot.scare_contacts([], [10.0]), 0)
+	assert_eq(SimBot.scare_contacts([10.0, 60.0], [12.0, 30.0, 64.9, 70.0]), 2, "12 and 64.9 follow a scare")
+	assert_eq(SimBot.scare_contacts([10.0], [9.0]), 0, "a contact before the scare does not count")

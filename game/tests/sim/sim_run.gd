@@ -6,16 +6,17 @@ extends SceneTree
 ## the engine syncs to the wall clock and a 10-minute level takes 10 minutes):
 ##   godot --headless --fixed-fps 60 --path game --script tests/sim/sim_run.gd -- \
 ##         [--seeds 3] [--from 1] [--profiles direct,explorer,cautious] [--depths 1,2]
-##         [--max-seconds 600] [--stop-after-relief] [--linger] [--csv <dir>] [--json <file>]
-##         [--no-audio-guard]
-## --linger makes every profile visit the explorer's rooms before its objective.
+##         [--max-seconds 600] [--stop-after-relief] [--linger] [--no-linger] [--csv <dir>]
+##         [--json <file>] [--no-audio-guard]
+## --linger makes every profile visit more rooms and dead ends before its objective; the
+## explorer lingers by default (M2.7), --no-linger turns that off.
 ## With --csv, each run's Director telemetry is written as
 ## <dir>/<profile>_d<depth>_seed<n>.csv and the summary table as <dir>/summary.csv.
 ## With --json, every result is written as one JSON array (the gate test reads it).
 ## Depths beyond 1 start the run there (`RunState.depth`); strata without a grammar
 ## generate as Halls (M1.9).
 
-const SUMMARY_HEADER := "profile,depth,seed,stratum,outcome,time_s,calm,build,peak,peak_chased,relief,max_intensity,contacts,unchased,relief_contacts,refused,chases,sent_away,violations,stuck_events,coherence,hunter,static,spawned"
+const SUMMARY_HEADER := "profile,depth,seed,stratum,outcome,time_s,calm,build,peak,peak_chased,relief,max_intensity,contacts,unchased,relief_contacts,refused,chases,sent_away,violations,stuck_events,coherence,hunter,static,spawned,scares,scare_contacts,decisions,dpm,max_gap_s,hides,items_used,pickups"
 
 var _seeds: int = 3
 var _from: int = 1
@@ -24,6 +25,7 @@ var _depths: Array[int] = [1]
 var _max_s: float = 600.0
 var _stop_after_relief: bool = false
 var _linger: bool = false
+var _no_linger: bool = false
 var _csv_dir: String = ""
 var _json_path: String = ""
 
@@ -51,6 +53,8 @@ func _initialize() -> void:
 				_stop_after_relief = true
 			"--linger":
 				_linger = true
+			"--no-linger":
+				_no_linger = true
 			"--csv":
 				_csv_dir = next
 			"--json":
@@ -82,7 +86,7 @@ func _main() -> void:
 				bot.depth = depth
 				bot.max_seconds = _max_s
 				bot.stop_after_relief = _stop_after_relief
-				bot.linger = _linger
+				bot.linger = _linger or (profile == &"explorer" and not _no_linger)
 				if not _csv_dir.is_empty():
 					bot.csv_path = _csv_dir.path_join("%s_d%d_seed%d.csv" % [profile, depth, s])
 				var r: Dictionary = await bot.call(&"play", s)
@@ -118,8 +122,18 @@ static func summary_rows(results: Array) -> Array:
 			(r.get(&"contact_violations", []) as Array).size(), r.get(&"stuck_events", 0),
 			r.get(&"coherence", 0.0), r.get(&"has_hunter", false), r.get(&"has_static", false),
 			"+".join(PackedStringArray((r.get(&"spawned", []) as Array).map(
-				func(v: Variant) -> String: return str(v))))])
+				func(v: Variant) -> String: return str(v)))),
+			r.get(&"scares", 0), r.get(&"scare_contacts", 0), r.get(&"decisions", 0), r.get(&"dpm", 0.0),
+			r.get(&"max_decision_gap_s", 0.0), r.get(&"hides", 0),
+			_sum((r.get(&"items_used", {}) as Dictionary).values()), r.get(&"pickups", 0)])
 	return out
+
+
+static func _sum(a: Array) -> int:
+	var n := 0
+	for v in a:
+		n += int(v)
+	return n
 
 
 static func format_table(rows: Array) -> String:

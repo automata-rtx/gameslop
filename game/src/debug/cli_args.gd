@@ -7,6 +7,8 @@ extends RefCounted
 ##   --validate-levels N              generate and validate N levels per stratum
 ##   --shots <dir>                    with a direct level: capture the build verification
 ##                                    frames (spawn, corridor, exit room) and quit
+##   --telemetry                      debug builds: each level's Director telemetry CSV is
+##                                    written to user://run_telemetry/ (10 §9, 13 §1)
 ## Both `--flag value` and `--flag=value` are accepted. Bad values warn and are ignored.
 
 ## GLOSSARY: the six strata ids.
@@ -26,6 +28,7 @@ var tour_dir: String = ""
 var validate_levels: int = 0
 ## Empty when not given.
 var shots_dir: String = ""
+var telemetry: bool = false
 
 
 ## The flags of this process (OS.get_cmdline_user_args()).
@@ -72,6 +75,8 @@ static func parse(args: PackedStringArray) -> CliArgs:
 				consumed = 2 if next_is_value else 1
 			"--smoke":
 				out.smoke = true
+			"--telemetry":
+				out.telemetry = true
 			"--tour":
 				out.tour = true
 				out.tour_dir = value if not value.is_empty() else DEFAULT_TOUR_DIR
