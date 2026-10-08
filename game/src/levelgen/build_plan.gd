@@ -109,8 +109,9 @@ static func make(level: LevelData, ceiling_height: float) -> BuildPlan:
 		p._soft_index[LevelGrid.edge_key(Vector2i(e.x, e.y), e.z)] = k
 	p._lattice()
 	p._classify()
-	p._emit_horizontal()
-	p._emit_vertical()
+	var faces := BuildFaces.new(p)
+	faces.emit_horizontal()
+	faces.emit_vertical()
 	p._slopes.stairs()
 	p._mesh.finish()
 	p.meshes = p._mesh.meshes
@@ -216,6 +217,9 @@ func _classify_cell(i: int, j: int) -> void:
 	var b := cell_interval(c, s.y)
 	var bot := C_BASIN if is_basin(c) else C_FLOOR
 	_set_open(f, Vector2(a.x, b.x), Vector2(a.y, b.y), axis, bot, C_CEILING)
+	# Deep water's floor stays out of navigation (07 §8). A pool step cell's floor stays in:
+	# the stepped block's first half tread is that floor (under the block, the treads above
+	# leave no headroom, so the bake drops it).
 	_nav[f] = 0 if grid.kind(c) == LevelGrid.DEEP else 1
 
 
@@ -252,7 +256,8 @@ func _classify_strip(i: int, j: int) -> void:
 			var lo := maxf(va.x, vb.x)
 			var hi := minf(va.y, vb.y)
 			_set_open(f, Vector2(lo, lo), Vector2(hi, hi), -1, C_BASIN if is_basin(a) and is_basin(b) else C_FLOOR, C_CEILING)
-		_nav[f] = 0 if grid.kind(a) == LevelGrid.DEEP and grid.kind(b) == LevelGrid.DEEP else 1
+		var under_steps := not follow and grid.kind(a) == LevelGrid.RAMP and grid.kind(b) == LevelGrid.RAMP
+		_nav[f] = 0 if grid.kind(a) == LevelGrid.DEEP or grid.kind(b) == LevelGrid.DEEP or under_steps else 1
 		return
 	if t == LevelGrid.DOOR and oa and ob:
 		var y := maxf(grid.floor_y(a), grid.floor_y(b))
@@ -283,6 +288,7 @@ func _classify_post(i: int, j: int) -> void:
 	var hi := INF
 	var bot := C_FLOOR
 	var basin := true
+	var nav := false
 	for d in LevelGrid.DIRS:
 		var g := _fi(i + d.x, j + d.y)
 		if _open[g] == 0 or _door[g] == 1 or _axis[g] >= 0:
@@ -294,9 +300,13 @@ func _classify_post(i: int, j: int) -> void:
 		basin = basin and _bot[g] == C_BASIN
 		if _cls[g] == C_PARTITION:
 			_cls[_fi(i, j)] = C_PARTITION
+	# The post feeds navigation when a strip at its floor height does.
+	for d in LevelGrid.DIRS:
+		var g := _fi(i + d.x, j + d.y)
+		nav = nav or (_nav[g] == 1 and absf(_lo[g].x - lo) < 0.0001)
 	var f := _fi(i, j)
 	_set_open(f, Vector2(lo, lo), Vector2(hi, hi), -1, C_BASIN if basin else bot, C_CEILING)
-	_nav[f] = 1
+	_nav[f] = 1 if nav else 0
 
 
 # ---------------------------------------------------------------- lattice
@@ -356,151 +366,3 @@ func ys(lo: float, hi: float) -> PackedFloat32Array:
 		if y >= lo - 0.0001 and y <= hi + 0.0001:
 			out.append(y)
 	return out
-
-
-# ---------------------------------------------------------------- faces
-
-func cell_of(i: int, j: int) -> Vector2i:
-	return Vector2i(clampi(i / 2, 0, grid.size.x - 1), clampi(j / 2, 0, grid.size.y - 1))
-
-
-func acc_for(i: int, j: int, cls: int, soft: int) -> Dictionary:
-	var c := cell_of(i, j)
-	return _mesh.acc(Vector2i(c.x / chunk_cells, c.y / chunk_cells), cls, soft)
-
-
-## Per-cell variation (07 §8): R = a hash of the cell in 0..1, G = the UNFINISHED flag,
-## A = 1 on corridor cells (B, the floor's distance to a wall, is set per vertex).
-func vcolor(i: int, j: int) -> Color:
-	var c := cell_of(i, j)
-	var h := absf(sin(c.x * 12.9898 + c.y * 78.233) * 43758.5453)
-	var r := h - floorf(h)
-	var g := 1.0 if grid.has_flag(c, LevelGrid.F_UNFINISHED) else 0.0
-	return Color(r, g, 0.0, 1.0 if grid.kind(c) == LevelGrid.FLOOR else 0.0)
-
-
-## Distance from floor point p (inside element (i, j)) to the nearest element that is solid
-## at that floor's height, clamped to LEVELBUILD_WALL_DIST_MAX.
-func _wall_dist(p: Vector3, i: int, j: int) -> float:
-	var best := Tuning.LEVELBUILD_WALL_DIST_MAX
-	for nj in range(maxi(j - 1, 0), mini(j + 2, _fh)):
-		for ni in range(maxi(i - 1, 0), mini(i + 2, _fw)):
-			var g := _fi(ni, nj)
-			if _open[g] == 1 and _lo[g].x <= p.y + 0.05:
-				continue
-			var xs := _xb[ni]
-			var zs := _zb[nj]
-			var dx := maxf(maxf(xs[0] - p.x, p.x - xs[xs.size() - 1]), 0.0)
-			var dz := maxf(maxf(zs[0] - p.z, p.z - zs[zs.size() - 1]), 0.0)
-			best = minf(best, sqrt(dx * dx + dz * dz))
-	return best / Tuning.LEVELBUILD_WALL_DIST_MAX
-
-
-func _emit_horizontal() -> void:
-	for j in _fh:
-		for i in _fw:
-			var f := _fi(i, j)
-			if _open[f] == 0:
-				continue
-			var col := vcolor(i, j)
-			var lo := _lo[f]
-			var hi := _hi[f]
-			var axis := _axis[f]
-			var xs := _xb[i]
-			var zs := _zb[j]
-			var sx := span(_xb, i)
-			var sz := span(_zb, j)
-			var at := func(u: float, w: float, v: Vector2) -> float:
-				if axis < 0:
-					return v.x
-				var t := (u - sx.x) / (sx.y - sx.x) if axis == 0 else (w - sz.x) / (sz.y - sz.x)
-				return lerpf(v.x, v.y, t)
-			var n_up := _slope_normal(axis, lo, sx if axis == 0 else sz, 1.0)
-			var n_dn := _slope_normal(axis, hi, sx if axis == 0 else sz, -1.0)
-			_mesh.patch(acc_for(i, j, _bot[f], -1), xs, zs, func(u: float, w: float) -> Vector3: return Vector3(u, at.call(u, w, lo), w),
-				n_up, col, _wall_dist.bind(i, j) if _bot[f] == C_FLOOR else Callable(), _nav[f] == 1)
-			_mesh.patch(acc_for(i, j, _top[f], -1), xs, zs, func(u: float, w: float) -> Vector3: return Vector3(u, at.call(u, w, hi), w),
-				n_dn, col, Callable(), false)
-
-
-## Normal of a floor (sign 1) or ceiling (-1) sloping from v.x to v.y over `s`.
-static func _slope_normal(axis: int, v: Vector2, s: Vector2, sign: float) -> Vector3:
-	if axis < 0:
-		return Vector3.UP * sign
-	var g := (v.y - v.x) / (s.y - s.x)
-	var n := Vector3(-g, 1.0, 0.0) if axis == 0 else Vector3(0.0, 1.0, -g)
-	return n.normalized() * sign
-
-
-func _emit_vertical() -> void:
-	for j in _fh:
-		for i in _fw:
-			if i + 1 < _fw:
-				_boundary(i, j, i + 1, j)
-			if j + 1 < _fh:
-				_boundary(i, j, i, j + 1)
-
-
-## Faces on the shared boundary of two neighbouring elements, each facing the other's open part.
-func _boundary(i0: int, j0: int, i1: int, j1: int) -> void:
-	var f0 := _fi(i0, j0)
-	var f1 := _fi(i1, j1)
-	if _open[f0] == 0 and _open[f1] == 0:
-		return
-	var along_x := i1 != i0
-	_face_side(i1, j1, f1, f0, i0, j0, along_x, -1.0)
-	_face_side(i0, j0, f0, f1, i1, j1, along_x, 1.0)
-
-
-## Interval of element f on the boundary line with its neighbour: x/y = lo and hi at the
-## boundary's start, z/w at its end (they differ only for a slope running along it).
-func _edge_interval(f: int, along_x: bool, sign: float) -> Vector4:
-	var axis := _axis[f]
-	var lo := _lo[f]
-	var hi := _hi[f]
-	if axis < 0:
-		return Vector4(lo.x, hi.x, lo.x, hi.x)
-	var runs_along := (axis == 1) == along_x
-	if runs_along:
-		return Vector4(lo.x, hi.x, lo.y, hi.y)
-	# The boundary cuts across the slope: the interval at that end.
-	var e := 1 if sign > 0.0 else 0
-	return Vector4(lo[e], hi[e], lo[e], hi[e])
-
-
-## Element (i, j) shows a face towards neighbour (oi, oj) where the neighbour is open and it
-## is not. along_x: the neighbours differ in i (face plane is constant x). sign: +1 when the
-## neighbour lies on the + side.
-func _face_side(i: int, j: int, f: int, g: int, oi: int, oj: int, along_x: bool, sign: float) -> void:
-	if _open[g] == 0:
-		return
-	var other := _edge_interval(g, along_x, -sign)
-	var parts: Array[Vector4] = []
-	if _open[f] == 0:
-		parts.append(other)
-	else:
-		var own := _edge_interval(f, along_x, sign)
-		# Flat difference (slopes only ever meet solid sides along their run).
-		if other.x < own.x:
-			parts.append(Vector4(other.x, minf(other.y, own.x), other.x, minf(other.y, own.x)))
-		if other.y > own.y:
-			parts.append(Vector4(maxf(other.x, own.y), other.y, maxf(other.x, own.y), other.y))
-	var col := vcolor(oi, oj)
-	var cls := C_BASIN if _bot[g] == C_BASIN and _open[f] == 1 else int(_cls[f])
-	if _open[f] == 0 and _bot[g] == C_BASIN and _cls[f] == C_WALL:
-		cls = C_BASIN
-	var acc := acc_for(i, j, cls, _soft[f] if _open[f] == 0 else -1)
-	var plane := (_xb[i][_xb[i].size() - 1] if sign > 0.0 else _xb[i][0]) if along_x else (_zb[j][_zb[j].size() - 1] if sign > 0.0 else _zb[j][0])
-	var us := _zb[j] if along_x else _xb[i]
-	var n := Vector3(sign, 0.0, 0.0) if along_x else Vector3(0.0, 0.0, sign)
-	for part in parts:
-		if part.x == part.z and part.y == part.w:
-			if part.y - part.x < 0.0001:
-				continue
-			var vs := ys(part.x, part.y)
-			if along_x:
-				_mesh.patch(acc, us, vs, func(u: float, y: float) -> Vector3: return Vector3(plane, y, u), n, col)
-			else:
-				_mesh.patch(acc, us, vs, func(u: float, y: float) -> Vector3: return Vector3(u, y, plane), n, col)
-		else:
-			_slopes.slanted_face(acc, us, part, plane, along_x, n, col)

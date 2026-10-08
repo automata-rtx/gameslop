@@ -57,7 +57,7 @@ var flags: PackedInt32Array = PackedInt32Array()
 var ramp_dir: PackedByteArray = PackedByteArray()
 var ramp_grade: PackedFloat32Array = PackedFloat32Array()
 ## Bit d set when the edge in direction d is a height break a walker cannot step (a basin
-## rim, a deck edge): derived from the floors by refresh_ledges(), so not hashed separately.
+## rim, a deck edge): derived from the floors by GridHeights.refresh_ledges(), so not hashed separately.
 var ledges: PackedByteArray = PackedByteArray()
 var room_list: Array[RoomData] = []
 ## Fixture group id -> Array[Vector2i] of fixture cells (filled by decorate).
@@ -165,21 +165,6 @@ func set_floor_y(c: Vector2i, y: float) -> void:
 func ramp_dir_of(c: Vector2i) -> int:
 	return ramp_dir[idx(c)] - 1 if in_bounds(c) and ramp_dir[idx(c)] > 0 else -1
 
-## Makes `run` (cells in uphill order, each one step from the last along `uphill`) a ramp
-## rising from `y_low` (the floor before run[0]) to `y_high` (the floor after the last).
-## The slope covers the cell interiors and the strips between them (2n - 0.2 m for n
-## cells); the strips at both ends stay flat at the neighbours' floors.
-func set_ramp(run: Array[Vector2i], uphill: int, y_low: float, y_high: float) -> void:
-	var n := run.size()
-	var inner := Tuning.GRID_CELL_SIZE - Tuning.GRID_WALL_THICKNESS
-	var grade := (y_high - y_low) / (n * Tuning.GRID_CELL_SIZE - Tuning.GRID_WALL_THICKNESS)
-	for k in n:
-		var i := idx(run[k])
-		cells[i] = RAMP
-		ramp_dir[i] = uphill + 1
-		ramp_grade[i] = grade
-		floor_heights[i] = y_low + grade * (k * Tuning.GRID_CELL_SIZE + inner * 0.5)
-
 ## Floor height at the middle of edge `dir` of cell c (a ramp's floor runs on past its
 ## cell centre; flat cells are level).
 func edge_floor_y(c: Vector2i, dir: int) -> float:
@@ -195,21 +180,6 @@ func edge_floor_y(c: Vector2i, dir: int) -> float:
 		return y - ramp_grade[i] * half
 	return y
 
-## Recomputes `ledges`: open edges between walkable cells whose floors differ by more than
-## a walker's climb (Tuning.NAV_MAX_CLIMB) cannot be stepped. Call after setting heights.
-func refresh_ledges() -> void:
-	ledges.fill(0)
-	for i in cell_count():
-		if not _walkable_i(i):
-			continue
-		var c := cell_at(i)
-		for d: int in [E, S]:
-			var o := c + DIRS[d]
-			if not in_bounds(o) or not _walkable_i(idx(o)):
-				continue
-			if absf(edge_floor_y(c, d) - edge_floor_y(o, opposite(d))) > Tuning.NAV_MAX_CLIMB:
-				ledges[i] |= 1 << d
-				ledges[idx(o)] |= 1 << opposite(d)
 
 func has_flag(c: Vector2i, f: int) -> bool:
 	return in_bounds(c) and (flags[idx(c)] & f) != 0

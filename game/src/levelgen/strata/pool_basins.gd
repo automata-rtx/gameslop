@@ -71,7 +71,7 @@ func dig(room: RoomData, plan: Dictionary, exit: bool) -> void:
 	for c in RoomData.new(b).cells():
 		grid.set_kind(c, LevelGrid.DEEP if deep and not steps.has(c) else LevelGrid.BASIN)
 		grid.set_floor_y(c, -depth)
-	grid.set_ramp(steps, uphill, -depth, 0.0)
+	GridHeights.set_ramp(grid, steps, uphill, -depth, 0.0)
 	var surface := -INF
 	if fill == FILL_SHALLOW:
 		surface = -depth + Tuning.POOLS_FILL_SHALLOW

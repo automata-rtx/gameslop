@@ -4,16 +4,21 @@ extends Area3D
 ## the water surface (water.gdshader) and an Area3D on the water layer (7) over the basin,
 ## from its floor to the surface. While a body that has `water_depth` (the Player, 06 §3)
 ## is inside, the volume keeps it at the depth of the surface over the body's feet; 0 when
-## it leaves. The player does the rest (wading speed, noise, the water step sound).
+## it leaves. The player does the rest (wading speed, noise, the water step sound). The
+## surface carries the water lap loop (03, `water_lap`).
 
 const MATERIAL := "res://data/materials/pools/water.tres"
 const GROUP := &"water_volumes"
+const LAP_SOUND := &"water_lap"
+const LAP_FADE := 1.0
 
 var surface_y: float = 0.0
 var floor_y: float = 0.0
 ## The basin in cells (LevelData P_WATER `rect`).
 var rect: Rect2i = Rect2i()
 var _inside: Array[Node3D] = []
+var _surface: MeshInstance3D
+var _lap: AudioLoop
 
 
 ## Builds the surface mesh and the volume for basin `basin_rect` (cells), water at `surface`
@@ -53,8 +58,21 @@ func setup(basin_rect: Rect2i, surface: float, bottom: float, material: Material
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.material_override = material if material != null else load(MATERIAL) as Material
 	add_child(mi)
+	_surface = mi
 	body_entered.connect(_on_entered)
 	body_exited.connect(_on_exited)
+
+
+func _ready() -> void:
+	if _surface != null and AudioManager.has_sound(LAP_SOUND):
+		_lap = AudioManager.loop(LAP_SOUND, _surface)
+		_lap.start(LAP_FADE)
+
+
+func _exit_tree() -> void:
+	if _lap != null:
+		_lap.release()
+		_lap = null
 
 
 ## Water depth over a point at height y (0 above the surface).

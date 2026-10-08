@@ -73,7 +73,7 @@ func layout() -> void:
 	_pillars()
 	for k in 2:
 		_strips(k)
-	grid.refresh_ledges()
+	GridHeights.refresh_ledges(grid)
 	MazeOps.mark_dead_ends(grid)
 
 
@@ -169,7 +169,7 @@ func _ramps(a: int, band: int) -> void:
 		for k in band:
 			run.append(cell(u, a + band - 1 - k))
 		var uphill := dir(LevelGrid.N)
-		grid.set_ramp(run, uphill, 0.0, Tuning.GARAGE_DECK_RISE)
+		GridHeights.set_ramp(grid, run, uphill, 0.0, Tuning.GARAGE_DECK_RISE)
 		var prev := bottom
 		for c in run:
 			grid.set_wall(prev, uphill, LevelGrid.NONE)

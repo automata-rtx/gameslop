@@ -79,7 +79,7 @@ static func _carve(gen: StratumGenerator, from: Array[Vector2i], fields: Array[P
 	if e.x < 0:
 		return false
 	marked.append(e)
-	gen.grid.refresh_ledges()
+	GridHeights.refresh_ledges(gen.grid)
 	gen.spawn_dist = gen.grid.distance_field(gen.data.spawn_cell)
 	MazeOps.mark_dead_ends(gen.grid)
 	return true

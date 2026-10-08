@@ -337,41 +337,15 @@ func _finish_geometry() -> void:
 	geometry_built.emit()
 
 
-## 07 §8: floors, ramps and walls from the plan plus props' static colliders and door
-## jambs, baked on a worker thread. Agent radius 0.4, height 1.8, max climb 0.3, cell size
-## 0.2 (the radius is exactly two cells). Door leaves are left out: errors open doors.
+## 07 §8: the navigation bake (LevelNavigation) on a worker thread.
 func _start_bake() -> void:
-	var nm := NavigationMesh.new()
-	nm.cell_size = Tuning.NAV_CELL_SIZE
-	nm.cell_height = Tuning.NAV_CELL_HEIGHT
-	nm.agent_radius = Tuning.NAV_AGENT_RADIUS
-	nm.agent_height = Tuning.NAV_AGENT_HEIGHT
-	nm.agent_max_climb = Tuning.NAV_MAX_CLIMB
-	nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
-	nm.geometry_collision_mask = 1
-	nm.geometry_source_geometry_mode = NavigationMesh.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
-	var src := NavigationMeshSourceGeometryData3D.new()
-	NavigationServer3D.parse_source_geometry_data(nm, src, _containers[&"furniture"])
-	src.add_faces(plan.nav_faces, Transform3D.IDENTITY)
-	for d in (_containers[&"doors"] as Node3D).get_children():
-		if d is Door:
-			_add_jamb_faces(src, d as Door)
+	var nm := LevelNavigation.mesh()
+	var src := LevelNavigation.source(nm, plan, _containers[&"furniture"], _containers[&"doors"])
 	var map := nav_region.get_navigation_map()
 	NavigationServer3D.map_set_cell_size(map, Tuning.NAV_CELL_SIZE)
 	NavigationServer3D.map_set_cell_height(map, Tuning.NAV_CELL_HEIGHT)
 	_bake_started_us = Time.get_ticks_usec()
 	NavigationServer3D.bake_from_source_geometry_data_async(nm, src, _on_baked.bind(nm))
-
-
-## The jambs' box shapes as navigation obstacles (their faces, in world space).
-static func _add_jamb_faces(src: NavigationMeshSourceGeometryData3D, door: Door) -> void:
-	for child in door.jambs.get_children():
-		var cs := child as CollisionShape3D
-		if cs == null or not (cs.shape is BoxShape3D):
-			continue
-		var box := BoxMesh.new()
-		box.size = (cs.shape as BoxShape3D).size
-		src.add_faces(box.get_faces(), cs.global_transform)
 
 
 func _on_baked(nm: NavigationMesh) -> void:
