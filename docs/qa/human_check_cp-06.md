@@ -76,7 +76,7 @@ Look and listen for: the hum getting closer through walls; inside, a rising nois
 Write down: did you know what to do (go around it, wait, or pass through a wall)?
 
 **13. The exit and the breaker.** Find the elevator (a door set in the wall, a lamp above it). The first one is dead and dark. Find the grey breaker box on a wall nearby, face it, and hold E.
-Look and listen for: `EXIT: POWERED` at top right turning into a notice; the lever dropping with a heavy clunk and a small shake; light flooding the corridors in a wave from the box towards the elevator, tube by tube; the elevator doors opening with a latch and a hiss; the status turning to `OPEN`. Walk in.
+Look and listen for: `EXIT: POWERED` at top right turning to `OPEN` with an `EXIT UNLOCKED` notice; the lever dropping with a heavy clunk and a small shake; light flooding the corridors in a wave from the box towards the elevator, tube by tube; the elevator doors opening with a latch and a hiss; the status turning to `OPEN`. Walk in.
 Write down: was it clear what to do without being told? Did the wave of light feel like a reward?
 
 **14. The cabin.** You are in a small metal cabin that shudders and hums while the next level builds, with a panel offering two items.

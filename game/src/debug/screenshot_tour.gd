@@ -138,7 +138,9 @@ func _tour_stratum(stratum: StringName) -> void:
 	for pose in tour_plan[&"poses"]:
 		_aim(pose[&"from"], pose[&"to"])
 		await _frames(SETTLE_POSE)
-		var steps: Array[float] = [100.0] if pose[&"name"] == T1_POSE else COHERENCE_STEPS
+		var steps: Array[float] = COHERENCE_STEPS.duplicate()
+		if pose[&"name"] == T1_POSE:
+			steps = [100.0]
 		for c in steps:
 			CoherenceRenderer.set_coherence(c)
 			await _frames(SETTLE_STEP)
