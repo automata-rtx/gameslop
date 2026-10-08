@@ -152,7 +152,14 @@ func echo_4m(b: FeedbackBench) -> void:
 	var e := spawn_error(b, &"echo", ahead(b, 7.0)) as ErrorEcho
 	e.senses.hearing_mult = 0.0
 	e.wake()
-	await b.ticks(3)
+	# A caption still on screen from an earlier row would only refresh; start from an empty
+	# stack so the step's caption is a new line, and report the cues if the row fails.
+	if b.run.hud != null and b.run.hud.captions != null:
+		b.run.hud.captions.clear()
+	var cues: Array[String] = []
+	var on_cue := func(text: String, _pos: Vector3) -> void: cues.append(text)
+	EventBus.audio_cue.connect(on_cue)
+	await b.ticks(12)
 	await b.arm()
 	b.anchor()
 	e.place_at(ahead(b, 3.5))
@@ -160,6 +167,8 @@ func echo_4m(b: FeedbackBench) -> void:
 	# column's `[footsteps, …, late]` caption, M2.12). The placement stands in for the walk.
 	EchoPresent.play_step(e, NoiseModel.DEFAULT_SURFACE)
 	await b.ticks(8)
+	EventBus.audio_cue.disconnect(on_cue)
+	print("  # echo_4m cues: %s; captions setting %s" % [cues, SettingsManager.get_value(&"captions")])
 	free_error(e)
 
 
