@@ -47,7 +47,13 @@ func show_caption(text: String) -> void:
 		return
 	for e in _entries:
 		if not e.leaving and e.text == text:
+			# A repeat restarts the hold, becomes the newest line again and brightens for a
+			# moment, so the reader sees the sound happened again (04 §10, 11 R channel).
 			e.t = 0.0
+			_stack.move_child(e.shutter, -1)
+			e.label.modulate = Color(1.6, 1.6, 1.6)
+			create_tween().tween_property(e.label, ^"modulate", Color.WHITE, Tuning.CAPTION_REPEAT_PULSE_S)
+			_layout.call_deferred()
 			return
 	var e := Entry.new()
 	e.text = text

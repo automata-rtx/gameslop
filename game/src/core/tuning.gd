@@ -1438,6 +1438,7 @@ const CAPTION_SECTORS := 8                          # listener-relative angle se
 # M2.12 build-task constants (04 §8, §10 give no lifetime or stack): the caption stack
 const CAPTION_TIME := 4.0                           # s on screen (the notification hold, 04 §6)
 const CAPTION_MAX_STACK := 3                        # lines; a fourth pushes the oldest out
+const CAPTION_REPEAT_PULSE_S := 0.25                # a repeated caption brightens back over this (04 §10 reading)
 const CAPTION_GAP := 4                              # px between stacked lines (half a grid unit)
 const CAPTION_PROMPT_CLEARANCE := 40                # px: the stack's bottom sits this far above the prompt centre (11 §6)
 const ARCHIVE_NEW_BLINK_S := 0.5                    # one 2 Hz blink of an unread note cell (13 §5)
