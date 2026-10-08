@@ -267,17 +267,18 @@ func test_relief_entry_hints_hunters_away_at_once() -> void:
 	assert_eq(_d.phase, DirectorPacing.PEAK)
 	h.transition_to(Tuning.ERROR_STATE_SEARCH, "test")
 	h.clear_hint()
+	h._hint = Vector3.ZERO
 	_d.pacing.intensity = 0.95
 	_d.pacing.on_evasion(true)
 	_advance(0.1)
 	assert_eq(_d.phase, DirectorPacing.RELIEF)
 	assert_true(_d.intensity <= Tuning.DIRECTOR_RELIEF_INTENSITY_CAP + 0.0001, "intensity ≤ 0.5 (%.2f)" % _d.intensity)
-	var has_now := h.get_method_argument_count(&"hint") >= 2
-	assert_true(has_now or h.has_hint(), "hinted on the Relief tick")
-	if h.has_hint():
-		var d := DirectorSpawn.flat_dist(h._hint, _p.global_position)
-		assert_true(d >= Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST - 0.01 and d <= Tuning.DIRECTOR_HINT_AWAY_MAX + 0.01,
-			"25 to 40 m from the player (%.1f m)" % d)
+	# The immediate hint (R9) re-targets a Searching Still at once and may consume the flag;
+	# the destination it was given stays in `_hint`.
+	assert_ne(h._hint, Vector3.ZERO, "hinted on the Relief tick")
+	var d := DirectorSpawn.flat_dist(h._hint, _p.global_position)
+	assert_true(d >= Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST - 0.01 and d <= Tuning.DIRECTOR_HINT_AWAY_MAX + 0.01,
+		"25 to 40 m from the player (%.1f m)" % d)
 
 
 ## M1.13 (R10): a hunter with no fair cell at entry waits and is spawned by the 1 s retry as

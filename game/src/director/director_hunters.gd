@@ -222,15 +222,13 @@ func act(a: StringName) -> void:
 			for st in _statics():
 				_hint_off_path(st, false)
 		DirectorPacing.ACT_HINT_AWAY_NOW:
-			# Relief entry (M1.13 ruling): every awake hunter away at once; Wander and
-			# Search re-target now, a Satiated one takes the hint when it next moves.
+			# Relief entry (M1.13 ruling): every hunter away at once through the errors'
+			# immediate hint (R9): Wander and Search re-target now; in Chase, Satiated or
+			# Dormant the hint is stored. Static re-targets off the critical path now.
 			for h in _hunters():
-				if h.is_dormant() or DirectorRules.is_chasing_state(h.state):
-					continue
-				_hint_ring(h, Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST, Tuning.DIRECTOR_HINT_AWAY_MAX,
-					h.state != Tuning.ERROR_STATE_SATIATED)
+				_hint_ring(h, Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST, Tuning.DIRECTOR_HINT_AWAY_MAX, true)
 			for st in _statics():
-				_hint_off_path(st, false)
+				_hint_off_path(st, false, true)
 		DirectorPacing.ACT_RETREAT_CHASERS:
 			for h in chasers():
 				h.retreat(Tuning.DIRECTOR_PEAK_RETREAT_TIME)
@@ -281,22 +279,10 @@ func _hint_ring(h: ErrorBase, rmin: float, rmax: float, now: bool = false) -> vo
 	var c := DirectorSpawn.cell_in_ring(_grid(), director.player.global_position, rmin, rmax, director.rng)
 	if c == LevelData.NO_CELL:
 		return
-	if now:
-		hint_now(h, _grid().world_of(c))
-	else:
-		h.hint(_grid().world_of(c))
+	h.hint(_grid().world_of(c), now)
 
 
-## An immediate hint: `hint(pos, true)` when the error takes the second argument (the
-## errors' immediate-hint API, R9); otherwise the plain hint, taken at the next re-target.
-static func hint_now(h: ErrorBase, pos: Vector3) -> void:
-	if h.get_method_argument_count(&"hint") >= 2:
-		h.call(&"hint", pos, true)
-	else:
-		h.hint(pos)
-
-
-func _hint_off_path(st: ErrorStatic, nudge: bool) -> void:
+func _hint_off_path(st: ErrorStatic, nudge: bool, now: bool = false) -> void:
 	if _grid() == null:
 		return
 	var c := DirectorSpawn.off_path_cell(_grid(), director.data.critical_path, st.global_position)
@@ -305,7 +291,7 @@ func _hint_off_path(st: ErrorStatic, nudge: bool) -> void:
 	if nudge:
 		st.nudge(_grid().world_of(c))
 	else:
-		st.hint(_grid().world_of(c))
+		st.hint(_grid().world_of(c), now)
 
 
 # --- fairness (10 §7) ---------------------------------------------------------------------------
