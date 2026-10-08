@@ -7,6 +7,7 @@ extends SceneTree
 ##   godot --headless --fixed-fps 60 --path game --script tests/sim/sim_run.gd -- \
 ##         [--seeds 3] [--from 1] [--profiles direct,explorer,cautious] [--depths 1,2]
 ##         [--max-seconds 600] [--stop-after-relief] [--linger] [--csv <dir>] [--json <file>]
+##         [--no-audio-guard]
 ## --linger makes every profile visit the explorer's rooms before its objective.
 ## With --csv, each run's Director telemetry is written as
 ## <dir>/<profile>_d<depth>_seed<n>.csv and the summary table as <dir>/summary.csv.
@@ -54,6 +55,8 @@ func _initialize() -> void:
 				_csv_dir = next
 			"--json":
 				_json_path = next
+			"--no-audio-guard":
+				AudioMixGuard.enabled = false  # RCA1 A/B: reopens the engine audio race
 	_main.call_deferred()
 
 

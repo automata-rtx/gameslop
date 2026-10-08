@@ -13,11 +13,12 @@ extends TestCase
 
 const SEEDS := 3
 const MAX_SECONDS := 200.0
-const JSON_PATH := "user://sim_gate.json"
+## Per process: user:// is shared by every checkout and every gate running at once.
+const JSON_PATH := "user://sim_gate_%d.json"
 
 
 func _run_sims() -> Array:
-	var json := ProjectSettings.globalize_path(JSON_PATH)
+	var json := ProjectSettings.globalize_path(JSON_PATH % OS.get_process_id())
 	if FileAccess.file_exists(json):
 		DirAccess.remove_absolute(json)
 	var args := PackedStringArray(["--headless", "--fixed-fps", "60", "--path", ProjectSettings.globalize_path("res://"),
@@ -37,6 +38,7 @@ func _run_sims() -> Array:
 				print("  # %s" % line)
 	var text := FileAccess.get_file_as_string(json)
 	var parsed: Variant = JSON.parse_string(text)
+	assert_true(parsed is Array, "the sim engine wrote its results (%d bytes)" % text.length())
 	DirAccess.remove_absolute(json)
 	return parsed if parsed is Array else []
 
