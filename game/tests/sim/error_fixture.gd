@@ -32,6 +32,10 @@ static func make_world(parent: Node) -> Node3D:
 	NavigationServer3D.map_set_cell_size(map, Tuning.NAV_CELL_SIZE)
 	NavigationServer3D.map_set_cell_height(map, Tuning.NAV_CELL_HEIGHT)
 	region.navigation_mesh = nm
+	# The server applies a new region on its own sync; until then map queries return the
+	# zero vector (a Satiated retreat snapped every candidate to the origin and stood still:
+	# the flaky test_satiated_retreats_away). Force the sync so the map is ready now.
+	NavigationServer3D.map_force_update(map)
 	return root
 
 

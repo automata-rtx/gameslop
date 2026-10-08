@@ -241,6 +241,15 @@ func test_dormant_until_navigation_ready() -> void:
 	assert_eq(s.state, Tuning.ERROR_STATE_WANDER, "the remembered wake applies")
 
 
+## The fixture's navigation map answers queries from the first frame (the root cause of the
+## old flake: an unsynced map snapped every retreat candidate to the origin).
+func test_fixture_navigation_map_is_ready() -> void:
+	var map := (_world.get_node("Navigation") as NavigationRegion3D).get_navigation_map()
+	var q := NavigationServer3D.map_get_closest_point(map, Vector3(7, 0, 5))
+	assert_approx(q.x, 7.0, 0.5, "closest point is on the floor, not the zero vector")
+	assert_approx(q.z, 5.0, 0.5)
+
+
 func test_satiated_retreats_away() -> void:
 	var s := _still(Vector3(0, 0, 0.8))
 	s.wake()
