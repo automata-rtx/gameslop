@@ -381,7 +381,7 @@ void fragment() {
 	EMISSION = emit * (1.0 - line) + GRID_COLOR * line * line_emission * line_boost;
 	// M2.3: where a soft wall's fill is unrendered (the Substrate's u floor) its albedo band is
 	// gone with the fill, so the band glows instead, scaled by the material u floor.
-	EMISSION += vec3(soft_band + SOFT_BAND_AMPLITUDE) * 0.5 * u_floor * (1.0 - line) * step(0.5, soft);
+	EMISSION += vec3(soft_band + SOFT_BAND_AMPLITUDE) * 0.3 * u_floor * (1.0 - line) * step(0.5, soft);
 
 	// Screen door (02 §5): at u >= 0.95 a fraction 0.6 u of fill cells is discarded, on a
 	// world-anchored lattice so the pattern sticks to the surface; lines always stay.

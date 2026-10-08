@@ -47,7 +47,7 @@ func test_open_but_shut_until_walked_into() -> void:
 	var mat := strip.material_override as ShaderMaterial
 	assert_approx(float(mat.get_shader_parameter(&"emission_strength")), Tuning.THRESHOLD_STRIP_EMISSION, 0.001,
 		"02 §7: daylight x20 under the door")
-	assert_eq(mat.get_shader_parameter(&"emission"), Color("#FFF7E0"), "the only warm light")
+	assert_true((mat.get_shader_parameter(&"emission") as Color).is_equal_approx(Color("#FFF7E0")), "the only warm light")
 	assert_approx((strip.mesh as BoxMesh).size.y, Tuning.THRESHOLD_STRIP_HEIGHT, 0.0001, "a 2 cm strip")
 	var entered: Array = []
 	e.entering.connect(func(n: Node3D) -> void: entered.append(n))
