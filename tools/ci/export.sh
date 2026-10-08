@@ -135,6 +135,13 @@ for entry in "${PRESETS[@]}"; do
   [[ -s "$OUT/$BINARY" ]] || fail "$PRESET produced no $BINARY"
   [[ -s "$OUT/NOCLIP.pck" ]] || fail "$PRESET produced no NOCLIP.pck (embed_pck must stay off, 16 §1)"
   if [[ "$PLATFORM" == "linux" ]]; then chmod +x "$OUT/$BINARY"; fi
+  if [[ "$PLATFORM" == "windows" ]]; then
+    # 16 §3: no console window. PE optional header Subsystem (offset e_lfanew + 92) 2 = GUI.
+    PE_OFF=$(od -An -tu4 -j60 -N4 "$OUT/$BINARY" | tr -d ' ')
+    SUBSYSTEM=$(od -An -tu2 -j$((PE_OFF + 92)) -N2 "$OUT/$BINARY" | tr -d ' ')
+    [[ "$SUBSYSTEM" == "2" ]] || fail "$BINARY has PE subsystem $SUBSYSTEM, not 2 (GUI): a console window would open"
+    [[ ! -e "$OUT/NOCLIP.console.exe" ]] || fail "a console wrapper was exported (debug/export_console_wrapper must be 0)"
+  fi
 
   # The zip holds one folder named like the zip, so unpacking never spills files.
   NAME="NOCLIP-$VERSION-$PLATFORM"
@@ -144,6 +151,9 @@ for entry in "${PRESETS[@]}"; do
   cp -p "$OUT/$BINARY" "$OUT/NOCLIP.pck" "$STAGE/"
   sed -e "s/{VERSION}/$VERSION/g" -e "s/{PLATFORM}/$PRESET/g" "$ROOT/tools/ci/README.txt.in" >"$STAGE/README.txt"
   cp "$LOG_DIR/LICENSES.txt" "$STAGE/LICENSES.txt"
+  if [[ "$PLATFORM" == "windows" ]]; then   # CRLF so every Windows text viewer shows lines
+    sed -i 's/$/\r/' "$STAGE/README.txt" "$STAGE/LICENSES.txt"
+  fi
   (cd "$STAGE" && sha256sum "$BINARY" NOCLIP.pck README.txt LICENSES.txt >SHA256SUMS.txt)
   ZIP="$BUILD/$NAME.zip"
   rm -f "$ZIP"
