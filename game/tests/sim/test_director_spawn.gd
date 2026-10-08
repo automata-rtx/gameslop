@@ -155,7 +155,7 @@ func _spawn_pose(data: LevelData) -> Array:
 
 
 ## M1.13 ruling: every depth-2 level of a run (its stratum from the run seed, generated as
-## the run does) spawns a hunter (an unbuilt native becomes Still) and a Static, from the
+## the run does) spawns a hunter and a Static, from the
 ## player's arrival pose.
 func test_every_depth_2_level_has_a_hunter_and_a_static() -> void:
 	var half := DirectorSpawn.half_fov_h(FOV, ASPECT)
@@ -169,9 +169,8 @@ func test_every_depth_2_level_has_a_hunter_and_a_static() -> void:
 		var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_DIRECTOR))
 		var design := DirectorRules.roster(2, stratum, false, [], rng)
 		var native := DirectorRules.native_for(stratum, [], rng)
-		var sub := DirectorRules.substitute_unbuilt_native(design, native)
 		var ids: Array[StringName] = []
-		for id: StringName in sub[&"roster"]:
+		for id: StringName in design:
 			if DirectorRules.spawnable(id):
 				ids.append(id)
 		var pos := data.grid.world_of(data.spawn_cell)
@@ -179,7 +178,7 @@ func test_every_depth_2_level_has_a_hunter_and_a_static() -> void:
 		var hunter_facings := 0
 		for yaw_i in 4:
 			var fwd := _forward(yaw_i * PI * 0.5)
-			var cells := DirectorSpawn.pick_cells(data, ids, sub[&"native"], pos, pos + Vector3.UP * Tuning.PLAYER_CAMERA_HEIGHT,
+			var cells := DirectorSpawn.pick_cells(data, ids, native, pos, pos + Vector3.UP * Tuning.PLAYER_CAMERA_HEIGHT,
 				fwd, half, rng)
 			var hunter := false
 			var static_ok := false

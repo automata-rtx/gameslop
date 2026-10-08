@@ -163,6 +163,38 @@ func echo_4m(b: FeedbackBench) -> void:
 	free_error(e)
 
 
+## 11 §3 Flicker lunge: the player stands under a lit fixture group with Flicker in it; at
+## charge 1 the group flashes white 2 frames then goes dark 1.5 s, the World bus falls
+## silent, and the contact lands (trauma, Coherence).
+func flicker_lunge(b: FeedbackBench) -> void:
+	await b.pose_sightline()
+	var p := b.player()
+	p.flashlight.set_on(false, true)
+	var pool := b.run.level.light_pool
+	var best: Fixture = null
+	for f in pool.fixtures():
+		if f.powered and f.group_id >= 0 and (best == null or FlickerHabitat.flat(f.global_position, p.global_position)
+				< FlickerHabitat.flat(best.global_position, p.global_position)):
+			best = f
+	if best == null:
+		push_warning("flicker_lunge: no lit fixture")
+		return
+	b.place(Vector3(best.global_position.x, p.global_position.y, best.global_position.z), p.rotation.y, 0.0)
+	pool.reevaluate()
+	var e := spawn_error(b, &"flicker", Vector3(best.global_position.x, p.global_position.y, best.global_position.z)) as ErrorFlicker
+	e.set_aggression(0.75)
+	await b.arm()
+	# Anchor on the Lunge transition itself: the flash and the noise follow it in the same call.
+	var on_lunge := func(_from: StringName, to: StringName) -> void:
+		if to == Tuning.ERROR_STATE_LUNGE:
+			b.anchor()
+	e.state_changed.connect(on_lunge)
+	e.wake()
+	await b.until(b.is_anchored, 240)
+	await b.ticks(30)
+	free_error(e)
+
+
 # --- the exit and the breaker ----------------------------------------------------------------------
 
 func exit_seen(b: FeedbackBench) -> void:

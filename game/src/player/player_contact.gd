@@ -27,7 +27,11 @@ static func contact(p: Player, error: Node3D, amount: float) -> bool:
 	if p.state_machine.transition_to(PlayerStateMachine.STUNNED) or p.is_stunned():
 		p._stun_left = Tuning.CONTACT_STUN_TIME
 		p.stun_changed.emit(true)
-	if error != null and error.is_inside_tree():
+	# 08 §5: an error with no body to push from (Flicker attached to the beam) answers
+	# `contact_pushes()` false: no push; the stun, trauma and pulse still apply.
+	if error != null and error.has_method(&"contact_pushes") and not bool(error.call(&"contact_pushes")):
+		pass
+	elif error != null and error.is_inside_tree():
 		p.locomotion.push(p.global_position - error.global_position)
 	else:
 		p.locomotion.push(p.global_transform.basis.z)

@@ -21,6 +21,8 @@ var _cut_time: Dictionary = {}
 var _counts: Dictionary = {}
 ## Hunters with no fair cell at level entry, retried once per second (`spawn_pending`).
 var pending: Array[StringName] = []
+## Flicker instance id -> Director seconds of its last respawn (10 §4: once per 60 s).
+var _respawned_at: Dictionary = {}
 
 
 func live() -> Array[ErrorBase]:
@@ -116,6 +118,22 @@ func spawn_pending() -> void:
 		if e != null and director.pacing.phase != DirectorPacing.CALM and director.wake_allowed():
 			e.wake()
 	pending = left
+
+
+## 10 §4: a Flicker that lost its habitat is respawned in Build at a lit group >= 20 m away
+## (and out of view), at most once per 60 s. Called once per second.
+func respawn_flickers(now: float) -> void:
+	if director.pacing.phase != DirectorPacing.BUILD or not _player_ok():
+		return
+	var cam := director.player.rig.camera
+	for e in live():
+		var fl := e as ErrorFlicker
+		if fl == null or not fl.despawned or now - float(_respawned_at.get(fl.get_instance_id(), -INF)) < Tuning.FLICKER_RESPAWN_INTERVAL:
+			continue
+		var ids := FlickerHabitat.respawn_groups(fl.pool(), director.player.global_position, Tuning.FLICKER_RESPAWN_MIN_DIST,
+			func(p: Vector3) -> bool: return cam.is_inside_tree() and cam.is_position_in_frustum(p))
+		if not ids.is_empty() and fl.respawn_at(ids[director.rng.randi_range(0, ids.size() - 1)]):
+			_respawned_at[fl.get_instance_id()] = now
 
 
 func spawn(id: StringName, pos: Vector3) -> ErrorBase:
