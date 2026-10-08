@@ -7,31 +7,3 @@ script = ExtResource("1_main")
 
 [node name="Content" type="Node" parent="."]
 unique_name_in_owner = true
-
-[node name="TitlePlaceholder" type="Control" parent="Content"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Background" type="ColorRect" parent="Content/TitlePlaceholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 1)
-
-[node name="Wordmark" type="Label" parent="Content/TitlePlaceholder"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-text = "NOCLIP"
-horizontal_alignment = 1
-vertical_alignment = 1
