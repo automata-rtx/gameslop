@@ -4,7 +4,8 @@ extends VBoxContainer
 ## ui_accent (Substrate: ui_cold), shuttering in on arrival (11 §3); beneath it the exit
 ## status line in ui_dim (`EXIT: UNKNOWN`, `EXIT: POWERED`, `EXIT: SEALED 02:14`), in
 ## ui_fg once the lock is cleared (`EXIT: OPEN`). A timed status counts down here
-## between `exit_status_changed` events.
+## between `exit_status_changed` events. While the keycard is held (09 §2: not a belt item)
+## the `key` glyph shutters in left of the depth label.
 
 const STATUS_UNKNOWN := &"unknown"
 const STATUS_OPEN := &"open"
@@ -17,6 +18,8 @@ var timer: float = 0.0
 
 var depth_shutter: UiShutter
 var exit_shutter: UiShutter
+var key_shutter: UiShutter
+var has_keycard: bool = false
 var _prefix: Label
 var _numeral: Label
 var _suffix: Label
@@ -34,9 +37,27 @@ func _init() -> void:
 	depth_shutter = UiShutter.new()
 	depth_shutter.name = "DepthShutter"
 	depth_shutter.sound = true
-	depth_shutter.size_flags_horizontal = Control.SIZE_SHRINK_END
 	depth_shutter.add_child(row)
-	add_child(depth_shutter)
+	# Shutters do not nest (hud.gd): the key glyph has its own, beside the depth line's.
+	var top := HBoxContainer.new()
+	top.name = "DepthRow"
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.size_flags_horizontal = Control.SIZE_SHRINK_END
+	top.add_theme_constant_override(&"separation", UiTokens.GRID)
+	key_shutter = UiShutter.new()
+	key_shutter.name = "KeyShutter"
+	key_shutter.sound = true
+	key_shutter.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var key := TextureRect.new()
+	key.name = "KeyGlyph"
+	key.texture = UiTokens.glyph(&"key")
+	key.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	key.custom_minimum_size = Vector2(UiTokens.GLYPH_SIZE, UiTokens.GLYPH_SIZE)
+	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	key_shutter.add_child(key)
+	top.add_child(key_shutter)
+	top.add_child(depth_shutter)
+	add_child(top)
 	exit_shutter = UiShutter.new()
 	exit_shutter.name = "ExitShutter"
 	exit_shutter.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -72,8 +93,31 @@ func set_depth(d: int, s: StringName) -> void:
 	_prefix.text = parts[0].strip_edges()
 	_numeral.text = str(d).pad_zeros(Tuning.HUD_DEPTH_STRATUM_PAD)
 	_suffix.text = (parts[1] if parts.size() > 1 else "").replace("{stratum}", name_text).strip_edges()
-	_numeral.add_theme_color_override(&"font_color", UiTokens.UI_COLD if s == SUBSTRATE else UiTokens.UI_ACCENT)
+	_paint_numeral()
 	depth_shutter.reshutter()
+
+
+## Repaints after a 12 §6 token change (colour-blind accent): no shutter, no sound.
+func repaint() -> void:
+	if depth > 0:
+		_paint_numeral()
+
+
+## Accent numeral; the Substrate's is cold and, with the colour-blind accent, marked `~`.
+func _paint_numeral() -> void:
+	_numeral.text = str(depth).pad_zeros(Tuning.HUD_DEPTH_STRATUM_PAD)
+	if stratum == SUBSTRATE:
+		_numeral.text = UiTokens.cold_mark(_numeral.text)
+	UiTokens.paint(_numeral, UiTokens.UI_COLD if stratum == SUBSTRATE else UiTokens.accent())
+
+
+## The keycard is held (Inventory.keycard_changed): its glyph shutters in or out.
+func set_keycard(on: bool) -> void:
+	has_keycard = on
+	if on:
+		key_shutter.shutter_in()
+	else:
+		key_shutter.shutter_out()
 
 
 ## 04 Interfaces set_exit_status(status, timer). Returns the previous status.

@@ -5,7 +5,8 @@ extends MenuPage
 ## types its sheet below the grid (90 cps, 04 §8 backings). Errors stay `··` until the first
 ## encounter (name and glyph), and add the counter line as a builder memo after 3. Statistics
 ## format meta.stats; unlocks list the 14 milestones with condition and a check or cross.
-## Reads GameState.meta only.
+## Reads GameState.meta; the one write is the notes' read state (13 §5: unread found notes
+## blink once in ui_accent the first time the grid shows them, then count as read).
 
 const SECTION_NOTES := &"notes"
 const SECTION_ERRORS := &"errors"
@@ -28,6 +29,9 @@ var sheet: PanelContainer
 var sheet_header: Label
 var sheet_body: UiTypedLabel
 var _grid_ids: Array = []
+## Notes blinking now (unread when the grid was built) and the blink's clock.
+var blinking: Array[StringName] = []
+var _blink_t: float = INF
 
 
 func build() -> void:
@@ -153,7 +157,38 @@ func _build_notes() -> void:
 	body.add_child(sheet)
 	var help := MenuPage.description_label(Strings.ARCHIVE_NOTES_HELP)
 	body.add_child(help)
+	_start_blink()
 	_refresh_grid()
+
+
+## 13 §5: the found notes the Archive has not shown blink once, and are read from now on.
+func _start_blink() -> void:
+	var meta := GameState.meta
+	blinking = meta.unread_notes() if meta != null else ([] as Array[StringName])
+	_blink_t = 0.0 if not blinking.is_empty() else INF
+	if not blinking.is_empty() and meta.mark_notes_read(blinking):
+		SaveManager.save_meta()
+
+
+func is_blink_lit(id: StringName) -> bool:
+	return blinking.has(id) and _blink_t < Tuning.ARCHIVE_NEW_BLINK_S * 0.5
+
+
+func advance(dt: float) -> void:
+	if _blink_t == INF:
+		return
+	var was := _blink_t < Tuning.ARCHIVE_NEW_BLINK_S * 0.5
+	_blink_t += dt
+	if was != (_blink_t < Tuning.ARCHIVE_NEW_BLINK_S * 0.5) and not cells.is_empty():
+		_refresh_grid()
+	if _blink_t >= Tuning.ARCHIVE_NEW_BLINK_S:
+		_blink_t = INF
+		blinking.clear()
+
+
+func _process(delta: float) -> void:
+	if not UiMotion.manual_clock:
+		advance(delta)
 
 
 func focus_grid() -> void:
@@ -205,9 +240,9 @@ func _refresh_grid() -> void:
 		var on := grid_focus and at == cursor
 		cells[i].text = (Strings.MENU_SELECTED_PREFIX if on else "  ") + (cell_text(id) if id != &"" else "")
 		var col := UiTokens.UI_FG if is_found(id) else UiTokens.UI_DIM
-		if on:
-			col = UiTokens.UI_ACCENT
-		cells[i].add_theme_color_override(&"font_color", col)
+		if on or is_blink_lit(id):
+			col = UiTokens.accent()
+		UiTokens.paint(cells[i], col)
 	if sheet == null:
 		return
 	var id := cursor_note() if grid_focus else &""

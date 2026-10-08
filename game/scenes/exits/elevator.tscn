@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://src/interactables/exit.gd" id="1_exit"]
 [ext_resource type="Material" path="res://data/materials/halls/prop_metal.tres" id="2_metal"]
@@ -29,6 +29,9 @@ size = Vector3(0.14, 0.3, 0.03)
 [sub_resource type="BoxMesh" id="Mesh_button"]
 size = Vector3(0.05, 0.05, 0.02)
 
+[sub_resource type="BoxMesh" id="Mesh_display"]
+size = Vector3(0.2, 0.1, 0.02)
+
 [sub_resource type="BoxShape3D" id="Shape_trigger"]
 size = Vector3(1.2, 2, 0.7)
 
@@ -37,6 +40,8 @@ size = Vector3(1.2, 2.2, 0.06)
 
 [node name="Elevator" type="Node3D"]
 script = ExtResource("1_exit")
+exit_kind = &"elevator"
+sound_open = &"exit_open"
 
 [node name="PostL" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.675, 1.2, -0.06)
@@ -122,3 +127,25 @@ monitorable = false
 [node name="Shape" type="CollisionShape3D" parent="Trigger"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -0.45)
 shape = SubResource("Shape_trigger")
+
+[node name="DisplayPlate" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, 1.52, -0.01)
+mesh = SubResource("Mesh_display")
+material_override = ExtResource("3_black")
+
+[node name="Display" type="Label3D" parent="."]
+unique_name_in_owner = true
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, 1.52, -0.022)
+pixel_size = 0.0016
+text = "01:10"
+font_size = 56
+outline_size = 0
+modulate = Color(1, 0.690196, 0, 1)
+shaded = false
+double_sided = false
+texture_filter = 1
+
+[node name="ReaderMount" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.95, 0, 0)

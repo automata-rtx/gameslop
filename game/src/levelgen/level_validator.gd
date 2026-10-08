@@ -174,10 +174,52 @@ static func _rule3_lock(level: LevelData, ds: PackedInt32Array, f: PackedStringA
 			objective = level.keycard_cell
 			if level.placements_of(LevelData.P_KEYCARD).size() != 1:
 				f.append("r3: Keyed needs exactly one keycard")
+		Tuning.LOCK_CYCLED:
+			_rule3_cycled(level, f)
+			return
 		_:
 			return
 	if not grid.in_bounds(objective) or not _reachable_both_ways(level, ds, objective):
 		f.append("r3: %s objective unreachable on foot" % level.exit_lock)
+
+
+## 07 §6 Cycled (M2.9 reading of rule 3): the open window must cover the walk to the exit from
+## a reasonable point, i.e. from every cell of the exit room and from the critical-path cell
+## where the exit can first be seen (EXIT_SEEN_DIST of walking before it).
+static func cycled_window_m() -> float:
+	return Tuning.CYCLED_OPEN_TIME * Tuning.PLAYER_WALK_SPEED
+
+
+## Metres of walking to the exit from the farthest "reasonable point" (see _rule3_cycled), or
+## -1 when such a point cannot reach the exit at all.
+static func cycled_walk_m(level: LevelData) -> float:
+	var grid := level.grid
+	if not grid.in_bounds(level.exit_cell):
+		return -1.0
+	var de := grid.distance_field(level.exit_cell)
+	var worst := 0
+	var points: Array[Vector2i] = []
+	for i in grid.cell_count():
+		if grid.has_flag(grid.cell_at(i), LevelGrid.F_EXIT_ROOM) and LevelGrid.kind_walkable(grid.cells[i]):
+			points.append(grid.cell_at(i))
+	var seen_cells := int(ceil(Tuning.EXIT_SEEN_DIST / Tuning.GRID_CELL_SIZE))
+	var path := level.critical_path
+	if path.size() > 1:
+		points.append(path[maxi(0, path.size() - 1 - seen_cells)])
+	for c in points:
+		var d := de[grid.idx(c)]
+		if d < 0:
+			return -1.0
+		worst = maxi(worst, d)
+	return worst * Tuning.GRID_CELL_SIZE
+
+
+static func _rule3_cycled(level: LevelData, f: PackedStringArray) -> void:
+	var m := cycled_walk_m(level)
+	if m < 0.0:
+		f.append("r3: cycled exit unreachable from its room")
+	elif m > cycled_window_m():
+		f.append("r3: cycled exit %.0f m from its room, the open window covers %.0f m" % [m, cycled_window_m()])
 
 
 ## Reachable from spawn, and the exit reachable from it, walking only (no SOLID, GLASS,

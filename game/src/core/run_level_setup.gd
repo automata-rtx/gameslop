@@ -6,7 +6,17 @@ extends RefCounted
 ## the unlocked item pool, the Landing's two-item draw (05 §4, 09 §2) and the drop arrival
 ## cell (05 §4). Static and stateless so tests call each rule directly.
 
-const EXIT_SCENES: Dictionary = {&"elevator": "res://scenes/exits/elevator.tscn"}
+## 07 §5, 09 §7: one exit prefab per placement `exit_kind` (M2.9). Halls and Offices ride the
+## elevator, Pools leave by the drain hatch, Garage by the stairwell door, Server by the floor
+## hatch. `threshold_door` (Substrate) is M2.15's prefab: until that scene exists the hook falls
+## back to DEFAULT_EXIT_SCENE (exit_scene_for).
+const EXIT_SCENES: Dictionary = {
+	&"elevator": "res://scenes/exits/elevator.tscn",
+	&"drain_hatch": "res://scenes/exits/drain_hatch.tscn",
+	&"stairwell_door": "res://scenes/exits/stairwell_door.tscn",
+	&"floor_hatch": "res://scenes/exits/floor_hatch.tscn",
+	&"threshold_door": "res://scenes/exits/threshold_door.tscn",
+}
 const DEFAULT_EXIT_SCENE := "res://scenes/exits/elevator.tscn"
 const BREAKER_SCENE := "res://scenes/interactables/breaker.tscn"
 
@@ -21,8 +31,7 @@ static func prepare(level: Level, data: LevelData) -> Dictionary:
 			continue
 		var p: Dictionary = m.get_meta(LevelPlacer.META_PLACEMENT, {})
 		var params: Dictionary = p.get(&"params", {})
-		var path: String = EXIT_SCENES.get(params.get(&"exit_kind", &""), DEFAULT_EXIT_SCENE)
-		var exit := (load(path) as PackedScene).instantiate() as Exit
+		var exit := (load(exit_scene_for(params.get(&"exit_kind", &""))) as PackedScene).instantiate() as Exit
 		exit.lock = data.exit_lock
 		_swap(m as Node3D, exit)
 		out[&"exit"] = exit
@@ -46,6 +55,13 @@ static func prepare(level: Level, data: LevelData) -> Dictionary:
 	var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_ITEMS))
 	out[&"pickups"] = ItemSpawner.populate(level.content, data, rng)
 	return out
+
+
+## The prefab path for an exit placement's `exit_kind`: the elevator for an unknown kind or a
+## prefab not built yet (the Substrate's threshold_door hook).
+static func exit_scene_for(kind: StringName) -> String:
+	var path: String = EXIT_SCENES.get(kind, DEFAULT_EXIT_SCENE)
+	return path if ResourceLoader.exists(path) else DEFAULT_EXIT_SCENE
 
 
 static func _swap(marker: Node3D, node: Node3D) -> void:

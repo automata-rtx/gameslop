@@ -88,3 +88,10 @@ func _render() -> void:
 	_glyph.modulate = base
 	var low := charge < Tuning.CRANK_GAUGE_DANGER_BELOW
 	_percent.add_theme_color_override(&"font_color", UiTokens.UI_DANGER if low else base)
+	if low:
+		_percent.text = UiTokens.danger_mark(_percent.text)
+
+
+## Repaints after a 12 §6 token change (colour-blind accent).
+func repaint() -> void:
+	_render()

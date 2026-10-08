@@ -183,7 +183,7 @@ func _image(tree: SceneTree) -> Dictionary:
 	if ex != null and is_instance_valid(ex):
 		d["exit.lamp"] = ex.emission_of(ex.lamp)
 		d["exit.interior"] = ex.emission_of(ex.interior)
-		d["exit.door"] = ex.door_l.position.x
+		d["exit.door"] = ex.leaf_open_amount()
 		d["exit.light"] = ex.light.light_energy
 	var landing := run.landing
 	if landing != null and is_instance_valid(landing):

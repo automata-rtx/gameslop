@@ -25,6 +25,12 @@ var daily: Dictionary = {}
 var last_run: Dictionary = {}
 var endless_best_depth: int = 0
 var cycle_unlocked: bool = false
+## M2.12 (additive): found notes opened in the Archive (13 §5: unread notes blink once on
+## the first Archive open), first-run hints already shown (04 §9, Strings.HINT_IDS), and
+## whether reaching depth 3 has retired the hints (the Hints option turns them back on).
+var notes_read: Array[StringName] = []
+var hints_shown: Array[StringName] = []
+var hints_retired: bool = false
 ## Keys this build does not know, preserved on save (13 §2).
 var unknown: Dictionary = {}
 
@@ -144,6 +150,25 @@ func record_run(result: Dictionary) -> void:
 		daily[key] = {"score": score, "depth": depth, "cause": cause}
 	if StringName(result.get("mode", &"")) == Tuning.MODE_ENDLESS:
 		endless_best_depth = maxi(endless_best_depth, depth)
+
+
+## Found notes the Archive has not shown yet (13 §5), in the order found.
+func unread_notes() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for n in notes_found:
+		if not notes_read.has(n):
+			out.append(n)
+	return out
+
+
+## Marks found notes as read. Returns true when anything changed.
+func mark_notes_read(ids: Array[StringName]) -> bool:
+	var changed := false
+	for n in ids:
+		if notes_found.has(n) and not notes_read.has(n):
+			notes_read.append(n)
+			changed = true
+	return changed
 
 
 ## Distinct Archive notes other than `except` (unlock #14 counts the 35 notes besides U6).

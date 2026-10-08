@@ -136,5 +136,5 @@ func _refresh() -> void:
 		_labels[i].text = (Strings.MENU_SELECTED_PREFIX if on else "  ") + _texts[i]
 		var col := UiTokens.UI_FG if _enabled[i] else UiTokens.UI_DIM
 		if on and _enabled[i] and active:
-			col = UiTokens.UI_ACCENT
-		_labels[i].add_theme_color_override(&"font_color", col)
+			col = UiTokens.accent()
+		UiTokens.paint(_labels[i], col)

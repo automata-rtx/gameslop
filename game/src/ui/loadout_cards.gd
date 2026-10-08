@@ -74,10 +74,10 @@ func refresh() -> void:
 		var card: VBoxContainer = _cards[id]
 		var on := id == selected
 		var open := available(id)
-		(card.get_child(0) as ColorRect).color = UiTokens.UI_ACCENT if on else (UiTokens.UI_FG if open else UiTokens.UI_DIM)
+		(card.get_child(0) as ColorRect).color = UiTokens.accent() if on else (UiTokens.UI_FG if open else UiTokens.UI_DIM)
 		var name_label := card.get_child(1) as Label
 		name_label.text = String(Strings.LOADOUT_NAMES.get(id, String(id).to_upper())) if open else Strings.LOADOUT_LOCKED
-		name_label.add_theme_color_override(&"font_color", UiTokens.UI_ACCENT if on else (UiTokens.UI_FG if open else UiTokens.UI_DIM))
+		UiTokens.paint(name_label, UiTokens.accent() if on else (UiTokens.UI_FG if open else UiTokens.UI_DIM))
 		(card.get_child(2) as Control).modulate = Color.WHITE if open else Color(1, 1, 1, 0.35)
 	_desc.text = String(Strings.LOADOUT_DESCRIPTIONS.get(selected, ""))
 

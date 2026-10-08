@@ -14,6 +14,8 @@ const SEED_LABEL_LOCK := "lock"
 ##                                 default polaroid and chalk (always unlocked).
 ##   fuse_unlocked: bool           unlock #4: Powered may be Variant B (07 §6).
 ##   endless: bool                 Endless mode: the floor is never solid (06 §8).
+##   lock: StringName              tests and benches: force the exit lock (07 §6 ids).
+##   lock_variant: StringName      tests and benches: force a Powered lock's variant (a, b).
 const DEFAULT_ITEM_POOL: Array[StringName] = [&"polaroid", &"chalk"]
 
 var data: LevelData = null
@@ -119,10 +121,17 @@ static func lock_weights(depth: int, first_run: bool, cycle: int) -> Dictionary:
 func _choose_lock(rng: RandomNumberGenerator) -> void:
 	var weights := lock_weights(data.depth, data.first_run, data.cycle)
 	data.exit_lock = pick_weighted(weights, rng)
+	# Tests and benches may force the lock (the draw above still runs, so the stream is kept).
+	var forced: StringName = options.get(&"lock", &"")
+	if forced != &"":
+		data.exit_lock = forced
 	data.lock_variant = &""
 	if data.exit_lock == Tuning.LOCK_POWERED:
 		var b := bool(options.get(&"fuse_unlocked", false)) and rng.randf() < Tuning.FUSE_VARIANT_B_CHANCE
 		data.lock_variant = &"b" if b else &"a"
+		var forced_variant: StringName = options.get(&"lock_variant", &"")
+		if forced_variant != &"":
+			data.lock_variant = forced_variant
 
 
 ## Weighted pick over a {StringName: int} table, in the table's insertion order.
