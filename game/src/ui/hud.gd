@@ -5,8 +5,9 @@ extends Control
 ## and the pause (11 §4). Calls down only: the run binds it to the Player with
 ## bind_player() (signals up), to the Inventory with bind_inventory(), and it listens to
 ## EventBus for level, exit, note and unlock events. It never reaches into the player.
-## Parts: HudCoherence, HudDepth, HudNotifications, HudPrompt (prompt and caption),
-## HudCrank, HudBelt, HudCrosshair, NoteSheet; all motion is UiShutter / UiTypedLabel.
+## Parts: HudCoherence, HudDepth, HudNotifications, HudPrompt, HudCaptions (EventBus
+## audio_cue, 04 §10), HudHints (first-run guidance, 04 §9), HudCrank, HudBelt,
+## HudCrosshair, NoteSheet; all motion is UiShutter / UiTypedLabel.
 
 const HIDDEN_ALPHA := Tuning.HIDE_HUD_DIM
 const LOCKED_STATUSES: Array[StringName] = [&"powered", &"keyed", &"sealed"]
@@ -47,7 +48,8 @@ var dissolved_state: bool = false
 @onready var depth: HudDepth = %Depth
 @onready var notifications: HudNotifications = %Notifications
 @onready var prompt: HudPrompt = %Prompt
-@onready var caption_line: HudPrompt = %Caption
+@onready var captions: HudCaptions = %Captions
+@onready var hints: HudHints = %Hints
 @onready var crank: HudCrank = %Crank
 @onready var belt: HudBelt = %Belt
 @onready var crosshair: HudCrosshair = %Crosshair
@@ -65,6 +67,7 @@ func _ready() -> void:
 	EventBus.note_found.connect(_on_note_found)
 	EventBus.unlock_earned.connect(_on_unlock_earned)
 	EventBus.threat_changed.connect(_on_threat_changed)
+	EventBus.audio_cue.connect(_on_audio_cue)
 	SettingsManager.changed.connect(_on_setting_changed)
 	for key: StringName in [&"hud_mode", &"crosshair", &"show_depth", &"show_exit_status"]:
 		_on_setting_changed(key, SettingsManager.get_value(key))
@@ -119,14 +122,23 @@ func unbind_player() -> void:
 
 ## Subscribes to the belt (09 Interfaces: Inventory signal changed(slots, selected)).
 func bind_inventory(inv: Node) -> void:
-	if inventory != null and is_instance_valid(inventory) and inventory.is_connected(&"changed", set_items):
-		inventory.disconnect(&"changed", set_items)
+	if inventory != null and is_instance_valid(inventory):
+		if inventory.is_connected(&"changed", set_items):
+			inventory.disconnect(&"changed", set_items)
+		if inventory.has_signal(&"keycard_changed") and inventory.is_connected(&"keycard_changed", set_keycard):
+			inventory.disconnect(&"keycard_changed", set_keycard)
 	inventory = inv
 	if inv == null:
 		set_items([], -1)
+		set_keycard(false)
 		return
 	if inv.has_signal(&"changed"):
 		inv.connect(&"changed", set_items)
+	# 09 §2: the keycard is not a belt item; its glyph sits beside the depth label.
+	if inv.has_signal(&"keycard_changed"):
+		inv.connect(&"keycard_changed", set_keycard)
+	var card: Variant = inv.get(&"keycard")
+	set_keycard(card is bool and bool(card))
 	var slots: Variant = inv.get(&"slots")
 	var sel: Variant = inv.get(&"selected")
 	set_items(slots if slots is Array else [], int(sel) if sel is int else -1)
@@ -168,6 +180,7 @@ func show_prompt(text: String, hold_time: float = 0.0) -> void:
 		return
 	prompt.show_text(text, hold_time)
 	crosshair.set_target(true)
+	hints.set_prompt_busy(true)
 
 
 ## 04 §6: a dim, keyless notice in the prompt position (`FUSE MISSING`). Not an action, so
@@ -178,11 +191,13 @@ func show_notice_prompt(text: String) -> void:
 		return
 	prompt.show_notice(text)
 	crosshair.set_target(false)
+	hints.set_prompt_busy(true)
 
 
 func hide_prompt() -> void:
 	prompt.hide_text()
 	crosshair.set_target(false)
+	hints.set_prompt_busy(false)
 
 
 func set_items(slots: Array, selected: int) -> void:
@@ -206,14 +221,22 @@ func set_hidden(on: bool) -> void:
 	_dim_t = 0.0
 
 
-## 04 §8 captions: bottom-centre above the prompt, ui_fg on 60% black. Empty clears.
-## Timing and the captions setting belong to the captions task (M2.12).
+## 04 §8 captions: bottom-centre above the prompt, ui_fg on 60% black, stacked (HudCaptions).
+## Empty clears. Shows `text` whatever the option says; the option gates the sound cues
+## (EventBus.audio_cue) that reach it in play.
 func caption(text: String) -> void:
-	if text.is_empty():
-		caption_line.hide_text()
-		return
-	var segs: Array[Dictionary] = [{UiKeys.TEXT: text, UiKeys.KEY: false}]
-	caption_line.set_segments(segs)
+	captions.show_caption(text)
+
+
+## The keycard glyph beside the depth label (09 §2, M2.12).
+func set_keycard(on: bool) -> void:
+	depth.set_keycard(on)
+
+
+## 12 §6 Sound cue captions: every captioned sound, while the option is on.
+func captions_enabled() -> bool:
+	var v: Variant = SettingsManager.get_value(&"captions")
+	return v is bool and bool(v)
 
 
 ## Shows the whole readout again (a new Descent, a new level).
@@ -228,6 +251,8 @@ func restore() -> void:
 	if depth.depth > 0:
 		depth.depth_shutter.shutter_in()
 		depth.exit_shutter.shutter_in()
+	if depth.has_keycard:
+		depth.key_shutter.shutter_in()
 	_apply_visibility()
 
 
@@ -244,8 +269,10 @@ func _shutter_all_out() -> void:
 		s.shutter_out()
 	depth.depth_shutter.shutter_out()
 	depth.exit_shutter.shutter_out()
+	depth.key_shutter.shutter_out()
 	prompt.hide_text()
-	caption_line.hide_text()
+	captions.clear()
+	hints.hide_now()
 	note_sheet.shutter_out()
 	notifications.clear()
 	crosshair.stamina_shutter.shutter_out()
@@ -261,6 +288,7 @@ func _on_coherence_changed(value: float, delta: float, source: StringName) -> vo
 		restore()
 		delta = 0.0
 	set_coherence(value, 0.0 if source == SOURCE_NOCLIP_REFUND else delta)
+	hints.set_coherence(value)
 
 
 func _on_stamina_changed(value: float) -> void:
@@ -277,18 +305,22 @@ func _on_sprint_changed(on: bool) -> void:
 
 func _on_charge_changed(value: float) -> void:
 	set_crank(value)
+	hints.set_charge(value)
 
 
 func _on_flashlight_toggled(on: bool) -> void:
 	crank.set_light(on)
+	hints.flashlight_on(on)
 
 
 func _on_crank_changed(turning: bool) -> void:
 	crank.set_turning(turning)
+	hints.cranking(turning)
 
 
 func _on_noclip_state(charge: float, target: StringName, valid: bool, reason: StringName) -> void:
 	set_noclip(charge, target, valid, reason)
+	hints.noclip_charging(charge, target)
 
 
 func _on_stun_changed(on: bool) -> void:
@@ -351,6 +383,12 @@ func _on_threat_changed(threat: float) -> void:
 	coherence.threat = threat
 
 
+## 03 §6 rule 6 / 04 §10: the finished caption text (direction and distance already filled).
+func _on_audio_cue(text: String, _pos: Vector3) -> void:
+	if captions_enabled() and not dissolved_state:
+		caption(text)
+
+
 static func unlock_message(id: StringName) -> String:
 	var name_text := String(Strings.UNLOCK_NAMES.get(id, String(id).to_upper()))
 	if id in ITEM_UNLOCKS:
@@ -374,6 +412,11 @@ func _on_setting_changed(key: StringName, value: Variant) -> void:
 			crosshair.queue_redraw()
 		&"show_depth", &"show_exit_status":
 			_apply_visibility()
+		&"captions":
+			if not (value is bool and bool(value)):
+				captions.clear()
+		&"colorblind_accent":
+			repaint()
 
 
 ## 12 §6: Minimal keeps Coherence, prompts and captions; Off keeps the Coherence bar only.
@@ -387,7 +430,19 @@ func _apply_visibility() -> void:
 	crank_shutter.visible = full and crank_shutter.is_shown()
 	belt_shutter.visible = full and belt_shutter.is_shown()
 	prompt.visible = full or minimal
-	caption_line.visible = full or minimal
+	captions.visible = full or minimal
+	hints.visible = full or minimal
+
+
+## Repaints every part that colours itself in code (12 §6 colour-blind accent, live).
+func repaint() -> void:
+	coherence.repaint()
+	depth.repaint()
+	crank.repaint()
+	belt.queue_redraw_all()
+	crosshair.queue_redraw()
+	for n in crosshair.find_children("*", "Control", true, false):
+		(n as CanvasItem).queue_redraw()
 
 
 func _setting_on(key: StringName) -> bool:

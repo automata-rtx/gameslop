@@ -35,7 +35,7 @@ func _step(seconds: float, frame: float = 1.0 / 60.0) -> void:
 
 func test_instantiates_headless_and_runs_always() -> void:
 	assert_eq(hud.process_mode, Node.PROCESS_MODE_ALWAYS, "11 §4: the HUD moves through hitstop and pause")
-	for part: Node in [hud.coherence, hud.depth, hud.notifications, hud.prompt, hud.caption_line,
+	for part: Node in [hud.coherence, hud.depth, hud.notifications, hud.prompt, hud.captions, hud.hints,
 			hud.crank, hud.belt, hud.crosshair, hud.note_sheet, hud.frame, hud.dimmable,
 			hud.coherence_shutter, hud.crank_shutter, hud.belt_shutter]:
 		assert_not_null(part)
@@ -354,9 +354,9 @@ func test_note_found_and_unlock_from_the_bus() -> void:
 
 func test_caption_slot() -> void:
 	hud.caption("[tear]")
-	assert_eq(hud.caption_line.plain_text(), "[tear]")
+	assert_eq(hud.captions.plain_text(), "[tear]")
 	hud.caption("")
-	assert_eq(hud.caption_line.shutter.phase, UiShutter.Phase.CLOSING)
+	assert_false(hud.captions.is_shown(), "empty clears the stack")
 
 
 func test_hud_mode_setting() -> void:
