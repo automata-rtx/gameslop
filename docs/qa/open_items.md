@@ -27,3 +27,4 @@ Deferred work found during production. Each line names the task that should abso
 - M2.1: depths 2+ generate as Halls until the other grammars exist (HUD shows HALLS, summary names the planned stratum).
 - M2.2: decide rack noclip (07 §7 says racks are WALL on all four faces, but a rack cell is not walkable so the query says NO SPACE). Proposal: a rack face passes through the whole rack to the far walkable cell.
 - Errors owner: `sim/test_still.gd::test_satiated_retreats_away` failed once and passed on rerun (R5 report). Find the nondeterminism (physics timing, nav bake timing) and make it deterministic.
+- M2.10: use a custom user folder (`application/config/use_custom_user_dir`, name `NOCLIP`) so saves live in %APPDATA%\NOCLIP and ~/.local/share/NOCLIP; update README.txt.in. Windows build smoke must be run on Windows by the human at cp-13.
