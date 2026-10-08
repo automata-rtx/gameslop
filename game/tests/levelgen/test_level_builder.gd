@@ -70,12 +70,12 @@ func test_slices_respect_budget() -> void:
 	var sorted := b.slice_ms.duplicate()
 	sorted.sort()
 	var p90 := sorted[mini(sorted.size() - 1, int(sorted.size() * SLICE_PERCENTILE))]
-	assert_true(p90 <= Tuning.LEVELBUILD_SLICE_MS, "90th percentile slice %.2f ms within 4 ms" % p90)
-	assert_lt(b.max_slice_ms, Tuning.LEVELBUILD_SLICE_MS * SLICE_CI_ALLOWANCE, "worst slice (CI allowance)")
+	assert_budget(p90, Tuning.LEVELBUILD_SLICE_MS + 0.0001, "90th percentile slice")
+	assert_budget(b.max_slice_ms, Tuning.LEVELBUILD_SLICE_MS * SLICE_CI_ALLOWANCE, "worst slice (CI allowance)")
 
 
 func test_bake_within_budget() -> void:
-	assert_lt(_level.builder.bake_ms, Tuning.NAV_BAKE_BUDGET * 1000.0)
+	assert_budget(_level.builder.bake_ms, Tuning.NAV_BAKE_BUDGET * 1000.0, "navigation bake ms")
 
 
 ## Every wall edge next to walkable space is found by a ray at chest height, and the hit
@@ -186,7 +186,7 @@ func test_light_pool_cap_and_shadows() -> void:
 	assert_gt(pool.active_light_count(), 0)
 	var mean_ms := us / 1000.0 / maxf(1.0, _data.critical_path.size())
 	print("  # light pool re-evaluation: %.2f ms mean over %d new cells" % [mean_ms, _data.critical_path.size()])
-	assert_lt(mean_ms, Tuning.BUDGET_SCRIPT_MS, "14 §10 script budget")
+	assert_budget(mean_ms, Tuning.BUDGET_SCRIPT_MS, "14 §10 script budget")
 	pool.target = null
 	target.queue_free()
 
