@@ -310,10 +310,12 @@ void fragment() {
 	// did not read). Bands about 1 m apart drift up the wall at the band rate, their strength
 	// beating slowly along it, so the wall shimmers rather than breathing as one tone.
 	float soft_u = 0.0;
+	float soft_band = 0.0;
 	if (soft > 0.5) {
 		float ph = TAU * SOFT_BAND_HZ * g_time;
 		float beat = 0.6 + 0.4 * sin(ph * 0.5 - puv.x * 3.1 + v_world_pos.y * 0.7);
-		base += SOFT_BAND_AMPLITUDE * sin(ph - v_world_pos.y * SOFT_BAND_K) * beat;
+		soft_band = SOFT_BAND_AMPLITUDE * sin(ph - v_world_pos.y * SOFT_BAND_K) * beat;
+		base += soft_band;
 		// Aimed within 2 m: intersect the crosshair ray with this surface's plane.
 		float facing = dot(fwd, n);
 		if (facing < -0.05) {
@@ -377,6 +379,9 @@ void fragment() {
 		line_boost += (COMMIT_LINE_GAIN - 1.0) * coh_commit_u(v_world_pos, cam);
 	}
 	EMISSION = emit * (1.0 - line) + GRID_COLOR * line * line_emission * line_boost;
+	// M2.3: where a soft wall's fill is unrendered (the Substrate's u floor) its albedo band is
+	// gone with the fill, so the band glows instead, scaled by the material u floor.
+	EMISSION += vec3(soft_band + SOFT_BAND_AMPLITUDE) * 0.5 * u_floor * (1.0 - line) * step(0.5, soft);
 
 	// Screen door (02 §5): at u >= 0.95 a fraction 0.6 u of fill cells is discarded, on a
 	// world-anchored lattice so the pattern sticks to the surface; lines always stay.

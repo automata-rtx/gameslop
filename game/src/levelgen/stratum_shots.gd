@@ -24,6 +24,8 @@ static func poses(data: LevelData) -> Array[Dictionary]:
 				out.append(d)
 		&"offices", &"server":
 			out.append_array(StratumShotsM22.poses(data))
+		&"substrate":
+			out.append_array(StratumShotsM23.poses(data))
 	return out
 
 

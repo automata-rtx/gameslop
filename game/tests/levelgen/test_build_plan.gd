@@ -117,15 +117,14 @@ func test_plan_is_deterministic() -> void:
 ## a stratum whose special cells it does not model yet is reported loudly.
 func test_unsupported_stratum_is_reported() -> void:
 	assert_eq(_plan.errors.size(), 0, "Halls is supported")
-	for st: StringName in [&"pools", &"garage", &"offices", &"server"]:
+	for st: StringName in [&"pools", &"garage", &"offices", &"server", &"substrate"]:
 		assert_true(BuildPlan.SUPPORTED_STRATA.has(st))
-	# The Substrate grammar arrives with M2.3; a Halls grid labelled Substrate stands in for it.
+	# M2.3: every stratum is modelled; a grid labelled with an unknown id is reported.
 	var was := _level.stratum
-	_level.stratum = &"substrate"
+	_level.stratum = &"nowhere"
 	var p := BuildPlan.make(_level, 3.0)
 	_level.stratum = was
 	assert_eq(p.errors.size(), 1)
-	assert_false(BuildPlan.SUPPORTED_STRATA.has(&"substrate"))
 
 
 ## R4 #2: every void cell next to walkable space has a solid block.

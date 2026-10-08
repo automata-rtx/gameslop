@@ -87,8 +87,8 @@ func test_prefab_sounds_and_kinds_differ_per_stratum() -> void:
 	assert_eq(sounds[&"stairwell_door"], &"exit_open_door")
 	assert_eq(sounds[&"drain_hatch"], &"exit_open_drain")
 	assert_eq(sounds[&"floor_hatch"], &"exit_open_hatch")
-	assert_eq(RunLevelSetup.exit_scene_for(&"threshold_door"), RunLevelSetup.DEFAULT_EXIT_SCENE,
-		"Substrate hook: the elevator stands in until the Threshold prefab exists")
+	assert_eq(RunLevelSetup.exit_scene_for(&"threshold_door"), "res://scenes/exits/threshold_door.tscn",
+		"M2.3: the Substrate's Threshold")
 	assert_eq(RunLevelSetup.exit_scene_for(&"nonsense"), RunLevelSetup.DEFAULT_EXIT_SCENE)
 
 

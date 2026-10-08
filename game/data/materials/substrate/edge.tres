@@ -15,5 +15,5 @@ shader_parameter/roughness = 1.0
 shader_parameter/metallic = 0.0
 shader_parameter/normal_strength = 0.0
 shader_parameter/noise_albedo_amount = 0.0
-shader_parameter/u_floor = 1.0
+shader_parameter/u_floor = 0.9
 shader_parameter/line_emission = 3.0

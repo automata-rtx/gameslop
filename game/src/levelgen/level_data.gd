@@ -116,7 +116,8 @@ func hash_hex() -> String:
 ## Cells: ' ' corridor (',' on Garage deck 1), '.' room, '#' void ('%' void the Substrate's
 ## unfinish step removed), '*' critical path,
 ## 'u' basin, 'W' deep water, '^' ramp or steps, 'I' pillar; markers S spawn, X exit,
-## B breaker, K keycard, F fuse, i item, n note, h hide spot, p prop, e error spawn.
+## B breaker, K keycard, F fuse, i item, n note, h hide spot, p prop, e error spawn (N Null's,
+## s a Static's), L studio light.
 ## Edges: '|' '-' wall, 'H' '=' solid, '}' '~' soft, 'd' door, ':' partition, 'g' glass.
 func to_ascii() -> String:
 	var w := grid.size.x

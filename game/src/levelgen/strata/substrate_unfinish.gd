@@ -226,8 +226,15 @@ static func limit_dead_ends(grid: LevelGrid, max_len: int, protected: Dictionary
 ## raised or lowered room's opening becomes a 1-cell ramp (within the step height either
 ## way); elsewhere the doorway is a plain step. Refreshes the ledges.
 static func offset_rooms(grid: LevelGrid, rooms: Array[RoomData], rng: RandomNumberGenerator) -> Array[RoomData]:
-	var pool := rooms.duplicate()
-	RoomOps.shuffle(pool, rng)
+	# Rooms with a straight doorway corridor (one that can carry the ramp) float first.
+	var straight: Array[RoomData] = []
+	var other: Array[RoomData] = []
+	for room in rooms:
+		(straight if _has_straight_doorway(grid, room) else other).append(room)
+	RoomOps.shuffle(straight, rng)
+	RoomOps.shuffle(other, rng)
+	var pool: Array[RoomData] = straight
+	pool.append_array(other)
 	var n := roundi(pool.size() * Tuning.SUBSTRATE_FLOOR_OFFSET_FRACTION)
 	var moved: Array[RoomData] = []
 	for k in mini(n, pool.size()):
@@ -245,6 +252,17 @@ static func offset_rooms(grid: LevelGrid, rooms: Array[RoomData], rng: RandomNum
 			_doorway_ramp(grid, c + LevelGrid.DIRS[e.z], LevelGrid.opposite(e.z), y)
 	GridHeights.refresh_ledges(grid)
 	return moved
+
+
+static func _has_straight_doorway(grid: LevelGrid, room: RoomData) -> bool:
+	for e in room.perimeter_edges():
+		var c := Vector2i(e.x, e.y)
+		if not grid.can_step(c, e.z):
+			continue
+		var o := c + LevelGrid.DIRS[e.z]
+		if grid.kind(o) == LevelGrid.FLOOR and grid.open_mask(grid.idx(o)) == (1 << e.z) | (1 << LevelGrid.opposite(e.z)):
+			return true
+	return false
 
 
 ## Cell `o` outside a door, `toward` the room whose floor is at `y`: a ramp from the floor
