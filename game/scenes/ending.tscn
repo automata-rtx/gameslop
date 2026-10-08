@@ -1,0 +1,44 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/core/ending.gd" id="1_ending"]
+[ext_resource type="Script" path="res://src/core/ending_corridor.gd" id="2_corridor"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
+
+[node name="Ending" type="Node3D"]
+script = ExtResource("1_ending")
+
+[node name="World" type="WorldEnvironment" parent="."]
+unique_name_in_owner = true
+
+[node name="Corridor" type="Node3D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_corridor")
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+unique_name_in_owner = true
+
+[node name="Ui" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="UiRoot" type="Control" parent="Ui"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="White" type="CanvasLayer" parent="."]
+layer = 110
+
+[node name="WhiteRect" type="ColorRect" parent="White"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)

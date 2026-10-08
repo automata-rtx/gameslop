@@ -262,6 +262,7 @@ const CAUSE_EXPLANATIONS: Dictionary = {
 	&"null": "Nothing was drawn where you stood.",
 	&"substrate": "The unfinished floor stopped drawing you.",
 	&"abandoned": "The Descent was left unfinished.",
+	&"threshold": "The front door opened onto daylight.",   # the win (01 §8); M2.15
 }
 const CAUSE_EXPLANATION_DEFAULT := "Coherence reached zero."
 const SUMMARY_VALUE_PENDING := "—"                                         # score until M2.10
@@ -310,7 +311,7 @@ const UNLOCK_NAMES: Dictionary = {
 	&"lightbearer": "LIGHTBEARER",
 	&"diver": "DIVER",
 	&"daily": "DAILY DESCENT",
-	&"endless": "ENDLESS",
+	&"endless": "ENDLESS AND CYCLE 2",              # 05 §6 #9 is one unlock: "Endless mode and Cycle 2"
 	&"codex_still": "STILL CODEX",
 	&"codex_echo": "ECHO CODEX",
 	&"codex_flicker": "FLICKER CODEX",
@@ -469,9 +470,21 @@ const CONTROLS_HELP := "ENTER REBIND · ESC CANCEL · BACKSPACE CLEAR"
 # =====================================================================================
 const ENDING_DEPTH := "DEPTH 0"
 const ENDING_TITLE_CARD := "NOCLIP"
+const ENDING_SKIP := "[{key}] SKIP"                 # after the first viewing only; a second press skips (M2.15)
 const CREDITS_AI := "NOCLIP was designed and built by an AI (Claude, Anthropic) using the Godot Engine."
 const CREDITS_GODOT := "Godot Engine. MIT license."
 const CREDITS_FONT := "Typeface bundled under the SIL Open Font License 1.1."
 const CREDITS_FONT_COPYRIGHT := "JetBrains Mono, Copyright 2020 The JetBrains Mono Project Authors, SIL OFL 1.1"
+const CREDITS_SOUND := "Every sound is synthesized from recipes written for this game. No third-party recordings are used."
+const CREDITS_LICENSES_NOTE := "The full license texts ship with the game in LICENSES.txt."
 const CREDITS_THANKS := "Thank you for looking."
-const CREDITS_LINES: Array[String] = [CREDITS_AI, CREDITS_GODOT, CREDITS_FONT, CREDITS_FONT_COPYRIGHT, CREDITS_THANKS]
+const CREDITS_LINES: Array[String] = [
+	CREDITS_AI, CREDITS_GODOT, CREDITS_FONT, CREDITS_FONT_COPYRIGHT, CREDITS_SOUND, CREDITS_LICENSES_NOTE, CREDITS_THANKS,
+]
+## Credits section headings (16 §6), and the line per Godot third-party component (name and
+## license ids from Engine.get_copyright_info(), the same notices LICENSES.txt carries).
+const CREDITS_HEADING_ENGINE := "ENGINE"
+const CREDITS_HEADING_COMPONENTS := "THIRD-PARTY COMPONENTS OF THE GODOT ENGINE"
+const CREDITS_HEADING_TYPEFACE := "TYPEFACE"
+const CREDITS_HEADING_SOUND := "SOUND"
+const CREDITS_COMPONENT_LINE := "{name} · {license}"
