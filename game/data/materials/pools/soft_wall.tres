@@ -20,3 +20,5 @@ shader_parameter/triplanar_scale = 0.5
 shader_parameter/noise_albedo_amount = 0.06
 shader_parameter/cell_tint = 0.02
 shader_parameter/soft = 1.0
+shader_parameter/grout_roughness = 0.7
+shader_parameter/tile_bevel = 0.012
