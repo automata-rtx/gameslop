@@ -22,9 +22,14 @@ func stratum() -> StringName:
 	return &"pools"
 
 
+## The depth it is generated at (Offices and Server override it: their first depths).
+func depth() -> int:
+	return 2
+
+
 func before_all() -> void:
 	for stratum: StringName in [stratum()]:
-		var data := LevelGenerator.generate(stratum, 2, 3)
+		var data := LevelGenerator.generate(stratum, depth(), 3)
 		var level := LEVEL_SCENE.instantiate() as Level
 		add_child(level)
 		level.begin(data)
@@ -85,9 +90,14 @@ func test_floors_stand_at_their_heights() -> void:
 		var level: Level = _levels[stratum]
 		var g := level.data.grid
 		var checked := 0
+		# Cells holding furniture (a desk, a chair, a car) are measured by the next test's rays.
+		var furnished: Dictionary = {}
+		for p in level.data.placements:
+			if p[&"kind"] == LevelData.P_PROP or p[&"kind"] == LevelData.P_HIDE_SPOT:
+				furnished[p[&"cell"]] = true
 		for i in range(0, g.cell_count(), 3):
 			var c := g.cell_at(i)
-			if not g.is_walkable(c) or g.has_flag(c, LevelGrid.F_NO_SPAWN):
+			if not g.is_walkable(c) or g.has_flag(c, LevelGrid.F_NO_SPAWN) or furnished.has(c):
 				continue
 			var y := _ray_floor(level, g.world_of(c))
 			assert_approx(y, g.floor_y(c), 0.12, "%s floor of %s" % [stratum, c])

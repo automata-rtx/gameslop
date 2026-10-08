@@ -18,6 +18,10 @@ static func grammar_for(stratum: StringName) -> StratumGenerator:
 			return PoolsGenerator.new()
 		&"garage":
 			return GarageGenerator.new()
+		&"offices":
+			return OfficesGenerator.new()
+		&"server":
+			return ServerGenerator.new()
 	return null
 
 

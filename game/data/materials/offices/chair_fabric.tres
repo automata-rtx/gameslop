@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world_surface.gdshader" id="1_world"]
+[ext_resource type="Texture2D" path="res://data/materials/noise_albedo.tres" id="2_albedo"]
+[ext_resource type="Texture2D" path="res://data/materials/noise_normal.tres" id="3_normal"]
+
+[resource]
+shader = ExtResource("1_world")
+shader_parameter/noise_albedo = ExtResource("2_albedo")
+shader_parameter/noise_normal = ExtResource("3_normal")
+shader_parameter/albedo = Color(0.168627, 0.188235, 0.219608, 1)
+shader_parameter/albedo_secondary = Color(0.145098, 0.164706, 0.192157, 1)
+shader_parameter/pattern_mode = 3
+shader_parameter/pattern_scale = 8.0
+shader_parameter/roughness = 0.95
+shader_parameter/metallic = 0.0
+shader_parameter/noise_albedo_amount = 0.0

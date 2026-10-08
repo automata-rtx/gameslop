@@ -13,12 +13,17 @@ const SOFT_WALL_SPACING := 3
 const LANDMARKS := 2
 ## Exact soft wall measurements (one BFS each) allowed when the bounds fall short.
 const EXACT_CHECKS := 24
+## Rooms drawn items never land in: closets (hide spots) and Server cages (one item each,
+## placed by the grammar).
+const ITEM_EXCLUDED_ROOMS: Array[StringName] = [RoomData.CLOSET, &"cage"]
 
 
 ## Soft walls (07 §4, 09 §8). With `first_run`, one is forced onto the critical path (a
 ## path cell on at least one side) within the 05 §10 walking time of spawn; one joining
-## two path cells (a true shortcut along the path) is preferred.
-static func soft_walls(gen: StratumGenerator, count: int, first_run: bool, exclude_flags: int) -> void:
+## two path cells (a true shortcut along the path) is preferred. `prefer` (optional,
+## Callable(Vector3i edge) -> bool) names the grammar's preferred edges, marked first.
+static func soft_walls(gen: StratumGenerator, count: int, first_run: bool, exclude_flags: int,
+		prefer: Callable = Callable()) -> void:
 	var grid := gen.grid
 	var fields: Array[PackedInt32Array] = [gen.spawn_dist, grid.distance_field(gen.data.exit_cell)]
 	var path := gen.data.critical_path
@@ -54,6 +59,12 @@ static func soft_walls(gen: StratumGenerator, count: int, first_run: bool, exclu
 				if gen.spawn_dist[grid.idx(c)] <= reach:
 					from.append(c)
 			_carve(gen, from, fields, exclude_flags, marked)
+	if prefer.is_valid():
+		var liked: Array[Vector3i] = []
+		for e in candidates:
+			if prefer.call(e):
+				liked.append(e)
+		marked.append_array(PlaceOps.mark_soft_walls(grid, liked, count - marked.size(), SOFT_WALL_SPACING, gen.rng_place, marked))
 	var rest := PlaceOps.mark_soft_walls(grid, candidates, count - marked.size(), SOFT_WALL_SPACING, gen.rng_place, marked)
 	marked.append_array(rest)
 	if marked.size() < count:
@@ -206,7 +217,9 @@ static func notes(gen: StratumGenerator) -> void:
 
 ## Items (09 §2): 2 + floor(depth / 2), plus a guaranteed Polaroid on depth 1 and every even
 ## depth. Kinds by base weight from the unlocked pool; fuse only when the lock is Variant B.
-static func items(gen: StratumGenerator, pool: Array[StringName]) -> void:
+## `first` (Server cages): cells the grammar reserved (in gen.occupied) that take the first
+## items drawn, one each.
+static func items(gen: StratumGenerator, pool: Array[StringName], first: Array[Vector2i] = []) -> void:
 	var data := gen.data
 	var d := StratumGenerator.cycle_depth(data.depth)
 	var kinds: Array[StringName] = []
@@ -223,11 +236,17 @@ static func items(gen: StratumGenerator, pool: Array[StringName]) -> void:
 	data.expected_items = kinds.size() + (1 if data.lock_variant == &"b" else 0)
 	var cells := band_cells(gen, 1, gen.grid.cell_count(), func(c: Vector2i) -> bool:
 		var r := gen.grid.room_of(c)
-		return r == null or r.kind != RoomData.CLOSET)
+		return r == null or not ITEM_EXCLUDED_ROOMS.has(r.kind))
 	var taken: Array[Vector2i] = []
 	for p in data.placements_of(LevelData.P_ITEM):
 		taken.append(p[&"cell"])
-	var picks := PlaceOps.poisson_cells(cells, kinds.size(), PICKUP_SPACING, gen.rng_place, pickup_weights(gen, cells), taken)
+	var picks: Array[Vector2i] = []
+	for c in first:
+		if picks.size() < kinds.size() and gen.grid.in_bounds(c) and not picks.has(c):
+			picks.append(c)
+	taken.append_array(picks)
+	picks.append_array(PlaceOps.poisson_cells(cells, kinds.size() - picks.size(), PICKUP_SPACING, gen.rng_place,
+		pickup_weights(gen, cells), taken))
 	if picks.size() < kinds.size():
 		var more := PlaceOps.poisson_cells(cells, kinds.size() - picks.size(), 1, gen.rng_place, PackedFloat32Array(), picks)
 		picks.append_array(more)

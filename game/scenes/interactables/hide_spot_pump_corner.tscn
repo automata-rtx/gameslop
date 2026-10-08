@@ -1,0 +1,94 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://src/interactables/hide_spot.gd" id="1_spot"]
+[ext_resource type="Script" path="res://src/interactables/interactable.gd" id="2_interactable"]
+[ext_resource type="Material" path="res://data/materials/pools/prop_chrome.tres" id="3_chrome"]
+[ext_resource type="Material" path="res://data/materials/pools/prop_red.tres" id="4_red"]
+[ext_resource type="Material" path="res://data/materials/pools/prop_white.tres" id="5_white"]
+
+[sub_resource type="CylinderMesh" id="Mesh_pump"]
+top_radius = 0.38
+bottom_radius = 0.38
+height = 1.0
+radial_segments = 20
+rings = 1
+
+[sub_resource type="BoxMesh" id="Mesh_motor"]
+size = Vector3(0.5, 0.7, 0.6)
+
+[sub_resource type="CylinderMesh" id="Mesh_pipe"]
+top_radius = 0.07
+bottom_radius = 0.07
+height = 2.0
+radial_segments = 10
+rings = 1
+
+[sub_resource type="BoxMesh" id="Mesh_valve"]
+size = Vector3(0.24, 0.04, 0.04)
+
+[sub_resource type="CylinderShape3D" id="Shape_pump"]
+height = 1.0
+radius = 0.38
+
+[sub_resource type="BoxShape3D" id="Shape_motor"]
+size = Vector3(0.5, 0.7, 0.6)
+
+[sub_resource type="BoxShape3D" id="Shape_gap"]
+size = Vector3(0.9, 1.4, 0.5)
+
+[node name="HideSpotPumpCorner" type="Node3D"]
+script = ExtResource("1_spot")
+kind = &"pump_corner"
+yaw_limit_deg = 35.0
+
+[node name="ViewPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0.5)
+
+[node name="ExitPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+
+[node name="Pump" type="StaticBody3D" parent="."]
+collision_mask = 0
+
+[node name="PumpMesh" type="MeshInstance3D" parent="Pump"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 0.5, 0.58)
+mesh = SubResource("Mesh_pump")
+material_override = ExtResource("3_chrome")
+
+[node name="PumpShape" type="CollisionShape3D" parent="Pump"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 0.5, 0.58)
+shape = SubResource("Shape_pump")
+
+[node name="MotorMesh" type="MeshInstance3D" parent="Pump"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, 0.35, 0.62)
+mesh = SubResource("Mesh_motor")
+material_override = ExtResource("4_red")
+
+[node name="MotorShape" type="CollisionShape3D" parent="Pump"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, 0.35, 0.62)
+shape = SubResource("Shape_motor")
+
+[node name="PipeMesh" type="MeshInstance3D" parent="Pump"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 1.5, 0.58)
+mesh = SubResource("Mesh_pipe")
+material_override = ExtResource("5_white")
+
+[node name="ValveMesh" type="MeshInstance3D" parent="Pump"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 1.1, 0.2)
+mesh = SubResource("Mesh_valve")
+material_override = ExtResource("4_red")
+
+[node name="Gap" type="StaticBody3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Gap"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0.4)
+shape = SubResource("Shape_gap")
+
+[node name="Interactable" type="Node" parent="Gap"]
+unique_name_in_owner = true
+script = ExtResource("2_interactable")
+prompt = "HIDE"

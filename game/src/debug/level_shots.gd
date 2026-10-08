@@ -220,7 +220,9 @@ func _measure(img: Image) -> Dictionary:
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(_camera.global_position, p + Vector3(0, 0.05, 0), 1))
 		if not hit.is_empty() or _camera.is_position_behind(p):
 			continue
-		var px := _camera.unproject_position(p)
+		# unproject_position answers in the viewport's coordinates, which differ from the
+		# captured image's pixels when the window is not the project's base size.
+		var px := _camera.unproject_position(p) * Vector2(img.get_size()) / get_viewport().get_visible_rect().size
 		if Rect2(Vector2.ZERO, Vector2(img.get_size())).has_point(px):
 			floor_luma["%dm" % int(d)] = snappedf(_luma_at(img, Vector2i(px)), 0.001)
 	var lumas: PackedFloat32Array = []

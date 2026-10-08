@@ -21,6 +21,12 @@ var intensity: float = 1.0
 var hum_id: StringName = &""
 ## The tired-ballast fixture (LightPool.register_fixture): greener, 85% energy, steady.
 var buzzing: bool = false
+## M2.2: this fixture's own light where it differs from the stratum's (Server: the rack
+## LEDs' blue aggregate and the exit clearing's white light beside the red emergency
+## boxes). Keys, all optional: color, energy, range, drop, shadow (false: never shadowed),
+## buzz (false: never the buzzing kind). Empty: the pool's stratum light. Set before the
+## pool registers the fixture (LevelPlacer).
+var light_profile: Dictionary = {}
 
 @onready var tube: MeshInstance3D = %Tube
 @onready var glow: GeometryInstance3D = get_node_or_null(^"%Glow") as GeometryInstance3D
@@ -58,7 +64,27 @@ func energy_scale() -> float:
 
 ## The lent light's colour for this fixture, given the stratum's.
 func light_tint(base: Color) -> Color:
-	return base * Tuning.LIGHT_FIXTURE_BUZZ_TINT if buzzing else base
+	var c: Color = light_profile.get(&"color", base)
+	return c * Tuning.LIGHT_FIXTURE_BUZZ_TINT if buzzing else c
+
+
+## The profile's value for `key`, else `fallback` (the pool's stratum light).
+func light_value(key: StringName, fallback: Variant) -> Variant:
+	return light_profile.get(key, fallback)
+
+
+## M2.2 light profiles by fixture kind (params.fixture); empty for the stratum's own.
+static func profile_for(kind: StringName) -> Dictionary:
+	match kind:
+		&"rack_led":
+			return {&"color": Tuning.SERVER_LED_LIGHT_COLOR, &"energy": Tuning.SERVER_LED_LIGHT_ENERGY,
+				&"range": Tuning.SERVER_LED_LIGHT_RANGE, &"drop": 0.0, &"shadow": false, &"buzz": false}
+		&"exit_light":
+			return {&"color": Tuning.SERVER_EXIT_LIGHT_COLOR, &"energy": Tuning.SERVER_EXIT_LIGHT_ENERGY,
+				&"range": Tuning.SERVER_EXIT_LIGHT_RANGE, &"buzz": false}
+		&"emergency_box":
+			return {&"drop": Tuning.SERVER_EMERGENCY_LIGHT_DROP, &"buzz": false}
+	return {}
 
 
 ## True when the fixture currently emits (powered, and not in a flicker-off instant).

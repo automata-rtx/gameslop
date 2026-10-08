@@ -142,6 +142,9 @@ func _face_side(i: int, j: int, f: int, g: int, oi: int, oj: int, along_x: bool,
 	var cls := BuildPlan.C_BASIN if p._bot[g] == BuildPlan.C_BASIN and p._open[f] == 1 else int(p._cls[f])
 	if p._open[f] == 0 and p._bot[g] == BuildPlan.C_BASIN and p._cls[f] == BuildPlan.C_WALL:
 		cls = BuildPlan.C_BASIN
+	if cls == BuildPlan.C_RACK:
+		# M2.2: B = 1 on rack fronts (faces across the rows) for rack_leds.gdshader.
+		col.b = 1.0 if along_x != p.rows_along_x else 0.0
 	var acc := acc_for(i, j, cls, p._soft[f] if p._open[f] == 0 else -1)
 	var plane := (p._xb[i][p._xb[i].size() - 1] if sign > 0.0 else p._xb[i][0]) if along_x else (p._zb[j][p._zb[j].size() - 1] if sign > 0.0 else p._zb[j][0])
 	var us := p._zb[j] if along_x else p._xb[i]

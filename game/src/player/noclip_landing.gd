@@ -46,6 +46,8 @@ static func find(space: PhysicsDirectSpaceState3D, point: Vector3, normal: Vecto
 	if into.length_squared() < 0.0001:
 		return null
 	into = into.normalized()
+	# M2.2 rack ruling: a rack is crossed whole; the free-space band starts beyond it.
+	point += into * float(far.get(&"pass_depth", 0.0))
 	var along := Vector3(aim.x, 0.0, aim.z)
 	if along.length_squared() < 0.0001 or along.normalized().dot(into) <= 0.05:
 		along = into

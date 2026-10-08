@@ -64,8 +64,10 @@ static func all() -> Array[Dictionary]:
 			{&"expect": {&"I": ["hand.", "scene.children", "level.content"], &"S": ["play.glowstick_crack"], &"R": ["Belt"]}}))
 	rows.append(_row(&"chalk_stamp", "Chalk stamp", "11 §2", "ISMR",
 			{&"expect": {&"I": ["decals", "hand."], &"S": ["play.chalk_mark"], &"R": ["Belt"]}}))
-	rows.append(_row(&"item_flare", "Item use: Flare", "11 §2", "ISMR", {}, PENDING, "Flare lands with M2.8"))
-	rows.append(_row(&"item_radio", "Item use: Radio", "11 §2", "ISMR", {}, PENDING, "Radio lands with M2.8"))
+	rows.append(_row(&"item_flare", "Item use: Flare", "11 §2", "ISMR",
+			{&"expect": {&"I": ["hand.", "scene.children"], &"S": ["play.flare_ignite"], &"R": ["Belt"]}}))
+	rows.append(_row(&"item_radio", "Item use: Radio", "11 §2", "ISMR",
+			{&"expect": {&"I": ["hand."], &"S": ["play.radio_ping"], &"R": ["Belt"]}}))
 	# --- 11 §2 interaction and noclip -----------------------------------------------------
 	rows.append(_row(&"interact_press", "Interact press", "11 §2", "ISMR",
 			{&"expect": {&"I": ["x.door"], &"S": ["play.door_"], &"R": ["Prompt"]}}))
@@ -103,7 +105,9 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"still_observed", "Still observed 2 s", "11 §3", "IS",
 			{&"expect": {&"I": ["still."], &"S": ["play.still_tick"]}}))
 	rows.append(_row(&"flicker_lunge", "Flicker lunge", "11 §3", "ISMR", {}, PENDING, "Flicker lands with M2.5"))
-	rows.append(_row(&"echo_4m", "Echo at 4 m", "11 §3", "ISR", {}, PENDING, "Echo lands with M2.4"))
+	rows.append(_row(&"echo_4m", "Echo at 4 m", "11 §3", "ISR",
+			{&"expect": {&"I": ["echo."], &"S": ["play.echo_breath"], &"R": ["Caption"]}}, GAP,
+			"Echo's footsteps emit EventBus.audio_cue ([footsteps, {dir}, late]) but no HUD subscribes until the captions task (M2.12)"))
 	rows.append(_row(&"null_radius", "Null radius", "11 §3", "ISM", {}, PENDING, "Null lands with M2.6"))
 	rows.append(_row(&"null_core", "Null core", "11 §3", "ISMR", {}, PENDING, "Null lands with M2.6"))
 	rows.append(_row(&"exit_seen", "Exit seen", "11 §3", "ISR",

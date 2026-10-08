@@ -667,6 +667,103 @@
    "expect": {"centroid": [100, 3500]}
   },
 
+  "room_tone_offices": {
+   "group": "ambience", "dur": 8.0, "loop": true, "variants": 1, "decorrelate": true,
+   "norm": {"lufs": -30},
+   "runtime": {"level_db": -30},
+   "note": "03 §1 place: the Offices room tone, a dead office floor. Air handling through the ceiling (a soft pink-noise wash band-passed round 700 Hz under a slow swell), the carpet and the drop tiles eating the highs, and the troffer bank's 100 Hz with its 50 Hz buzz far off. Drier and closer than Halls (the bus reverb is room 0.4, wet 0.15). 03 §6 rule 3: never ducked below -40 dB.",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": -2, "chain": [{"fx": "lp", "f": 220, "q": 0.6}]},
+    {"src": "noise", "color": "pink", "peak_db": -8, "chain": [{"fx": "bp", "f": 700, "q": 0.6}, {"fx": "lp", "f": 1800}, {"fx": "am", "wave": "random", "freq": 0.18, "depth": 0.35}]},
+    {"src": "noise", "color": "pink", "peak_db": -24, "chain": [{"fx": "hp", "f": 2500}, {"fx": "lp", "f": 5000}]},
+    {"src": "sine", "freq": 100, "peak_db": -16},
+    {"src": "sine", "freq": 50, "peak_db": -22},
+    {"src": "sine", "freq": 200, "peak_db": -30}
+   ],
+   "fx": [{"fx": "am", "wave": "random", "freq": 0.2, "depth": 0.2}, {"fx": "hp", "f": 30}]
+  },
+
+  "fixture_hum_offices": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -28},
+   "note": "03 fixture hum loop, Offices colour: a troffer, 100 Hz with 200 Hz at -12 dB and a faint pink-noise air, and the 50 Hz buzz under it (03: Offices 100 Hz with 50 Hz buzz). Mono, one per lent light.",
+   "layers": [
+    {"src": "sine", "freq": 100, "peak_db": 0},
+    {"src": "sine", "freq": 200, "peak_db": -12},
+    {"src": "sine", "freq": 50, "peak_db": -9},
+    {"src": "saw", "freq": 50, "peak_db": -30, "chain": [{"fx": "bp", "f": 1500, "q": 1.0}]},
+    {"src": "noise", "color": "pink", "peak_db": -30, "chain": [{"fx": "hp", "f": 1000}]}
+   ],
+   "expect": {"peak_hz": [45, 210]}
+  },
+
+  "fixture_buzz_offices": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -27},
+   "note": "03 Offices fixtures, buzz colour: a troffer ballast going, a band-passed 50 Hz saw rattle with a slow irregular level over the 100 Hz hum. Steady; not Flicker's stutter.",
+   "layers": [
+    {"src": "saw", "freq": 50, "peak_db": 0, "chain": [{"fx": "bp", "f": 2200, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 2.0, "depth": 0.4}]},
+    {"src": "sine", "freq": 100, "peak_db": -3},
+    {"src": "sine", "freq": 50, "peak_db": -8},
+    {"src": "noise", "color": "white", "peak_db": -22, "chain": [{"fx": "bp", "f": 3800, "q": 1.0}, {"fx": "am", "wave": "square", "freq": 100, "duty": 0.2, "depth": 0.8}]}
+   ],
+   "expect": {"centroid": [100, 3000]}
+  },
+
+  "room_tone_server": {
+   "group": "ambience", "dur": 8.0, "loop": true, "variants": 1, "decorrelate": true,
+   "norm": {"lufs": -30},
+   "runtime": {"level_db": -30},
+   "note": "03 §1 place: the Server room tone, a cold room full of machines. A dense even wash of cooling air (brown and pink noise, a broad 400 Hz body), the units' faint high whine (a 5.2 kHz sine pair beating slowly, very low), and the mains 60/120 Hz of the power supplies. Steadier than the other strata: machines do not breathe. The bus reverb is small and dead (room 0.3, damping 0.8). 03 §6 rule 3: never ducked below -40 dB.",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": 0, "chain": [{"fx": "lp", "f": 300, "q": 0.6}]},
+    {"src": "noise", "color": "pink", "peak_db": -6, "chain": [{"fx": "bp", "f": 400, "q": 0.5}]},
+    {"src": "noise", "color": "pink", "peak_db": -18, "chain": [{"fx": "bp", "f": 2400, "q": 0.6}]},
+    {"src": "sine", "freq": 5200, "peak_db": -40},
+    {"src": "sine", "freq": 5207, "peak_db": -42},
+    {"src": "sine", "freq": 60, "peak_db": -18},
+    {"src": "sine", "freq": 120, "peak_db": -24}
+   ],
+   "fx": [{"fx": "am", "wave": "random", "freq": 0.1, "depth": 0.08}, {"fx": "hp", "f": 30}]
+  },
+
+  "fixture_hum_server": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -30},
+   "note": "03 fixture hum loop, Server colour: what a lent light carries here is the rack beside it (the LED aggregate) or an emergency box: a power supply's 120 Hz with a thin coil whine high above, and a little fan air. Mono, one per lent light.",
+   "layers": [
+    {"src": "sine", "freq": 120, "peak_db": 0},
+    {"src": "sine", "freq": 240, "peak_db": -14},
+    {"src": "sine", "freq": 3600, "peak_db": -30},
+    {"src": "noise", "color": "pink", "peak_db": -18, "chain": [{"fx": "bp", "f": 900, "q": 0.6}]}
+   ],
+   "expect": {"peak_hz": [100, 260]}
+  },
+
+  "fixture_buzz_server": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -29},
+   "note": "03 Server, buzz colour: a supply with a failing fan, the 120 Hz hum with a rough band-passed saw and a slow irregular level. Steady; not Flicker's stutter.",
+   "layers": [
+    {"src": "saw", "freq": 120, "peak_db": 0, "chain": [{"fx": "bp", "f": 1800, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 2.5, "depth": 0.4}]},
+    {"src": "sine", "freq": 120, "peak_db": -4},
+    {"src": "noise", "color": "pink", "peak_db": -16, "chain": [{"fx": "bp", "f": 700, "q": 0.7}, {"fx": "am", "wave": "random", "freq": 6.0, "depth": 0.5}]}
+   ],
+   "expect": {"centroid": [120, 3000]}
+  },
+
+  "fan_loop": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -30},
+   "runtime": {"max_distance": 10.0},
+   "note": "03 fan loop (Server): brown noise low-passed at 500 Hz with a 23 Hz rotor amplitude modulation, a touch of blade hiss above. Mono: one per ceiling fan grille (ServerFan).",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": 0, "chain": [{"fx": "lp", "f": 500, "q": 0.7}, {"fx": "am", "wave": "sine", "freq": 23, "depth": 0.45}]},
+    {"src": "noise", "color": "pink", "peak_db": -16, "chain": [{"fx": "bp", "f": 1600, "q": 0.8}, {"fx": "am", "wave": "sine", "freq": 23, "depth": 0.3}]}
+   ],
+   "expect": {"centroid": [60, 1500]}
+  },
+
   "power_wave_ignite": {
    "group": "world", "bus": "Ambience", "dur": 0.42, "variants": 3, "lead": 0.002,
    "jitter": {"pitch": 0.02, "time": 0.004, "gain_db": 1.0},
@@ -839,6 +936,18 @@
    "expect": {"peak_hz": [25, 95]}
   },
 
+  "echo_breath": {
+   "group": "errors", "dur": 1.4, "variants": 3,
+   "jitter": {"pitch": 0.04, "time": 0.01, "gain_db": 1.0, "dur": 0.08},
+   "norm": {"lufs": -24},
+   "note": "03 Echo: within 4 m, a breathing-length noise swell every 2 s (its only sound besides the player's own footsteps played back). Pink noise, LP 1.2 kHz with a soft 600 Hz body, a slow rise and a long fall; no voice, no pitch.",
+   "layers": [
+    {"src": "noise", "color": "pink", "peak_db": 0, "env": {"type": "adsr", "a": 0.55, "d": 0.25, "s": 0.6, "r": 0.55}, "chain": [{"fx": "lp", "f": 1200, "q": 0.6}, {"fx": "peak", "f": 600, "q": 1.0, "gain_db": 4}]},
+    {"src": "noise", "color": "brown", "peak_db": -8, "env": {"type": "adsr", "a": 0.6, "d": 0.2, "s": 0.5, "r": 0.5}, "chain": [{"fx": "lp", "f": 300, "q": 0.7}]}
+   ],
+   "fx": [{"fx": "hp", "f": 80, "track": false}]
+  },
+
   "item_pickup": {
    "group": "player", "dur": 0.14, "variants": 3, "lead": 0.002,
    "jitter": {"pitch": 0.03, "gain_db": 0.7},
@@ -941,6 +1050,24 @@
     {"src": "noise", "color": "white", "at": 0.2, "dur": 0.06, "peak_db": -3, "env": {"type": "adsr", "a": 0.008, "d": 0.02, "s": 0.6, "r": 0.025}, "chain": [{"fx": "bp", "f": 5400, "q": 1.2}, {"fx": "am", "wave": "random", "freq": 90, "depth": 0.5}]}
    ],
    "expect": {"centroid": [3000, 8000]}
-  }
+  },
+  "flare_ignite": {"group": "world", "dur": 1.1, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.04, "time": 0.006, "gain_db": 1.0}, "norm": {"peak_db": -6}, "note": "03 flare ignite: a strike (noise scrape, band-passed 3 kHz, 120 ms) and a hiss as the cap catches, then the first of the sustained roar (brown noise BP 800 Hz with crackles; the roar itself is the flare_burn loop).", "layers": [{"src": "noise", "color": "white", "dur": 0.12, "peak_db": -4, "env": {"type": "adsr", "a": 0.01, "d": 0.03, "s": 0.7, "r": 0.05}, "chain": [{"fx": "bp", "f": 3000, "q": 1.1}, {"fx": "am", "wave": "random", "freq": 110, "depth": 0.6}]}, {"src": "noise", "color": "white", "at": 0.1, "dur": 0.25, "peak_db": -6, "env": {"type": "adsr", "a": 0.02, "d": 0.08, "s": 0.5, "r": 0.12}, "chain": [{"fx": "bp", "f": 5200, "q": 0.7}]}, {"src": "noise", "color": "brown", "at": 0.12, "dur": 0.95, "peak_db": 0, "env": {"type": "points", "points": [[0, 0], [0.12, 1.0], [0.4, 0.8], [0.95, 0.6]]}, "chain": [{"fx": "bp", "f": 800, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 18, "depth": 0.4}]}], "expect": {"centroid": [600, 6000]}},
+  "flare_burn": {"group": "world", "dur": 3.0, "loop": true, "variants": 1, "norm": {"lufs": -30}, "runtime": {"max_distance": 16.0}, "note": "03 flare: the sustained roar, brown noise band-passed at 800 Hz, with crackles (short white-noise bursts above 2 kHz at random).", "layers": [{"src": "noise", "color": "brown", "peak_db": 0, "chain": [{"fx": "bp", "f": 800, "q": 0.8}, {"fx": "am", "wave": "random", "freq": 9, "depth": 0.35}]}, {"src": "noise", "color": "white", "peak_db": -14, "chain": [{"fx": "hp", "f": 2500, "order": 2}, {"fx": "am", "wave": "random", "freq": 24, "depth": 0.95}]}], "expect": {"centroid": [300, 4000]}},
+  "flare_land": {"group": "world", "dur": 0.2, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.06, "gain_db": 1.0}, "norm": {"peak_db": -7}, "note": "09 \u00a72 landing of a thrown flare (the 6 m impact noise): a heavier knock than the glowstick, a paper-and-wax tube on concrete, with a short rattle.", "layers": [{"src": "noise", "color": "white", "dur": 0.015, "peak_db": 0, "env": {"type": "exp", "a": 0.0003, "t60": 0.012}, "chain": [{"fx": "bp", "f": 1100, "q": 0.8}]}, {"src": "sine", "freq": [300, 190], "dur": 0.09, "peak_db": -2, "env": {"type": "exp", "a": 0.001, "t60": 0.07}}, {"src": "noise", "color": "brown", "dur": 0.06, "peak_db": -8, "env": {"type": "exp", "a": 0.001, "t60": 0.05}, "chain": [{"fx": "lp", "f": 700}]}, {"src": "noise", "color": "white", "at": 0.07, "dur": 0.01, "peak_db": -12, "env": {"type": "exp", "a": 0.0003, "t60": 0.008}, "chain": [{"fx": "bp", "f": 1800, "q": 1.0}]}], "expect": {"peak_hz": [150, 1500]}},
+  "radio_static": {"group": "world", "dur": 2.0, "loop": true, "variants": 1, "norm": {"lufs": -26}, "runtime": {"max_distance": 14.0}, "note": "03 radio static loop: white noise band-passed around 1 to 3 kHz with a slow wobble. The item sets the loop's gain from the exit alignment (09 \u00a72): noise when away, swelling as the player faces the exit.", "layers": [{"src": "noise", "color": "white", "peak_db": 0, "chain": [{"fx": "bp", "f": 1800, "q": 0.5}, {"fx": "am", "wave": "random", "freq": 6, "depth": 0.45}]}, {"src": "noise", "color": "pink", "peak_db": -8, "chain": [{"fx": "bp", "f": 2800, "q": 0.6}, {"fx": "am", "wave": "sine", "freq": 1.0, "depth": 0.5}]}], "expect": {"centroid": [900, 4500]}},
+  "radio_ping": {"group": "world", "dur": 0.09, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.01, "gain_db": 0.5}, "norm": {"peak_db": -9}, "runtime": {"max_distance": 14.0}, "note": "03 radio ping: a 1 kHz sine for 50 ms with a soft edge, repeating faster as the player faces the exit.", "layers": [{"src": "sine", "freq": 1000, "dur": 0.05, "peak_db": 0, "env": {"type": "adsr", "a": 0.004, "d": 0.01, "s": 0.8, "r": 0.02}}, {"src": "sine", "freq": 2000, "dur": 0.04, "peak_db": -20, "env": {"type": "adsr", "a": 0.004, "d": 0.01, "s": 0.6, "r": 0.02}}], "expect": {"peak_hz": [900, 1100]}},
+  "fuse_insert": {"group": "world", "dur": 0.75, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.03, "time": 0.006, "gain_db": 1.0}, "norm": {"peak_db": -7}, "note": "03 fuse insert: a metal slide (noise, band-passed 2.4 kHz, 220 ms), the seating click, then the hum starting (120 Hz fading in).", "layers": [{"src": "noise", "color": "white", "dur": 0.22, "peak_db": -4, "env": {"type": "adsr", "a": 0.04, "d": 0.06, "s": 0.6, "r": 0.08}, "chain": [{"fx": "bp", "f": 2400, "q": 2.0}, {"fx": "am", "wave": "random", "freq": 60, "depth": 0.4}]}, {"src": "noise", "color": "white", "at": 0.24, "dur": 0.012, "peak_db": 0, "env": {"type": "exp", "a": 0.0003, "t60": 0.01}, "chain": [{"fx": "bp", "f": 3400, "q": 1.2}]}, {"src": "sine", "freq": 1700, "at": 0.24, "dur": 0.05, "peak_db": -10, "env": {"type": "exp", "a": 0.001, "t60": 0.04}}, {"src": "sine", "freq": [90, 70], "at": 0.24, "dur": 0.12, "peak_db": -4, "env": {"type": "exp", "a": 0.002, "t60": 0.1}}, {"src": "sine", "freq": 120, "at": 0.3, "dur": 0.42, "peak_db": -8, "env": {"type": "points", "points": [[0, 0], [0.3, 0.8], [0.4, 0]]}}], "expect": {"centroid": [200, 3500]}},
+  "fuse_pull": {"group": "world", "dur": 0.55, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.03, "time": 0.006, "gain_db": 1.0}, "norm": {"peak_db": -7}, "note": "09 \u00a72 fuse pulled back out: the click first, then the slide, and the hum cut.", "layers": [{"src": "noise", "color": "white", "dur": 0.012, "peak_db": 0, "env": {"type": "exp", "a": 0.0003, "t60": 0.01}, "chain": [{"fx": "bp", "f": 3000, "q": 1.2}]}, {"src": "sine", "freq": 1500, "dur": 0.04, "peak_db": -12, "env": {"type": "exp", "a": 0.001, "t60": 0.035}}, {"src": "noise", "color": "white", "at": 0.05, "dur": 0.22, "peak_db": -5, "env": {"type": "adsr", "a": 0.03, "d": 0.06, "s": 0.6, "r": 0.1}, "chain": [{"fx": "bp", "f": 2100, "q": 2.0}, {"fx": "am", "wave": "random", "freq": 60, "depth": 0.4}]}, {"src": "sine", "freq": 120, "dur": 0.06, "peak_db": -10, "env": {"type": "points", "points": [[0, 1.0], [0.05, 0.0]]}}]},
+  "keycard_accept": {"group": "world", "dur": 0.16, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.01, "gain_db": 0.5}, "norm": {"peak_db": -9}, "note": "03 keycard reader accept: a 1.5 kHz beep for 100 ms.", "layers": [{"src": "sine", "freq": 1500, "dur": 0.1, "peak_db": 0, "env": {"type": "adsr", "a": 0.004, "d": 0.01, "s": 0.85, "r": 0.02}}, {"src": "sine", "freq": 3000, "dur": 0.08, "peak_db": -22, "env": {"type": "adsr", "a": 0.004, "d": 0.01, "s": 0.6, "r": 0.02}}], "expect": {"peak_hz": [1400, 1600]}},
+  "keycard_reject": {"group": "world", "dur": 0.4, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.01, "gain_db": 0.5}, "norm": {"peak_db": -9}, "note": "03 keycard reader reject: two beeps at 400 Hz.", "layers": [{"src": "square", "freq": 400, "dur": 0.1, "peak_db": 0, "env": {"type": "adsr", "a": 0.004, "d": 0.01, "s": 0.8, "r": 0.02}, "chain": [{"fx": "lp", "f": 1800}]}, {"src": "square", "freq": 400, "at": 0.18, "dur": 0.1, "peak_db": 0, "env": {"type": "adsr", "a": 0.004, "d": 0.01, "s": 0.8, "r": 0.02}, "chain": [{"fx": "lp", "f": 1800}]}], "expect": {"peak_hz": [300, 900]}},
+  "vending_hum": {"group": "world", "dur": 2.0, "loop": true, "variants": 1, "norm": {"lufs": -34}, "runtime": {"max_distance": 10.0}, "note": "03 vending machine: a compressor hum, 100 Hz sine with 200 Hz at -10 dB and a faint 50 Hz rumble.", "layers": [{"src": "sine", "freq": 100, "peak_db": 0}, {"src": "sine", "freq": 200, "peak_db": -10}, {"src": "sine", "freq": 50, "peak_db": -14}, {"src": "noise", "color": "pink", "peak_db": -30, "chain": [{"fx": "bp", "f": 400, "q": 0.6}]}], "expect": {"peak_hz": [90, 210]}},
+  "vending_whir": {"group": "world", "dur": 1.4, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.03, "time": 0.01, "gain_db": 1.0}, "norm": {"peak_db": -6}, "runtime": {"max_distance": 14.0}, "note": "03 vending machine on use: a mechanical whir for 1 s (a saw at 90 Hz rising, ratcheting) ending in the thunk of the item dropping into the tray.", "layers": [{"src": "saw", "freq": [70, 130], "dur": 1.0, "peak_db": -4, "env": {"type": "adsr", "a": 0.08, "d": 0.1, "s": 0.8, "r": 0.15}, "chain": [{"fx": "bp", "f": 700, "q": 0.9}, {"fx": "am", "wave": "square", "freq": 22, "depth": 0.35}]}, {"src": "noise", "color": "brown", "dur": 1.0, "peak_db": -10, "env": {"type": "adsr", "a": 0.1, "d": 0.1, "s": 0.7, "r": 0.2}, "chain": [{"fx": "lp", "f": 900}]}, {"src": "sine", "freq": [110, 55], "at": 1.02, "dur": 0.2, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.16}}, {"src": "noise", "color": "white", "at": 1.02, "dur": 0.03, "peak_db": -6, "env": {"type": "exp", "a": 0.0004, "t60": 0.025}, "chain": [{"fx": "bp", "f": 1500, "q": 0.8}]}], "expect": {"centroid": [150, 2500]}},
+  "payphone_ring": {"group": "world", "dur": 2.0, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.01, "gain_db": 0.5}, "norm": {"peak_db": -6}, "fade_out": 0.02, "runtime": {"max_distance": 40.0, "through_walls": true}, "note": "03 payphone: the ring, two sines at 440 and 480 Hz modulated at 20 Hz, 2 s on. The phone plays it every 6 s (2 s on, 4 s off) while ringing. Heard through the walls: the point is that it is heard.", "layers": [{"src": "sine", "freq": 440, "dur": 1.96, "peak_db": 0, "env": {"type": "adsr", "a": 0.01, "d": 0.02, "s": 0.95, "r": 0.02}, "chain": [{"fx": "am", "wave": "square", "freq": 20, "depth": 0.85}]}, {"src": "sine", "freq": 480, "dur": 1.96, "peak_db": 0, "env": {"type": "adsr", "a": 0.01, "d": 0.02, "s": 0.95, "r": 0.02}, "chain": [{"fx": "am", "wave": "square", "freq": 20, "depth": 0.85}]}, {"src": "sine", "freq": 1320, "dur": 1.96, "peak_db": -24, "env": {"type": "adsr", "a": 0.01, "d": 0.02, "s": 0.9, "r": 0.02}, "chain": [{"fx": "am", "wave": "square", "freq": 20, "depth": 0.85}]}], "expect": {"peak_hz": [400, 520]}},
+  "payphone_line": {"group": "world", "dur": 2.0, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.01, "gain_db": 0.5}, "norm": {"lufs": -26}, "fade_out": 0.15, "runtime": {"max_distance": 12.0}, "note": "09 \u00a75 payphone answered: two seconds of an open line, a 60 Hz hum under thin pink noise and a faint far tone. Nothing speaks.", "layers": [{"src": "sine", "freq": 60, "dur": 2.0, "peak_db": 0}, {"src": "sine", "freq": 120, "dur": 2.0, "peak_db": -10}, {"src": "noise", "color": "pink", "dur": 2.0, "peak_db": -16, "chain": [{"fx": "bp", "f": 1500, "q": 0.5}]}, {"src": "sine", "freq": 350, "dur": 2.0, "peak_db": -34}], "expect": {"peak_hz": [50, 130]}},
+  "hide_locker": {"group": "world", "dur": 0.3, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.04, "time": 0.005, "gain_db": 1.0}, "norm": {"peak_db": -9}, "note": "11 \u00a72 locker: the door closing with a click, a tin thud and the latch.", "layers": [{"src": "sine", "freq": [140, 90], "dur": 0.12, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.1}}, {"src": "noise", "color": "white", "dur": 0.05, "peak_db": -6, "env": {"type": "exp", "a": 0.0005, "t60": 0.04}, "chain": [{"fx": "bp", "f": 900, "q": 1.0}]}, {"src": "noise", "color": "white", "at": 0.13, "dur": 0.01, "peak_db": -2, "env": {"type": "exp", "a": 0.0003, "t60": 0.008}, "chain": [{"fx": "bp", "f": 3200, "q": 1.2}]}, {"src": "sine", "freq": 1250, "at": 0.13, "dur": 0.03, "peak_db": -14, "env": {"type": "exp", "a": 0.0005, "t60": 0.025}}]},
+  "hide_under_car": {"group": "world", "dur": 0.7, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.04, "time": 0.005, "gain_db": 1.0}, "norm": {"peak_db": -9}, "note": "11 \u00a72 under car: a scrape of cloth and grit on concrete as the player slides under, a low bump of the belly.", "layers": [{"src": "noise", "color": "white", "dur": 0.5, "peak_db": -3, "env": {"type": "adsr", "a": 0.08, "d": 0.1, "s": 0.6, "r": 0.2}, "chain": [{"fx": "bp", "f": 2200, "q": 0.6}, {"fx": "am", "wave": "random", "freq": 45, "depth": 0.6}]}, {"src": "noise", "color": "brown", "dur": 0.5, "peak_db": -8, "env": {"type": "adsr", "a": 0.1, "d": 0.1, "s": 0.6, "r": 0.2}, "chain": [{"fx": "lp", "f": 500}]}, {"src": "sine", "freq": [90, 60], "at": 0.3, "dur": 0.12, "peak_db": -10, "env": {"type": "exp", "a": 0.002, "t60": 0.1}}]},
+  "hide_under_desk": {"group": "world", "dur": 0.5, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.04, "time": 0.005, "gain_db": 1.0}, "norm": {"peak_db": -9}, "note": "11 \u00a72 under desk: a chair-leg scuff and the soft knock of a knee on the modesty panel.", "layers": [{"src": "noise", "color": "white", "dur": 0.3, "peak_db": -6, "env": {"type": "adsr", "a": 0.05, "d": 0.05, "s": 0.5, "r": 0.12}, "chain": [{"fx": "bp", "f": 1400, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 30, "depth": 0.5}]}, {"src": "sine", "freq": [180, 110], "at": 0.2, "dur": 0.1, "peak_db": -2, "env": {"type": "exp", "a": 0.002, "t60": 0.08}}, {"src": "noise", "color": "brown", "at": 0.2, "dur": 0.06, "peak_db": -8, "env": {"type": "exp", "a": 0.001, "t60": 0.05}, "chain": [{"fx": "lp", "f": 600}]}]},
+  "hide_pump_corner": {"group": "world", "dur": 0.7, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.04, "time": 0.005, "gain_db": 1.0}, "norm": {"peak_db": -9}, "note": "11 \u00a72 pump room corner: the room door swinging shut on its closer, the latch, and a pipe ticking.", "layers": [{"src": "noise", "color": "brown", "dur": 0.35, "peak_db": -4, "env": {"type": "adsr", "a": 0.1, "d": 0.05, "s": 0.5, "r": 0.18}, "chain": [{"fx": "lp", "f": 700}]}, {"src": "sine", "freq": [80, 52], "at": 0.3, "dur": 0.2, "peak_db": 0, "env": {"type": "exp", "a": 0.002, "t60": 0.16}}, {"src": "noise", "color": "white", "at": 0.31, "dur": 0.012, "peak_db": -4, "env": {"type": "exp", "a": 0.0003, "t60": 0.01}, "chain": [{"fx": "bp", "f": 2600, "q": 1.0}]}, {"src": "sine", "freq": 1900, "at": 0.5, "dur": 0.03, "peak_db": -20, "env": {"type": "exp", "a": 0.0005, "t60": 0.02}}]},
+  "hide_rack_gap": {"group": "world", "dur": 0.5, "variants": 3, "lead": 0.002, "jitter": {"pitch": 0.04, "time": 0.005, "gain_db": 1.0}, "norm": {"peak_db": -9}, "note": "11 \u00a72 rack gap: a shoulder brushing a steel rack frame, and the faint ring of a drive tray.", "layers": [{"src": "noise", "color": "white", "dur": 0.25, "peak_db": -5, "env": {"type": "adsr", "a": 0.05, "d": 0.05, "s": 0.5, "r": 0.1}, "chain": [{"fx": "bp", "f": 3200, "q": 0.8}, {"fx": "am", "wave": "random", "freq": 70, "depth": 0.5}]}, {"src": "sine", "freq": 2400, "at": 0.12, "dur": 0.18, "peak_db": -22, "env": {"type": "exp", "a": 0.001, "t60": 0.15}}, {"src": "sine", "freq": [120, 85], "at": 0.1, "dur": 0.1, "peak_db": -8, "env": {"type": "exp", "a": 0.002, "t60": 0.08}}]}
  }
 }

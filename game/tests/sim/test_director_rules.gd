@@ -63,10 +63,11 @@ func test_roster_per_depth() -> void:
 	assert_eq(_count(_roster(6, &"garage"), &"null"), 0)
 
 
-func test_spawnable_is_m1_static_and_still() -> void:
+func test_spawnable_is_static_still_and_echo() -> void:
 	assert_true(DirectorRules.spawnable(&"static"))
 	assert_true(DirectorRules.spawnable(&"still"))
-	for id: StringName in [&"echo", &"flicker", &"null"]:
+	assert_true(DirectorRules.spawnable(&"echo"), "Echo is built (M2.4)")
+	for id: StringName in [&"flicker", &"null"]:
 		assert_false(DirectorRules.spawnable(id), "%s arrives in M2" % id)
 
 

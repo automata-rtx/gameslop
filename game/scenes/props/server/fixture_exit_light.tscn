@@ -1,0 +1,53 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Shader" path="res://shaders/fixture_glow.gdshader" id="1_r"]
+[ext_resource type="Material" path="res://data/materials/server/dark_metal.tres" id="2_r"]
+[ext_resource type="Material" path="res://data/materials/server/exit_emissive.tres" id="3_r"]
+[ext_resource type="Script" path="res://src/lighting/fixture.gd" id="4_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
+render_priority = 0
+shader = ExtResource("1_r")
+shader_parameter/glow_color = Color(0.92, 0.95, 1, 1)
+shader_parameter/core = Vector2(0.25, 0.25)
+shader_parameter/falloff = 0.3
+
+[sub_resource type="QuadMesh" id="QuadMesh_2"]
+size = Vector2(2.0, 2.0)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_3"]
+top_radius = 0.26
+bottom_radius = 0.26
+height = 0.08
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_4"]
+top_radius = 0.22
+bottom_radius = 0.22
+height = 0.012
+radial_segments = 16
+rings = 1
+
+[node name="FixtureExitLight" type="Node3D"]
+script = ExtResource("4_r")
+
+[node name="Housing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
+mesh = SubResource("CylinderMesh_3")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Tube" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.085, 0)
+mesh = SubResource("CylinderMesh_4")
+material_override = ExtResource("3_r")
+cast_shadow = 0
+
+[node name="Glow" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, -0.002, 0)
+cast_shadow = 0
+mesh = SubResource("QuadMesh_2")
+material_override = SubResource("ShaderMaterial_1")

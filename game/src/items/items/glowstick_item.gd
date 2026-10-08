@@ -6,8 +6,6 @@ extends ItemBase
 ## can still become a drop; the hand winds back the moment the key goes down.
 
 const SOUND_CRACK := &"glowstick_crack"
-const EYE_ABOVE_THROW := 0.2
-const DEFAULT_HEIGHT := 1.45
 
 ## Seconds the key has been held in this press; -1 when not arming.
 var held_for: float = -1.0
@@ -52,22 +50,10 @@ func throw(slot: ItemSlot) -> Glowstick:
 	if slot == null or slot.count <= 0:
 		return null
 	var p := player()
-	var origin := Vector3(0.0, DEFAULT_HEIGHT + EYE_ABOVE_THROW, 0.0)
-	var flat := Vector3(0.0, 0.0, -1.0)
-	var right := Vector3.RIGHT
-	if p != null:
-		var cam := p.rig.camera
-		origin = cam.global_position
-		flat = -p.global_transform.basis.z
-		flat.y = 0.0
-		flat = flat.normalized()
-		right = flat.cross(Vector3.UP)
-	origin += flat * 0.35 + right * 0.12 + Vector3.DOWN * EYE_ABOVE_THROW
-	var height := _height_above_floor(origin, p)
-	var speed := Glowstick.throw_speed(Tuning.GLOWSTICK_THROW_DIST, height)
-	var angle := deg_to_rad(Tuning.GLOWSTICK_THROW_ANGLE)
+	var plan := ItemThrow.plan(p)
+	var origin: Vector3 = plan[&"origin"]
 	var stick := _spawn()
-	stick.launch(origin, flat * cos(angle) * speed + Vector3.UP * sin(angle) * speed)
+	stick.launch(origin, plan[&"velocity"])
 	AudioManager.play_3d(SOUND_CRACK, origin)
 	if p != null:
 		p.rig.nod(Tuning.FEEDBACK_THROW_RECOIL_DEG)
@@ -101,16 +87,6 @@ func _spawn() -> Glowstick:
 	var parent: Node = tree.current_scene if tree.current_scene != null else tree.root
 	parent.add_child(stick)
 	return stick
-
-
-## Metres from `origin` down to the floor (a ray on the world layer), else a standing default.
-func _height_above_floor(origin: Vector3, p: Player) -> float:
-	if p == null:
-		return DEFAULT_HEIGHT
-	var q := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * 4.0, PlayerLayers.WORLD_MASK)
-	q.exclude = [p.get_rid()]
-	var hit := p.get_world_3d().direct_space_state.intersect_ray(q)
-	return origin.y - (hit["position"] as Vector3).y if not hit.is_empty() else DEFAULT_HEIGHT
 
 
 # --- held visuals ----------------------------------------------------------------------------

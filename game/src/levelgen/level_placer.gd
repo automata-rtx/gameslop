@@ -12,8 +12,19 @@ const GROUP_PREFIX := "placement_"
 const GROUP_ERROR_SPAWNS := &"error_spawns"
 const META_PLACEMENT := &"placement"
 const PROPS_DIR := "res://scenes/props/%s/%s.tscn"
+## A fixture kind other than the stratum's own (Server: rack_led, exit_light) has its own
+## prefab beside the props (M2.2).
+const FIXTURE_SCENE := "res://scenes/props/%s/fixture_%s.tscn"
 const DOOR_SCENE := "res://scenes/props/shared/door.tscn"
-const HIDE_SPOT_SCENES: Dictionary = {&"locker": "res://scenes/interactables/hide_spot_locker.tscn"}
+## 09 §6 hide spots by the placement's `kind` param. `desk` is accepted for `under_desk`.
+const HIDE_SPOT_SCENES: Dictionary = {
+	&"locker": "res://scenes/interactables/hide_spot_locker.tscn",
+	&"under_car": "res://scenes/interactables/hide_spot_under_car.tscn",
+	&"under_desk": "res://scenes/interactables/hide_spot_under_desk.tscn",
+	&"desk": "res://scenes/interactables/hide_spot_under_desk.tscn",
+	&"pump_corner": "res://scenes/interactables/hide_spot_pump_corner.tscn",
+	&"rack_gap": "res://scenes/interactables/hide_spot_rack_gap.tscn",
+}
 
 ## Kinds that become markers (interactive versions come later).
 const MARKER_KINDS: Array[StringName] = [LevelData.P_SPAWN, LevelData.P_EXIT, LevelData.P_BREAKER,
@@ -46,6 +57,8 @@ func scene_paths() -> PackedStringArray:
 		var path := ""
 		if p[&"kind"] == LevelData.P_PROP:
 			path = PROPS_DIR % [stratum.id, params.get(&"prop", &"")]
+		elif p[&"kind"] == LevelData.P_FIXTURE:
+			path = _fixture_path(params)
 		elif p[&"kind"] == LevelData.P_HIDE_SPOT:
 			path = HIDE_SPOT_SCENES.get(params.get(&"kind", &"locker"), "")
 		if path != "" and not out.has(path) and ResourceLoader.exists(path):
@@ -101,24 +114,40 @@ func _marker(p: Dictionary, parent: Node3D) -> Node3D:
 	return m
 
 
+## The prefab for a fixture placement: its kind's own when one exists, else the stratum's.
+func _fixture_path(params: Dictionary) -> String:
+	var kind: StringName = params.get(&"fixture", stratum.fixture_kind)
+	if kind != stratum.fixture_kind:
+		var own := FIXTURE_SCENE % [stratum.id, kind]
+		if ResourceLoader.exists(own):
+			return own
+	return stratum.fixture_prefab_path
+
+
 func _fixture(p: Dictionary, parent: Node3D) -> Node3D:
-	var scene := _scene(stratum.fixture_prefab_path)
+	var params: Dictionary = p[&"params"]
+	var scene := _scene(_fixture_path(params))
 	if scene == null:
 		return null
 	var f := scene.instantiate() as Fixture
 	var c: Vector2i = p[&"cell"]
 	f.name = "Fixture_%d_%d_%d" % [c.x, c.y, parent.get_child_count()]
+	f.light_profile = Fixture.profile_for(params.get(&"fixture", &""))
 	var t := _xform(p)
-	# T2: tubes run along the corridor; rooms keep one orientation.
-	if level.grid.kind(c) == LevelGrid.FLOOR:
+	# T2: tubes run along the corridor; rooms keep one orientation. Wall-mounted fixtures
+	# (params.dir) keep their placement's yaw.
+	if level.grid.kind(c) == LevelGrid.FLOOR and not params.has(&"dir"):
 		var along_x := level.grid.can_step(c, LevelGrid.E) or level.grid.can_step(c, LevelGrid.W)
 		var along_z := level.grid.can_step(c, LevelGrid.N) or level.grid.can_step(c, LevelGrid.S)
 		if along_x and not along_z:
 			t.basis = Basis(Vector3.UP, PI * 0.5)
 	f.transform = t
-	f.group_id = int((p[&"params"] as Dictionary).get(&"group", -1))
+	f.group_id = int(params.get(&"group", -1))
 	parent.add_child(f)
 	pool.register_fixture(f)
+	# 07 §5.4: a dark group starts unpowered; the breaker's power wave lights it.
+	if bool(params.get(&"dark", false)):
+		f.set_powered(false)
 	return f
 
 
@@ -160,7 +189,15 @@ func _hide_spot(p: Dictionary, parent: Node3D) -> Node3D:
 	var n := scene.instantiate() as Node3D
 	var c: Vector2i = p[&"cell"]
 	n.name = "HideSpot_%d_%d" % [c.x, c.y]
-	n.transform = _xform(p, PI)
+	# The locker faces +Z (yaw + PI); the others look out along -Z, like props. An under-car
+	# spot looks out of the car's aisle side: the placement's yaw is the car's length axis.
+	var t := _xform(p, PI if kind == &"locker" else 0.0)
+	var params: Dictionary = p[&"params"]
+	if kind == &"under_car" and params.has(&"dir"):
+		t.basis = Basis(Vector3.UP, LevelData.yaw_facing(LevelGrid.opposite(int(params[&"dir"]))))
+	n.transform = t
+	if n is HideSpot:
+		(n as HideSpot).configure(params)
 	n.set_meta(META_PLACEMENT, p)
 	_tag_bodies(n, {&"wall_kind": &"PROP"})
 	parent.add_child(n)

@@ -198,6 +198,7 @@ const NOISE_KIND_TEAR := &"tear"
 const NOISE_KIND_DOOR := &"door"
 const NOISE_KIND_IMPACT := &"impact"
 const NOISE_KIND_LIGHT := &"light"
+const NOISE_KIND_RADIO := &"radio"                  # the radio (09 §2): an Echo lure, like mech but its own kind
 const NOISE_STEP_RADIUS: Dictionary = {&"carpet": 5.0, &"tile": 7.0, &"concrete": 7.0, &"raised_floor": 8.0, &"substrate": 6.0}
 const NOISE_STEP_WATER_RADIUS := 10.0
 const NOISE_SPRINT_MULT := 1.8                      # x walk radius
@@ -487,6 +488,18 @@ const ECHO_BREATH_SWELL_INTERVAL := 2.0             # s, within 4 m (03)
 const ECHO_LURE_IMPACT_RADIUS := 6.0                # m, thrown glowstick/flare landing
 const ECHO_LURE_RADIO_RADIUS := 10.0                # m per s while on
 const ECHO_CORNER_GAIN := 0.05                      # about 5% per corner trimmed
+# Build-task constants (M2.4; 08 §6 gives no number).
+const ECHO_WANDER_SPEED := PLAYER_CROUCH_SPEED      # m/s: Wander walks at the player's slowest pace
+const ECHO_SEARCH_SPEED := PLAYER_WALK_SPEED        # m/s: Search, a lure and the Satiated walk-back
+const ECHO_WANDER_RADIUS := 14.0                    # m: an unhinted Wander leg ends within this
+const ECHO_TRAIL_CAPACITY := 64                     # heard steps kept (the player's trail keeps 64)
+const ECHO_RESOLVE_LOOKBACK := 8                    # player trail entries searched to match a heard step
+const ECHO_DIRECT_SLACK := 1.04                     # a nav path within 4% of the straight line is "direct" (trimmed)
+const ECHO_DIRECT_CANDIDATES := 8                   # trail entries tried for a direct cut per repath
+const ECHO_ENTRY_ARRIVE_DIST := 0.35                # m (XZ): a trail entry counts as reached
+const ECHO_SEARCH_CANDIDATES := 12                  # seeded tries per Search inspection point
+const ECHO_SHIMMER_FADE := 0.4                      # m beyond 4 m over which the shimmer fades out
+const ECHO_OWN_TRAIL_CAPACITY := 64                 # own steps kept for the Satiated walk-back
 
 # 08 §7  Null
 const NULL_UNRENDER_RADIUS := 12.0                  # m
@@ -697,6 +710,18 @@ const RADIO_NOISE_RADIUS := NOISE_RADIO_RADIUS
 const RADIO_PING_FAST_DEG := 20.0                   # facing the exit within 20 deg: fast ping
 const RADIO_PING_SLOW_DEG := 60.0                   # within 60 deg: slow; else noise
 
+# M2.8 task constants: numbers 09 leaves open.
+const RADIO_PING_FAST_INTERVAL := 0.35              # s between pings facing the exit (within 20 deg)
+const RADIO_PING_SLOW_INTERVAL := 1.0               # s between pings within 60 deg
+const RADIO_NOISE_INTERVAL := 1.0                   # s, the mech noise "per second while on"
+const RADIO_PUT_DOWN_HOLD := GLOWSTICK_DROP_HOLD    # s hold use_item to set the radio down (it keeps playing: an Echo lure)
+const RADIO_GAIN_FAR_DB := -14.0                    # static level facing away from the exit (dB under full)
+const FLARE_STRIKE_LOCKOUT := 0.3                   # s after striking before use_item throws it
+const FLARE_FADE_TIME := 1.5                        # s, the light dies down over the last 1.5 s
+const FLARE_FLUTTER_DEPTH := 0.15                   # +- share of the light energy at 1 Hz
+const HIDE_PUMP_CORNER_EYE_HEIGHT := 1.1            # m (crouched in the corner)
+const HIDE_RACK_GAP_EYE_HEIGHT := 1.5               # m
+
 const FUSE_INSERT_TIME := 0.8                       # s (also pull out)
 const FUSE_PATH_MIN := 0.35                         # Variant B fuse at 35% to 70% critical-path distance
 const FUSE_PATH_MAX := 0.70
@@ -864,6 +889,11 @@ const OFFICES_DARK_GROUP_FRACTION := 0.40           # groups start unpowered
 const OFFICES_FIXTURE_SPACING_CELLS := 2
 const OFFICES_GROUP_MAX_FIXTURES := 6               # corridor segments
 const OFFICES_SOFT_WALLS := 4
+# Build-task constants (07 §5.4 gives no number; M2.2).
+const OFFICES_SPAWN_ROOM_SIZE := Vector2i(3, 3)     # elevator lobby in the band, the cabin beyond the perimeter
+const OFFICES_EXIT_ROOM_SIZE := Vector2i(3, 3)      # the exit lobby, the elevator in the perimeter wall
+const OFFICES_LOCKERS := 2                          # lockers in the closets (as Halls)
+const OFFICES_CHAIR_CORRIDOR_CELLS := 8             # one corridor chair per this many corridor cells
 
 # 07 §5.5 Server
 const SERVER_ROW_LENGTH_MIN := 6                    # cells
@@ -881,6 +911,23 @@ const SERVER_SPAWN_ROOM_SIZE := Vector2i(3, 3)
 const SERVER_EXIT_ROOM_SIZE := Vector2i(3, 3)
 const SERVER_RACK_DEPTH := 1.0                      # m
 const SERVER_SOFT_WALLS := 0
+# Build-task constants (07 §5.5 / 02 §7 give no number; M2.2).
+const SERVER_RING_INSET := 3                        # perimeter corridor inset (the band holds the stairwell landing)
+const SERVER_BREAKER_ROOM_SIZE := Vector2i(2, 2)    # as Offices
+const SERVER_RACK_HEIGHT := 2.0                     # m (02 §7 racks 0.6 x 2.0 x 1.0: two back to back fill a cell)
+const SERVER_RACK_UNIT_WIDTH := 0.6                 # m, one rack front; three per cell side (rack_leds.gdshader)
+const SERVER_LED_SPACING_CELLS := 2                 # rack LED aggregate light every 2 aisle cells (02 §7 "per 4 racks", in aggregate)
+const SERVER_LED_LIGHT_COLOR := Color(0.184, 0.357, 1.0)   # #2F5BFF (02 §7)
+const SERVER_LED_LIGHT_ENERGY := 0.35
+const SERVER_LED_LIGHT_RANGE := 4.0                 # m
+const SERVER_LED_HEIGHT := 1.2                      # m, the aggregate light on the rack face
+const SERVER_EMERGENCY_HEIGHT := 2.4                # m, emergency box on the ring's outer wall
+const SERVER_EMERGENCY_LIGHT_DROP := 0.1            # m, its pooled light hangs this far under the box
+const SERVER_WALL_FIXTURE_INSET := 0.25             # m, wall-mounted fixtures' origin (and light) off the wall face
+const SERVER_EXIT_LIGHT_COLOR := Color(0.92, 0.95, 1.0)    # the exit clearing's one white light (07 §5.5)
+const SERVER_EXIT_LIGHT_ENERGY := 1.2
+const SERVER_EXIT_LIGHT_RANGE := 7.0                # m
+const SERVER_CABLE_TRAY_HEIGHT := 2.9               # m, trays along aisle ceilings (visual)
 
 # 07 §5.6 Substrate
 const SUBSTRATE_VOID_CLUSTER_FRACTION := 0.20       # of corridor cells removed
@@ -938,6 +985,10 @@ const VALIDATE_POOLS_PATH_MIN := 40.0               # m at depth 2 (28 cells), s
 const VALIDATE_POOLS_PATH_MAX := 140.0
 const VALIDATE_GARAGE_PATH_MIN := 40.0              # m at depth 2, scaling by size (M2.1; 07 gives none)
 const VALIDATE_GARAGE_PATH_MAX := 140.0
+const VALIDATE_OFFICES_PATH_MIN := 40.0             # m at depth 3 (32 cells), scaling by size (M2.2; 07 gives none)
+const VALIDATE_OFFICES_PATH_MAX := 140.0
+const VALIDATE_SERVER_PATH_MIN := 40.0              # m at depth 4 (34 cells), scaling by size (M2.2; 07 gives none)
+const VALIDATE_SERVER_PATH_MAX := 140.0
 
 # 07 §9 Cycle 2 corruption (generator side)
 const CYCLE2_BRAID_MULT := 0.5
@@ -968,7 +1019,7 @@ const RENDER_FPS_TARGET := 60
 # Render-task implementation constants (02 gives no number; chosen against T1/T3 in the
 # render bench, M1.5). Volumetric fog: emission in the fog colour keeps unlit air visible.
 const RENDER_FOG_EMISSION_ENERGY := 0.2
-const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 0.8}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3)
+const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 0.8, &"server": 4.5}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3; M2.2: Server surfaces are #0A0C10, only lit fog shows the aisles, T1/T3)
 const RENDER_FOG_AMBIENT_INJECT := 1.0
 const RENDER_FOG_LENGTH := 64.0                     # m of froxel volume
 const RENDER_FOG_FROXEL_DEPTH := 64                 # froxel depth slices
@@ -1070,7 +1121,7 @@ const LIGHT_POOL_FADE_IN := 0.2                     # s, a light re-assigned to 
 const LIGHT_POOL_DISTANCE_FADE_BEGIN := 18.0        # m, distance_fade on pooled lights hides the swap (render-task constant)
 const LIGHT_POOL_DISTANCE_FADE_LENGTH := 6.0        # m
 const LIGHT_FIXTURE_ATTENUATION := 2.0              # omni_attenuation of pooled fixture lights (render-task constant)
-const LIGHT_FIXTURE_ATTENUATION_STRATUM: Dictionary = {&"pools": 1.0, &"garage": 1.0}   # M2.1: 6 m pool ceilings and 8 m sodium spacing (T1)
+const LIGHT_FIXTURE_ATTENUATION_STRATUM: Dictionary = {&"pools": 1.0, &"garage": 1.0, &"offices": 1.0, &"server": 1.0}   # M2.1: 6 m pool ceilings and 8 m sodium spacing (T1); M2.2: Offices troffers at 1.1, the Server's dim lights (T1)
 const LIGHT_FIXTURE_KIND: Dictionary = {&"halls": &"omni"}   # pooled light per stratum: omni or spot (02 §6)
 const LIGHT_SPOT_ANGLE := 70.0                      # deg, spot fixtures: a wide downlight (render-task constant)
 const LIGHT_SPOT_ANGLE_ATTENUATION := 1.0

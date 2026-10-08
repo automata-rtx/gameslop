@@ -160,7 +160,8 @@ func test_landing_choices() -> void:
 	meta.earn(&"fuse")
 	pool = RunLevelSetup.item_pool(meta)
 	for k: StringName in [&"flare", &"radio", &"fuse"]:
-		assert_false(pool.has(k), "%s has no world scene until M2.8" % k)
+		assert_true(pool.has(k), "%s has a world scene since M2.8, so the Landing can offer it" % k)
+	assert_false(pool.has(&"keycard"), "the keycard is not a belt item")
 	assert_true(pool.has(&"glowstick"))
 	var accept_all := func(_k: StringName) -> bool: return true
 	var none_held := func(_k: StringName) -> int: return 0

@@ -1,8 +1,10 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Material" path="res://data/materials/halls/prop_red.tres" id="1_body"]
 [ext_resource type="Material" path="res://data/materials/halls/vending_panel.tres" id="2_panel"]
 [ext_resource type="Material" path="res://data/materials/halls/prop_black.tres" id="3_black"]
+[ext_resource type="Script" path="res://src/interactables/vending.gd" id="4_script"]
+[ext_resource type="Script" path="res://src/interactables/interactable.gd" id="5_interactable"]
 
 [sub_resource type="BoxMesh" id="Mesh_body"]
 size = Vector3(1, 1.85, 0.7)
@@ -20,6 +22,7 @@ size = Vector3(0.7, 0.18, 0.02)
 size = Vector3(1, 1.85, 0.7)
 
 [node name="Vending" type="Node3D"]
+script = ExtResource("4_script")
 
 [node name="Body" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
@@ -42,8 +45,19 @@ mesh = SubResource("Mesh_tray")
 material_override = ExtResource("3_black")
 
 [node name="Collider" type="StaticBody3D" parent="."]
+unique_name_in_owner = true
+collision_layer = 9
 collision_mask = 0
 
 [node name="Shape" type="CollisionShape3D" parent="Collider"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
 shape = SubResource("Shape_body")
+
+[node name="Interactable" type="Node" parent="Collider"]
+unique_name_in_owner = true
+script = ExtResource("5_interactable")
+prompt = "USE"
+
+[node name="TrayPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.3, -0.5)

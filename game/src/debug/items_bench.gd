@@ -1,5 +1,5 @@
 extends Node3D
-## Items bench (M1.10, 09 §10): a Halls-coloured room with one pickup of each M1 kind on the
+## Items bench (M1.10, M2.8, 09 §10): a Halls-coloured room with one pickup of each kind on the
 ## floor, a note, a wall for chalk, an error stand-in for the Polaroid's cone, and the HUD bound
 ## to the belt. Click to capture the mouse, Esc to release. Keys: 1-4 / wheel select, right
 ## mouse use. Bench keys: J = add a Polaroid, a Glowstick x2 and Chalk x8 to the belt, K = drain
@@ -22,6 +22,8 @@ var _ceiling_mat: StandardMaterial3D
 var _stand_in: ItemsErrorStandIn
 var _last: String = ""
 var _photo: int = 0
+## The M2.8 props, interactables and hide spots (ItemsBenchM28).
+var _m28: Dictionary = {}
 
 
 func _ready() -> void:
@@ -30,6 +32,7 @@ func _ready() -> void:
 	_ceiling_mat = _mat(Color(0.91, 0.886, 0.812), 0.9)
 	_build_room()
 	_place_pickups()
+	_m28 = ItemsBenchM28.build(self, _wall_mat)
 	player.default_surface = &"carpet"
 	hud.bind_player(player)
 	hud.bind_inventory(player.inventory)
@@ -38,7 +41,9 @@ func _ready() -> void:
 	EventBus.note_found.connect(func(id: StringName) -> void: _last = "note %s" % id)
 	var args := OS.get_cmdline_user_args()
 	var i := args.find("--bench-shots")
-	if i != -1:
+	if i != -1 and args.has("--m28-only"):
+		_shots_m28.call_deferred(args[i + 1] if i + 1 < args.size() else "build/items")
+	elif i != -1:
 		_shots.call_deferred(args[i + 1] if i + 1 < args.size() else "build/items")
 
 
@@ -152,6 +157,18 @@ func _shots(dir: String) -> void:
 	_pose(Vector3(-3.5, 0.0, -2.2), deg_to_rad(10.0), -0.2)
 	await _wait(0.8)
 	_save(dir + "/items_chalk.png")
+	player.flashlight.set_on(false)
+	await ItemsBenchM28.shots(self, dir, _m28)
+	get_tree().quit(0)
+
+
+## `-- --bench-shots <dir> --m28-only`: only the M2.8 screenshots.
+func _shots_m28(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	await _settle(30)
+	var args := OS.get_cmdline_user_args()
+	var i := args.find("--m28-part")
+	await ItemsBenchM28.shots(self, dir, _m28, StringName(args[i + 1]) if i != -1 and i + 1 < args.size() else &"all")
 	get_tree().quit(0)
 
 

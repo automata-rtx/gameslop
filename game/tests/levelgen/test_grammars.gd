@@ -72,8 +72,8 @@ func test_halls_counts_match_the_grammar() -> void:
 
 
 func test_unbuilt_stratum_is_reported_unsupported() -> void:
-	assert_false(LevelGenerator.supports(&"offices"))
-	var r := LevelValidator.run_batch(&"offices", 3)
+	assert_false(LevelGenerator.supports(&"substrate"))
+	var r := LevelValidator.run_batch(&"substrate", 3)
 	assert_false(r["supported"])
 	assert_eq(r["count"], 0)
 

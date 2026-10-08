@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://src/interactables/breaker.gd" id="1_breaker"]
 [ext_resource type="Script" path="res://src/interactables/interactable.gd" id="2_interactable"]
@@ -23,6 +23,9 @@ size = Vector3(0.04, 0.04, 0.02)
 
 [sub_resource type="BoxShape3D" id="Shape_box"]
 size = Vector3(0.5, 0.7, 0.3)
+
+[sub_resource type="BoxShape3D" id="Shape_socket"]
+size = Vector3(0.12, 0.12, 0.06)
 
 [node name="Breaker" type="Node3D"]
 script = ExtResource("1_breaker")
@@ -71,3 +74,19 @@ unique_name_in_owner = true
 script = ExtResource("2_interactable")
 prompt = "FLIP BREAKER"
 hold_time = 0.6
+
+[node name="Socket" type="StaticBody3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, 1.2, -0.165)
+collision_layer = 0
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Socket"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.155)
+shape = SubResource("Shape_socket")
+
+[node name="SocketInteractable" type="Node" parent="Socket"]
+unique_name_in_owner = true
+script = ExtResource("2_interactable")
+prompt = "PULL FUSE"
+hold_time = 0.8
