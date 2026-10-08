@@ -348,3 +348,50 @@ func test_gallery_hud_states_build_headless() -> void:
 		assert_true(h.coherence_shutter.is_shown(), "%s keeps Coherence on screen" % state)
 		root.free()
 	UiMotion.manual_clock = true
+
+
+func test_notice_prompt_is_dim_and_keyless() -> void:
+	fake.prompt_changed.emit(Strings.PROMPT_FUSE_MISSING, 0.0)
+	assert_eq(hud.prompt.plain_text(), "FUSE MISSING", "no key cap, no HOLD")
+	assert_false(hud.prompt.underline_visible())
+	assert_true(hud.prompt.is_shown())
+	hud.show_notice_prompt("NO CARD")
+	assert_eq(hud.prompt.plain_text(), "NO CARD")
+	fake.prompt_changed.emit("OPEN DOOR", 0.0)
+	assert_eq(hud.prompt.plain_text(), "[E] OPEN DOOR", "ordinary prompts keep the key")
+
+
+func test_breaker_variant_b_shows_fuse_missing_without_a_fuse() -> void:
+	var b := (load("res://scenes/interactables/breaker.tscn") as PackedScene).instantiate() as Breaker
+	b.variant = Breaker.VARIANT_B
+	add_child(b)
+	var carrier := Node.new()
+	var inv := Inventory.new()
+	inv.name = "Inventory"
+	carrier.add_child(inv)
+	add_child(carrier)
+	assert_true(b.interactable.can_interact(carrier), "the notice is still offered")
+	assert_eq(b.interactable.prompt_text(), Strings.PROMPT_FUSE_MISSING)
+	assert_approx(b.interactable.hold_time, 0.0)
+	fake.prompt_changed.emit(b.interactable.prompt_text(), b.interactable.hold_time)
+	assert_eq(hud.prompt.plain_text(), "FUSE MISSING")
+	b.interactable.interact(carrier)
+	assert_false(b.fuse_in, "interacting without a fuse does nothing")
+	inv.add(Breaker.FUSE)
+	assert_true(b.interactable.can_interact(carrier))
+	assert_eq(b.interactable.prompt_text(), Strings.PROMPT_INSERT_FUSE)
+	assert_approx(b.interactable.hold_time, Tuning.FUSE_INSERT_TIME)
+	b.queue_free()
+	carrier.queue_free()
+
+
+func test_exit_status_clears_in_the_cabin_and_returns_on_entry() -> void:
+	EventBus.level_entered.emit(3, &"garage", &"proper")
+	_step(1.0)
+	assert_true(hud.depth.exit_shutter.is_shown())
+	EventBus.level_left.emit(true)
+	_step(1.0)
+	assert_false(hud.depth.exit_shutter.is_shown(), "the Landing cabin has no exit status")
+	EventBus.level_entered.emit(4, &"garage", &"proper")
+	assert_eq(hud.depth.exit_text(), "EXIT: UNKNOWN")
+	assert_true(hud.depth.exit_shutter.is_shown(), "restored on the next level")

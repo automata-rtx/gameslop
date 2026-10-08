@@ -305,7 +305,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 ## Mouse look (06 §3): yaw unbounded on the body, pitch +-89 on the rig; inside a hide
-## spot both stay within the spot's limit (06 §10).
+## spot both stay within the spot's limit (06 §10). The Landing cabin camera is free (05 §4):
+## look works there, movement does not.
 func look(relative: Vector2) -> void:
 	var sens: Variant = SettingsManager.get_value(SETTING_SENSITIVITY)
 	var s := float(sens) if sens is float or sens is int else Tuning.PLAYER_MOUSE_SENS_DEFAULT
@@ -314,7 +315,7 @@ func look(relative: Vector2) -> void:
 	var dpitch := -CameraRig.mouse_to_radians(relative.y, s) * (-1.0 if invert is bool and invert else 1.0)
 	if is_hidden():
 		rig.anchored_look(dyaw, dpitch, hiding.spot.yaw_limit_deg)
-	elif has_agency() and not rig.is_anchored():
+	elif (has_agency() or state_machine.is_in(PlayerStateMachine.LANDING)) and not rig.is_anchored():
 		rotate_y(dyaw)
 		rig.add_pitch(dpitch)
 

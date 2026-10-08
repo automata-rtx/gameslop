@@ -91,6 +91,11 @@ func set_exit_status(st: StringName, t: float) -> StringName:
 	return before
 
 
+## 05 §4: the Landing cabin has no exit; the line shutters out until the next level sets it.
+func clear_exit_status() -> void:
+	exit_shutter.shutter_out()
+
+
 ## 12 §7 "Exit status line" option.
 func set_exit_line_enabled(on: bool) -> void:
 	_exit.visible = on
