@@ -17,6 +17,9 @@ const P_HIDE_SPOT := &"hide_spot"         # params: kind (&"locker"), dir, view_
 const P_PROP := &"prop"                   # params: prop, dir (wall it stands against, -1 free)
 const P_FIXTURE := &"fixture"             # params: group, fixture
 const P_ERROR_SPAWN := &"error_spawn"     # params: off_path (bool)
+## M2.1 (07 §2 "water volumes"): one per wet basin. cell = the basin rect's first cell;
+## params: rect (Rect2i, the basin cells), surface_y (water level, m), floor_y (basin floor).
+const P_WATER := &"water"
 
 const NO_CELL := Vector2i(-1, -1)
 
@@ -104,7 +107,8 @@ func hash_hex() -> String:
 # ------------------------------------------------------------------ ASCII dump
 
 ## Top-down debug map: one character per cell centre, one per edge.
-## Cells: ' ' corridor, '.' room, '#' void, '*' critical path; markers S spawn, X exit,
+## Cells: ' ' corridor (',' on Garage deck 1), '.' room, '#' void, '*' critical path,
+## 'u' basin, 'W' deep water, '^' ramp or steps, 'I' pillar; markers S spawn, X exit,
 ## B breaker, K keycard, F fuse, i item, n note, h hide spot, p prop, e error spawn.
 ## Edges: '|' '-' wall, 'H' '=' solid, '}' '~' soft, 'd' door, ':' partition, 'g' glass.
 func to_ascii() -> String:
@@ -141,16 +145,28 @@ func to_ascii() -> String:
 
 
 func _cell_char(c: Vector2i) -> String:
+	var k := grid.kind(c)
+	if k == LevelGrid.DEEP:
+		return "W"
+	if grid.is_pillar(c):
+		return "I"
 	if not grid.is_walkable(c):
 		return "#"
 	if grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
 		return "*"
-	return "." if grid.kind(c) == LevelGrid.ROOM else " "
+	match k:
+		LevelGrid.RAMP:
+			return "^"
+		LevelGrid.BASIN:
+			return "u"
+		LevelGrid.ROOM:
+			return "."
+	return "," if grid.deck[grid.idx(c)] == 1 else " "
 
 
 func _edge_char(c: Vector2i, dir: int) -> String:
 	var o := c + LevelGrid.DIRS[dir]
-	if not grid.is_walkable(c) and not grid.is_walkable(o):
+	if not grid.is_sight_open(c) and not grid.is_sight_open(o):
 		return "#"
 	var vertical := dir == LevelGrid.E or dir == LevelGrid.W
 	match grid.wall(c, dir):

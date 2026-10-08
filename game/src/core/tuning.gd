@@ -790,6 +790,14 @@ const POOLS_FIXTURE_SPACING_HALL_CELLS := 3
 const POOLS_FIXTURE_SPACING_CORRIDOR_CELLS := 2
 const POOLS_HALLS_PER_LIFEGUARD_CHAIR := 3
 const POOLS_SOFT_WALLS := 3
+const POOLS_SPAWN_ROOM_SIZE := Vector2i(3, 3)       # tiled antechamber on the perimeter
+# Build-task constants (07 §5.2 gives no number; M2.1).
+const POOLS_HALL_MIN_SIDE := 7                      # cells: the basin (inset 2) is >= 3 long, 2 step cells and a floor
+const POOLS_BRANCH_SPACING := 8                     # cells between two branches on one side of the spine
+const POOLS_EXTRA_ARCH_CHANCE := 0.35               # a hall's second arch (fewer dead ends)
+const POOLS_FULL_SURFACE_DROP := 0.05               # m, a full basin's water sits this far under the rim
+const POOLS_DEEP_RAIL_HEIGHT := 0.9                 # m above the rim: the invisible edge of deep water (SOLID for movement)
+const POOLS_DRIPS_PER_HALL := 1                     # 02 §10 drips at hashed ceiling points
 
 # 07 §5.3 Garage
 const GARAGE_DECKS := 2
@@ -809,6 +817,15 @@ const GARAGE_BARRIER_FRACTION := 0.10               # of bay ends
 const GARAGE_QUADRANT_CELLS := 4                    # fixture groups are 4x4-cell quadrants
 const GARAGE_SPAWN_LOBBY_SIZE := Vector2i(3, 3)
 const GARAGE_SOFT_WALLS := 3
+# Build-task constants (07 §5.3 gives no number; M2.1). Split-level decks: deck 1 beside
+# deck 0, GARAGE_DECK_RISE higher, the ramps crossing a band of ramp-length cells between.
+const GARAGE_DECK_RISE := 3.2                       # m, deck 1 floor (07 §2: "Garage deck 1 at +3.2")
+const GARAGE_DECK_WIDTH_MIN := 10                   # cells along the band
+const GARAGE_RAMP_SPACING := 3                      # cells between two ramps
+const GARAGE_LAMP_HEIGHT := 2.6                     # m above the deck, on the pillar face
+const GARAGE_PILLAR_SIZE := 0.6                     # m, square pillar in its void cell
+const GARAGE_CAR_LENGTH := 4.2                      # m, parked along a wall over two bay cells
+const GARAGE_EXIT_SIGN_HEIGHT := 2.45               # m, above the stairwell door
 
 # 07 §5.4 Offices
 const OFFICES_RING_INSET := 3                       # cells from the perimeter
@@ -902,6 +919,10 @@ const VALIDATE_ERROR_SPAWN_MIN_WALK := 20.0         # m from spawn
 const VALIDATE_DEAD_END_CHAIN_MAX := 12             # cells
 const VALIDATE_HALLS_PATH_MIN := 80.0               # m at depth 1, scaling by size
 const VALIDATE_HALLS_PATH_MAX := 160.0
+const VALIDATE_POOLS_PATH_MIN := 40.0               # m at depth 2 (28 cells), scaling by size (M2.1; 07 gives none)
+const VALIDATE_POOLS_PATH_MAX := 140.0
+const VALIDATE_GARAGE_PATH_MIN := 40.0              # m at depth 2, scaling by size (M2.1; 07 gives none)
+const VALIDATE_GARAGE_PATH_MAX := 140.0
 
 # 07 §9 Cycle 2 corruption (generator side)
 const CYCLE2_BRAID_MULT := 0.5

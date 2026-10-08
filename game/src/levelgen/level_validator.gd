@@ -1,8 +1,9 @@
 class_name LevelValidator
 extends RefCounted
 ## 07 §8 validation on the data, before build. `validate` returns the failure lines (empty
-## means valid). Rule numbers in the messages match 07 §8. Rules 10 (other strata) and 11
-## (navmesh, after build) belong to later tasks.
+## means valid). Rule numbers in the messages match 07 §8. Rule 10 covers Pools and Garage
+## (M2.1); Offices, Server and Substrate add theirs; rule 11 (navmesh) runs after build in
+## the builder tests.
 
 
 ## `--validate-levels N` (14 §9): generates `n` levels of `stratum` (run seeds 1..n, the
@@ -69,6 +70,7 @@ static func validate(level: LevelData) -> PackedStringArray:
 	_rule7_error_spawns(level, ds, f)
 	_rule8_pickups(level, ds, f)
 	_rule9_soft_walls(level, ds, f)
+	_rule10_stratum(level, ds, f)
 	_first_descent(level, ds, f)
 	return f
 
@@ -117,8 +119,16 @@ static func _rule1_spawn_exit_path(level: LevelData, ds: PackedInt32Array, f: Pa
 			return
 
 
-## Halls: 80 to 160 m at depth 1, scaled by grid size for larger grids.
+## Halls: 80 to 160 m at depth 1, scaled by grid size for larger grids. Pools and Garage
+## (07 gives no band; M2.1): their own bands at the depth-2 grid, scaled the same way.
 static func path_band(level: LevelData) -> Vector2:
+	match level.stratum:
+		&"pools":
+			var s := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[2])
+			return Vector2(Tuning.VALIDATE_POOLS_PATH_MIN, Tuning.VALIDATE_POOLS_PATH_MAX) * s
+		&"garage":
+			var s := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[2])
+			return Vector2(Tuning.VALIDATE_GARAGE_PATH_MIN, Tuning.VALIDATE_GARAGE_PATH_MAX) * s
 	var scale := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[1])
 	return Vector2(Tuning.VALIDATE_HALLS_PATH_MIN, Tuning.VALIDATE_HALLS_PATH_MAX) * scale
 
@@ -255,6 +265,32 @@ static func _rule9_soft_walls(level: LevelData, ds: PackedInt32Array, f: PackedS
 		var walk := grid.distance_field(a)[grid.idx(b)]
 		if walk < 0 or (walk - 1) * Tuning.GRID_CELL_SIZE < Tuning.SOFT_WALL_MIN_SAVING:
 			f.append("r9: soft wall %s saves less than %.0f m" % [e, Tuning.SOFT_WALL_MIN_SAVING])
+
+
+## Rule 10 per stratum. Pools: the exit is at the bottom of a dry basin of the exit depth.
+## Garage: spawn on deck 1, exit on deck 0, and both decks walkable (r1 already proves
+## every walkable cell reachable, so a ramp joins them).
+static func _rule10_stratum(level: LevelData, ds: PackedInt32Array, f: PackedStringArray) -> void:
+	var grid := level.grid
+	match level.stratum:
+		&"pools":
+			var c := level.exit_cell
+			if grid.kind(c) != LevelGrid.BASIN or grid.has_flag(c, LevelGrid.F_WATER) \
+					or not is_equal_approx(grid.floor_y(c), -Tuning.POOLS_EXIT_BASIN_DEPTH):
+				f.append("r10: Pools exit not at the bottom of a dry %.1f m basin" % Tuning.POOLS_EXIT_BASIN_DEPTH)
+			for p in level.placements_of(LevelData.P_WATER):
+				var r: Rect2i = p[&"params"][&"rect"]
+				if r.has_point(c):
+					f.append("r10: Pools exit basin has water")
+		&"garage":
+			if grid.deck[grid.idx(level.spawn_cell)] != 1 or grid.deck[grid.idx(level.exit_cell)] != 0:
+				f.append("r10: Garage spawn must be on deck 1 and exit on deck 0")
+			var decks := [0, 0]
+			for i in grid.cell_count():
+				if LevelGrid.kind_walkable(grid.cells[i]) and ds[i] >= 0 and grid.cells[i] != LevelGrid.RAMP:
+					decks[grid.deck[i]] += 1
+			if decks[0] == 0 or decks[1] == 0:
+				f.append("r10: Garage deck unreachable (%d, %d walkable)" % decks)
 
 
 ## 05 §10 first Descent guarantees that the data can show: Powered with the breaker room on

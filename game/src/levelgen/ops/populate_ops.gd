@@ -79,6 +79,7 @@ static func _carve(gen: StratumGenerator, from: Array[Vector2i], fields: Array[P
 	if e.x < 0:
 		return false
 	marked.append(e)
+	gen.grid.refresh_ledges()
 	gen.spawn_dist = gen.grid.distance_field(gen.data.spawn_cell)
 	MazeOps.mark_dead_ends(gen.grid)
 	return true
@@ -97,7 +98,8 @@ static func _path_side_walls(gen: StratumGenerator, exclude_flags: int, reach: i
 
 
 ## Cells whose spawn distance lies in [lo, hi] (cells), walkable, not in the spawn or exit
-## room, not occupied, passing `extra` (Callable(Vector2i) -> bool) when valid.
+## room, not occupied, not a ramp or pool steps (a pickup on a slope rests on air or in the
+## steps), passing `extra` (Callable(Vector2i) -> bool) when valid.
 static func band_cells(gen: StratumGenerator, lo: int, hi: int, extra: Callable = Callable()) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	var grid := gen.grid
@@ -106,6 +108,8 @@ static func band_cells(gen: StratumGenerator, lo: int, hi: int, extra: Callable 
 		if d < lo or d > hi or gen.occupied.has(i):
 			continue
 		if (grid.flags[i] & (LevelGrid.F_SPAWN_ROOM | LevelGrid.F_EXIT_ROOM)) != 0:
+			continue
+		if grid.cells[i] == LevelGrid.RAMP:
 			continue
 		var c := grid.cell_at(i)
 		if extra.is_valid() and not extra.call(c):
@@ -152,10 +156,11 @@ static func band_pickup(gen: StratumGenerator, rng: RandomNumberGenerator) -> Ve
 	return pick[0]
 
 
-## Keycard (Keyed) and the one guaranteed fuse (Powered Variant B), 07 §6.
+## Keycard (Keyed) and the one guaranteed fuse (Powered Variant B), 07 §6. A grammar that
+## placed its keycard itself (Garage: on the other deck) keeps it.
 static func lock_pickups(gen: StratumGenerator) -> void:
 	var data := gen.data
-	if data.exit_lock == Tuning.LOCK_KEYED:
+	if data.exit_lock == Tuning.LOCK_KEYED and data.keycard_cell == LevelData.NO_CELL:
 		data.keycard_cell = band_pickup(gen, gen.rng_place)
 		if data.keycard_cell != LevelData.NO_CELL:
 			data.add_placement(LevelData.P_KEYCARD, data.keycard_cell)
@@ -227,6 +232,8 @@ static func error_spawns(gen: StratumGenerator) -> void:
 	var cells: Array[Vector2i] = []
 	for i in grid.cell_count():
 		if gen.spawn_dist[i] < min_cells or (grid.flags[i] & LevelGrid.F_NO_SPAWN) != 0:
+			continue
+		if grid.cells[i] == LevelGrid.RAMP:
 			continue
 		var c := grid.cell_at(i)
 		var r := grid.room_of(c)

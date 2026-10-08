@@ -13,6 +13,9 @@ const ROOM := 2
 const RAMP := 3
 const BASIN := 4
 const RACK := 5
+## Pools (M2.1): a full basin deeper than the wading limit (07 §5.2 "deeper is modelled as
+## SOLID for movement"). Built like a basin (floor, water), never walkable.
+const DEEP := 6
 
 # Wall types, in the order of Tuning.GRID_WALL_TYPES.
 const NONE := 0
@@ -49,6 +52,13 @@ var floor_heights: PackedFloat32Array = PackedFloat32Array()
 var walls: PackedByteArray = PackedByteArray()
 var deck: PackedByteArray = PackedByteArray()
 var flags: PackedInt32Array = PackedInt32Array()
+## RAMP cells (M2.1): 1 + the uphill direction, 0 elsewhere. A ramp's floor is linear along
+## that direction: floor_y is the height at the cell centre, ramp_grade the rise per metre.
+var ramp_dir: PackedByteArray = PackedByteArray()
+var ramp_grade: PackedFloat32Array = PackedFloat32Array()
+## Bit d set when the edge in direction d is a height break a walker cannot step (a basin
+## rim, a deck edge): derived from the floors by refresh_ledges(), so not hashed separately.
+var ledges: PackedByteArray = PackedByteArray()
 var room_list: Array[RoomData] = []
 ## Fixture group id -> Array[Vector2i] of fixture cells (filled by decorate).
 var groups: Dictionary = {}
@@ -70,6 +80,9 @@ func _init(grid_size: Vector2i = Vector2i(1, 1)) -> void:
 	walls.fill(WALL)
 	deck.resize(n)
 	flags.resize(n)
+	ramp_dir.resize(n)
+	ramp_grade.resize(n)
+	ledges.resize(n)
 	for x in size.x:
 		set_wall(Vector2i(x, 0), N, SOLID)
 		set_wall(Vector2i(x, size.y - 1), S, SOLID)
@@ -107,6 +120,31 @@ func set_kind(c: Vector2i, k: int) -> void:
 static func kind_walkable(k: int) -> bool:
 	return k == FLOOR or k == ROOM or k == RAMP or k == BASIN
 
+## Built open space: walkable cells plus DEEP water (a basin nobody walks in). Its edges to
+## walkable cells stay open (no wall is built around a pool) and sight crosses it.
+static func kind_open(k: int) -> bool:
+	return kind_walkable(k) or k == DEEP
+
+func is_open(c: Vector2i) -> bool:
+	return in_bounds(c) and kind_open(cells[idx(c)])
+
+## Garage pillar (07 §5.3): a VOID cell with no wall on any edge and walkable cells all
+## round it. Not walkable (a pillar mesh stands in it), but floor, ceiling and sight run
+## through. (A void block's edges to walkable cells are walls, so it never qualifies.)
+func is_pillar(c: Vector2i) -> bool:
+	if not in_bounds(c) or cells[idx(c)] != VOID:
+		return false
+	var i := idx(c)
+	var base := i * 4
+	if walls[base] != NONE or walls[base + 1] != NONE or walls[base + 2] != NONE or walls[base + 3] != NONE:
+		return false
+	# Border edges are SOLID, so the four neighbours are in range here.
+	return _walkable_i(i - size.x) and _walkable_i(i + 1) and _walkable_i(i + size.x) and _walkable_i(i - 1)
+
+## Open for sight and for the builder's floor and ceiling: open cells and pillars.
+func is_sight_open(c: Vector2i) -> bool:
+	return is_open(c) or is_pillar(c)
+
 func is_walkable(c: Vector2i) -> bool:
 	return in_bounds(c) and kind_walkable(cells[idx(c)])
 
@@ -119,6 +157,59 @@ func walkable_count() -> int:
 
 func floor_y(c: Vector2i) -> float:
 	return floor_heights[idx(c)] if in_bounds(c) else 0.0
+
+func set_floor_y(c: Vector2i, y: float) -> void:
+	floor_heights[idx(c)] = y
+
+## Uphill direction of a RAMP cell, or -1.
+func ramp_dir_of(c: Vector2i) -> int:
+	return ramp_dir[idx(c)] - 1 if in_bounds(c) and ramp_dir[idx(c)] > 0 else -1
+
+## Makes `run` (cells in uphill order, each one step from the last along `uphill`) a ramp
+## rising from `y_low` (the floor before run[0]) to `y_high` (the floor after the last).
+## The slope covers the cell interiors and the strips between them (2n - 0.2 m for n
+## cells); the strips at both ends stay flat at the neighbours' floors.
+func set_ramp(run: Array[Vector2i], uphill: int, y_low: float, y_high: float) -> void:
+	var n := run.size()
+	var inner := Tuning.GRID_CELL_SIZE - Tuning.GRID_WALL_THICKNESS
+	var grade := (y_high - y_low) / (n * Tuning.GRID_CELL_SIZE - Tuning.GRID_WALL_THICKNESS)
+	for k in n:
+		var i := idx(run[k])
+		cells[i] = RAMP
+		ramp_dir[i] = uphill + 1
+		ramp_grade[i] = grade
+		floor_heights[i] = y_low + grade * (k * Tuning.GRID_CELL_SIZE + inner * 0.5)
+
+## Floor height at the middle of edge `dir` of cell c (a ramp's floor runs on past its
+## cell centre; flat cells are level).
+func edge_floor_y(c: Vector2i, dir: int) -> float:
+	var i := idx(c)
+	var y := floor_heights[i]
+	var up := ramp_dir[i] - 1
+	if up < 0:
+		return y
+	var half := Tuning.GRID_CELL_SIZE * 0.5
+	if dir == up:
+		return y + ramp_grade[i] * half
+	if dir == opposite(up):
+		return y - ramp_grade[i] * half
+	return y
+
+## Recomputes `ledges`: open edges between walkable cells whose floors differ by more than
+## a walker's climb (Tuning.NAV_MAX_CLIMB) cannot be stepped. Call after setting heights.
+func refresh_ledges() -> void:
+	ledges.fill(0)
+	for i in cell_count():
+		if not _walkable_i(i):
+			continue
+		var c := cell_at(i)
+		for d: int in [E, S]:
+			var o := c + DIRS[d]
+			if not in_bounds(o) or not _walkable_i(idx(o)):
+				continue
+			if absf(edge_floor_y(c, d) - edge_floor_y(o, opposite(d))) > Tuning.NAV_MAX_CLIMB:
+				ledges[i] |= 1 << d
+				ledges[idx(o)] |= 1 << opposite(d)
 
 func has_flag(c: Vector2i, f: int) -> bool:
 	return in_bounds(c) and (flags[idx(c)] & f) != 0
@@ -191,10 +282,11 @@ func can_step(c: Vector2i, dir: int) -> bool:
 ## maze op: index arithmetic only (border edges are SOLID, so open edges stay in range).
 func open_mask(i: int) -> int:
 	var k := cells[i]
-	if k == VOID or k == RACK:
+	if k < FLOOR or k > BASIN:
 		return 0
 	var m := 0
 	var base := i * 4
+	var lg := ledges[i]
 	var w := walls[base]
 	if (w == NONE or w == DOOR) and _walkable_i(i - size.x):
 		m |= 1
@@ -207,11 +299,11 @@ func open_mask(i: int) -> int:
 	w = walls[base + 3]
 	if (w == NONE or w == DOOR) and _walkable_i(i - 1):
 		m |= 8
-	return m
+	return m & ~lg
 
 func _walkable_i(j: int) -> bool:
 	var k := cells[j]
-	return k != VOID and k != RACK
+	return k >= FLOOR and k <= BASIN
 
 ## Number of walkable neighbours reachable in one step.
 func openings(c: Vector2i) -> int:
@@ -221,16 +313,17 @@ func openings_i(i: int) -> int:
 	var m := open_mask(i)
 	return (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1) + ((m >> 3) & 1)
 
-## After carving: border edges SOLID, walkable/void edges WALL, void/void edges NONE.
+## After carving: border edges SOLID, open/void edges WALL, void/void edges NONE. Open is
+## walkable or DEEP (07 §5.2: no wall stands between a hall and its pool).
 func finalize_walls() -> void:
 	var w := size.x
 	for i in cell_count():
-		var wa := _walkable_i(i)
+		var wa := kind_open(cells[i])
 		# East edge (i, i + 1) and south edge (i, i + w), each stored on both cells.
 		if i % w < w - 1:
-			_finalize_edge(i, i + 1, 1, 3, wa, _walkable_i(i + 1))
+			_finalize_edge(i, i + 1, 1, 3, wa, kind_open(cells[i + 1]))
 		if i + w < cells.size():
-			_finalize_edge(i, i + w, 2, 0, wa, _walkable_i(i + w))
+			_finalize_edge(i, i + w, 2, 0, wa, kind_open(cells[i + w]))
 
 func _finalize_edge(i: int, j: int, d: int, back: int, wa: bool, wb: bool) -> void:
 	var t := walls[i * 4 + d]
@@ -269,14 +362,15 @@ func distance_field(from: Vector2i) -> PackedInt32Array:
 		head += 1
 		var base := i * 4
 		var next_d := dist[i] + 1
-		# Inlined neighbours: N, E, S, W.
-		if walls[base] == NONE or walls[base] == DOOR:
+		var lg := ledges[i]
+		# Inlined neighbours: N, E, S, W (a ledge bit closes an open edge).
+		if (walls[base] == NONE or walls[base] == DOOR) and (lg & 1) == 0:
 			_visit(i - w, next_d, dist, queue)
-		if walls[base + 1] == NONE or walls[base + 1] == DOOR:
+		if (walls[base + 1] == NONE or walls[base + 1] == DOOR) and (lg & 2) == 0:
 			_visit(i + 1, next_d, dist, queue)
-		if walls[base + 2] == NONE or walls[base + 2] == DOOR:
+		if (walls[base + 2] == NONE or walls[base + 2] == DOOR) and (lg & 4) == 0:
 			_visit(i + w, next_d, dist, queue)
-		if walls[base + 3] == NONE or walls[base + 3] == DOOR:
+		if (walls[base + 3] == NONE or walls[base + 3] == DOOR) and (lg & 8) == 0:
 			_visit(i - 1, next_d, dist, queue)
 	return dist
 
@@ -321,6 +415,8 @@ func to_bytes() -> PackedByteArray:
 	out.append_array(walls)
 	out.append_array(deck)
 	out.append_array(flags.to_byte_array())
+	out.append_array(ramp_dir)
+	out.append_array(ramp_grade.to_byte_array())
 	for r in room_list:
 		out.append_array(var_to_bytes([r.id, r.rect, r.kind, r.fixture_group, r.doors]))
 	out.append_array(var_to_bytes(groups))
