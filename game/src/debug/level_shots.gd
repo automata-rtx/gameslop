@@ -166,6 +166,7 @@ static func poses(data: LevelData) -> Array[Dictionary]:
 		var sv := LevelGrid.DIRS[e.z]
 		from = g.world_of(sc) + eye - Vector3(sv.x, 0, sv.y) * 0.4
 		out.append({&"name": "soft_wall", &"from": from, &"to": from + Vector3(sv.x, -0.15, sv.y) * 3.0})
+	out.append_array(StratumShots.poses(data))
 	return out
 
 

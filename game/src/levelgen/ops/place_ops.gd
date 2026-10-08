@@ -69,6 +69,8 @@ static func soft_wall_candidates(grid: LevelGrid, fields: Array[PackedInt32Array
 			var o := c + LevelGrid.DIRS[d]
 			if not grid.is_walkable(o) or grid.wall(c, d) != LevelGrid.WALL or grid.has_flag(o, exclude_flags):
 				continue
+			if not level_pair(grid, c, o):
+				continue
 			var j := grid.idx(o)
 			var bound := 0
 			for f in fields:
@@ -88,9 +90,17 @@ static func interior_walls(grid: LevelGrid, exclude_flags: int) -> Array[Vector3
 		var c := grid.cell_at(i)
 		for d: int in [LevelGrid.E, LevelGrid.S]:
 			var o := c + LevelGrid.DIRS[d]
-			if grid.is_walkable(o) and grid.wall(c, d) == LevelGrid.WALL and not grid.has_flag(o, exclude_flags):
+			if grid.is_walkable(o) and grid.wall(c, d) == LevelGrid.WALL and not grid.has_flag(o, exclude_flags) \
+					and level_pair(grid, c, o):
 				out.append(Vector3i(c.x, c.y, d))
 	return out
+
+
+## M2.1: a soft wall joins two flat cells on one floor level (never a ramp, never a deck
+## or basin edge): the shortcut is a step through a wall, not a drop.
+static func level_pair(grid: LevelGrid, a: Vector2i, b: Vector2i) -> bool:
+	return grid.kind(a) != LevelGrid.RAMP and grid.kind(b) != LevelGrid.RAMP \
+		and absf(grid.floor_y(a) - grid.floor_y(b)) < 0.01
 
 
 ## Measures up to `max_checks` of `edges` (in random order) exactly, one BFS each, and
@@ -126,11 +136,13 @@ static func carve_soft_shortcut(grid: LevelGrid, from_cells: Array[Vector2i], fi
 		var pi := grid.idx(p)
 		for d in 4:
 			var v := p + LevelGrid.DIRS[d]
-			if not grid.in_bounds(v) or grid.kind(v) != LevelGrid.VOID:
+			if not grid.in_bounds(v) or grid.kind(v) != LevelGrid.VOID or not _carvable(grid, v):
 				continue
 			for d2 in 4:
 				var q := v + LevelGrid.DIRS[d2]
 				if q == p or grid.kind(q) != LevelGrid.FLOOR or grid.has_flag(q, exclude_flags):
+					continue
+				if not level_pair(grid, p, q):
 					continue
 				var qi := grid.idx(q)
 				var bound := 0
@@ -148,6 +160,8 @@ static func carve_soft_shortcut(grid: LevelGrid, from_cells: Array[Vector2i], fi
 	var v := p + LevelGrid.DIRS[e.z]
 	var q := stubs[k]
 	grid.set_kind(v, LevelGrid.FLOOR)
+	grid.set_floor_y(v, grid.floor_y(q))
+	grid.deck[grid.idx(v)] = grid.deck[grid.idx(q)]
 	for d in 4:
 		grid.set_wall(v, d, LevelGrid.WALL)
 	grid.set_wall(v, LevelGrid.DIRS.find(q - v), LevelGrid.NONE)
@@ -156,6 +170,16 @@ static func carve_soft_shortcut(grid: LevelGrid, from_cells: Array[Vector2i], fi
 	if e.z == LevelGrid.N or e.z == LevelGrid.W:
 		return Vector3i(v.x, v.y, LevelGrid.opposite(e.z))
 	return e
+
+
+## A void cell a shortcut may be cut through: not a pillar, not part of a solid core.
+static func _carvable(grid: LevelGrid, v: Vector2i) -> bool:
+	if grid.is_pillar(v):
+		return false
+	for d in 4:
+		if grid.wall(v, d) == LevelGrid.SOLID and grid.in_bounds(v + LevelGrid.DIRS[d]):
+			return false
+	return true
 
 
 ## Marks up to `count` soft walls from the candidates, preferring edges next to dead ends

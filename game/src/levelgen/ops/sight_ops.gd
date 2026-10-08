@@ -7,11 +7,13 @@ extends RefCounted
 ## Used by the LightPool to lend lights only to fixtures in view (02 §6), by every lit
 ## predicate (fixtures and chemical lights, 06/08/09), and by anything that asks "could
 ## the player see that cell" without the scene tree.
+## M2.1: sight also crosses DEEP water and Garage pillar cells (built open space nobody
+## walks in); a light hanging over a pool or on a pillar starts its line there.
 
 
-## True when sight crosses the edge (c, dir) between two walkable cells.
+## True when sight crosses the edge (c, dir) between two sight-open cells.
 static func edge_clear(grid: LevelGrid, c: Vector2i, dir: int) -> bool:
-	if not grid.is_walkable(c + LevelGrid.DIRS[dir]):
+	if not grid.is_sight_open(c + LevelGrid.DIRS[dir]):
 		return false
 	match grid.wall(c, dir):
 		LevelGrid.NONE, LevelGrid.PARTITION, LevelGrid.GLASS:
@@ -29,7 +31,7 @@ static func clear(grid: LevelGrid, a: Vector3, b: Vector3) -> bool:
 	var q := Vector2(b.x / cs + 0.5, b.z / cs + 0.5)
 	var c := Vector2i(floori(p.x), floori(p.y))
 	var end := Vector2i(floori(q.x), floori(q.y))
-	if not grid.is_walkable(c):
+	if not grid.is_sight_open(c):
 		return false
 	var d := q - p
 	var step := Vector2i(1 if d.x > 0.0 else -1, 1 if d.y > 0.0 else -1)

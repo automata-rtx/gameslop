@@ -556,6 +556,117 @@
    "expect": {"centroid": [150, 3000]}
   },
 
+  "room_tone_pools": {
+   "group": "ambience", "dur": 8.0, "loop": true, "variants": 1, "decorrelate": true,
+   "norm": {"lufs": -30},
+   "runtime": {"level_db": -30},
+   "note": "03 §1 place: the Pools room tone, a tiled hall with water in it. Hard surfaces keep the air bright: a thin brown-noise body, a hiss band around 2 kHz off the tiles, a slow wash (water moving somewhere out of sight), the panels' 100 Hz far off. The bus reverb (room 0.9, wet 0.45, 40 ms predelay) does the size. 03 §6 rule 3: never ducked below -40 dB.",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": -4, "chain": [{"fx": "lp", "f": 180, "q": 0.6}]},
+    {"src": "noise", "color": "pink", "peak_db": -12, "chain": [{"fx": "bp", "f": 2000, "q": 0.6}, {"fx": "am", "wave": "random", "freq": 0.4, "depth": 0.35}]},
+    {"src": "noise", "color": "pink", "peak_db": -10, "chain": [{"fx": "bp", "f": 600, "q": 0.8}, {"fx": "am", "wave": "random", "freq": 0.15, "depth": 0.6}]},
+    {"src": "sine", "freq": 100, "peak_db": -18},
+    {"src": "sine", "freq": 200, "peak_db": -30}
+   ],
+   "fx": [{"fx": "am", "wave": "random", "freq": 0.2, "depth": 0.25}, {"fx": "hp", "f": 30}]
+  },
+
+  "fixture_hum_pools": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -28},
+   "note": "03 fixture hum loop, Pools colour: the ceiling panels, a clean 100 Hz with 200 Hz at -12 dB and a cool, airy pink noise; no ballast rasp (the tiles would throw it everywhere). Mono, one per lent light.",
+   "layers": [
+    {"src": "sine", "freq": 100, "peak_db": 0},
+    {"src": "sine", "freq": 200, "peak_db": -12},
+    {"src": "sine", "freq": 300, "peak_db": -26},
+    {"src": "noise", "color": "pink", "peak_db": -28, "chain": [{"fx": "hp", "f": 1500}]}
+   ],
+   "expect": {"peak_hz": [90, 210]}
+  },
+
+  "fixture_buzz_pools": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -27},
+   "note": "03 Pools fixtures, buzz colour: a tired panel ballast, a band-passed 100 Hz saw with a slow irregular level over the hum. Steady; not Flicker's stutter.",
+   "layers": [
+    {"src": "saw", "freq": 100, "peak_db": 0, "chain": [{"fx": "bp", "f": 2000, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 2.5, "depth": 0.4}]},
+    {"src": "sine", "freq": 100, "peak_db": -4},
+    {"src": "sine", "freq": 200, "peak_db": -14},
+    {"src": "noise", "color": "white", "peak_db": -24, "chain": [{"fx": "bp", "f": 3500, "q": 1.0}, {"fx": "am", "wave": "square", "freq": 100, "duty": 0.2, "depth": 0.8}]}
+   ],
+   "expect": {"centroid": [120, 3000]}
+  },
+
+  "water_lap": {
+   "group": "ambience", "channels": 1, "dur": 6.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -30},
+   "runtime": {"max_distance": 14.0},
+   "note": "03 water lap loop (Pools): pink noise band-passed at 600 Hz under slow random envelopes, a softer 1.4 kHz slap layer on its own slower envelope so the two never line up. Mono: one per wet basin, at the water (WaterVolume).",
+   "layers": [
+    {"src": "noise", "color": "pink", "peak_db": 0, "chain": [{"fx": "bp", "f": 600, "q": 1.2}, {"fx": "am", "wave": "random", "freq": 1.3, "depth": 0.8}]},
+    {"src": "noise", "color": "pink", "peak_db": -8, "chain": [{"fx": "bp", "f": 1400, "q": 1.5}, {"fx": "am", "wave": "random", "freq": 0.7, "depth": 0.9}]},
+    {"src": "noise", "color": "brown", "peak_db": -14, "chain": [{"fx": "lp", "f": 220}]}
+   ],
+   "expect": {"centroid": [300, 2000]}
+  },
+
+  "drip": {
+   "group": "world", "bus": "Ambience", "dur": 0.32, "variants": 4, "lead": 0.002,
+   "jitter": {"pitch": 0.08, "time": 0.004, "gain_db": 2.0},
+   "norm": {"peak_db": -12},
+   "runtime": {"max_distance": 18.0},
+   "note": "03 drip: a sine at 2.2 kHz dropping in pitch over 60 ms (the drop's bloop) and a tiny splash of filtered noise; a faint second plink as the ripple settles. Cosmetic, no caption (not an error or door event).",
+   "layers": [
+    {"src": "sine", "freq": [2200, 1300], "dur": 0.06, "peak_db": 0, "env": {"type": "exp", "a": 0.001, "t60": 0.05}},
+    {"src": "noise", "color": "white", "dur": 0.03, "peak_db": -12, "env": {"type": "exp", "a": 0.0005, "t60": 0.025}, "chain": [{"fx": "bp", "f": 5000, "q": 1.0}]},
+    {"src": "sine", "freq": [1800, 1500], "at": 0.09, "dur": 0.04, "peak_db": -16, "env": {"type": "exp", "a": 0.001, "t60": 0.03}}
+   ],
+   "fx": [{"fx": "delay", "time": 0.07, "fb": 0.3, "mix": 0.25, "damp": 4000}],
+   "expect": {"peak_hz": [1000, 2600]}
+  },
+
+  "room_tone_garage": {
+   "group": "ambience", "dur": 8.0, "loop": true, "variants": 1, "decorrelate": true,
+   "norm": {"lufs": -30},
+   "runtime": {"level_db": -30},
+   "note": "03 §1 place: the Garage room tone, a concrete deck open to the night somewhere. A low brown rumble (traffic far away, through the slab), a dry concrete air band at 500 Hz, the sodium lamps' 60 Hz bed and a slow swell like wind through the ramps. 03 §6 rule 3: never ducked below -40 dB.",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": 0, "chain": [{"fx": "lp", "f": 140, "q": 0.6}, {"fx": "am", "wave": "random", "freq": 0.1, "depth": 0.4}]},
+    {"src": "noise", "color": "pink", "peak_db": -16, "chain": [{"fx": "bp", "f": 500, "q": 0.7}]},
+    {"src": "noise", "color": "pink", "peak_db": -22, "chain": [{"fx": "bp", "f": 1800, "q": 0.5}, {"fx": "am", "wave": "random", "freq": 0.12, "depth": 0.7}]},
+    {"src": "sine", "freq": 60, "peak_db": -16},
+    {"src": "sine", "freq": 120, "peak_db": -28}
+   ],
+   "fx": [{"fx": "am", "wave": "random", "freq": 0.2, "depth": 0.25}, {"fx": "hp", "f": 25}]
+  },
+
+  "fixture_hum_garage": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -28},
+   "note": "03 fixture hum loop, Garage colour: a sodium lamp, 60 Hz with 120 Hz at -12 dB and a fine crackle (sparse high clicks of the arc). Mono, one per lent light.",
+   "layers": [
+    {"src": "sine", "freq": 60, "peak_db": 0},
+    {"src": "sine", "freq": 120, "peak_db": -12},
+    {"src": "sine", "freq": 180, "peak_db": -24},
+    {"src": "noise", "color": "pink", "peak_db": -30, "chain": [{"fx": "hp", "f": 900}]},
+    {"src": "noise", "color": "white", "peak_db": -22, "chain": [{"fx": "hp", "f": 3000}, {"fx": "am", "wave": "random", "freq": 40, "depth": 0.95}]}
+   ],
+   "expect": {"peak_hz": [50, 130]}
+  },
+
+  "fixture_buzz_garage": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -27},
+   "note": "03 Garage fixtures, buzz colour: a sodium lamp near the end of its life, a rough 60 Hz saw band and a heavier crackle over the hum, slowly swelling. Steady; not Flicker's stutter.",
+   "layers": [
+    {"src": "saw", "freq": 60, "peak_db": 0, "chain": [{"fx": "bp", "f": 1600, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 1.5, "depth": 0.45}]},
+    {"src": "sine", "freq": 60, "peak_db": -3},
+    {"src": "sine", "freq": 120, "peak_db": -14},
+    {"src": "noise", "color": "white", "peak_db": -18, "chain": [{"fx": "hp", "f": 2500}, {"fx": "am", "wave": "random", "freq": 60, "depth": 0.95}]}
+   ],
+   "expect": {"centroid": [100, 3500]}
+  },
+
   "power_wave_ignite": {
    "group": "world", "bus": "Ambience", "dur": 0.42, "variants": 3, "lead": 0.002,
    "jitter": {"pitch": 0.02, "time": 0.004, "gain_db": 1.0},

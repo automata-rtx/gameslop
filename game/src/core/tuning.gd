@@ -797,6 +797,14 @@ const POOLS_FIXTURE_SPACING_HALL_CELLS := 3
 const POOLS_FIXTURE_SPACING_CORRIDOR_CELLS := 2
 const POOLS_HALLS_PER_LIFEGUARD_CHAIR := 3
 const POOLS_SOFT_WALLS := 3
+const POOLS_SPAWN_ROOM_SIZE := Vector2i(3, 3)       # tiled antechamber on the perimeter
+# Build-task constants (07 §5.2 gives no number; M2.1).
+const POOLS_HALL_MIN_SIDE := 7                      # cells: the basin (inset 2) is >= 3 long, 2 step cells and a floor
+const POOLS_BRANCH_SPACING := 8                     # cells between two branches on one side of the spine
+const POOLS_EXTRA_ARCH_CHANCE := 0.35               # a hall's second arch (fewer dead ends)
+const POOLS_FULL_SURFACE_DROP := 0.05               # m, a full basin's water sits this far under the rim
+const POOLS_DEEP_RAIL_HEIGHT := 0.9                 # m above the rim: the invisible edge of deep water (SOLID for movement)
+const POOLS_DRIPS_PER_HALL := 1                     # 02 §10 drips at hashed ceiling points
 
 # 07 §5.3 Garage
 const GARAGE_DECKS := 2
@@ -816,6 +824,14 @@ const GARAGE_BARRIER_FRACTION := 0.10               # of bay ends
 const GARAGE_QUADRANT_CELLS := 4                    # fixture groups are 4x4-cell quadrants
 const GARAGE_SPAWN_LOBBY_SIZE := Vector2i(3, 3)
 const GARAGE_SOFT_WALLS := 3
+# Build-task constants (07 §5.3 gives no number; M2.1). Split-level decks: deck 1 beside
+# deck 0, GARAGE_DECK_RISE higher, the ramps crossing a band of ramp-length cells between.
+const GARAGE_DECK_RISE := 3.2                       # m, deck 1 floor (07 §2: "Garage deck 1 at +3.2")
+const GARAGE_DECK_WIDTH_MIN := 10                   # cells along the band
+const GARAGE_RAMP_SPACING := 3                      # cells between two ramps
+const GARAGE_LAMP_HEIGHT := 2.85                    # m above the deck, the lamp's mount on the pillar face
+const GARAGE_PILLAR_SIZE := 0.6                     # m, square pillar in its void cell
+const GARAGE_EXIT_SIGN_HEIGHT := 2.45               # m, above the stairwell door
 
 # 07 §5.4 Offices
 const OFFICES_RING_INSET := 3                       # cells from the perimeter
@@ -909,6 +925,11 @@ const VALIDATE_ERROR_SPAWN_MIN_WALK := 20.0         # m from spawn
 const VALIDATE_DEAD_END_CHAIN_MAX := 12             # cells
 const VALIDATE_HALLS_PATH_MIN := 80.0               # m at depth 1, scaling by size
 const VALIDATE_HALLS_PATH_MAX := 160.0
+const BREAKER_EXIT_MIN_PATH_FRACTION := 0.5         # breaker room >= 50% of the critical path's length from the exit, walking (07, 05 §10; 2026-10-08)
+const VALIDATE_POOLS_PATH_MIN := 40.0               # m at depth 2 (28 cells), scaling by size (M2.1; 07 gives none)
+const VALIDATE_POOLS_PATH_MAX := 140.0
+const VALIDATE_GARAGE_PATH_MIN := 40.0              # m at depth 2, scaling by size (M2.1; 07 gives none)
+const VALIDATE_GARAGE_PATH_MAX := 140.0
 
 # 07 §9 Cycle 2 corruption (generator side)
 const CYCLE2_BRAID_MULT := 0.5
@@ -939,6 +960,7 @@ const RENDER_FPS_TARGET := 60
 # Render-task implementation constants (02 gives no number; chosen against T1/T3 in the
 # render bench, M1.5). Volumetric fog: emission in the fog colour keeps unlit air visible.
 const RENDER_FOG_EMISSION_ENERGY := 0.2
+const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 0.8}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3)
 const RENDER_FOG_AMBIENT_INJECT := 1.0
 const RENDER_FOG_LENGTH := 64.0                     # m of froxel volume
 const RENDER_FOG_FROXEL_DEPTH := 64                 # froxel depth slices
@@ -1039,10 +1061,12 @@ const LIGHT_POOL_FADE_IN := 0.2                     # s, a light re-assigned to 
 const LIGHT_POOL_DISTANCE_FADE_BEGIN := 18.0        # m, distance_fade on pooled lights hides the swap (render-task constant)
 const LIGHT_POOL_DISTANCE_FADE_LENGTH := 6.0        # m
 const LIGHT_FIXTURE_ATTENUATION := 2.0              # omni_attenuation of pooled fixture lights (render-task constant)
+const LIGHT_FIXTURE_ATTENUATION_STRATUM: Dictionary = {&"pools": 1.0, &"garage": 1.0}   # M2.1: 6 m pool ceilings and 8 m sodium spacing (T1)
 const LIGHT_FIXTURE_KIND: Dictionary = {&"halls": &"omni"}   # pooled light per stratum: omni or spot (02 §6)
 const LIGHT_SPOT_ANGLE := 70.0                      # deg, spot fixtures: a wide downlight (render-task constant)
 const LIGHT_SPOT_ANGLE_ATTENUATION := 1.0
 const LIGHT_FIXTURE_DROP := 0.7                    # m, pooled light hangs below the tube so the ceiling reads lit
+const LIGHT_FIXTURE_DROP_STRATUM: Dictionary = {&"garage": 0.25}   # M2.1: sodium lamps on pillars light from the lamp (short pillar shadows, T1)
 const LIGHT_FIXTURE_BUZZ_ENERGY := 0.85             # the one-in-six buzzing fixtures: tube and light energy (R4 V3)
 const LIGHT_FIXTURE_BUZZ_TINT := Color(0.9, 1.0, 0.86)   # and a slightly greener tube and light (multiplier)
 const LIGHT_FIXTURE_GLOW_ENERGY := 1.0              # ceiling halo around a lit tube (fixture_glow.gdshader; R4 V3)

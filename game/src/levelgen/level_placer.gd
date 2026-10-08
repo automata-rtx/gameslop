@@ -82,6 +82,8 @@ func place(p: Dictionary, containers: Dictionary) -> Node3D:
 			return _prop(p, containers[&"furniture"])
 		LevelData.P_HIDE_SPOT:
 			return _hide_spot(p, containers[&"furniture"])
+		LevelData.P_WATER:
+			return _water(p, containers.get(&"water", containers[&"furniture"]))
 	push_warning("LevelPlacer: no builder for placement kind %s" % kind)
 	return null
 
@@ -163,6 +165,17 @@ func _hide_spot(p: Dictionary, parent: Node3D) -> Node3D:
 	_tag_bodies(n, {&"wall_kind": &"PROP"})
 	parent.add_child(n)
 	return n
+
+
+## 07 §8 water: one WaterVolume (surface mesh and the water-layer Area3D) per wet basin.
+func _water(p: Dictionary, parent: Node3D) -> Node3D:
+	var params: Dictionary = p[&"params"]
+	var w := WaterVolume.new()
+	w.setup(params[&"rect"], float(params[&"surface_y"]), float(params[&"floor_y"]),
+		LevelMaterials.for_class(stratum, LevelMaterials.C_WATER))
+	w.set_meta(META_PLACEMENT, p)
+	parent.add_child(w)
+	return w
 
 
 ## 09 §5 doors: one prefab per DOOR edge, centred in the edge strip. Closet doors start

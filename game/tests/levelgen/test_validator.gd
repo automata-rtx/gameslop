@@ -141,3 +141,41 @@ func _any_contains(lines: PackedStringArray, needle: String) -> bool:
 		if l.contains(needle):
 			return true
 	return false
+
+
+## 07 / 05 §10 (2026-10-08): every grammar puts the breaker at least half the critical
+## path's length from the exit, walking; first Descents included.
+func test_breaker_is_half_the_path_from_the_exit() -> void:
+	var seen := 0
+	for stratum: StringName in [&"halls", &"pools", &"garage"]:
+		var depth := 1 if stratum == &"halls" else 2
+		for i in 40:
+			var level := LevelGenerator.generate(stratum, depth, 2000 + i, stratum == &"halls" and i % 2 == 0)
+			if level.exit_lock != Tuning.LOCK_POWERED:
+				continue
+			seen += 1
+			var g := level.grid
+			var de := g.distance_field(level.exit_cell)
+			var path_cells := level.critical_path.size() - 1
+			assert_true(de[g.idx(level.breaker_cell)] >= ceili(path_cells * 0.5),
+				"%s seed %d: breaker %d cells from the exit, path %d" % [stratum, 2000 + i, de[g.idx(level.breaker_cell)], path_cells])
+	assert_gt(seen, 30)
+
+
+func test_validator_catches_a_breaker_near_the_exit() -> void:
+	var level: LevelData = null
+	for i in 40:
+		level = LevelGenerator.generate(&"halls", 1, 3000 + i, true)
+		if level.exit_lock == Tuning.LOCK_POWERED:
+			break
+	assert_eq(level.exit_lock, Tuning.LOCK_POWERED)
+	assert_true(level.failures.is_empty())
+	# Move the breaker next to the exit: rule 3 must refuse it.
+	level.breaker_cell = level.critical_path[level.critical_path.size() - 2]
+	for p in level.placements_of(LevelData.P_BREAKER):
+		p[&"cell"] = level.breaker_cell
+	var f := LevelValidator.validate(level)
+	var hit := false
+	for line in f:
+		hit = hit or line.contains("50% of the critical path")
+	assert_true(hit, "breaker near the exit refused: %s" % [f])
