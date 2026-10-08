@@ -101,3 +101,28 @@ func test_not_awake_after_a_drop() -> void:
 	assert_false(_d.hunters.awake.has(n))
 	_advance(14.9)
 	assert_true(n.is_dormant())
+
+
+## 08 §9 arena: key 5 spawns Null awake (its Pursuit), fair, and unrendering.
+func test_arena_key_5_spawns_null_awake() -> void:
+	var arena := (load("res://scenes/debug/error_arena.tscn") as PackedScene).instantiate() as ErrorArena
+	add_child(arena)
+	var frames := 0
+	while (arena.player == null or not arena.level.is_ready() or arena.get(&"_log") == null) and frames < MAX_FRAMES:
+		await get_tree().process_frame
+		frames += 1
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_5
+	ev.pressed = true
+	arena._unhandled_key_input(ev)
+	assert_eq(arena.errors.size(), 1)
+	var n := arena.errors[0] as ErrorNull
+	assert_not_null(n)
+	if n != null:
+		assert_eq(n.state, Tuning.ERROR_STATE_CHASE)
+		assert_true(n.distance_to_player() >= Tuning.ERROR_SPAWN_MIN_DIST - 0.01 or arena.data.null_spawn_cell == LevelData.NO_CELL)
+		await await_physics_frames(2)
+		assert_eq(CoherenceRenderer.null_radius, Tuning.NULL_UNRENDER_RADIUS)
+	arena.free()
+	await await_physics_frames(1)
+	assert_eq(CoherenceRenderer.null_radius, 0.0, "freed with the arena")
