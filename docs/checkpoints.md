@@ -25,3 +25,9 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Stubbed:** floor drop in direct launch respawns at spawn (the run flow takes it over at cp-05). Direct launch has no HUD yet; HUD screenshots come from `noclip_shots.tscn`.
 - **Known issues:** in the commit frame the world lines within 3 m are nearly invisible (being fixed in the world shader); the invalid world preview is faint.
 - **Tester:** optional. Direct launch as at cp-02, hold the noclip key at a wall between two corridors.
+
+## cp-04-still — 2026-10-08
+- **Works:** Static (drifting drain field) and Still (moves only when unobserved and unlit) on a shared ErrorBase with senses, notice and evasion, navigation pathing and the render-line tick. The Director runs per level: Calm/Build/Peak/Relief sawtooth, aggression, roster per depth, fair spawns (≥ 20 m, out of view and sight), contact exclusivity (3 s, refused errors retreat), Satiated, awake arrivals after drops, telemetry, F3 lines. The full loop from cp-05 content is already present: title, run, breaker and power wave, Powered exit, Landing with item choice, drop arrival, dissolve, summary. Windows and Linux exports build with `tools/ci/export.sh`. A headless bot reaches the depth 1 exit on 5/5 seeds. 637 tests green.
+- **Stubbed:** scares, Echo/Flicker/Null, other strata (depths 2+ generate as Halls), score.
+- **Known issues:** floor drop edge cases (death impossible mid-fall, unbounded fall) are being fixed for cp-05; see `docs/qa/open_items.md`.
+- **Tester:** optional. Launch normally, DESCEND, find the breaker, take the exit. Watch for Still in lit corridors.
