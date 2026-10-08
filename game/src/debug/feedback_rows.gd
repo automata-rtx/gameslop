@@ -67,7 +67,7 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"item_flare", "Item use: Flare", "11 §2", "ISMR",
 			{&"expect": {&"I": ["hand.", "scene.children"], &"S": ["play.flare_ignite"], &"R": ["Belt"]}}))
 	rows.append(_row(&"item_radio", "Item use: Radio", "11 §2", "ISMR",
-			{&"expect": {&"I": ["hand."], &"S": ["play.flashlight_toggle"], &"R": ["Belt"]}}))
+			{&"expect": {&"I": ["hand."], &"S": ["play.radio_ping"], &"R": ["Belt"]}}))
 	# --- 11 §2 interaction and noclip -----------------------------------------------------
 	rows.append(_row(&"interact_press", "Interact press", "11 §2", "ISMR",
 			{&"expect": {&"I": ["x.door"], &"S": ["play.door_"], &"R": ["Prompt"]}}))

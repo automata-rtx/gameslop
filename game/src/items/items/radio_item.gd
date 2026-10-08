@@ -11,7 +11,7 @@ extends ItemBase
 
 const ON := &"on"
 const CHARGE := &"charge"
-const SOUND_TOGGLE := &"flashlight_toggle"
+const SOUND_TOGGLE := &"radio_ping"
 const SOUND_STATIC := &"radio_static"
 const SOUND_PING := &"radio_ping"
 const BAND_FAST := &"fast"
@@ -122,7 +122,7 @@ func toggle(slot: ItemSlot) -> bool:
 	var on := not is_on(slot)
 	slot.state[ON] = on
 	slot.state[CHARGE] = charge_of(slot)
-	AudioManager.play_2d(SOUND_TOGGLE)
+	AudioManager.play_3d(SOUND_TOGGLE, _pos() + Vector3(0.0, 1.4, 0.0))
 	var p := player()
 	if p != null:
 		p.rig.nod(0.3)
