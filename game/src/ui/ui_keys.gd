@@ -29,7 +29,14 @@ static func key_name(action: StringName) -> String:
 static func event_name(ev: InputEvent) -> String:
 	if ev is InputEventKey:
 		var k := ev as InputEventKey
-		var code := k.keycode if k.keycode != KEY_NONE else k.physical_keycode
+		var code := k.keycode
+		if code == KEY_NONE and k.physical_keycode != KEY_NONE:
+			code = k.physical_keycode
+			if DisplayServer.get_name() != "headless":
+				# 12 §5: physical keycodes are stored and shown in the player's layout (AZERTY: Z Q S D).
+				var mapped := DisplayServer.keyboard_get_keycode_from_physical(k.physical_keycode)
+				if mapped != KEY_NONE:
+					code = mapped
 		if code == KEY_NONE:
 			return ""
 		return OS.get_keycode_string(code).to_upper()
