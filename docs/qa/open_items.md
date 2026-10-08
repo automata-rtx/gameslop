@@ -60,3 +60,4 @@ Deferred work found during production. Each line names the task that should abso
 - Gate: `test_sim_run` waits on the child with a blocking `OS.execute` and no timeout; a child that hangs (seen once from the RCA1 heap corruption, before the guard) hangs the gate.
 - M3.5/M4: the Godot 4.7.2 audio bus-details race (RCA1) is guarded only in headless runs; shipped builds can still crash rarely (needs a ≥ 14 ms audio-thread stall at specific instructions). Before release: check for a 4.7.x patch that fixes it, or find a guard that works with a real driver (e.g. fewer per-frame bus-volume changes on AudioStreamPlayer3D). Report upstream.
 - test_sim_run's blocking OS.execute has no timeout; a hung child hangs the gate.
+- Levelgen/items: the Pools exit shows as a plain white door slab in the dry exit basin (pools/exit_room_c100.png); M2.9 exit prefabs should replace it. Garage ramp frames sit near the T3 limit because a car parks at the ramp head.
