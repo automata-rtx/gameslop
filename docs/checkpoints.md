@@ -31,3 +31,9 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Stubbed:** scares, Echo/Flicker/Null, other strata (depths 2+ generate as Halls), score.
 - **Known issues:** floor drop edge cases (death impossible mid-fall, unbounded fall) are being fixed for cp-05; see `docs/qa/open_items.md`.
 - **Tester:** optional. Launch normally, DESCEND, find the breaker, take the exit. Watch for Still in lit corridors.
+
+## cp-05-loop — 2026-10-08
+- **Works:** the whole depth-1 loop: title, DESCEND, breaker and power wave, Powered exit, Landing with item choice and +20 Coherence, depth 2; noclip through walls and floors with the drop arrival (`DROPPED · THEY ARE AWAKE`), never fatal or wasted mid-pass (refund on a failed landing, no loss while dropping or in the Landing); dissolve and the run summary with a cause line; Polaroid, Chalk, Glowstick, notes; Static and Still under the Director; audio for all of it. 658 tests green; Windows and Linux exports build.
+- **Stubbed:** score, unlocks, settings menu, other strata (depths 2+ are Halls), Echo/Flicker/Null, scares.
+- **Known issues (being fixed now):** Still can get stuck against an open door leaf; an unlit Still is drawn more clearly than it should be; the Director's intensity does not rise for a quiet player; Static looks like dark smoke. See `docs/qa/open_items.md`.
+- **Tester:** optional; same as cp-04.
