@@ -33,6 +33,10 @@ const DARK_STRATA: Array[StringName] = [&"server", &"substrate"]
 const SUBSTRATE_PATH := "res://data/strata/substrate.tres"
 
 var manifest: Dictionary = {}
+## Iteration aid: `--tour-only poses,soft,noclip,null` limits the frame groups and
+## `--tour-strata halls,pools` the strata (empty = everything, the default tour).
+var only: PackedStringArray = []
+var only_strata: PackedStringArray = []
 
 var _out: String = ""
 var _shots: LevelShots
@@ -140,8 +144,14 @@ func run(out_dir: String) -> void:
 	var size := get_viewport().get_visible_rect().size
 	manifest = {&"seed": SEED, &"resolution": [int(size.x), int(size.y)],
 		&"coherence_steps": COHERENCE_STEPS, &"strata": {}}
+	var args := OS.get_cmdline_user_args()
+	for pair: Array in [["--tour-only", &"only"], ["--tour-strata", &"only_strata"]]:
+		var i := args.find(pair[0])
+		if i != -1 and i + 1 < args.size():
+			set(pair[1], args[i + 1].split(","))
 	for s in strata():
-		await _tour_stratum(s)
+		if only_strata.is_empty() or only_strata.has(String(s)):
+			await _tour_stratum(s)
 	var f := FileAccess.open(_out.path_join("manifest.json"), FileAccess.WRITE)
 	f.store_string(JSON.stringify(manifest, "  "))
 	f.close()
@@ -170,7 +180,7 @@ func _tour_stratum(stratum: StringName) -> void:
 	manifest[&"strata"][String(stratum)] = {&"t1_limit_m": t1_limit(stratum), &"shots": _entries}
 	var exit := _place_exit(d.data)
 	var tour_plan := plan(d.data)
-	for pose in tour_plan[&"poses"]:
+	for pose in (tour_plan[&"poses"] if _wants("poses") else []):
 		var to: Vector3 = pose[&"to"]
 		if pose[&"name"] == &"exit_room" and exit != null:
 			# The exit room faces the exit itself (its sight point), not just its wall.
@@ -186,13 +196,20 @@ func _tour_stratum(stratum: StringName) -> void:
 			_save("%s_c%03d" % [pose[&"name"], int(c)], {&"pose": pose[&"name"], &"coherence": c,
 					&"kind": &"pose"})
 	CoherenceRenderer.set_coherence(Tuning.COHERENCE_MAX)
-	await _soft_frames(tour_plan[&"soft"], d.data)
-	await _noclip_frame(tour_plan[&"noclip"])
-	await _null_frame(tour_plan[&"poses"])
+	if _wants("soft"):
+		await _soft_frames(tour_plan[&"soft"], d.data)
+	if _wants("noclip"):
+		await _noclip_frame(tour_plan[&"noclip"])
+	if _wants("null"):
+		await _null_frame(tour_plan[&"poses"])
 	_reset()
 	_shots.queue_free()
 	d.queue_free()
 	await get_tree().process_frame
+
+
+func _wants(group: String) -> bool:
+	return only.is_empty() or only.has(group)
 
 
 ## The run's exit prefab (RunLevelSetup, as a Descent places it) so the exit room shows the
