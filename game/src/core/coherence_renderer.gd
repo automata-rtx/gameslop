@@ -53,6 +53,8 @@ var world_time: float = 0.0
 var threat: float = 0.0
 ## 0..1 inside Static's field (02 §8): grain toward 0.6, CA toward 0.02.
 var static_amount: float = 0.0
+## The post stack's drain never reads below this (08 §3: 0.6 inside Static's field).
+var drain_floor: float = 0.0
 var reduce_noise: bool = false
 var reduce_flashing: bool = false
 ## The last uniform set written to the screen pass (CoherencePost.KEYS).
@@ -134,6 +136,12 @@ func set_noclip_invalid(on: bool) -> void:
 ## 02 §8 inside Static: 0 outside, 1 at full strength (grain 0.6, CA 0.02).
 func set_static(amount: float) -> void:
 	static_amount = clampf(amount, 0.0, 1.0)
+
+
+## 08 §3: a floor under the post stack's drain (desaturation, grain, CA, vignette, scan)
+## while inside Static; 0 releases it. Coherence itself is untouched.
+func set_drain_floor(v: float) -> void:
+	drain_floor = clampf(v, 0.0, 1.0)
 
 
 ## Kinds: Tuning.POST_PULSE_KINDS. `drop` is fired twice per drop: at the floor commit
@@ -240,6 +248,7 @@ func _on_run_started(_mode: StringName, _seed: int) -> void:
 	noclip_invalid = false
 	threat = 0.0
 	static_amount = 0.0
+	drain_floor = 0.0
 	set_null(NULL_POS_ABSENT, 0.0)
 	noclip_commit = 0.0
 	_clear_pulses()
@@ -313,7 +322,7 @@ func _update_post() -> void:
 	ages[&"drop_arrival"] = _age_of(_drop_arrive_usec)
 	var wall_s := Time.get_ticks_msec() / 1000.0
 	post_params = CoherencePost.compute(coherence01, noclip_charge, threat, ages, frames, _beat_phase,
-			reduce_noise, reduce_flashing, static_amount)
+			reduce_noise, reduce_flashing, static_amount, drain_floor)
 	if _post_quad == null:
 		return
 	# Functionally parented to the camera: it follows the active 3D camera every frame.

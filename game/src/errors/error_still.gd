@@ -42,6 +42,16 @@ var _search_arrived: bool = false
 var _search_known_time: float = -1.0
 ## Inspect queue: {pos: Vector3, spot: HideSpot or null}.
 var _inspect: Array[Dictionary] = []
+## Presentation only (the render-line height): never advances the behaviour rng.
+var _present_rng: RandomNumberGenerator = Seeds.rng(0)
+## The level's doors, gathered once when Still first wakes (08 §2: doors on the path are
+## opened; an open leaf is not an obstacle for the body).
+var _doors: Array[Door] = []
+var _doors_bound: bool = false
+
+
+func _on_seeded() -> void:
+	_present_rng = Seeds.rng(Seeds.derive(seed_value, "still_present"))
 
 
 func _configure() -> void:
@@ -129,6 +139,33 @@ func _set_body_active(on: bool) -> void:
 		return
 	# 08 §2: movers freeze their CharacterBody3D processing when Dormant.
 	body.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+	if on:
+		_bind_doors()
+
+
+## An open door leaf swings into the cell beside the doorway; it is a door, not a wall,
+## so Still's body ignores it while it is open (a closed leaf still blocks until Still
+## opens it). Gathered once; the leaf follows each door's opened_changed.
+func _bind_doors() -> void:
+	if _doors_bound or not is_inside_tree():
+		return
+	_doors_bound = true
+	for n in get_tree().get_nodes_in_group(&"doors"):
+		var door := n as Door
+		if door == null:
+			continue
+		_doors.append(door)
+		door.opened_changed.connect(_on_door_opened.bind(door))
+		_on_door_opened(door.is_open, door)
+
+
+func _on_door_opened(open: bool, door: Door) -> void:
+	if not is_instance_valid(door) or door.leaf == null:
+		return
+	if open:
+		body.add_collision_exception_with(door.leaf)
+	else:
+		body.remove_collision_exception_with(door.leaf)
 
 
 # --- 08 §8 aggression mapping --------------------------------------------------------------
@@ -197,6 +234,14 @@ func _think(delta: float) -> void:
 
 func _chase(reason: String) -> void:
 	transition_to(Tuning.ERROR_STATE_CHASE, reason)
+	# 08 §2: noticed once per engagement (a re-chase from Search is the same one). A chase
+	# the Director retreated at once (Calm, Relief) is not an encounter unless the player
+	# saw Still (observed: in view and lit) when it began.
+	if state == Tuning.ERROR_STATE_CHASE:
+		_notice()
+	elif observed and not _engaged:
+		_notice()
+		_engaged = false
 
 
 func _enter_state(to: StringName, _from: StringName) -> void:
@@ -206,9 +251,6 @@ func _enter_state(to: StringName, _from: StringName) -> void:
 		Tuning.ERROR_STATE_WANDER:
 			_wander_ticked = false
 			senses.suspicion = 0.0
-		Tuning.ERROR_STATE_CHASE:
-			# 08 §2: noticed once per engagement (a re-chase from Search is the same one).
-			_notice()
 		Tuning.ERROR_STATE_SEARCH:
 			senses.suspicion = 0.0
 			_search_arrived = false
@@ -244,7 +286,11 @@ func _move(delta: float) -> void:
 			_has_target = true
 			_try_skip()
 		Tuning.ERROR_STATE_SEARCH:
-			_search_step(delta)
+			# 08 §4: it stands through the reaction window in Search as in Wander.
+			if senses.sees_player:
+				speed = 0.0
+			else:
+				_search_step(delta)
 		Tuning.ERROR_STATE_SATIATED:
 			if _arrived():
 				speed = 0.0
@@ -362,8 +408,9 @@ func _search_step(_delta: float) -> void:
 		var cur: Dictionary = _inspect.pop_front() if not _inspect.is_empty() else {}
 		var spot: Variant = cur.get("spot")
 		if spot != null and is_instance_valid(spot) and player != null and (spot as HideSpot).occupant == player:
-			# 08 §4: checking the player's spot is a contact.
-			if try_contact(Tuning.STILL_CONTACT_COST):
+			# 08 §4: checking the player's spot is a contact. A refused one is answered by
+			# the Director (retreat); never undo that by carrying on the search.
+			if try_contact(Tuning.STILL_CONTACT_COST) or state != Tuning.ERROR_STATE_SEARCH:
 				return
 		if _inspect.is_empty():
 			_give_up()
@@ -442,9 +489,8 @@ func _in_player_frustum(p: Vector3) -> bool:
 ## 08 §2: doors on the path are opened; Chase opens them with a slam.
 func _open_doors_near() -> void:
 	var p := body_position()
-	for n in get_tree().get_nodes_in_group(&"doors"):
-		var door := n as Door
-		if door == null or door.is_open:
+	for door in _doors:
+		if not is_instance_valid(door) or door.is_open:
 			continue
 		var d := door.global_position
 		if Vector2(d.x - p.x, d.z - p.z).length() <= Tuning.ERROR_DOOR_OPEN_DIST:
@@ -476,7 +522,7 @@ func _render_tick(delta: float) -> void:
 func _play_tick() -> void:
 	ticks += 1
 	tick_left = Tuning.STILL_RENDER_TICK_DURATION_MS / 1000.0
-	_set_line(true, rng.randf_range(0.08, 0.92))
+	_set_line(true, _present_rng.randf_range(0.08, 0.92))
 	AudioManager.play_3d(TICK_SOUND, body_position() + Vector3.UP * COLUMN_CENTRE)
 
 

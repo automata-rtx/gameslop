@@ -17,8 +17,15 @@ const HUM := &"static_hum"
 const BAND := &"static_band"
 const SOURCE := &"static"
 
-## Every Static's current field strength on the player (several share one renderer).
+## Every Static's current field strength on the player (several share one renderer) and
+## its distance; only the nearest pushes renderer, bed and jitter state, and only on change.
 static var _strength_by_error: Dictionary = {}
+static var _dist_by_error: Dictionary = {}
+static var _pushed: float = -1.0
+## Burning flares, gathered at most once per physics frame for every Static, and only
+## while the group is not empty (get_node_count_in_group is the cheap counter).
+static var _flare_cache: Array[Node3D] = []
+static var _flare_frame: int = -1
 
 @onready var field: Area3D = %Field
 @onready var mesh: MeshInstance3D = %Mesh
@@ -36,6 +43,12 @@ var _path: Array[Vector3] = []
 var _dwell_left: float = 0.0
 var _steps_heard: Array[float] = []
 var _nudge: bool = false
+var _nudge_dest: Vector3 = Vector3.ZERO
+## (cell: Vector2i) -> bool: wander targets must pass it (the Director's off-path filter on
+## the first Descent, 05 §10). Invalid: every walkable cell.
+var _wander_filter: Callable = Callable()
+## Cell path out of a flare's 6 m when the direct push would leave the walkable cells.
+var _escape: Array[Vector3] = []
 ## Search reached its point and is dwelling there.
 var _searched: bool = false
 var _hum: AudioLoop
@@ -72,7 +85,10 @@ func _apply_radius() -> void:
 
 
 func _exit_tree() -> void:
-	_set_strength(0.0)
+	var key := get_instance_id()
+	_strength_by_error.erase(key)
+	_dist_by_error.erase(key)
+	_push_state()
 	_release_audio()
 
 
@@ -107,12 +123,28 @@ func search_speed() -> float:
 	return aggr_lerp(Tuning.STATIC_SEARCH_SPEED_LOW, Tuning.STATIC_SEARCH_SPEED_HIGH, aggression)
 
 
-## 08 §3 fairness: the Director moves Static off a critical-path cut at 1.2 m/s.
+## 08 §3 fairness: the Director moves Static off a critical-path cut at 1.2 m/s. It drops
+## any Search, plans straight there and keeps the nudge (speed, no dwell, no Search on
+## noise) until it arrives.
 func nudge(destination: Vector3) -> void:
-	hint(destination)
 	_nudge = true
-	if state == Tuning.ERROR_STATE_WANDER:
-		_plan_to(destination)
+	_nudge_dest = destination
+	if state == Tuning.ERROR_STATE_DORMANT:
+		return
+	if state != Tuning.ERROR_STATE_WANDER:
+		transition_to(Tuning.ERROR_STATE_WANDER, "nudge")
+	_dwell_left = 0.0
+	_plan_to(destination)
+
+
+func is_nudged() -> bool:
+	return _nudge
+
+
+## The Director's wander filter, (cell: Vector2i) -> bool (05 §10: drift bounded to a side
+## loop on the first Descent). Callable() clears it.
+func set_wander_filter(filter: Callable) -> void:
+	_wander_filter = filter
 
 
 ## Static has no Satiated: it never contacts. The Director moves it with nudge().
@@ -127,6 +159,8 @@ func _enter_state(to: StringName, _from: StringName) -> void:
 		Tuning.ERROR_STATE_WANDER:
 			_dwell_left = 0.0
 			_path.clear()
+			if _nudge:
+				_plan_to(_nudge_dest)
 			_start_audio()
 		Tuning.ERROR_STATE_SEARCH:
 			_dwell_left = 0.0
@@ -135,6 +169,7 @@ func _enter_state(to: StringName, _from: StringName) -> void:
 		Tuning.ERROR_STATE_DORMANT:
 			_path.clear()
 			_release_field()
+			_dist_by_error.erase(get_instance_id())
 			_stop_audio()
 
 
@@ -146,7 +181,8 @@ func _on_heard(pos: Vector3, _radius: float, kind: StringName) -> void:
 	while not _steps_heard.is_empty() and now - _steps_heard[0] > Tuning.STATIC_SEARCH_STEPS_WINDOW:
 		_steps_heard.remove_at(0)
 	var go := kind == Tuning.NOISE_KIND_TEAR or _steps_heard.size() >= Tuning.STATIC_SEARCH_STEPS_HEARD
-	if not go:
+	if not go or _nudge:
+		# A nudge is the Director's fairness move: noise waits until it has arrived.
 		return
 	_steps_heard.clear()
 	if state == Tuning.ERROR_STATE_SEARCH:
@@ -162,19 +198,19 @@ func _tick(delta: float) -> void:
 
 
 func _drift(delta: float) -> void:
-	var push := _flare_push()
-	if push != Vector3.ZERO:
+	var flare := _nearest_flare()
+	if flare != null:
 		# 08 §3: a burning flare within 6 m pushes it away at 1.2 m/s.
-		global_position += push * Tuning.STATIC_FLARE_PUSH_SPEED * delta
+		_flare_step(flare, delta)
 		return
+	_escape.clear()
 	if _path.is_empty():
-		if _dwell_left > 0.0:
+		if _dwell_left > 0.0 and not _nudge:
 			_dwell_left -= delta
 			return
 		match state:
 			Tuning.ERROR_STATE_WANDER:
-				_nudge = false
-				_plan_to(_wander_target())
+				_plan_to(_nudge_dest if _nudge else _wander_target())
 			Tuning.ERROR_STATE_SEARCH:
 				if _searched:
 					transition_to(Tuning.ERROR_STATE_WANDER, "search dwell over")
@@ -182,6 +218,7 @@ func _drift(delta: float) -> void:
 					_arrive()  # unreachable point: dwell where it is
 				return
 		if _path.is_empty():
+			_nudge = false  # unreachable (or already there): the fairness move ends here
 			return
 	var speed := drift_speed()
 	if state == Tuning.ERROR_STATE_SEARCH:
@@ -211,6 +248,7 @@ func _drift(delta: float) -> void:
 
 
 func _arrive() -> void:
+	_nudge = false
 	if state == Tuning.ERROR_STATE_SEARCH:
 		_dwell_left = Tuning.STATIC_SEARCH_DWELL
 		_searched = true
@@ -218,7 +256,8 @@ func _arrive() -> void:
 		_dwell_left = rng.randf_range(Tuning.STATIC_DWELL_MIN, Tuning.STATIC_DWELL_MAX)
 
 
-## A hint, or a seeded walkable cell within 10 cells (grid walking distance).
+## A hint, or a seeded walkable cell within 10 cells (grid walking distance) that passes
+## the wander filter; with none in reach, the nearest cell (walking) that passes it.
 func _wander_target() -> Vector3:
 	if _has_hint:
 		_has_hint = false
@@ -230,12 +269,21 @@ func _wander_target() -> Vector3:
 	var from := grid.cell_of(global_position)
 	var dist := grid.distance_field(from)
 	var pool: Array[Vector2i] = []
+	var nearest := -1
 	for i in dist.size():
-		if dist[i] > 0 and dist[i] <= Tuning.STATIC_WANDER_CELLS:
+		if dist[i] <= 0 or not _wander_ok(grid.cell_at(i)):
+			continue
+		if dist[i] <= Tuning.STATIC_WANDER_CELLS:
 			pool.append(grid.cell_at(i))
+		elif nearest == -1 or dist[i] < dist[nearest]:
+			nearest = i
 	if pool.is_empty():
-		return global_position
+		return grid.world_of(grid.cell_at(nearest)) if nearest != -1 else global_position
 	return grid.world_of(pool[rng.randi_range(0, pool.size() - 1)])
+
+
+func _wander_ok(c: Vector2i) -> bool:
+	return not _wander_filter.is_valid() or bool(_wander_filter.call(c))
 
 
 ## The cell path (LevelGrid BFS over walkable cells, doors open: it is sound) to `dest`;
@@ -294,28 +342,99 @@ static func cell_path(g: LevelGrid, from: Vector2i, to: Vector2i) -> Array[Vecto
 # --- flares (08 §3) ---------------------------------------------------------------------------
 
 func _flares() -> Array[Node3D]:
-	var out: Array[Node3D] = []
-	if not is_inside_tree():
-		return out
-	for n in get_tree().get_nodes_in_group(Tuning.STATIC_FLARE_GROUP):
-		var f := n as Node3D
-		if f != null and f.is_inside_tree():
-			out.append(f)
-	return out
+	if not is_inside_tree() or get_tree().get_node_count_in_group(Tuning.STATIC_FLARE_GROUP) == 0:
+		_flare_cache.clear()
+		return _flare_cache
+	var frame := Engine.get_physics_frames()
+	if frame != _flare_frame:
+		_flare_frame = frame
+		_flare_cache.clear()
+		for n in get_tree().get_nodes_in_group(Tuning.STATIC_FLARE_GROUP):
+			var f := n as Node3D
+			if f != null and f.is_inside_tree():
+				_flare_cache.append(f)
+	return _flare_cache
 
 
-## Unit XZ direction away from the nearest burning flare within 6 m, or zero.
-func _flare_push() -> Vector3:
-	var best := Vector3.ZERO
+## The nearest burning flare within 6 m (XZ), or null.
+func _nearest_flare() -> Node3D:
+	var best: Node3D = null
 	var best_d := INF
 	for f in _flares():
-		var off := global_position - f.global_position
-		off.y = 0.0
-		var d := off.length()
+		var d := _flare_dist(global_position, f)
 		if d < Tuning.STATIC_FLARE_RANGE and d < best_d:
 			best_d = d
-			best = off.normalized() if d > 0.001 else Vector3.RIGHT
+			best = f
 	return best
+
+
+func _flare_dist(p: Vector3, flare: Node3D) -> float:
+	return Vector2(p.x - flare.global_position.x, p.z - flare.global_position.z).length()
+
+
+## One push step at 1.2 m/s straight away from `flare`. A step that would leave the
+## walkable cells (or cross a wall between cells) is rejected; it slides along one axis
+## instead, else follows the cell path to the nearest cell outside the flare's 6 m, so it
+## never freezes inside a flare's reach.
+func _flare_step(flare: Node3D, delta: float) -> void:
+	var step := Tuning.STATIC_FLARE_PUSH_SPEED * delta
+	if _escape.is_empty():
+		var off := global_position - flare.global_position
+		off.y = 0.0
+		var away := off.normalized() if off.length() > 0.001 else Vector3.RIGHT
+		for dir: Vector3 in [away, Vector3(signf(away.x), 0.0, 0.0), Vector3(0.0, 0.0, signf(away.z))]:
+			if dir.length() < 0.5:
+				continue
+			var next := global_position + dir.normalized() * step
+			if _walkable_step(global_position, next) and _flare_dist(next, flare) > _flare_dist(global_position, flare):
+				global_position = next
+				return
+		_escape = _escape_path(flare)
+		if _escape.is_empty():
+			return  # nowhere outside its reach on foot: hold until the flare burns out
+	var target := _escape[0]
+	var to := Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)
+	if to.length() <= step:
+		global_position = target
+		_escape.remove_at(0)
+	else:
+		global_position += to.normalized() * step
+
+
+## True when moving from `a` to `b` stays on walkable cells and crosses only open edges.
+func _walkable_step(a: Vector3, b: Vector3) -> bool:
+	if grid == null:
+		return true
+	var ca := grid.cell_of(a)
+	var cb := grid.cell_of(b)
+	if not grid.in_bounds(cb) or not grid.is_walkable(cb):
+		return false
+	if ca == cb:
+		return true
+	var d := cb - ca
+	if absi(d.x) + absi(d.y) != 1:
+		return false
+	return grid.can_step(ca, LevelGrid.DIRS.find(d))
+
+
+## Cell path to the nearest walkable cell (walking) outside the flare's 6 m.
+func _escape_path(flare: Node3D) -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	if grid == null:
+		return out
+	var from := grid.cell_of(global_position)
+	var dist := grid.distance_field(from)
+	var best := -1
+	for i in dist.size():
+		if dist[i] < 0 or _flare_dist(grid.world_of(grid.cell_at(i)), flare) < Tuning.STATIC_FLARE_RANGE:
+			continue
+		if best == -1 or dist[i] < dist[best]:
+			best = i
+	if best == -1:
+		return out
+	for c in cell_path(grid, from, grid.cell_at(best)):
+		out.append(grid.world_of(c))
+	return out
 
 
 func _blocked_by_flare(next: Vector3) -> bool:
@@ -367,18 +486,36 @@ func _release_field() -> void:
 	_set_strength(0.0)
 
 
-## Feeds the renderer (02 §8: grain 0.6, CA 0.02 inside), the static bed (03) and the
-## 0.002 m camera jitter (11 §3) with the strongest field over every Static.
+## Feeds the renderer (02 §8: grain 0.6, CA 0.02 inside; 08 §3: the drain floor 0.6),
+## the static bed (03) and the 0.002 m camera jitter (11 §3) with the strongest field over
+## every Static. Only the Static nearest the player pushes, and only when the value moves.
 func _set_strength(s: float) -> void:
 	var key := get_instance_id()
 	if s > 0.0:
 		_strength_by_error[key] = s
 	else:
 		_strength_by_error.erase(key)
-	var top := 0.0
-	for v: float in _strength_by_error.values():
-		top = maxf(top, v)
+	_dist_by_error[key] = distance_to_player()
+	if _is_nearest(key):
+		_push_state()
+
+
+func _is_nearest(key: int) -> bool:
+	var mine: float = _dist_by_error.get(key, INF)
+	for k: int in _dist_by_error:
+		var d: float = _dist_by_error[k]
+		if d < mine or (d == mine and k < key):
+			return false
+	return true
+
+
+func _push_state() -> void:
+	var top := strongest_field()
+	if top == _pushed:
+		return
+	_pushed = top
 	CoherenceRenderer.set_static(top)
+	CoherenceRenderer.set_drain_floor(Tuning.STATIC_FORCED_DRAIN * top)
 	AudioManager.set_static_inside(top > 0.0)
 	if player != null and is_instance_valid(player) and player.rig != null:
 		player.rig.set_jitter(Tuning.FEEDBACK_STATIC_JITTER if top > 0.0 else 0.0)

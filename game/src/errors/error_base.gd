@@ -23,6 +23,8 @@ signal lost_player
 signal noticed_player
 
 const GROUP := &"errors"
+## Performance custom monitor (F3, the arena): error script ms in the last physics frame.
+const MONITOR := &"noclip/errors_ms"
 const SCENES: Dictionary = {
 	&"static": "res://scenes/errors/static.tscn",
 	&"still": "res://scenes/errors/still.tscn",
@@ -47,8 +49,21 @@ var senses: Senses
 var state_time: float = 0.0
 ## Recent transitions, `STILL: Wander → Chase (seen 1.5 s)` (14 §9 debug overlay).
 var log_lines: PackedStringArray = []
+## The seed given to setup() (presentation rngs derive from it).
+var seed_value: int = 0
+
+## Script cost of the errors (08 §2 budget, 14 BUDGET_ERRORS_SCRIPT_MS): microseconds spent
+## in every error's _physics_process during the last completed physics frame, total and
+## per error id. Exposed as the Performance custom monitor `noclip/errors_ms` (F3).
+static var frame_usec: int = 0
+static var frame_usec_by_id: Dictionary = {}
+static var _acc_usec: int = 0
+static var _acc_by_id: Dictionary = {}
+static var _acc_frame: int = -1
 
 var _wake_pending: bool = false
+## start_search() before navigation was ready: enter Search (not Wander) once it is.
+var _search_pending: bool = false
 var _dormant_acc: float = 0.0
 var _sense_acc: float = 0.0
 var _prox_acc: float = 0.0
@@ -85,6 +100,30 @@ static func aggr_lerp(low: float, high: float, a: float) -> float:
 func _init() -> void:
 	add_to_group(GROUP)
 	add_to_group(DebugOverlay.GROUP)
+	if not Performance.has_custom_monitor(MONITOR):
+		Performance.add_custom_monitor(MONITOR, ErrorBase.errors_ms)
+
+
+## Milliseconds of error script time in the last physics frame (all errors).
+static func errors_ms() -> float:
+	return frame_usec / 1000.0
+
+
+## Milliseconds of `id`'s script time in the last physics frame (all errors of that id).
+static func error_ms(id: StringName) -> float:
+	return int(frame_usec_by_id.get(id, 0)) / 1000.0
+
+
+static func _account(id: StringName, usec: int) -> void:
+	var f := Engine.get_physics_frames()
+	if f != _acc_frame:
+		frame_usec = _acc_usec
+		frame_usec_by_id = _acc_by_id
+		_acc_usec = 0
+		_acc_by_id = {}
+		_acc_frame = f
+	_acc_usec += usec
+	_acc_by_id[id] = int(_acc_by_id.get(id, 0)) + usec
 
 
 func _ready() -> void:
@@ -102,9 +141,10 @@ func _ready() -> void:
 
 ## Call before or after adding to the tree. `level` may be null in hand-built rooms (then
 ## call set_navigation_ready yourself). `seed_value`: Seeds.derive(level_seed, seed_label()).
-func setup(p_player: Player, p_level: Level = null, seed_value: int = 0) -> void:
+func setup(p_player: Player, p_level: Level = null, p_seed: int = 0) -> void:
 	player = p_player
-	rng = Seeds.rng(seed_value)
+	seed_value = p_seed
+	rng = Seeds.rng(p_seed)
 	_on_seeded()
 	if p_level != null:
 		bind_level(p_level)
@@ -126,7 +166,11 @@ func set_navigation_ready(ok: bool) -> void:
 	navigation_ready = ok
 	if ok and _wake_pending:
 		_wake_pending = false
-		wake()
+		if _search_pending:
+			_search_pending = false
+			transition_to(Tuning.ERROR_STATE_SEARCH, "awake", true)
+		else:
+			wake()
 
 
 # --- Director link (08 §2, 10) --------------------------------------------------------
@@ -160,6 +204,7 @@ func wake() -> void:
 
 func sleep() -> void:
 	_wake_pending = false
+	_search_pending = false
 	_engaged = false
 	transition_to(Tuning.ERROR_STATE_DORMANT, "sleep")
 
@@ -174,13 +219,15 @@ func retreat(seconds: float) -> void:
 
 
 ## 10 §4 awake arrivals: Search from a Director-chosen point (never the player's).
+## Before navigation is ready the Search is remembered and entered when it is.
 func start_search(pos: Vector3) -> void:
-	if not navigation_ready:
-		_wake_pending = true
 	senses.last_known_pos = pos
 	senses.last_known_time = senses.clock
-	if navigation_ready:
-		transition_to(Tuning.ERROR_STATE_SEARCH, "awake", true)
+	if not navigation_ready:
+		_wake_pending = true
+		_search_pending = true
+		return
+	transition_to(Tuning.ERROR_STATE_SEARCH, "awake", true)
 
 
 func distance_to_player() -> float:
@@ -297,6 +344,12 @@ func try_contact(cost: float) -> bool:
 # --- processing budget (08 §2) -----------------------------------------------------------
 
 func _physics_process(delta: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	_process_error(delta)
+	_account(error_id, Time.get_ticks_usec() - t0)
+
+
+func _process_error(delta: float) -> void:
 	if state == Tuning.ERROR_STATE_DORMANT:
 		# Dormant errors run only a 1 s timer.
 		_dormant_acc += delta
@@ -320,7 +373,8 @@ func _physics_process(delta: float) -> void:
 ## 14 §9 debug overlay line.
 func debug_info() -> Dictionary:
 	var d := distance_to_player()
-	return {String(error_id): "%s %s" % [state, "-" if is_inf(d) else "%.1f m" % d]}
+	return {String(error_id): "%s %s" % [state, "-" if is_inf(d) else "%.1f m" % d],
+		"errors ms": "%.3f" % errors_ms()}
 
 
 # --- virtuals -------------------------------------------------------------------------------

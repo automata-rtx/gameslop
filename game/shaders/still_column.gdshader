@@ -1,8 +1,9 @@
-// Still (02 §8): unlit pure black, alpha 1, no specular, no shadow, no light, no fog: a hole
-// in the image. The render-line tick is a single 1 px white line across the column at
+// Still (02 §8): unlit pure black, alpha 1, no specular, no shadow, no light: a hole
+// in the image. It takes fog like any surface, so an unlit Still sinks into the dark as the
+// walls do (2026-10-08). The render-line tick is a single 1 px white line across the column at
 // `line_height` (0..1 of its height) while `line_on` is 1 (100 ms, set by ErrorStill).
 shader_type spatial;
-render_mode unshaded, shadows_disabled, specular_disabled, ambient_light_disabled, fog_disabled;
+render_mode unshaded, shadows_disabled, specular_disabled, ambient_light_disabled;
 
 const float STILL_HEIGHT = 2.6;            // STILL_CAPSULE_HEIGHT
 
