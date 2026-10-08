@@ -295,7 +295,7 @@ static func _keycard() -> Node3D:
 	root.name = "Held_keycard"
 	var card := BoxMesh.new()
 	card.size = Vector3(CARD_W, CARD_H, 0.002)
-	_mesh(root, card, _mat(CARD_AMBER.darkened(0.15), 0.6, 0.35), Vector3.ZERO, Vector3.ZERO, "Card")
+	_mesh(root, card, _mat(CARD_AMBER, 0.6, 0.35), Vector3.ZERO, Vector3.ZERO, "Card")
 	var stripe := BoxMesh.new()
 	stripe.size = Vector3(CARD_W, 0.011, 0.0005)
 	_mesh(root, stripe, _mat(DARK, 0.8), Vector3(0.0, 0.012, 0.0012), Vector3.ZERO, "Stripe")

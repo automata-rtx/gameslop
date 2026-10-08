@@ -28,8 +28,8 @@ func _pickup(kind: StringName, pos: Vector3 = Vector3(0, 0, -5)) -> ItemPickup:
 	return p
 
 
-func test_pickup_scenes_exist_for_the_three_m1_items() -> void:
-	for kind in [&"polaroid", &"chalk", &"glowstick"]:
+func test_pickup_scenes_exist_for_every_belt_item() -> void:
+	for kind in [&"polaroid", &"chalk", &"glowstick", &"flare", &"radio", &"fuse"]:
 		var data := DataRegistry.item(kind)
 		assert_not_null(data.world_scene, "world_scene of %s" % kind)
 		var p := _pickup(kind)
@@ -61,7 +61,7 @@ func test_bob_is_two_centimetres_at_point_two_hertz() -> void:
 
 ## R4 #12: a pickup rests just above the floor: its lowest point is 3 cm up at the bottom of the bob.
 func test_pickups_rest_three_centimetres_above_the_floor() -> void:
-	for kind in [&"polaroid", &"chalk", &"glowstick"]:
+	for kind in [&"polaroid", &"chalk", &"glowstick", &"flare", &"radio", &"fuse"]:
 		var p := _pickup(kind)
 		var model := p.bob.get_child(p.bob.get_child_count() - 1) as Node3D
 		var low := INF
@@ -136,20 +136,23 @@ func test_swap_when_the_belt_holds_four_other_kinds() -> void:
 	await get_tree().create_timer(0.5).timeout
 
 
-## R4 #5: a swap puts the selected stack on the floor; a kind without a world scene (the
-## fuse until M2.8) cannot lie there, so the swap is refused rather than destroying it.
-func test_swap_refused_when_the_selected_kind_has_no_world_scene() -> void:
+## R4 #5 / M2.8: a swap puts the selected stack on the floor, so every belt kind needs a world
+## scene (all of them have one now): swapping a fuse out works and the fuse lies at the feet.
+func test_swap_out_of_a_fuse_puts_it_on_the_floor() -> void:
 	_inv.add(&"polaroid", 2)
 	_inv.add(&"chalk", 8)
 	_inv.add(&"radio")
 	_inv.add(&"fuse")
 	_inv.select(_inv.slot_of(&"fuse"))
 	var p := _pickup(&"glowstick", Vector3(1, 0, -3))
-	assert_false(_inv.can_swap_out())
-	assert_false(p.can_take(_inv))
-	assert_false(p.take(_p))
-	assert_null(_inv.swap_in(&"glowstick", 1))
-	assert_true(_inv.has(&"fuse"), "the fuse is still on the belt")
+	assert_true(_inv.can_swap_out())
+	assert_true(p.can_take(_inv))
+	assert_true(p.take(_p))
+	assert_false(_inv.has(&"fuse"))
+	var dropped := get_tree().get_nodes_in_group(&"pickups").filter(
+			func(n: Node) -> bool: return n is ItemPickup and (n as ItemPickup).kind == &"fuse")
+	assert_eq(dropped.size(), 1, "the fuse lies at the player's feet")
+	await get_tree().create_timer(0.5).timeout
 
 
 ## R4 #17: a partly fitting Polaroid pickup moves only the accepted photos to the belt.
@@ -238,9 +241,9 @@ func test_spawner_places_items_and_notes_at_the_markers() -> void:
 	var out := ItemSpawner.populate(root, _level(), rng, {ItemSpawner.OPT_FOUND: [], ItemSpawner.OPT_STRATUM_REACHED: false})
 	var items := out.filter(func(n: Node3D) -> bool: return n is ItemPickup)
 	var notes := out.filter(func(n: Node3D) -> bool: return n is NotePickup)
-	assert_eq(items.size(), 3, "the flare has no world scene until M2.8 and is skipped")
+	assert_eq(items.size(), 4, "every kind, the flare too, has a world scene since M2.8")
 	assert_eq(notes.size(), 2)
-	assert_eq(root.get_child_count(), 5)
+	assert_eq(root.get_child_count(), 6)
 	var pol := items.filter(func(n: ItemPickup) -> bool: return n.kind == &"polaroid")[0] as ItemPickup
 	var j := Tuning.ITEM_PLACE_JITTER + 0.0001
 	assert_eq(pol.position.y, 0.0, "on the floor")
