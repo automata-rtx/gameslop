@@ -198,6 +198,7 @@ const NOISE_KIND_TEAR := &"tear"
 const NOISE_KIND_DOOR := &"door"
 const NOISE_KIND_IMPACT := &"impact"
 const NOISE_KIND_LIGHT := &"light"
+const NOISE_KIND_RADIO := &"radio"                  # the radio (09 §2): an Echo lure, like mech but its own kind
 const NOISE_STEP_RADIUS: Dictionary = {&"carpet": 5.0, &"tile": 7.0, &"concrete": 7.0, &"raised_floor": 8.0, &"substrate": 6.0}
 const NOISE_STEP_WATER_RADIUS := 10.0
 const NOISE_SPRINT_MULT := 1.8                      # x walk radius

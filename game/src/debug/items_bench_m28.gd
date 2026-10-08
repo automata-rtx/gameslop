@@ -30,14 +30,28 @@ static func build(bench: Node3D, wall_mat: Material) -> Dictionary:
 	out[&"breaker"] = breaker
 	# A car parked along the east wall with its under-car spot at its centre, looking out of the
 	# aisle (west) side, as the Garage grammar and LevelPlacer place them.
-	out[&"car"] = _place(bench, CAR_SCENE, Vector3(5.0, 0.0, -2.0), 0.0)
-	out[&"car_spot"] = _place(bench, SPOT_SCENE % "under_car", Vector3(5.0, 0.0, -2.0), PI * 0.5)
+	out[&"car"] = _place(bench, CAR_SCENE, Vector3(5.2, 0.0, 1.4), 0.0)
+	out[&"car_spot"] = _place(bench, SPOT_SCENE % "under_car", Vector3(5.2, 0.0, 1.4), PI * 0.5)
 	out[&"desk"] = _desk(bench, Vector3(-5.2, 0.0, 2.4), wall_mat)
 	out[&"desk_spot"] = _place(bench, SPOT_SCENE % "under_desk", Vector3(-5.2, 0.0, 2.4), 0.0)
 	out[&"locker"] = _place(bench, SPOT_SCENE % "locker", Vector3(6.85, 0.0, 3.2), -PI * 0.5)
 	out[&"pump"] = _place(bench, SPOT_SCENE % "pump_corner", Vector3(-1.0, 0.0, -2.6), 0.0)
 	out[&"rack"] = _place(bench, SPOT_SCENE % "rack_gap", Vector3(2.4, 0.0, -2.6), 0.0)
+	_lamp(bench, Vector3(3.0, 2.4, 1.4), Color(1.0, 0.78, 0.42), 1.3, true)   # the Garage's sodium, beside the car
+	_lamp(bench, Vector3(-4.6, 2.4, 3.6), Color(1.0, 0.94, 0.76), 1.0, false)  # over the desk
+	_lamp(bench, Vector3(0.6, 2.4, -4.0), Color(1.0, 0.94, 0.76), 1.0, false)  # the wall props
 	return out
+
+
+static func _lamp(bench: Node3D, pos: Vector3, color: Color, energy: float, shadows: bool) -> void:
+	var l := OmniLight3D.new()
+	l.name = "BenchLamp"
+	l.position = pos
+	l.light_color = color
+	l.light_energy = energy
+	l.omni_range = 7.0
+	l.shadow_enabled = shadows
+	bench.add_child(l)
 
 
 static func _place(bench: Node3D, path: String, pos: Vector3, yaw: float) -> Node3D:
@@ -83,7 +97,21 @@ static func _desk(bench: Node3D, pos: Vector3, mat: Material) -> Node3D:
 
 # --- screenshots ------------------------------------------------------------------------------
 
-static func shots(b: Node3D, dir: String, refs: Dictionary) -> void:
+## `part`: &"items" (pickups, held items, the flare, the radio), &"hide" (the hide spots), or
+## &"all".
+static func shots(b: Node3D, dir: String, refs: Dictionary, part: StringName = &"all") -> void:
+	if part != &"hide":
+		await _shots_items(b, dir)
+	if part != &"items":
+		await _shots_hide(b, dir, refs)
+
+
+static func _look(b: Node3D, from: Vector3, target: Vector3) -> void:
+	var d := target - Vector3(from.x, 1.65, from.z)
+	b._pose(from, atan2(-d.x, -d.z), atan2(d.y, Vector2(d.x, d.z).length()))
+
+
+static func _shots_items(b: Node3D, dir: String) -> void:
 	var inv: Inventory = b.player.inventory
 	inv.reset()
 	# Pickups of the new kinds and the props along the wall.
@@ -97,7 +125,7 @@ static func shots(b: Node3D, dir: String, refs: Dictionary) -> void:
 	inv.add(&"flare", 2)
 	inv.add(&"radio")
 	inv.add(&"fuse")
-	b.fixture.visible = false
+	b.fixture.visible = true
 	b._pose(Vector3(0.0, 0.0, 5.0), 0.0, -0.1)
 	inv.select(inv.slot_of(&"fuse"))
 	await b._wait(1.0)
@@ -115,13 +143,17 @@ static func shots(b: Node3D, dir: String, refs: Dictionary) -> void:
 	inv.use_selected()
 	await b._wait(1.2)
 	b._save(dir + "/items_held_flare_burning.png")
+	b.fixture.visible = false
 	# Thrown into the dark half: burning on the floor.
 	var fi := inv.behavior_for(&"flare") as FlareItem
 	fi._strike_left = 0.0
 	inv.use_selected()
 	await b._wait(3.0)
-	b._pose(Vector3(1.0, 0.0, 5.0), deg_to_rad(6.0), -0.12)
-	await b._wait(0.5)
+	var lit := b.get_tree().get_nodes_in_group(Tuning.STATIC_FLARE_GROUP)
+	if not lit.is_empty():
+		var at := (lit[0] as Node3D).global_position
+		_look(b, at + Vector3(0.9, 0.0, 2.3), at)
+	await b._wait(0.8)
 	b._save(dir + "/items_flare_floor.png")
 	# The radio set down, playing.
 	inv.select(inv.slot_of(&"radio"))
@@ -131,13 +163,18 @@ static func shots(b: Node3D, dir: String, refs: Dictionary) -> void:
 	b._pose(Vector3(-2.0, 0.0, 5.0), 0.0, -0.1)
 	radio.put_down(inv.selected_slot())
 	await b._wait(1.0)
-	b._pose(Vector3(-2.0, 0.0, 4.2), deg_to_rad(8.0), -0.38)
-	await b._wait(0.6)
+	b._pose(Vector3(-2.0, 0.0, 5.7), 0.0, -0.62)
+	await b._wait(0.9)
 	b._save(dir + "/items_radio_placed.png")
 	b.fixture.visible = true
+
+
+static func _shots_hide(b: Node3D, dir: String, refs: Dictionary) -> void:
+	b.fixture.visible = true
+	b.player.flashlight.set_on(false)
 	# Under the car: from the aisle, then hidden.
 	var car_spot: HideSpot = refs[&"car_spot"]
-	b._pose(Vector3(2.9, 0.0, -2.0), deg_to_rad(-90.0), -0.35)
+	b._pose(Vector3(2.8, 0.0, 1.4), deg_to_rad(-90.0), -0.3)
 	await b._wait(0.6)
 	b._save(dir + "/hide_under_car_outside.png")
 	b.player.enter_hide(car_spot)

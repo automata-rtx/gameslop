@@ -41,7 +41,9 @@ func _ready() -> void:
 	EventBus.note_found.connect(func(id: StringName) -> void: _last = "note %s" % id)
 	var args := OS.get_cmdline_user_args()
 	var i := args.find("--bench-shots")
-	if i != -1:
+	if i != -1 and args.has("--m28-only"):
+		_shots_m28.call_deferred(args[i + 1] if i + 1 < args.size() else "build/items")
+	elif i != -1:
 		_shots.call_deferred(args[i + 1] if i + 1 < args.size() else "build/items")
 
 
@@ -157,6 +159,16 @@ func _shots(dir: String) -> void:
 	_save(dir + "/items_chalk.png")
 	player.flashlight.set_on(false)
 	await ItemsBenchM28.shots(self, dir, _m28)
+	get_tree().quit(0)
+
+
+## `-- --bench-shots <dir> --m28-only`: only the M2.8 screenshots.
+func _shots_m28(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	await _settle(30)
+	var args := OS.get_cmdline_user_args()
+	var i := args.find("--m28-part")
+	await ItemsBenchM28.shots(self, dir, _m28, StringName(args[i + 1]) if i != -1 and i + 1 < args.size() else &"all")
 	get_tree().quit(0)
 
 

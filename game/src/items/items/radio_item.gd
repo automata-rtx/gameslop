@@ -183,7 +183,7 @@ func _physics_process(dt: float) -> void:
 	_noise_left -= dt
 	if _noise_left <= 0.0:
 		_noise_left += Tuning.RADIO_NOISE_INTERVAL
-		NoiseModel.emit(pos, Tuning.RADIO_NOISE_RADIUS, Tuning.NOISE_KIND_MECH)
+		NoiseModel.emit(pos, Tuning.RADIO_NOISE_RADIUS, Tuning.NOISE_KIND_RADIO)
 	var angle := angle_to_exit()
 	if _loop != null:
 		_loop.set_volume(gain_db(angle))

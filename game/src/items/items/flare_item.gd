@@ -51,6 +51,7 @@ func strike(slot: ItemSlot) -> bool:
 		p.rig.nod(Tuning.FEEDBACK_THROW_RECOIL_DEG * 0.25)
 	flick(Vector3(0.0, 0.03, -0.05), 0.08, 0.25)
 	EventBus.item_used.emit(kind)
+	inventory.changed.emit(inventory.slots, inventory.selected)
 	return true
 
 

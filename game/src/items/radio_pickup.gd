@@ -54,7 +54,7 @@ func _physics_process(dt: float) -> void:
 	_noise_left -= dt
 	if _noise_left <= 0.0:
 		_noise_left += Tuning.RADIO_NOISE_INTERVAL
-		NoiseModel.emit(global_position, Tuning.RADIO_NOISE_RADIUS, Tuning.NOISE_KIND_MECH)
+		NoiseModel.emit(global_position, Tuning.RADIO_NOISE_RADIUS, Tuning.NOISE_KIND_RADIO)
 
 
 ## Switches the placed radio's sound and LED to match `state`.

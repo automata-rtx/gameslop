@@ -22,6 +22,8 @@ const SOUND_IGNITE := &"flare_ignite"
 const COLOR := Color("FF4A2E")
 const VIEW_CHECK_S := Tuning.LIGHT_POOL_REEVAL_INTERVAL
 const LIT_MIN_ENERGY := Glowstick.LIT_MIN_ENERGY
+## The flame's size share while the flare is in the hand (0.4 m from the eye).
+const HELD_FLAME_SIZE := 0.3
 
 ## Seconds of burn left.
 var remaining: float = Tuning.FLARE_BURN_TIME
@@ -95,8 +97,9 @@ static func shadows_enabled() -> bool:
 
 
 ## The 60-particle additive flame (09 §3): billboard quads rising from the tip, orange fading
-## to dark red and out.
-static func make_flame() -> GPUParticles3D:
+## to dark red and out. `size` scales the quads and the rise: 1 for a flare lying in the world,
+## HELD_FLAME_SIZE in the hand (a full-size flame 0.4 m from the eye fills the screen).
+static func make_flame(size: float = 1.0) -> GPUParticles3D:
 	var p := GPUParticles3D.new()
 	p.name = "Flame"
 	p.amount = Tuning.FLARE_FLAME_PARTICLES
@@ -104,19 +107,52 @@ static func make_flame() -> GPUParticles3D:
 	p.local_coords = false
 	p.draw_order = GPUParticles3D.DRAW_ORDER_LIFETIME
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.process_material = flame_material(size)
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.07, 0.11)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.vertex_color_use_as_albedo = true
+	mat.albedo_color = Color.WHITE
+	mat.disable_receive_shadows = true
+	mat.albedo_texture = _soft_dot()
+	quad.material = mat
+	p.draw_pass_1 = quad
+	return p
+
+
+## A soft round dot (white to clear), procedural: the flame's particle texture.
+static func _soft_dot() -> GradientTexture2D:
+	var g := Gradient.new()
+	g.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	g.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(1.0, 0.5)
+	t.width = 64
+	t.height = 64
+	return t
+
+
+## The flame's process material at `size` (1 = world, HELD_FLAME_SIZE = in the hand).
+static func flame_material(size: float) -> ParticleProcessMaterial:
 	var pm := ParticleProcessMaterial.new()
 	pm.direction = Vector3.UP
 	pm.spread = 14.0
-	pm.initial_velocity_min = 0.35
-	pm.initial_velocity_max = 0.9
-	pm.gravity = Vector3(0.0, 0.5, 0.0)
-	pm.scale_min = 0.6
-	pm.scale_max = 1.3
+	pm.initial_velocity_min = 0.35 * size
+	pm.initial_velocity_max = 0.9 * size
+	pm.gravity = Vector3(0.0, 0.5 * size, 0.0)
+	pm.scale_min = 0.6 * size
+	pm.scale_max = 1.3 * size
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	pm.emission_sphere_radius = 0.008
+	pm.emission_sphere_radius = 0.008 * size
 	var grad := Gradient.new()
-	grad.set_color(0, Color(1.0, 0.82, 0.45, 1.0))
-	grad.add_point(0.35, Color(1.0, 0.36, 0.14, 0.85))
+	grad.set_color(0, Color(1.0, 0.62, 0.24, 0.55))
+	grad.add_point(0.35, Color(1.0, 0.3, 0.1, 0.4))
 	grad.set_color(grad.get_point_count() - 1, Color(0.35, 0.04, 0.02, 0.0))
 	var gt := GradientTexture1D.new()
 	gt.gradient = grad
@@ -128,19 +164,7 @@ static func make_flame() -> GPUParticles3D:
 	var ct := CurveTexture.new()
 	ct.curve = curve
 	pm.scale_curve = ct
-	p.process_material = pm
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.07, 0.11)
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_color = Color.WHITE
-	mat.disable_receive_shadows = true
-	quad.material = mat
-	p.draw_pass_1 = quad
-	return p
+	return pm
 
 
 func _physics_process(dt: float) -> void:
@@ -207,6 +231,7 @@ func set_carried(on: bool, tip_provider: Callable = Callable()) -> void:
 	_model.visible = not on
 	# The flame stands at the tip: in the hand the flare's own origin is the tip.
 	flame.position = Vector3.ZERO if on else ItemModels.flare_tip()
+	flame.process_material = flame_material(HELD_FLAME_SIZE if on else 1.0)
 	light.position = Vector3.ZERO if on else ItemModels.flare_tip()
 
 

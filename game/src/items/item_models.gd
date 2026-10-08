@@ -227,28 +227,33 @@ static func flare_tip() -> Vector3:
 
 
 ## A 0.12 m box with a 0.1 m antenna and a red LED (09 §3). `Led` glows when the radio is on.
+## The radio's parts sit this far from the model origin, so the 0.12 m box rests inside the
+## frame at the held position (lower right, 0.38 m from the eye) instead of off its edge.
+const HOLD := Vector3(-0.055, 0.04, 0.0)
+
+
 static func _radio() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Held_radio"
 	var box := BoxMesh.new()
 	box.size = Vector3(RADIO_W, RADIO_H, RADIO_D)
-	_mesh(root, box, _mat(Color(0.16, 0.16, 0.17), 0.7), Vector3.ZERO, Vector3.ZERO, "Box")
+	_mesh(root, box, _mat(Color(0.3, 0.32, 0.28), 0.7), HOLD, Vector3.ZERO, "Box")
 	var grille := BoxMesh.new()
 	grille.size = Vector3(0.05, 0.05, 0.004)
-	_mesh(root, grille, _mat(DARK, 0.95), Vector3(-0.026, -0.004, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Grille")
+	_mesh(root, grille, _mat(DARK, 0.95), HOLD + Vector3(-0.026, -0.004, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Grille")
 	var dial := BoxMesh.new()
 	dial.size = Vector3(0.026, 0.012, 0.004)
-	_mesh(root, dial, _mat(Color(0.62, 0.6, 0.5), 0.6), Vector3(0.03, 0.012, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Dial")
+	_mesh(root, dial, _mat(Color(0.62, 0.6, 0.5), 0.6), HOLD + Vector3(0.03, 0.012, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Dial")
 	var led := BoxMesh.new()
 	led.size = Vector3(0.008, 0.008, 0.004)
-	_mesh(root, led, _mat(LED_RED.darkened(0.7), 0.5), Vector3(0.045, -0.025, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Led")
+	_mesh(root, led, _mat(LED_RED.darkened(0.7), 0.5), HOLD + Vector3(0.045, -0.025, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Led")
 	var ant := CylinderMesh.new()
 	ant.top_radius = 0.0016
 	ant.bottom_radius = 0.0022
 	ant.height = RADIO_ANTENNA
 	ant.radial_segments = 6
 	ant.rings = 1
-	_mesh(root, ant, _mat(Color(0.7, 0.7, 0.72), 0.4), Vector3(-0.045, RADIO_H * 0.5 + RADIO_ANTENNA * 0.5 - 0.004, 0.0), Vector3(0.0, 0.0, deg_to_rad(-12.0)), "Antenna")
+	_mesh(root, ant, _mat(Color(0.7, 0.7, 0.72), 0.4), HOLD + Vector3(-0.045, RADIO_H * 0.5 + RADIO_ANTENNA * 0.5 - 0.004, 0.0), Vector3(0.0, 0.0, deg_to_rad(-12.0)), "Antenna")
 	root.rotation = Vector3(deg_to_rad(-12.0), deg_to_rad(-24.0), deg_to_rad(4.0))
 	return root
 

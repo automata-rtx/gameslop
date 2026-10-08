@@ -31,7 +31,7 @@ func after_each() -> void:
 
 
 func _mech() -> Array:
-	return _noises.filter(func(n: Array) -> bool: return n[2] == &"mech")
+	return _noises.filter(func(n: Array) -> bool: return n[2] == &"radio")
 
 
 func _exit_at(pos: Vector3) -> Node3D:
@@ -77,6 +77,18 @@ func test_the_item_reads_the_exit_in_the_level() -> void:
 	assert_approx(_ri.angle_to_exit(), 0.0, 1.0)
 	_p.rotation.y = deg_to_rad(90.0)
 	assert_approx(_ri.angle_to_exit(), 90.0, 1.0)
+
+
+func test_a_toggle_moves_the_hand_and_lights_the_led_at_once() -> void:
+	await get_tree().create_timer(0.7).timeout  # the raise tween
+	var m := _ri.held()
+	assert_not_null(m, "the radio is in hand")
+	var led := m.get_node("Led") as MeshInstance3D
+	var before := m.position
+	_inv.use_selected()
+	await await_frames(2)
+	assert_ne(m.position, before, "the hand dips on the toggle")
+	assert_gt(float((led.material_override as ShaderMaterial).get_shader_parameter(&"emission_strength")), 1.0, "the LED is lit")
 
 
 func test_toggle_on_off_and_charge_total() -> void:
