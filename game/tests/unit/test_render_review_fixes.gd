@@ -8,6 +8,7 @@ const SHADER_FILES: Array[String] = [
 	"res://shaders/world_surface.gdshader",
 	"res://shaders/coherence_post.gdshader",
 	"res://shaders/coherence_screen.gdshader",
+	"res://shaders/water.gdshader",
 ]
 const NOISE_ALBEDO := "res://data/materials/noise_albedo.tres"
 

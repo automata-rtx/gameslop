@@ -4,7 +4,7 @@ extends RefCounted
 ## appended to LevelShots' five: Pools "basin" (from the rim above a basin's steps, looking
 ## down the steps across the pool, a wet one when there is one) and Garage "ramp" (from the
 ## foot of a ramp on deck 0, looking up it to deck 1), "ramp_down" (from deck 1, down) and
-## "deck" (across deck 0 from a cell no car stands in).
+## "deck" (across deck 0 from a cell no car stands in or beside).
 ## Each pose is {name, from, to}, eye height above the floor it stands on.
 
 const EYE := 1.6
@@ -33,6 +33,14 @@ static func _deck_pose(data: LevelData) -> Dictionary:
 	for i in g.cell_count():
 		var c := g.cell_at(i)
 		if g.kind(c) != LevelGrid.FLOOR or g.deck[i] != 0 or g.has_flag(c, LevelGrid.F_NO_SPAWN):
+			continue
+		# M2.13a: not beside a parked car either (a car body a metre off fills a third of the
+		# frame with its unlit flank; the pose is about the deck).
+		var beside := false
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				beside = beside or LevelShots.prop_cell(g, c + Vector2i(dx, dz))
+		if beside:
 			continue
 		for d in 4:
 			var n := 0

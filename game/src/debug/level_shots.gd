@@ -9,6 +9,12 @@ extends Node
 const EYE := 1.6
 const SETTLE_FRAMES := 24
 const T1_DISTANCES: Array[float] = [2.0, 4.0, 6.0, 8.0, 10.0, 12.0]
+## T1 floor probe: how far below the camera's floor a surface is still searched for (basin
+## steps, the far end of a ramp), the steepest surface that counts as floor, and how far the
+## hit may sit from its cell's floor height (a car roof does not count).
+const FLOOR_PROBE_DEPTH := 3.6
+const FLOOR_MIN_NORMAL_Y := 0.7
+const FLOOR_HEIGHT_TOLERANCE := 0.3
 
 var _camera: Camera3D
 var _level: Level
@@ -66,7 +72,9 @@ func measure(img: Image) -> Dictionary:
 
 ## Tuning aid: `--shot-light-kind omni|spot --shot-spot-angle A --shot-spot-attenuation S
 ## --shot-light-energy E --shot-light-decay D --shot-light-range R --shot-light-drop M
-## --shot-pool N --shot-ambient A --shot-fog-emission F --shot-ao-affect L` override the
+## --shot-light-out O --shot-pool N --shot-ambient A --shot-ambient-color HEX
+## --shot-ao-intensity I --shot-ao-affect L --shot-exposure X --shot-agx-contrast C
+## --shot-fog-density D --shot-fog-emission F` override the
 ## look for this capture only (compare values before Tuning and 02 change);
 ## `--shot-debug-lights 1` prints the lent lights per pose.
 func _apply_overrides(level: Level) -> Dictionary:
@@ -96,6 +104,9 @@ func _apply_overrides(level: Level) -> Dictionary:
 			"--shot-light-drop":
 				pool.light_drop = v
 				relight = true
+			"--shot-light-out":
+				pool.light_out = v
+				relight = true
 			"--shot-light-energy":
 				pool.light_energy = v
 			"--shot-light-decay":
@@ -106,6 +117,16 @@ func _apply_overrides(level: Level) -> Dictionary:
 				relight = true
 			"--shot-ambient":
 				env.ambient_light_energy = v
+			"--shot-ambient-color":
+				env.ambient_light_color = Color(args[i + 1])
+			"--shot-ao-intensity":
+				env.ssao_intensity = v
+			"--shot-exposure":
+				env.tonemap_exposure = v
+			"--shot-agx-contrast":
+				env.tonemap_agx_contrast = v
+			"--shot-fog-density":
+				env.volumetric_fog_density = v
 			"--shot-fog-emission":
 				env.volumetric_fog_emission_energy = v
 			"--shot-ao-affect":
@@ -191,19 +212,53 @@ static func _longest_corridor(g: LevelGrid) -> Vector4i:
 		var c := g.cell_at(i)
 		if g.kind(c) != LevelGrid.FLOOR:
 			continue
+		if prop_cell(g, c):
+			continue
 		for d: int in [LevelGrid.E, LevelGrid.S]:
 			# Only start at the head of a run.
 			var back := c - LevelGrid.DIRS[d]
-			if g.kind(back) == LevelGrid.FLOOR and g.can_step(back, d):
+			if g.kind(back) == LevelGrid.FLOOR and g.can_step(back, d) and not prop_cell(g, back):
 				continue
 			var n := 1
 			var p := c
-			while g.can_step(p, d) and g.kind(p + LevelGrid.DIRS[d]) == LevelGrid.FLOOR:
+			while g.can_step(p, d) and g.kind(p + LevelGrid.DIRS[d]) == LevelGrid.FLOOR and not prop_cell(g, p + LevelGrid.DIRS[d]):
 				p += LevelGrid.DIRS[d]
 				n += 1
 			if n > best.w:
 				best = Vector4i(c.x, c.y, d, n)
 	return best
+
+
+## A floor cell a prop stands on (a parked car, a barrier, a lifeguard chair: the generators
+## flag those F_NO_SPAWN outside the spawn and exit rooms). Corridor poses never start in one.
+static func prop_cell(g: LevelGrid, c: Vector2i) -> bool:
+	return g.has_flag(c, LevelGrid.F_NO_SPAWN) and not g.has_flag(c, LevelGrid.F_SPAWN_ROOM | LevelGrid.F_EXIT_ROOM)
+
+
+## The floor point T1 reads `d` metres ahead of the camera: on the floor under that point
+## (the camera's own floor height, EYE below it, then the walkable surface found straight
+## down, so deck 1, ramps and basin steps read where the player stands). Null when there is
+## no floor there or it is hidden from the eye (behind a wall, under a car).
+func _floor_point(space: PhysicsDirectSpaceState3D, fwd: Vector3, d: float) -> Variant:
+	var eye := _camera.global_position
+	var p := eye + fwd * d
+	p.y = eye.y - EYE
+	var down := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, eye.y, p.z), Vector3(p.x, p.y - FLOOR_PROBE_DEPTH, p.z), 1))
+	if down.is_empty() or (down[&"normal"] as Vector3).y < FLOOR_MIN_NORMAL_Y:
+		return null
+	p = down[&"position"]
+	# A car roof or a barrier top is not the floor: the surface must be a walkable cell's floor
+	# (or a ramp, whose height runs between two decks).
+	if _level != null and _level.data != null:
+		var g := _level.data.grid
+		var c := g.cell_of(p)
+		if g.kind(c) != LevelGrid.RAMP and (not g.is_walkable(c) or absf(p.y - g.floor_y(c)) > FLOOR_HEIGHT_TOLERANCE):
+			return null
+	# Skip points behind a wall (the ray from the eye to the floor point is blocked).
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, p + Vector3(0, 0.05, 0), 1))
+	if not hit.is_empty() or _camera.is_position_behind(p):
+		return null
+	return p
 
 
 ## T1: floor luma along the view at 2..12 m; T3: darkest percentile and clipped pixels.
@@ -214,13 +269,13 @@ func _measure(img: Image) -> Dictionary:
 	fwd = fwd.normalized()
 	var space := _camera.get_world_3d().direct_space_state
 	for d in T1_DISTANCES:
-		var p := _camera.global_position + fwd * d
-		p.y = 0.0
-		# Skip points behind a wall (the ray from the eye to the floor point is blocked).
-		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(_camera.global_position, p + Vector3(0, 0.05, 0), 1))
-		if not hit.is_empty() or _camera.is_position_behind(p):
+		var found: Variant = _floor_point(space, fwd, d)
+		if found == null:
 			continue
-		var px := _camera.unproject_position(p)
+		var p: Vector3 = found
+		# unproject_position works in the viewport's visible rect, which differs from the
+		# captured image under a content scale (--resolution 960x540 in a 1920x1080 window).
+		var px := _camera.unproject_position(p) * Vector2(img.get_size()) / _camera.get_viewport().get_visible_rect().size
 		if Rect2(Vector2.ZERO, Vector2(img.get_size())).has_point(px):
 			floor_luma["%dm" % int(d)] = snappedf(_luma_at(img, Vector2i(px)), 0.001)
 	var lumas: PackedFloat32Array = []
