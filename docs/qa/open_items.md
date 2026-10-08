@@ -23,7 +23,7 @@ Deferred work found during production. Each line names the task that should abso
 - Player owner: `Player.look()` refuses mouse look in Landing; 05 §4 wants a free cabin camera.
 - HUD owner: needs a dim keyless prompt (`FUSE MISSING` for Variant B breaker without a fuse); clear the exit line while in the cabin.
 - M2.1: depths 2+ generate as Halls until the other grammars exist (HUD and summary both name the generated stratum since R11, `RunState.stratum`).
-- M2.2: decide rack noclip (07 §7 says racks are WALL on all four faces, but a rack cell is not walkable so the query says NO SPACE). Proposal: a rack face passes through the whole rack to the far walkable cell.
+- M2.2: decide rack noclip (07 §7 says racks are WALL on all four faces, but a rack cell is not walkable so the query says NO SPACE). Proposal: a rack face passes through the whole rack to the far walkable cell. **Done (M2.2):** implemented as proposed (`NoclipQuery.rack_far_side`, `pass_depth`; 06 and 07 additions; tested by a player pass through a rack).
 - M2.10: use a custom user folder (`application/config/use_custom_user_dir`, name `NOCLIP`) so saves live in %APPDATA%\NOCLIP and ~/.local/share/NOCLIP; update README.txt.in. Windows build smoke must be run on Windows by the human at cp-13.
 - Errors owner: `ErrorBase.start_search` before navigation is ready ends in Wander, not Search (Director re-calls it on navigation_ready as a workaround).
 - M2.14: Director should feed `MusicDirector.set_intensity` once it exists.
@@ -48,3 +48,7 @@ Deferred work found during production. Each line names the task that should abso
 - Archive: new notes do not blink on first open (meta has no read state); Polaroids show as a count, not thumbnails.
 - M2 levelgen/sim: 5 of 10 Garage sim runs end "stuck" (bot stuck on the level); check Garage navigation (ramps, cars, pillars) and the bot's unstick logic.
 - Intermittent (R10): a sim child crashed with signal 11 ("propagate_notification" from a worker thread) during level start under load; another left unreadable JSON. Strong lead for the existing worker-thread race item: find what touches nodes off the main thread during level build/start.
+- M2.9: the Server exit `floor_hatch` (a placement at the exit clearing's centre) and the Offices elevator use the elevator prefab until the per-stratum exit prefabs land; in Server the elevator stands in the middle of the clearing.
+- M2.8: `under_desk` (one per Offices desk, ~60 to 120 a level) and `rack_gap` (3 per Server level) hide spots are markers; the desk's modesty panel faces the room with a 0.3 m gap at the floor (09 §6), its back on the partition.
+- M2.13 / render: Server surfaces are #0A0C10 (02 §7), so its floor can only read through fog and specular; see the M2.2 report for the T1 numbers. Offices dark groups make the dark_group frames fail T1 by design (no light there until the breaker).
+- Lighting: build slices in Offices/Server peak above 4 ms (the first instance of each merged prop builds its mesh; a large chunk mesh); reported, not enforced.

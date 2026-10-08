@@ -994,7 +994,7 @@ const RENDER_FPS_TARGET := 60
 # Render-task implementation constants (02 gives no number; chosen against T1/T3 in the
 # render bench, M1.5). Volumetric fog: emission in the fog colour keeps unlit air visible.
 const RENDER_FOG_EMISSION_ENERGY := 0.2
-const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 0.8}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3)
+const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 0.8, &"server": 4.5}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3; M2.2: Server surfaces are #0A0C10, only lit fog shows the aisles, T1/T3)
 const RENDER_FOG_AMBIENT_INJECT := 1.0
 const RENDER_FOG_LENGTH := 64.0                     # m of froxel volume
 const RENDER_FOG_FROXEL_DEPTH := 64                 # froxel depth slices
@@ -1096,7 +1096,7 @@ const LIGHT_POOL_FADE_IN := 0.2                     # s, a light re-assigned to 
 const LIGHT_POOL_DISTANCE_FADE_BEGIN := 18.0        # m, distance_fade on pooled lights hides the swap (render-task constant)
 const LIGHT_POOL_DISTANCE_FADE_LENGTH := 6.0        # m
 const LIGHT_FIXTURE_ATTENUATION := 2.0              # omni_attenuation of pooled fixture lights (render-task constant)
-const LIGHT_FIXTURE_ATTENUATION_STRATUM: Dictionary = {&"pools": 1.0, &"garage": 1.0}   # M2.1: 6 m pool ceilings and 8 m sodium spacing (T1)
+const LIGHT_FIXTURE_ATTENUATION_STRATUM: Dictionary = {&"pools": 1.0, &"garage": 1.0, &"offices": 1.0, &"server": 1.0}   # M2.1: 6 m pool ceilings and 8 m sodium spacing (T1); M2.2: Offices troffers at 1.1, the Server's dim lights (T1)
 const LIGHT_FIXTURE_KIND: Dictionary = {&"halls": &"omni"}   # pooled light per stratum: omni or spot (02 §6)
 const LIGHT_SPOT_ANGLE := 70.0                      # deg, spot fixtures: a wide downlight (render-task constant)
 const LIGHT_SPOT_ANGLE_ATTENUATION := 1.0
