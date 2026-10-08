@@ -36,6 +36,8 @@ var _path: Array[Vector3] = []
 var _dwell_left: float = 0.0
 var _steps_heard: Array[float] = []
 var _nudge: bool = false
+## Search reached its point and is dwelling there.
+var _searched: bool = false
 var _hum: AudioLoop
 var _band: AudioLoop
 
@@ -49,6 +51,8 @@ func _configure() -> void:
 	field.collision_layer = 0
 	field.collision_mask = 0
 	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	field.position = Vector3.UP * Tuning.STATIC_CENTRE_HEIGHT
+	mesh.position = Vector3.UP * Tuning.STATIC_CENTRE_HEIGHT
 	_apply_radius()
 
 
@@ -172,9 +176,11 @@ func _drift(delta: float) -> void:
 				_nudge = false
 				_plan_to(_wander_target())
 			Tuning.ERROR_STATE_SEARCH:
-				if state_time > 0.0 and _dwell_left <= 0.0 and _searched:
+				if _searched:
 					transition_to(Tuning.ERROR_STATE_WANDER, "search dwell over")
-					return
+				else:
+					_arrive()  # unreachable point: dwell where it is
+				return
 		if _path.is_empty():
 			return
 	var speed := drift_speed()
@@ -202,8 +208,6 @@ func _drift(delta: float) -> void:
 		return
 	global_position = next
 
-
-var _searched: bool = false
 
 
 func _arrive() -> void:
