@@ -1048,6 +1048,54 @@
     1.902
    ]
   },
+  "exit_open_door": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/exit_open_door_v01.wav",
+    "res://assets/audio/world/exit_open_door_v02.wav",
+    "res://assets/audio/world/exit_open_door_v03.wav"
+   ],
+   "length_s": [
+    1.802,
+    1.802,
+    1.802
+   ]
+  },
+  "exit_open_drain": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/exit_open_drain_v01.wav",
+    "res://assets/audio/world/exit_open_drain_v02.wav",
+    "res://assets/audio/world/exit_open_drain_v03.wav"
+   ],
+   "length_s": [
+    1.802,
+    1.802,
+    1.802
+   ]
+  },
+  "exit_open_hatch": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/exit_open_hatch_v01.wav",
+    "res://assets/audio/world/exit_open_hatch_v02.wav",
+    "res://assets/audio/world/exit_open_hatch_v03.wav"
+   ],
+   "length_s": [
+    1.702,
+    1.702,
+    1.702
+   ]
+  },
   "exit_latch": {
    "group": "world",
    "bus": "Interact",

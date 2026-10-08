@@ -52,6 +52,8 @@ var dissolve_time: float = Tuning.COHERENCE_DISSOLVE_TIME
 var capture_mouse: bool = true
 ## Last arrival kind (&"start", &"proper", &"drop").
 var arrival: StringName = &""
+## Tests and benches only: extra LevelGenerator options merged over the run's (e.g. `lock`).
+var generation_overrides: Dictionary = {}
 
 var _task: int = -1
 var _generated: LevelData
@@ -121,14 +123,21 @@ func _begin_generation() -> void:
 	var cycle := 1 + (depth - 1) / Tuning.RUN_CYCLE_LENGTH
 	var options := {
 		&"item_pool": RunLevelSetup.item_pool(GameState.meta, GameState.run.mode == Tuning.MODE_DAILY),
-		# Orchestrator decision (M1.9): no Variant B before the Fuse has a world scene (M2.8).
-		&"fuse_unlocked": false,
+		# M2.9: Variant B once unlock #4 (Fuse) is earned (05 §6); Daily ignores unlocks (05 §8).
+		&"fuse_unlocked": fuse_unlocked(GameState.meta, GameState.run.mode == Tuning.MODE_DAILY),
 		&"endless": GameState.run.mode == Tuning.MODE_ENDLESS,
 	}
+	options.merge(generation_overrides, true)
 	_generated = null
 	_prepared = false
 	_task = WorkerThreadPool.add_task(func() -> void:
 		_generated = LevelGenerator.generate(build, depth, run_seed, first, cycle, options), false, "LevelGenerator")
+
+
+## 07 §6 Variant B: Powered exits may need a fuse once the Fuse unlock is earned (or always in
+## Daily Descent, which ignores unlock state like the item pool does).
+static func fuse_unlocked(meta: MetaState, daily: bool = false) -> bool:
+	return daily or (meta != null and meta.is_unlocked(&"fuse"))
 
 
 ## Waits for the generation, builds the level, prepares it once walkable. Sets _prepared.
@@ -198,6 +207,9 @@ func _arrive(kind: StringName) -> void:
 	if capture_mouse and DisplayServer.get_name() != "headless":
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_set_phase(PHASE_PLAYING)
+	if exit != null:
+		# 07 §6 Cycled: the schedule runs from the player's arrival, not from the build.
+		exit.start_cycle()
 	GameState.run.stratum = data.stratum
 	EventBus.level_entered.emit(GameState.run.depth, data.stratum, kind)
 	_begin_director(level, kind)
