@@ -32,8 +32,10 @@ extends RefCounted
 ## SIMBOT_DEBUG in the environment prints a line per second (position, goal, Static).
 ##
 ## Result keys: seed, profile, depth, stratum, outcome (exit, dissolved, stuck, timeout,
-## relief, error), time_s, contacts (Director), contact_log ([t, error id, instance]),
-## contact_violations, refused, encounters, retreated_chases, notices, phases (deduplicated
+## relief, error), time_s, contacts (Director), contact_log ([t, error id, instance, phase,
+## chased: the error entered Chase/Follow/Stalk since its last contact]),
+## contact_violations, contacts_unchased, contacts_in_relief, spawned (error ids on the
+## level), has_hunter, has_static, refused, encounters, retreated_chases, notices, phases (deduplicated
 ## runs), phase_counts, max_intensity, coherence, roster, skipped, stuck_events, hides,
 ## hide_tries,
 ## cranks, sprints, explored, peaks_with_chase, nav_wait_s, physics_dt, telemetry_rows,
@@ -133,6 +135,8 @@ var _peak_index: int = -1
 var _peaks_chased: int = 0
 var _peak_marked: bool = false
 var _watched: Dictionary = {}
+## Error instance id -> it entered a chasing state since its last contact.
+var _chased_since: Dictionary = {}
 
 
 ## Plays `run_seed` at `depth` (first Descent off, so depth 1 carries a hunter).
@@ -197,6 +201,16 @@ func play(run_seed: int) -> Dictionary:
 	result[&"contacts"] = director.contacts
 	result[&"contact_log"] = _contact_log.duplicate(true)
 	result[&"contact_violations"] = contact_violations(_contact_log)
+	result[&"contacts_unchased"] = _contact_log.filter(func(e: Array) -> bool: return not bool(e[4])).size()
+	result[&"contacts_in_relief"] = _contact_log.filter(func(e: Array) -> bool:
+		return StringName(e[3]) == DirectorPacing.RELIEF).size()
+	var spawned: Array[String] = []
+	for e in director.errors:
+		if is_instance_valid(e):
+			spawned.append(String(e.error_id))
+	result[&"spawned"] = spawned
+	result[&"has_hunter"] = spawned.any(func(id: String) -> bool: return DirectorRules.is_hunter(StringName(id)))
+	result[&"has_static"] = spawned.has("static")
 	result[&"refused"] = director.refused
 	result[&"encounters"] = director.encounters
 	result[&"retreated_chases"] = director.retreated_chases
@@ -281,6 +295,14 @@ static func contact_violations(log: Array) -> PackedStringArray:
 	return out
 
 
+## The phase a contact landed in: the Director hears the contact first and may already have
+## entered Relief for it (phase_time still 0); then it is the phase before.
+static func phase_before_contact(p: DirectorPacing) -> StringName:
+	if p.phase == DirectorPacing.RELIEF and p.phase_time == 0.0 and p.history.size() >= 2:
+		return p.history[p.history.size() - 2]
+	return p.phase
+
+
 ## Entries of each phase in a Director history.
 static func phase_counts(history: Array[StringName]) -> Dictionary:
 	var out := {}
@@ -319,8 +341,13 @@ func _watch_errors() -> void:
 		_watched[e.get_instance_id()] = true
 		var id := e.error_id
 		var key := e.get_instance_id()
+		e.state_changed.connect(func(_from: StringName, to: StringName) -> void:
+			if DirectorRules.is_chasing_state(to):
+				_chased_since[key] = true)
 		e.contacted_player.connect(func(_cost: float) -> void:
-			_contact_log.append([snappedf(_t, 0.001), String(id), key]))
+			_contact_log.append([snappedf(_t, 0.001), String(id), key, String(phase_before_contact(director.pacing)),
+				bool(_chased_since.get(key, false))])
+			_chased_since[key] = false)
 
 
 # --- the bot ---------------------------------------------------------------------------------

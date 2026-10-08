@@ -39,6 +39,8 @@ var errors: Array[ErrorBase] = []
 ## The roster as designed (05 §3) and the ids skipped because they have no scene yet.
 var roster: Array[StringName] = []
 var skipped: Array[StringName] = []
+## The roster as spawned: `roster` after the temporary Still substitution (M2.4/M2.5 remove it).
+var spawned_roster: Array[StringName] = []
 var native: StringName = &""
 ## 10 §4 contact exclusivity: the one clock (CHANGELOG: owned by the Director). −1: none.
 var last_contact_ms: int = -1
@@ -109,7 +111,11 @@ func begin(p_level: Level, p_player: Player, p_arrival: StringName = Tuning.RUN_
 				if DirectorRules.is_hunter(id):
 					native = id
 					break
-		hunters.spawn_roster(roster)
+		# TEMPORARY until M2.4/M2.5: an unbuilt native spawns as Still (one function).
+		var sub := DirectorRules.substitute_unbuilt_native(roster, native)
+		spawned_roster.assign(sub[&"roster"])
+		native = sub[&"native"]
+		hunters.spawn_roster(spawned_roster)
 		hunters.awake_arrivals(DirectorRules.awake_hunters(drops_in_a_row))
 		hunters.bound_statics_off_path()
 	_apply_aggression(true)
@@ -206,6 +212,7 @@ func _tick(dt: float) -> void:
 	if _check_left <= 0.0:
 		_check_left = Tuning.DIRECTOR_CALM_CHECK_INTERVAL
 		hunters.enforce_caps(s)
+		hunters.spawn_pending()
 	_static_left -= dt
 	if _static_left <= 0.0:
 		_static_left = Tuning.STATIC_FAIR_CHECK_INTERVAL
