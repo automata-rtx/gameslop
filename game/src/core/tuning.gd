@@ -543,6 +543,20 @@ const DIRECTOR_SPAWN_NATIVE_PATH_MIN := 0.35        # native hunter at 35% to 65
 const DIRECTOR_SPAWN_NATIVE_PATH_MAX := 0.65
 const DIRECTOR_MAX_CHASERS: Dictionary = {1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2}   # depth 6: Null plus 1 (Static does not count)
 const DIRECTOR_CONTACT_REFUSED_RETREAT := 5.0       # s, retreat(5) for the refused error
+# M1.8 build-task constants (10 gives no number)
+const DIRECTOR_TICK := 0.1                          # s, one intensity step (1 / DIRECTOR_UPDATE_HZ)
+const DIRECTOR_CHASE_STATES: Array[StringName] = [&"chase", &"follow", &"stalk"]   # 10 §2 "in Chase/Follow/Stalk"
+const DIRECTOR_PLAYER_NOISE_DIST := 2.0             # m, a noise this close to the player is the player's
+const DIRECTOR_CALM_CHECK_INTERVAL := 1.0           # s, Calm keeps awake hunters >= 30 m (hints)
+const DIRECTOR_HINT_AWAY_MAX := 40.0                # m, Relief/Calm hint-away cells lie 25 (30) to 40 m out
+const DIRECTOR_HINT_DIST_TOLERANCE := 2.0           # m, "a cell 12 m / 30 m from the player" within one cell
+const DIRECTOR_NOCLIP_LOS_CHECK_DELAY := 0.5        # s after a wall commit: did the chaser lose sight?
+const DIRECTOR_STATIC_OFF_PATH_CLEARANCE := 6.0     # m from every critical-path cell (Static radius max 5)
+const DIRECTOR_STATIC_OFF_PATH_SEARCH_CELLS := 15   # walking cells searched for an off-path cell
+const DIRECTOR_TELEMETRY_INTERVAL := 1.0            # s per telemetry row (10 §9)
+const DIRECTOR_SPAWN_EYE_HEIGHT := 1.3              # m, the point tested against the frustum and sight
+const DIRECTOR_SPAWN_FRUSTUM_MARGIN_DEG := 10.0     # widen the horizontal half-FOV (conservative)
+const SEED_LABEL_DIRECTOR := "director"             # Director rng (Relief length, hint cells, roster picks)
 # 10 §5 scares (Build phase only)
 const SCARE_MIN_INTERVAL := 30.0                    # s, at most one scare per 30 s
 const SCARE_INTENSITY_NONE_BELOW := 0.2
