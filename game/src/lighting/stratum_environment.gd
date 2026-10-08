@@ -38,14 +38,29 @@ static func build(data: StratumData, preset: StringName = Tuning.QUALITY_PRESET_
 
 ## 02 §12: AA, render scale, shadow atlas and froxel size live on the viewport/server.
 static func apply_viewport_preset(vp: Viewport, preset: StringName = Tuning.QUALITY_PRESET_DEFAULT) -> void:
-	var p := preset_of(preset)
-	var aa: StringName = p[&"aa"]
-	vp.use_taa = aa == &"taa"
-	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if aa == &"fxaa" else Viewport.SCREEN_SPACE_AA_DISABLED
-	vp.msaa_3d = Viewport.MSAA_DISABLED
-	vp.scaling_3d_scale = float(p[&"render_scale"])
-	vp.positional_shadow_atlas_size = int(p[&"shadow_atlas"])
-	var froxel: int = p[&"fog_froxel_px"]
+	apply_viewport_profile(vp, preset_of(preset))
+
+
+## The same from a profile dictionary (a preset, or SettingsApply.graphics_profile with the
+## player's individual options). 12 §2: below render scale 1.0 the `upscaling` choice
+## applies (FSR 2 by default); FSR 2 replaces anti-aliasing and is incompatible with MSAA.
+## Above 1.0 is bilinear supersampling.
+static func apply_viewport_profile(vp: Viewport, p: Dictionary) -> void:
+	var aa: StringName = p.get(&"aa", &"taa")
+	var scale := float(p.get(&"render_scale", 1.0))
+	var fsr := scale < 1.0 and StringName(p.get(&"upscaling", &"fsr2")) == &"fsr2"
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR2 if fsr else Viewport.SCALING_3D_MODE_BILINEAR
+	vp.scaling_3d_scale = scale
+	vp.use_taa = aa == &"taa" and not fsr
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if aa == &"fxaa" and not fsr else Viewport.SCREEN_SPACE_AA_DISABLED
+	var msaa := Viewport.MSAA_DISABLED
+	if not fsr and aa == &"msaa2x":
+		msaa = Viewport.MSAA_2X
+	elif not fsr and aa == &"msaa4x":
+		msaa = Viewport.MSAA_4X
+	vp.msaa_3d = msaa
+	vp.positional_shadow_atlas_size = int(p.get(&"shadow_atlas", 4096))
+	var froxel: int = p.get(&"fog_froxel_px", 0)
 	if froxel > 0:
 		RenderingServer.environment_set_volumetric_fog_volume_size(froxel, Tuning.RENDER_FOG_FROXEL_DEPTH)
 
