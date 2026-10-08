@@ -90,6 +90,8 @@ const PROMPT_PULL_FUSE := "PULL FUSE"
 const PROMPT_FUSE_MISSING := "FUSE MISSING"                   # ui_dim, no key
 const PROMPT_SWIPE := "SWIPE"
 const PROMPT_NO_CARD := "NO CARD"                             # ui_dim
+## Prompts shown as a dim, keyless notice (04 §6): the HUD routes these to show_notice_prompt.
+const NOTICE_PROMPTS: Array[String] = [PROMPT_FUSE_MISSING, PROMPT_NO_CARD]
 const PROMPT_USE := "USE"
 const PROMPT_ANSWER := "ANSWER"
 const PROMPT_READ := "READ"

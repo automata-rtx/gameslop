@@ -51,9 +51,9 @@ func _offers(player: Node) -> bool:
 	_refresh_prompt(player)
 	if fuse_in:
 		return true
-	# 09 §5: FUSE MISSING is a dim, keyless line; the HUD has no such prompt yet, so a
-	# player without a fuse sees nothing (reported to the HUD owner).
-	return _carries_fuse(player)
+	# 09 §5: without a fuse the box still offers its dim, keyless FUSE MISSING notice
+	# (the HUD routes it by text); interacting then does nothing (_on_interacted).
+	return true
 
 
 func _refresh_prompt(player: Node) -> void:
@@ -62,7 +62,8 @@ func _refresh_prompt(player: Node) -> void:
 		interactable.hold_time = Tuning.BREAKER_HOLD_TIME
 	else:
 		interactable.prompt = Strings.PROMPT_INSERT_FUSE if player == null or _carries_fuse(player) else Strings.PROMPT_FUSE_MISSING
-		interactable.hold_time = Tuning.FUSE_INSERT_TIME
+		var has := player == null or _carries_fuse(player)
+		interactable.hold_time = Tuning.FUSE_INSERT_TIME if has else 0.0
 
 
 static func _carries_fuse(player: Node) -> bool:

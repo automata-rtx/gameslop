@@ -80,6 +80,16 @@ func show_text(text: String, hold: float = 0.0) -> void:
 	raw_text = text
 
 
+## 04 §6 notice: a dim, keyless line (`FUSE MISSING`), no hold underline.
+func show_notice(text: String) -> void:
+	if text.is_empty():
+		hide_text()
+		return
+	var segs: Array[Dictionary] = UiKeys.segments("{text}", {&"text": text}, {})
+	set_segments(segs, 0.0, UiTokens.UI_DIM)
+	raw_text = text
+
+
 ## Shows pre-built segments (captions are plain: one segment, no key).
 func set_segments(segs: Array[Dictionary], hold: float = 0.0, tint: Color = UiTokens.UI_FG) -> void:
 	hold_time = hold

@@ -64,6 +64,20 @@ func test_invert_y() -> void:
 	assert_lt(_p.rig.pitch, 0.0, "mouse down looks down")
 
 
+func test_look_is_free_in_the_landing_but_movement_is_not() -> void:
+	_p.state_machine.transition_to(PlayerStateMachine.LANDING)
+	assert_false(_p.has_agency())
+	var yaw := _p.rotation.y
+	_p.look(Vector2(20, 10))
+	assert_ne(_p.rotation.y, yaw, "05 §4: the cabin camera is free")
+	assert_ne(_p.rig.pitch, 0.0)
+	_p.state_machine.reset()
+	_p.state_machine.transition_to(PlayerStateMachine.DROPPING)
+	yaw = _p.rotation.y
+	_p.look(Vector2(20, 0))
+	assert_approx(_p.rotation.y, yaw, 0.00001, "other agency-less states still refuse look")
+
+
 func test_trauma_clamps_and_decays() -> void:
 	var rig := _p.rig
 	rig.trauma = 0.0

@@ -168,6 +168,16 @@ func show_prompt(text: String, hold_time: float = 0.0) -> void:
 	crosshair.set_target(true)
 
 
+## 04 §6: a dim, keyless notice in the prompt position (`FUSE MISSING`). Not an action, so
+## the crosshair does not take the target state.
+func show_notice_prompt(text: String) -> void:
+	if text.is_empty():
+		hide_prompt()
+		return
+	prompt.show_notice(text)
+	crosshair.set_target(false)
+
+
 func hide_prompt() -> void:
 	prompt.hide_text()
 	crosshair.set_target(false)
@@ -288,7 +298,10 @@ func _on_hidden_changed(on: bool) -> void:
 
 
 func _on_prompt_changed(text: String, hold_time: float) -> void:
-	show_prompt(text, hold_time)
+	if Strings.NOTICE_PROMPTS.has(text):
+		show_notice_prompt(text)
+	else:
+		show_prompt(text, hold_time)
 
 
 func _on_prompt_progress(fraction: float) -> void:
@@ -313,6 +326,8 @@ func _on_level_entered(d: int, stratum: StringName, arrival: StringName) -> void
 func _on_level_left(proper: bool) -> void:
 	if proper:
 		notify(Strings.MSG_DESCENDING)
+	# 05 §4: the cabin has no exit; the status line shutters out until the next level.
+	depth.clear_exit_status()
 
 
 func _on_note_found(id: StringName) -> void:
