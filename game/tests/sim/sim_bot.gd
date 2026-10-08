@@ -295,6 +295,14 @@ static func contact_violations(log: Array) -> PackedStringArray:
 	return out
 
 
+## The phase a contact landed in: the Director hears the contact first and may already have
+## entered Relief for it (phase_time still 0); then it is the phase before.
+static func phase_before_contact(p: DirectorPacing) -> StringName:
+	if p.phase == DirectorPacing.RELIEF and p.phase_time == 0.0 and p.history.size() >= 2:
+		return p.history[p.history.size() - 2]
+	return p.phase
+
+
 ## Entries of each phase in a Director history.
 static func phase_counts(history: Array[StringName]) -> Dictionary:
 	var out := {}
@@ -337,7 +345,7 @@ func _watch_errors() -> void:
 			if DirectorRules.is_chasing_state(to):
 				_chased_since[key] = true)
 		e.contacted_player.connect(func(_cost: float) -> void:
-			_contact_log.append([snappedf(_t, 0.001), String(id), key, String(director.phase),
+			_contact_log.append([snappedf(_t, 0.001), String(id), key, String(phase_before_contact(director.pacing)),
 				bool(_chased_since.get(key, false))])
 			_chased_since[key] = false)
 

@@ -85,7 +85,8 @@ func spawn_roster(roster: Array[StringName]) -> void:
 		fwd, DirectorSpawn.half_fov_h(cam.fov, aspect), d.rng, band)
 	for i in ids.size():
 		if cells[i] == LevelData.NO_CELL:
-			push_warning("Director: no fair spawn cell for %s at depth %d" % [ids[i], d.depth])
+			push_warning("Director: no fair spawn cell for %s at depth %d (player cell %s, spawn cell %s, cells %s)" % [
+				ids[i], d.depth, _grid().cell_of(d.player.global_position), d.data.spawn_cell, cells])
 			continue
 		spawn(ids[i], _grid().world_of(cells[i]))
 

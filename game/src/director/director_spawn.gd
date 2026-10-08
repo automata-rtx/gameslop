@@ -65,8 +65,8 @@ static func path_fraction(path: Array[Vector2i], c: Vector2i) -> float:
 ## Cells for each id of `roster` (NO_CELL when nothing fair exists), distinct, from the
 ## level's error_spawn placements first and any fair walkable cell second. The native
 ## hunter prefers 35% to 65% of the critical path; the others prefer side branches; Static
-## is never within 20 m of the spawn room. Static always spawns (M1.13 ruling): with no
-## fair cell it takes the farthest legal one (`farthest_cell`). `band` (cell -> true, the
+## is never within 20 m of the spawn room. Hunters choose before Statics, and Static always
+## spawns (M1.13 ruling): with no fair cell it takes the farthest legal one (`farthest_cell`). `band` (cell -> true, the
 ## first Descent's breaker-to-exit stretch, `breaker_exit_band`) is where the first Static
 ## goes when a fair cell lies in it (05 §10, M1.13 ruling).
 static func pick_cells(data: LevelData, roster: Array[StringName], native: StringName, player_pos: Vector3,
@@ -85,8 +85,19 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 	var fallback_done := false
 	var spawn_room := _spawn_room_cells(data)
 	var out: Array[Vector2i] = []
+	out.resize(roster.size())
+	out.fill(LevelData.NO_CELL)
+	var used: Array[Vector2i] = []
+	# Hunters choose first: Static always has its last resort, a hunter does not (M1.13).
+	var order: Array[int] = []
+	for pass_hunters: bool in [true, false]:
+		for i in roster.size():
+			if DirectorRules.is_hunter(roster[i]) == pass_hunters:
+				order.append(i)
 	var band_done := band.is_empty()
-	for id in roster:
+	for i in order:
+		var id := roster[i]
+		var cell := LevelData.NO_CELL
 		if id == &"static" and not band_done:
 			# The first Static on the first Descent: a fair cell between the breaker and the exit.
 			band_done = true
@@ -96,33 +107,43 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 			var both: Array[Vector2i] = markers.duplicate()
 			both.append_array(fallback)
 			var in_band: Array[Vector2i] = []
-			for c in _eligible(both, out, id, spawn_room):
+			for c in _eligible(both, used, id, spawn_room):
 				if band.has(c) and not in_band.has(c):
 					in_band.append(c)
 			if not in_band.is_empty():
-				out.append(in_band[rng.randi_range(0, in_band.size() - 1)])
-				continue
-		var pool := _eligible(markers, out, id, spawn_room)
-		if pool.is_empty():
-			if not fallback_done:
-				fallback_done = true
-				fallback = _fallback_cells(grid, player_pos, eye, forward, half_fov, walk)
-			pool = _eligible(fallback, out, id, spawn_room)
-		if pool.is_empty():
-			out.append(farthest_cell(grid, out, player_pos, eye, forward, half_fov, walk) if id == &"static" \
-				else LevelData.NO_CELL)
-			continue
-		var preferred: Array[Vector2i] = []
-		for c in pool:
-			if id == native and DirectorRules.is_hunter(id):
-				var f := path_fraction(data.critical_path, c)
-				if f >= Tuning.DIRECTOR_SPAWN_NATIVE_PATH_MIN and f <= Tuning.DIRECTOR_SPAWN_NATIVE_PATH_MAX:
-					preferred.append(c)
-			elif bool(off_path.get(c, false)) or not grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
-				preferred.append(c)
-		var from := preferred if not preferred.is_empty() else pool
-		out.append(from[rng.randi_range(0, from.size() - 1)])
+				cell = in_band[rng.randi_range(0, in_band.size() - 1)]
+		if cell == LevelData.NO_CELL:
+			cell = _pick_one(data, id, native, markers, off_path, used, spawn_room, rng)
+		if cell == LevelData.NO_CELL and not fallback_done:
+			fallback_done = true
+			fallback = _fallback_cells(grid, player_pos, eye, forward, half_fov, walk)
+		if cell == LevelData.NO_CELL:
+			cell = _pick_one(data, id, native, fallback, off_path, used, spawn_room, rng)
+		if cell == LevelData.NO_CELL and id == &"static":
+			cell = farthest_cell(grid, used, player_pos, eye, forward, half_fov, walk)
+		out[i] = cell
+		if cell != LevelData.NO_CELL:
+			used.append(cell)
 	return out
+
+
+## One cell for `id` from `cells` (not `used`): the native hunter prefers 35% to 65% of
+## the critical path, the others side branches. NO_CELL when none is eligible.
+static func _pick_one(data: LevelData, id: StringName, native: StringName, cells: Array[Vector2i], off_path: Dictionary,
+		used: Array[Vector2i], spawn_room: Array[Vector3], rng: RandomNumberGenerator) -> Vector2i:
+	var pool := _eligible(cells, used, id, spawn_room)
+	if pool.is_empty():
+		return LevelData.NO_CELL
+	var preferred: Array[Vector2i] = []
+	for c in pool:
+		if id == native and DirectorRules.is_hunter(id):
+			var f := path_fraction(data.critical_path, c)
+			if f >= Tuning.DIRECTOR_SPAWN_NATIVE_PATH_MIN and f <= Tuning.DIRECTOR_SPAWN_NATIVE_PATH_MAX:
+				preferred.append(c)
+		elif bool(off_path.get(c, false)) or not data.grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
+			preferred.append(c)
+	var from := preferred if not preferred.is_empty() else pool
+	return from[rng.randi_range(0, from.size() - 1)]
 
 
 ## Every fair walkable cell outside the spawn and exit rooms.

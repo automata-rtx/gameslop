@@ -44,7 +44,12 @@ func test_spawn_fairness_over_many_halls_seeds() -> void:
 					missing += 1
 					continue
 				picked += 1
-				var before: Array[Vector2i] = cells.slice(0, i)
+				# Hunters choose first, then the Statics in roster order.
+				var before: Array[Vector2i] = []
+				for j in cells.size():
+					if cells[j] != LevelData.NO_CELL and (DirectorRules.is_hunter(roster[j]) or j < i):
+						before.append(cells[j])
+				before.erase(c)
 				if roster[i] == &"static" and DirectorSpawn._eligible(fair, before, &"static", spawn_room).is_empty():
 					# No fair cell left: Static's last resort, the farthest legal cell (M1.13).
 					assert_eq(c, DirectorSpawn.farthest_cell(g, before, pos, eye, fwd, half, walk),
@@ -157,7 +162,10 @@ func test_every_depth_2_level_has_a_hunter_and_a_static() -> void:
 	for s in range(1, 21):
 		var stratum: StringName = GameState.strata_order_for(s)[1]
 		var build := stratum if LevelGenerator.supports(stratum) else Tuning.STRATUM_DEPTH1
-		var data := LevelGenerator.generate(build, 2, s)
+		# The run's options (Run._begin_generation), so the level is the one a run builds.
+		var options := {&"item_pool": RunLevelSetup.item_pool(MetaState.new(), false), &"fuse_unlocked": false,
+			&"endless": false}
+		var data := LevelGenerator.generate(build, 2, s, false, 1, options)
 		var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_DIRECTOR))
 		var design := DirectorRules.roster(2, stratum, false, [], rng)
 		var native := DirectorRules.native_for(stratum, [], rng)
