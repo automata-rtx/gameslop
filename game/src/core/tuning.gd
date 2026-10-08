@@ -198,6 +198,7 @@ const NOISE_KIND_TEAR := &"tear"
 const NOISE_KIND_DOOR := &"door"
 const NOISE_KIND_IMPACT := &"impact"
 const NOISE_KIND_LIGHT := &"light"
+const NOISE_KIND_RADIO := &"radio"                  # the radio (09 §2): an Echo lure, like mech but its own kind
 const NOISE_STEP_RADIUS: Dictionary = {&"carpet": 5.0, &"tile": 7.0, &"concrete": 7.0, &"raised_floor": 8.0, &"substrate": 6.0}
 const NOISE_STEP_WATER_RADIUS := 10.0
 const NOISE_SPRINT_MULT := 1.8                      # x walk radius
@@ -708,6 +709,18 @@ const RADIO_CHARGE_TIME := 30.0                     # s each
 const RADIO_NOISE_RADIUS := NOISE_RADIO_RADIUS
 const RADIO_PING_FAST_DEG := 20.0                   # facing the exit within 20 deg: fast ping
 const RADIO_PING_SLOW_DEG := 60.0                   # within 60 deg: slow; else noise
+
+# M2.8 task constants: numbers 09 leaves open.
+const RADIO_PING_FAST_INTERVAL := 0.35              # s between pings facing the exit (within 20 deg)
+const RADIO_PING_SLOW_INTERVAL := 1.0               # s between pings within 60 deg
+const RADIO_NOISE_INTERVAL := 1.0                   # s, the mech noise "per second while on"
+const RADIO_PUT_DOWN_HOLD := GLOWSTICK_DROP_HOLD    # s hold use_item to set the radio down (it keeps playing: an Echo lure)
+const RADIO_GAIN_FAR_DB := -14.0                    # static level facing away from the exit (dB under full)
+const FLARE_STRIKE_LOCKOUT := 0.3                   # s after striking before use_item throws it
+const FLARE_FADE_TIME := 1.5                        # s, the light dies down over the last 1.5 s
+const FLARE_FLUTTER_DEPTH := 0.15                   # +- share of the light energy at 1 Hz
+const HIDE_PUMP_CORNER_EYE_HEIGHT := 1.1            # m (crouched in the corner)
+const HIDE_RACK_GAP_EYE_HEIGHT := 1.5               # m
 
 const FUSE_INSERT_TIME := 0.8                       # s (also pull out)
 const FUSE_PATH_MIN := 0.35                         # Variant B fuse at 35% to 70% critical-path distance

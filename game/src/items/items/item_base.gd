@@ -58,3 +58,25 @@ func on_unequipped() -> void:
 ## The held model (09 §3); primitives only.
 func build_held() -> Node3D:
 	return ItemModels.held(kind)
+
+
+## The raised held model of this kind, or null (another kind is in hand, or nothing).
+func held() -> Node3D:
+	var m := inventory.held_model() if inventory != null else null
+	return m if m != null and is_instance_valid(m) and m.get_meta(&"kind", &"") == kind else null
+
+
+var _flick: Tween = null
+
+
+## The hand jabs `offset` metres (model space) and comes back: feedback for a use that has no
+## other motion (a strike, a toggle). Out `out_s` seconds, back `back_s`.
+func flick(offset: Vector3, out_s: float = 0.08, back_s: float = 0.2) -> void:
+	var m := held()
+	if m == null or not inventory.is_inside_tree():
+		return
+	if _flick != null:
+		_flick.kill()
+	_flick = inventory.create_tween().set_trans(Tween.TRANS_QUAD)
+	_flick.tween_property(m, "position", offset, out_s).set_ease(Tween.EASE_OUT)
+	_flick.tween_property(m, "position", Vector3.ZERO, back_s).set_ease(Tween.EASE_IN_OUT)

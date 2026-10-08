@@ -5,8 +5,9 @@ extends RefCounted
 ## one ItemPickup per P_ITEM (the kind the generator chose; a Polaroid gets its photo from the
 ## seeded rng) and one NotePickup per P_NOTE (the note id drawn here, 09 §2: unfound notes of
 ## the allowed tiers first, then found ones at half weight; the first Descent's marked note is H1).
-## Kinds without a world scene yet (Flare, Radio, Fuse land with M2.8) are skipped with a warning;
+## Every kind has a world scene since M2.8; a kind without one is skipped with a warning, and
 ## skipping a fuse is an error (07 §6: Variant B always has exactly one fuse in the level).
+## One KeycardPickup per P_KEYCARD (the Keyed lock's card, 09 §2; not a belt item).
 ## Each pickup lies at a jittered spot in its cell with a jittered yaw, from the seeded rng.
 
 const NOTE_SCENE := "res://scenes/interactables/note_pickup.tscn"
@@ -25,6 +26,10 @@ static func populate(level_root: Node, level: LevelData, rng: RandomNumberGenera
 		var node := _spawn_item(level_root, level, p, rng)
 		if node != null:
 			out.append(node)
+	for p in level.placements_of(LevelData.P_KEYCARD):
+		var card := _spawn_keycard(level_root, level, p, rng)
+		if card != null:
+			out.append(card)
 	var ids := pick_notes(level, rng, options)
 	var note_scene := load(NOTE_SCENE) as PackedScene
 	var placements := level.placements_of(LevelData.P_NOTE)
@@ -62,6 +67,21 @@ static func _spawn_item(level_root: Node, level: LevelData, p: Dictionary,
 	pickup.position = _floor_position(level, p) + Vector3(rng.randf_range(-j, j), 0.0, rng.randf_range(-j, j))
 	pickup.rotation.y = p[&"yaw"] + rng.randf_range(-PI, PI)
 	return pickup
+
+
+static func _spawn_keycard(level_root: Node, level: LevelData, p: Dictionary,
+		rng: RandomNumberGenerator) -> Node3D:
+	var data := DataRegistry.item(KeycardPickup.KEY)
+	if data == null or data.world_scene == null:
+		push_error("ItemSpawner: the keycard has no world scene; a Keyed exit is unwinnable")
+		return null
+	var card := data.world_scene.instantiate() as ItemPickup
+	card.name = "Item_keycard"
+	level_root.add_child(card)
+	var j := Tuning.ITEM_PLACE_JITTER
+	card.position = _floor_position(level, p) + Vector3(rng.randf_range(-j, j), 0.0, rng.randf_range(-j, j))
+	card.rotation.y = p[&"yaw"] + rng.randf_range(-PI, PI)
+	return card
 
 
 static func _floor_position(level: LevelData, p: Dictionary) -> Vector3:

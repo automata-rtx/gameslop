@@ -26,8 +26,8 @@ $GODOT_BIN --headless --path game res://scenes/debug/feedback_bench.tscn -- --au
 | Item use: Polaroid | 11 §2 | x | x | x | +72 | ok 3/3 | I hand.model; S play.polaroid_charge; M cam.fov |
 | Item use: Glowstick | 11 §2 | x | x | x | x | ok 4/3 | I scene.children; S play.glowstick_crack; M cam.rotation; R Slot1.draws |
 | Chalk stamp | 11 §2 | x | x | x | x | ok 4/3 | I scene.children; S play.chalk_mark; M cam.rotation; R Slot1.draws |
-| Item use: Flare | 11 §2 | pending | pending | pending | pending | pending: Flare lands with M2.8 |  |
-| Item use: Radio | 11 §2 | pending | pending | pending | pending | pending: Radio lands with M2.8 |  |
+| Item use: Flare | 11 §2 | x | x | x | x | ok 4/3 | I scene.children; S play.flare_ignite; M cam.rotation; R Slot1.draws |
+| Item use: Radio | 11 §2 | x | x | x | x | ok 4/3 | I hand.model; S play.radio_ping; M cam.rotation; R Slot1.draws |
 | Interact press | 11 §2 | x | x | +9 | x | ok 3/3 | I x.door; S play.door_close; R Prompt.raw_text |
 | Interact hold | 11 §2 | x | x | - | x | ok 3/3 | I ui.underline; S play.ui_hold_tick; R Prompt.progress |
 | Noclip charge | 11 §2 | x | x | x | x | ok 4/3 | I cr.noclip_target; S loop.noclip_charge.23693.on; M cam.offset; R @Control@79.target |

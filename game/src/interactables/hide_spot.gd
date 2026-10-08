@@ -1,16 +1,27 @@
 class_name HideSpot
 extends Node3D
-## A hide spot host (06 §10, 09 §6). M1.3 stub: the closet/locker kind only; the other
-## kinds (under car, under desk, pump corner, rack gap) reuse this host with their own
-## view point, yaw limit and mask in M2.
-## Scene contract: %ViewPoint (Marker3D: the eye inside, facing out), %ExitPoint (Marker3D:
+## A hide spot host (06 §10, 09 §6): one script, one scene per kind (scenes/interactables/
+## hide_spot_<kind>.tscn): locker, under car, under desk, pump corner, rack gap. Each scene
+## sets its own view point, yaw limit and view mask kind.
+## Scene contract: %ViewPoint (Marker3D: the eye inside, looking out), %ExitPoint (Marker3D:
 ## where the player stands after leaving, facing away from the spot), and an Interactable
-## (%Interactable) on a collider on layer 4. The view mask (6 slits for a locker) is a
-## CanvasLayer this host shows while occupied.
+## (%Interactable) on a collider on layer 4. The view mask is a CanvasLayer this host shows
+## while occupied: six slits for a locker, a floor-level letterbox for a desk, a small window
+## for a pump corner, none for a car (the car's belly is the frame) or a rack gap. The LevelPlacer
+## orients the scene so its local -Z is the way the occupant looks, except the locker (+Z).
 
 signal occupied_changed(on: bool)
 
 const KIND_LOCKER := &"locker"
+const KIND_UNDER_CAR := &"under_car"
+const KIND_UNDER_DESK := &"under_desk"
+const KIND_PUMP_CORNER := &"pump_corner"
+const KIND_RACK_GAP := &"rack_gap"
+## The clear part of the view mask for kinds that have one: a Rect2 in 0..1 screen space.
+const MASK_CLEAR: Dictionary = {
+	KIND_UNDER_DESK: Rect2(0.0, 0.54, 1.0, 0.22),
+	KIND_PUMP_CORNER: Rect2(0.34, 0.26, 0.32, 0.36),
+}
 ## 14 canvas layers: -20 hide masks, -10 Coherence screen pass, 0+ HUD, menus above.
 const MASK_CANVAS_LAYER := -20
 
@@ -91,14 +102,59 @@ func _refresh_prompt() -> void:
 		interactable.hold_time = Tuning.HIDE_LEAVE_HOLD_TIME
 
 
+## True when this kind draws a view mask while occupied.
+func has_mask() -> bool:
+	return kind == KIND_LOCKER or MASK_CLEAR.has(kind)
+
+
+## Reads the placement's params (the LevelPlacer calls this): `view_yaw_limit` in degrees.
+func configure(params: Dictionary) -> void:
+	if params.has(&"view_yaw_limit"):
+		yaw_limit_deg = float(params[&"view_yaw_limit"])
+
+
 func _show_mask(on: bool) -> void:
-	if kind != KIND_LOCKER:
+	if not has_mask():
 		return
 	if on and _mask == null:
-		_mask = _build_locker_mask()
+		_mask = _build_locker_mask() if kind == KIND_LOCKER else _build_window_mask(MASK_CLEAR[kind])
 		add_child(_mask)
 	if _mask:
 		_mask.visible = on
+
+
+## Four black bars around the clear rect `clear` (0..1 screen space).
+func _build_window_mask(clear: Rect2) -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.layer = MASK_CANVAS_LAYER
+	var r := clear
+	for e: Rect4 in [Rect4.new(0.0, 0.0, 1.0, r.position.y), Rect4.new(0.0, r.end.y, 1.0, 1.0),
+			Rect4.new(0.0, r.position.y, r.position.x, r.end.y), Rect4.new(r.end.x, r.position.y, 1.0, r.end.y)]:
+		if e.right <= e.left or e.bottom <= e.top:
+			continue
+		var bar := ColorRect.new()
+		bar.color = Color.BLACK
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.anchor_left = e.left
+		bar.anchor_right = e.right
+		bar.anchor_top = e.top
+		bar.anchor_bottom = e.bottom
+		layer.add_child(bar)
+	return layer
+
+
+## An anchor rectangle (left, top, right, bottom) in 0..1.
+class Rect4:
+	var left: float
+	var top: float
+	var right: float
+	var bottom: float
+
+	func _init(l: float, t: float, r: float, b: float) -> void:
+		left = l
+		top = t
+		right = r
+		bottom = b
 
 
 ## 09 §6: a slatted view of 6 horizontal slits. Plain black bars until the

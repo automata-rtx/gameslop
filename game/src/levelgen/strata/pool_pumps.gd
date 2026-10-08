@@ -2,7 +2,7 @@ class_name PoolPumps
 extends RefCounted
 ## The Pools grammar's pump rooms (07 §5.2): 1 to 2 rooms of 2x2 with a DOOR, cut into void
 ## beside a corridor (or, failing that, beside a hall's level floor), each the host of a
-## pump-corner hide spot (09 §6, a marker until M2.8); one is the breaker room when the
+## pump-corner hide spot (09 §6); one is the breaker room when the
 ## lock is Powered.
 
 const BREAKER_INSET := 0.05
@@ -109,8 +109,8 @@ static func place_breaker(gen: PoolsGenerator, room: RoomData) -> void:
 
 
 ## 09 §6 pump room corner: one per pump room, in the corner cell farthest from its door,
-## facing the door (the player watches through the door's window). A marker until the hide
-## spot interactable exists (M2.8).
+## facing the door (the player watches through the door's window). The pump_corner HideSpot
+## scene (M2.8) carries the pump and motor.
 static func place_hide_spots(gen: PoolsGenerator) -> void:
 	gen.data.expected_hide_spots = gen.pump_target
 	for room in gen.pumps:

@@ -1189,6 +1189,313 @@
     0.362,
     0.362
    ]
+  },
+  "flare_ignite": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/flare_ignite_v01.wav",
+    "res://assets/audio/world/flare_ignite_v02.wav",
+    "res://assets/audio/world/flare_ignite_v03.wav"
+   ],
+   "length_s": [
+    1.102,
+    1.102,
+    1.102
+   ]
+  },
+  "flare_burn": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/flare_burn_v01.wav"
+   ],
+   "length_s": [
+    3.000021
+   ],
+   "loop_frames": [
+    144000
+   ],
+   "runtime": {
+    "max_distance": 16.0
+   }
+  },
+  "flare_land": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/flare_land_v01.wav",
+    "res://assets/audio/world/flare_land_v02.wav",
+    "res://assets/audio/world/flare_land_v03.wav"
+   ],
+   "length_s": [
+    0.202,
+    0.202,
+    0.202
+   ]
+  },
+  "radio_static": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/radio_static_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ],
+   "runtime": {
+    "max_distance": 14.0
+   }
+  },
+  "radio_ping": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/radio_ping_v01.wav",
+    "res://assets/audio/world/radio_ping_v02.wav",
+    "res://assets/audio/world/radio_ping_v03.wav"
+   ],
+   "length_s": [
+    0.092,
+    0.092,
+    0.092
+   ],
+   "runtime": {
+    "max_distance": 14.0
+   }
+  },
+  "fuse_insert": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/fuse_insert_v01.wav",
+    "res://assets/audio/world/fuse_insert_v02.wav",
+    "res://assets/audio/world/fuse_insert_v03.wav"
+   ],
+   "length_s": [
+    0.752,
+    0.752,
+    0.752
+   ]
+  },
+  "fuse_pull": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/fuse_pull_v01.wav",
+    "res://assets/audio/world/fuse_pull_v02.wav",
+    "res://assets/audio/world/fuse_pull_v03.wav"
+   ],
+   "length_s": [
+    0.552,
+    0.552,
+    0.552
+   ]
+  },
+  "keycard_accept": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/keycard_accept_v01.wav",
+    "res://assets/audio/world/keycard_accept_v02.wav",
+    "res://assets/audio/world/keycard_accept_v03.wav"
+   ],
+   "length_s": [
+    0.162,
+    0.162,
+    0.162
+   ]
+  },
+  "keycard_reject": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/keycard_reject_v01.wav",
+    "res://assets/audio/world/keycard_reject_v02.wav",
+    "res://assets/audio/world/keycard_reject_v03.wav"
+   ],
+   "length_s": [
+    0.402,
+    0.402,
+    0.402
+   ]
+  },
+  "vending_hum": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/vending_hum_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ],
+   "runtime": {
+    "max_distance": 10.0
+   }
+  },
+  "vending_whir": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/vending_whir_v01.wav",
+    "res://assets/audio/world/vending_whir_v02.wav",
+    "res://assets/audio/world/vending_whir_v03.wav"
+   ],
+   "length_s": [
+    1.402,
+    1.402,
+    1.402
+   ],
+   "runtime": {
+    "max_distance": 14.0
+   }
+  },
+  "payphone_ring": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/payphone_ring_v01.wav",
+    "res://assets/audio/world/payphone_ring_v02.wav",
+    "res://assets/audio/world/payphone_ring_v03.wav"
+   ],
+   "length_s": [
+    2.002,
+    2.002,
+    2.002
+   ],
+   "runtime": {
+    "max_distance": 40.0,
+    "through_walls": true
+   }
+  },
+  "payphone_line": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/payphone_line_v01.wav",
+    "res://assets/audio/world/payphone_line_v02.wav",
+    "res://assets/audio/world/payphone_line_v03.wav"
+   ],
+   "length_s": [
+    2.002,
+    2.002,
+    2.002
+   ],
+   "runtime": {
+    "max_distance": 12.0
+   }
+  },
+  "hide_locker": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/hide_locker_v01.wav",
+    "res://assets/audio/world/hide_locker_v02.wav",
+    "res://assets/audio/world/hide_locker_v03.wav"
+   ],
+   "length_s": [
+    0.302,
+    0.302,
+    0.302
+   ]
+  },
+  "hide_under_car": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/hide_under_car_v01.wav",
+    "res://assets/audio/world/hide_under_car_v02.wav",
+    "res://assets/audio/world/hide_under_car_v03.wav"
+   ],
+   "length_s": [
+    0.702,
+    0.702,
+    0.702
+   ]
+  },
+  "hide_under_desk": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/hide_under_desk_v01.wav",
+    "res://assets/audio/world/hide_under_desk_v02.wav",
+    "res://assets/audio/world/hide_under_desk_v03.wav"
+   ],
+   "length_s": [
+    0.502,
+    0.502,
+    0.502
+   ]
+  },
+  "hide_pump_corner": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/hide_pump_corner_v01.wav",
+    "res://assets/audio/world/hide_pump_corner_v02.wav",
+    "res://assets/audio/world/hide_pump_corner_v03.wav"
+   ],
+   "length_s": [
+    0.702,
+    0.702,
+    0.702
+   ]
+  },
+  "hide_rack_gap": {
+   "group": "world",
+   "bus": "Interact",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/hide_rack_gap_v01.wav",
+    "res://assets/audio/world/hide_rack_gap_v02.wav",
+    "res://assets/audio/world/hide_rack_gap_v03.wav"
+   ],
+   "length_s": [
+    0.502,
+    0.502,
+    0.502
+   ]
   }
  }
 }

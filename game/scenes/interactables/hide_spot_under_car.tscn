@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/interactables/hide_spot.gd" id="1_spot"]
+[ext_resource type="Script" path="res://src/interactables/interactable.gd" id="2_interactable"]
+
+[sub_resource type="BoxShape3D" id="Shape_flank"]
+size = Vector3(3.2, 0.5, 0.14)
+
+[node name="HideSpotUnderCar" type="Node3D"]
+script = ExtResource("1_spot")
+kind = &"under_car"
+yaw_limit_deg = 35.0
+
+[node name="ViewPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, -0.55)
+
+[node name="ExitPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.55)
+
+[node name="Flank" type="StaticBody3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Flank"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -0.97)
+shape = SubResource("Shape_flank")
+
+[node name="Interactable" type="Node" parent="Flank"]
+unique_name_in_owner = true
+script = ExtResource("2_interactable")
+prompt = "HIDE"

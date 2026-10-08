@@ -136,6 +136,30 @@ func item_glowstick(b: FeedbackBench) -> void:
 	await b.until(b.is_anchored, 60)
 
 
+func item_flare(b: FeedbackBench) -> void:
+	await b.pose_sightline()
+	var inv := b.player().inventory
+	inv.add(&"flare", 2)
+	await _select(b, &"flare")
+	await b.arm()
+	b.anchor_on(EventBus.item_used)
+	await press_tap(b, &"use_item", 2)
+	await b.ticks(12)
+	inv.remove(&"flare", 2)
+
+
+func item_radio(b: FeedbackBench) -> void:
+	await b.pose_sightline()
+	var inv := b.player().inventory
+	inv.add(&"radio")
+	await _select(b, &"radio")
+	await b.arm()
+	b.anchor_on(EventBus.item_used)
+	await press_tap(b, &"use_item", 2)
+	await b.ticks(12)
+	inv.remove(&"radio", 1)
+
+
 func chalk_stamp(b: FeedbackBench) -> void:
 	await b.pose_sightline()
 	await _select(b, &"chalk")
