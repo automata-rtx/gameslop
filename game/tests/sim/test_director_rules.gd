@@ -111,7 +111,7 @@ func test_scares_gating() -> void:
 	assert_true(s.available(Tuning.DIRECTOR_PHASE_BUILD, 0.1, 100.0).is_empty(), "none below 0.2")
 	assert_eq(s.available(Tuning.DIRECTOR_PHASE_BUILD, 0.6, 100.0).size(), Scares.ORDER.size(), "all above 0.5")
 	assert_eq(s.available(Tuning.DIRECTOR_PHASE_BUILD, 0.21, 100.0).size(), 1)
-	assert_false(s.request(Scares.STATIC_SWELL, 100.0), "M1: a no-op")
+	assert_false(s.request(Scares.STATIC_SWELL, 100.0), "no executor bound: nothing runs (M2.7: test_scares)")
 	s.last_any = 90.0
 	assert_true(s.available(Tuning.DIRECTOR_PHASE_BUILD, 0.9, 100.0).is_empty(), "one per 30 s")
 
