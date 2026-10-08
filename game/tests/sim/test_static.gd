@@ -375,4 +375,4 @@ func test_script_cost() -> void:
 	var ms := usec / 1000.0 / 120.0
 	print("  # static: script %.3f ms/frame headless" % ms)
 	assert_gt(ms, 0.0)
-	assert_lt(ms, Tuning.BUDGET_ERRORS_SCRIPT_MS, "within the errors' budget")
+	assert_budget(ms, Tuning.BUDGET_ERRORS_SCRIPT_MS, "within the errors' budget")

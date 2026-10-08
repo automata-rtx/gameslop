@@ -202,7 +202,7 @@ func test_targeting_cost_per_frame() -> void:
 		all_cold, poses.size(), cold, warm, landing_poses.size()])
 	assert_gt(landing_poses.size(), 0)
 	assert_lt(warm, cold, "the cache saves the landing search")
-	assert_lt(cold, 2000.0, "under 2 ms per frame even cold (headless CPU)")
+	assert_budget(cold, 2000.0, "under 2 ms per frame even cold (headless CPU)")
 
 
 func _time_evals(space: PhysicsDirectSpaceState3D, shape: Shape3D, poses: Array, cache: Variant) -> float:

@@ -46,3 +46,5 @@ Deferred work found during production. Each line names the task that should abso
 - Errors owner: in the screenshot tour (DirectLevel with its player freed) ErrorStatic._set_strength calls `report` with a freed player (`error_static.gd:352`, SCRIPT ERROR on every field release). Guard with is_instance_valid.
 - CoherenceRenderer owner: quitting while noise textures regenerate after a texture-detail change hangs Godot's exit; wait for or cancel regeneration on quit.
 - Archive: new notes do not blink on first open (meta has no read state); Polaroids show as a count, not thumbnails.
+- M2 levelgen/sim: 5 of 10 Garage sim runs end "stuck" (bot stuck on the level); check Garage navigation (ramps, cars, pillars) and the bot's unstick logic.
+- Intermittent (R10): a sim child crashed with signal 11 ("propagate_notification" from a worker thread) during level start under load; another left unreadable JSON. Strong lead for the existing worker-thread race item: find what touches nodes off the main thread during level build/start.
