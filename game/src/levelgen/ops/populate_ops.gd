@@ -74,7 +74,7 @@ static func soft_walls(gen: StratumGenerator, count: int, first_run: bool, exclu
 	if marked.size() < count:
 		var everywhere: Array[Vector2i] = []
 		for i in grid.cell_count():
-			if LevelGrid.kind_walkable(grid.cells[i]):
+			if grid.is_walkable_i(i):
 				everywhere.append(grid.cell_at(i))
 		while marked.size() < count and _carve(gen, everywhere, fields, exclude_flags, marked):
 			pass

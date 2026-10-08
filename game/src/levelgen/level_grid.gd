@@ -44,6 +44,9 @@ const F_SPAWN_ROOM := 32
 const F_LOCK_ROOM := 64
 const F_HIDE_SPOT_HOST := 128
 const F_DEAD_END := 256
+## R13: a prop fills the cell (car, barrier, lifeguard chair): built and sight-open like its
+## kind, never walkable (no spawn, landing or path). Props that keep the cross clear do not.
+const F_BLOCKED := 512
 
 var size: Vector2i = Vector2i.ZERO
 var cells: PackedByteArray = PackedByteArray()
@@ -138,20 +141,28 @@ func is_pillar(c: Vector2i) -> bool:
 	var base := i * 4
 	if walls[base] != NONE or walls[base + 1] != NONE or walls[base + 2] != NONE or walls[base + 3] != NONE:
 		return false
-	# Border edges are SOLID, so the four neighbours are in range here.
-	return _walkable_i(i - size.x) and _walkable_i(i + 1) and _walkable_i(i + size.x) and _walkable_i(i - 1)
+	# Border edges are SOLID (neighbours in range); kinds decide (a car beside it is floor).
+	return kind_walkable(cells[i - size.x]) and kind_walkable(cells[i + 1]) \
+		and kind_walkable(cells[i + size.x]) and kind_walkable(cells[i - 1])
 
 ## Open for sight and for the builder's floor and ceiling: open cells and pillars.
 func is_sight_open(c: Vector2i) -> bool:
 	return is_open(c) or is_pillar(c)
 
 func is_walkable(c: Vector2i) -> bool:
-	return in_bounds(c) and kind_walkable(cells[idx(c)])
+	return in_bounds(c) and is_walkable_i(idx(c))
+
+func is_blocked(c: Vector2i) -> bool:
+	return in_bounds(c) and (flags[idx(c)] & F_BLOCKED) != 0
+
+## A prop fills the cell (F_BLOCKED, F_NO_SPAWN); the caller keeps it whole (BlockOps).
+func block(c: Vector2i) -> void:
+	flags[idx(c)] |= F_BLOCKED | F_NO_SPAWN
 
 func walkable_count() -> int:
 	var n := 0
-	for k in cells:
-		if kind_walkable(k):
+	for i in cells.size():
+		if is_walkable_i(i):
 			n += 1
 	return n
 
@@ -240,7 +251,7 @@ func noclip_candidate(c: Vector2i, dir: int) -> bool:
 ## which the caller knows).
 func floor_drop_valid(c: Vector2i) -> bool:
 	var k := kind(c)
-	return k == FLOOR or k == ROOM or k == BASIN
+	return (k == FLOOR or k == ROOM or k == BASIN) and not is_blocked(c)
 
 ## True when a walker can step from c to its neighbour in dir.
 func can_step(c: Vector2i, dir: int) -> bool:
@@ -252,28 +263,20 @@ func can_step(c: Vector2i, dir: int) -> bool:
 ## maze op: index arithmetic only (border edges are SOLID, so open edges stay in range).
 func open_mask(i: int) -> int:
 	var k := cells[i]
-	if k < FLOOR or k > BASIN:
+	if k < FLOOR or k > BASIN or (flags[i] & F_BLOCKED) != 0:
 		return 0
 	var m := 0
 	var base := i * 4
-	var lg := ledges[i]
-	var w := walls[base]
-	if (w == NONE or w == DOOR) and _walkable_i(i - size.x):
-		m |= 1
-	w = walls[base + 1]
-	if (w == NONE or w == DOOR) and _walkable_i(i + 1):
-		m |= 2
-	w = walls[base + 2]
-	if (w == NONE or w == DOOR) and _walkable_i(i + size.x):
-		m |= 4
-	w = walls[base + 3]
-	if (w == NONE or w == DOOR) and _walkable_i(i - 1):
-		m |= 8
-	return m & ~lg
+	if (walls[base] == NONE or walls[base] == DOOR) and is_walkable_i(i - size.x): m |= 1
+	if (walls[base + 1] == NONE or walls[base + 1] == DOOR) and is_walkable_i(i + 1): m |= 2
+	if (walls[base + 2] == NONE or walls[base + 2] == DOOR) and is_walkable_i(i + size.x): m |= 4
+	if (walls[base + 3] == NONE or walls[base + 3] == DOOR) and is_walkable_i(i - 1): m |= 8
+	return m & ~ledges[i]
 
-func _walkable_i(j: int) -> bool:
+## Walkable by cell index (no bounds check).
+func is_walkable_i(j: int) -> bool:
 	var k := cells[j]
-	return k >= FLOOR and k <= BASIN
+	return k >= FLOOR and k <= BASIN and (flags[j] & F_BLOCKED) == 0
 
 ## Number of walkable neighbours reachable in one step.
 func openings(c: Vector2i) -> int:
@@ -317,11 +320,12 @@ func cell_of(world_pos: Vector3) -> Vector2i:
 # ------------------------------------------------------------------ queries (07 Interfaces)
 
 ## BFS walking distance in cells from `from` (-1: unreachable). Respects walls and doors.
+## Blocked cells are never entered; a blocked `from` (at a car's flank) measures outwards.
 func distance_field(from: Vector2i) -> PackedInt32Array:
 	var dist := PackedInt32Array()
 	dist.resize(cell_count())
 	dist.fill(-1)
-	if not is_walkable(from):
+	if not in_bounds(from) or not kind_walkable(cells[idx(from)]):
 		return dist
 	var queue := PackedInt32Array([idx(from)])
 	dist[idx(from)] = 0
@@ -346,7 +350,7 @@ func distance_field(from: Vector2i) -> PackedInt32Array:
 
 func _visit(j: int, d: int, dist: PackedInt32Array, queue: PackedInt32Array) -> void:
 	# Border edges are SOLID, so j is always in range when the wall is open.
-	if dist[j] == -1 and kind_walkable(cells[j]):
+	if dist[j] == -1 and is_walkable_i(j):
 		dist[j] = d
 		queue.append(j)
 
@@ -354,7 +358,7 @@ func _visit(j: int, d: int, dist: PackedInt32Array, queue: PackedInt32Array) -> 
 func random_walkable_cell(rng: RandomNumberGenerator, filter: Callable = Callable()) -> Vector2i:
 	var pool: Array[Vector2i] = []
 	for i in cell_count():
-		if kind_walkable(cells[i]):
+		if is_walkable_i(i):
 			var c := cell_at(i)
 			if not filter.is_valid() or filter.call(c):
 				pool.append(c)

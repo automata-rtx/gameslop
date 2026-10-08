@@ -40,8 +40,13 @@ func test_gate_is_wired_and_given_back() -> void:
 
 
 func test_second_contact_within_3_s_is_refused_and_retreats() -> void:
+	# Both chase (a contact comes only from a chase, R12); out of Calm, which sends chases away.
+	_d.pacing._enter(DirectorPacing.BUILD)
+	_d.pacing.take_actions()
 	var a := _still(Vector3(0.5, 0, 0), 1)
 	var b := _still(Vector3(-0.5, 0, 0), 2)
+	a.transition_to(Tuning.ERROR_STATE_CHASE, "test")
+	b.transition_to(Tuning.ERROR_STATE_CHASE, "test")
 	assert_eq(_d.errors.size(), 2)
 	var hits: Array[StringName] = []
 	_p.contacted.connect(func(by: StringName) -> void: hits.append(by))

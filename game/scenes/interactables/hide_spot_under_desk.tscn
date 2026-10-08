@@ -17,14 +17,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.1)
 
 [node name="ExitPoint" type="Marker3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 1.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.65)
 
 [node name="Kneehole" type="StaticBody3D" parent="."]
 collision_layer = 8
 collision_mask = 0
 
 [node name="Shape" type="CollisionShape3D" parent="Kneehole"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, -0.1)
 shape = SubResource("Shape_kneehole")
 
 [node name="Interactable" type="Node" parent="Kneehole"]

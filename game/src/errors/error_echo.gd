@@ -14,7 +14,8 @@ extends ErrorBase
 ## heard point, never the point itself nor its cell; 10 s, then Wander (an evasion). Lures:
 ## an impact, radio or mech noise nearer than the current trail point redirects it until a
 ## newer step is heard. Contact within 1.0 m through the gates; Satiated walks back along
-## its own steps. Scene contract: %Body (CharacterBody3D, layer 3) holding %Shimmer
+## its own steps. Contact comes only from Follow; a Relief hint ends a Follow (R12).
+## Scene contract: %Body (CharacterBody3D, layer 3) holding %Shimmer
 ## (MeshInstance3D, echo_shimmer shader) and %Agent (NavigationAgent3D); %Senses.
 
 ## Lure kinds (08 §6): a thrown glowstick or flare lands as `impact`; the radio is `radio`
@@ -220,8 +221,9 @@ func _tick(delta: float) -> void:
 	_think(delta)
 	_move(delta)
 	EchoPresent.tick(self, delta)
-	if state != Tuning.ERROR_STATE_SATIATED:
-		contact_step(Tuning.ECHO_CONTACT_RADIUS, Tuning.ECHO_CONTACT_COST)
+	# Contact only from Follow (ErrorBase.can_contact): a Search or Wander walk that meets
+	# the player is not a contact (R12, pillar 2).
+	contact_step(Tuning.ECHO_CONTACT_RADIUS, Tuning.ECHO_CONTACT_COST)
 
 
 func _dormant_tick() -> void:
@@ -286,6 +288,14 @@ func _retarget_to_hint() -> void:
 	_target = dest
 	_has_target = true
 	_repath_acc = INF
+
+
+## 10 §2 Relief entry (hint(pos, true)) in Follow: the trail is dropped and Echo walks to
+## the hint in Wander (R12). The engagement closes without an evasion (the player did not
+## break the trail); steps heard from there start over (Search, then three for Follow).
+func _release_for_hint() -> void:
+	_engaged = false
+	transition_to(Tuning.ERROR_STATE_WANDER, "hinted away")
 
 
 func _on_player_gone() -> void:

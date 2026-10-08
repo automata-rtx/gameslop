@@ -90,7 +90,8 @@ func test_pools_collision() -> void:
 		var c := g.cell_at(i)
 		if g.kind(c) == LevelGrid.RAMP:
 			ramps += 1
-		if g.is_walkable(c):
+		# A cell a lifeguard chair blocks (R13) is still floor beside the water.
+		if LevelGrid.kind_walkable(g.kind(c)):
 			for d in 4:
 				if g.kind(c + LevelGrid.DIRS[d]) == LevelGrid.DEEP:
 					want_rails += 1

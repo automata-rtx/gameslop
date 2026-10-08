@@ -224,8 +224,7 @@ func test_a_lure_pulls_it() -> void:
 # --- contact, notice, evasion, Satiated -------------------------------------------------------------
 
 func test_contact_only_through_the_gate() -> void:
-	var e := _echo(Vector3(0, 0, 0.8))
-	e.hint(_p.global_position)  # its Wander leg ends on the player: it stays in reach
+	var e := _echo(Vector3(0, 0, 0.8))  # in Follow with no trail yet: it stands in reach
 	var asked := [0]
 	e.contact_request = func(_e: ErrorBase) -> bool:
 		asked[0] += 1
@@ -233,6 +232,7 @@ func test_contact_only_through_the_gate() -> void:
 	var hits := [0]
 	e.contacted_player.connect(func(_c: float) -> void: hits[0] += 1)
 	e.wake()
+	e.transition_to(Tuning.ERROR_STATE_FOLLOW, "test")  # contact only from Follow (R12)
 	await await_physics_frames(20)
 	assert_gt(asked[0], 0, "the gate was asked")
 	assert_eq(hits[0], 0)

@@ -115,7 +115,7 @@ static func _rule1_spawn_exit_path(level: LevelData, ds: PackedInt32Array, f: Pa
 	if path.size() - 1 != ds[grid.idx(level.exit_cell)]:
 		f.append("r1: critical path is not the shortest walk")
 	for i in grid.cell_count():
-		if LevelGrid.kind_walkable(grid.cells[i]) and ds[i] < 0:
+		if grid.is_walkable_i(i) and ds[i] < 0:
 			f.append("r1: walkable cell %s unreachable" % grid.cell_at(i))
 			return
 
@@ -204,7 +204,7 @@ static func cycled_walk_m(level: LevelData) -> float:
 	var worst := 0
 	var points: Array[Vector2i] = []
 	for i in grid.cell_count():
-		if grid.has_flag(grid.cell_at(i), LevelGrid.F_EXIT_ROOM) and LevelGrid.kind_walkable(grid.cells[i]):
+		if grid.has_flag(grid.cell_at(i), LevelGrid.F_EXIT_ROOM) and grid.is_walkable_i(i):
 			points.append(grid.cell_at(i))
 	var seen_cells := int(ceil(Tuning.EXIT_SEEN_DIST / Tuning.GRID_CELL_SIZE))
 	var path := level.critical_path
@@ -346,7 +346,7 @@ static func _rule10_stratum(level: LevelData, ds: PackedInt32Array, f: PackedStr
 				f.append("r10: Garage spawn must be on deck 1 and exit on deck 0")
 			var decks := [0, 0]
 			for i in grid.cell_count():
-				if LevelGrid.kind_walkable(grid.cells[i]) and ds[i] >= 0 and grid.cells[i] != LevelGrid.RAMP:
+				if grid.is_walkable_i(i) and ds[i] >= 0 and grid.cells[i] != LevelGrid.RAMP:
 					decks[grid.deck[i]] += 1
 			if decks[0] == 0 or decks[1] == 0:
 				f.append("r10: Garage deck unreachable (%d, %d walkable)" % decks)

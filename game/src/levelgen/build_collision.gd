@@ -35,7 +35,7 @@ static func boxes(p: BuildPlan) -> Array[Dictionary]:
 				dirs.append(LevelGrid.N)
 			for d in dirs:
 				_edge_box(boxes, p, c, d, ch)
-			if grid.is_walkable(c):
+			if LevelGrid.kind_walkable(grid.kind(c)):
 				for d in 4:
 					if grid.kind(c + LevelGrid.DIRS[d]) == LevelGrid.DEEP:
 						_rail(boxes, grid, c, d, ch)

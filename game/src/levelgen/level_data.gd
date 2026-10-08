@@ -115,7 +115,7 @@ func hash_hex() -> String:
 ## Top-down debug map: one character per cell centre, one per edge.
 ## Cells: ' ' corridor (',' on Garage deck 1), '.' room, '#' void ('%' void the Substrate's
 ## unfinish step removed), '*' critical path,
-## 'u' basin, 'W' deep water, '^' ramp or steps, 'I' pillar; markers S spawn, X exit,
+## 'u' basin, 'W' deep water, '^' ramp or steps, 'I' pillar, 'o' blocked (a prop fills it); markers S spawn, X exit,
 ## B breaker, K keycard, F fuse, i item, n note, h hide spot, p prop, e error spawn (N Null's,
 ## s a Static's), L studio light.
 ## Edges: '|' '-' wall, 'H' '=' solid, '}' '~' soft, 'd' door, ':' partition, 'g' glass.
@@ -158,6 +158,8 @@ func _cell_char(c: Vector2i) -> String:
 		return "W"
 	if grid.is_pillar(c):
 		return "I"
+	if grid.is_blocked(c):
+		return "o"
 	if not grid.is_walkable(c):
 		return "%" if unfinished_void.has(c) else "#"
 	if grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
