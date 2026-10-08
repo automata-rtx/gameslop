@@ -231,3 +231,145 @@ func test_dormant_until_navigation_ready() -> void:
 	assert_approx(_p.coherence, Tuning.COHERENCE_MAX, 0.0001, "a dormant field drains nothing")
 	s.set_navigation_ready(true)
 	assert_eq(s.state, Tuning.ERROR_STATE_WANDER)
+
+
+## A grid of `size` cells over the fixture floor (2 m cells from the origin), walkable
+## where `open` says so, with every edge between two walkable cells open.
+func _grid(size: Vector2i, open: Callable) -> LevelGrid:
+	var g := LevelGrid.new(size)
+	for x in size.x:
+		for y in size.y:
+			if bool(open.call(Vector2i(x, y))):
+				g.set_kind(Vector2i(x, y), LevelGrid.FLOOR)
+	for x in size.x:
+		for y in size.y:
+			var c := Vector2i(x, y)
+			if not g.is_walkable(c):
+				continue
+			if x + 1 < size.x and g.is_walkable(c + Vector2i(1, 0)):
+				g.set_wall(c, LevelGrid.E, LevelGrid.NONE)
+			if y + 1 < size.y and g.is_walkable(c + Vector2i(0, 1)):
+				g.set_wall(c, LevelGrid.S, LevelGrid.NONE)
+	g.finalize_walls()
+	return g
+
+
+## Review item 4: a nudge forces Wander, plans to the destination at 1.2 m/s and keeps
+## the nudge (no dwell, no Search on noise) until it arrives; it works from Search.
+func test_nudge_from_search_keeps_until_arrival() -> void:
+	var g := _grid(Vector2i(12, 12), func(_c: Vector2i) -> bool: return true)
+	var s := ErrorFixture.spawn(_world, &"static", g.world_of(Vector2i(2, 2)), _p) as ErrorStatic
+	s.grid = g
+	s.wake()
+	NoiseModel.emit(s.global_position + Vector3(0, 0, 3), 20.0, Tuning.NOISE_KIND_TEAR)
+	await await_physics_frames(2)
+	assert_eq(s.state, Tuning.ERROR_STATE_SEARCH)
+	var dest := g.world_of(Vector2i(2, 10))
+	s.nudge(dest)
+	assert_eq(s.state, Tuning.ERROR_STATE_WANDER, "the nudge ends the Search")
+	assert_true(s.is_nudged())
+	var a := s.global_position
+	await await_physics_frames(int(Engine.physics_ticks_per_second))
+	assert_approx(ErrorFixture.flat(a, s.global_position), Tuning.STATIC_FAIR_NUDGE_SPEED, 0.1, "1.2 m/s")
+	NoiseModel.emit(s.global_position, 20.0, Tuning.NOISE_KIND_TEAR)
+	await await_physics_frames(1)
+	assert_eq(s.state, Tuning.ERROR_STATE_WANDER, "noise waits until it has arrived")
+	assert_true(s.is_nudged(), "kept until arrival")
+	Engine.time_scale = 4.0
+	for i in 900:
+		await get_tree().physics_frame
+		if not s.is_nudged():
+			break
+	assert_false(s.is_nudged(), "released on arrival")
+	assert_lt(ErrorFixture.flat(s.global_position, dest), 0.05, "it arrived")
+
+
+## Review item 9: the wander filter bounds the drift (05 §10 first Descent side loop).
+func test_wander_filter_bounds_the_drift() -> void:
+	var g := _grid(Vector2i(14, 14), func(_c: Vector2i) -> bool: return true)
+	var s := ErrorFixture.spawn(_world, &"static", g.world_of(Vector2i(10, 6)), _p) as ErrorStatic
+	s.grid = g
+	s.set_wander_filter(func(c: Vector2i) -> bool: return c.x >= 8)
+	for i in 50:
+		var c := g.cell_of(s._wander_target())
+		assert_true(c.x >= 8, "cell %s passes the filter" % c)
+		if c.x < 8:
+			break
+	# Out of reach (10 cells) of every passing cell: the nearest passing cell.
+	s.global_position = g.world_of(Vector2i(0, 0))
+	s.set_wander_filter(func(c: Vector2i) -> bool: return c == Vector2i(13, 13))
+	assert_eq(g.cell_of(s._wander_target()), Vector2i(13, 13))
+	s.set_wander_filter(Callable())
+	assert_ne(g.cell_of(s._wander_target()), Vector2i(-1, -1))
+
+
+## Review item 10: the flare push never leaves the walkable cells and never freezes.
+func test_flare_push_stays_walkable_and_escapes() -> void:
+	# One corridor row (y = 1) of 14 cells; the flare sits beside it, so straight away is
+	# into the void.
+	var g := _grid(Vector2i(14, 3), func(c: Vector2i) -> bool: return c.y == 1)
+	var s := ErrorFixture.spawn(_world, &"static", g.world_of(Vector2i(6, 1)), _p) as ErrorStatic
+	s.grid = g
+	s.hint(s.global_position)
+	s.wake()
+	await await_physics_frames(2)
+	var f := _flare(s.global_position + Vector3(0, 0, -1.0))
+	Engine.time_scale = 4.0
+	var off_grid := 0
+	var t := 0.0
+	while t < 12.0 and ErrorFixture.flat(s.global_position, f.global_position) < Tuning.STATIC_FLARE_RANGE:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		off_grid += 0 if g.is_walkable(g.cell_of(s.global_position)) else 1
+	assert_eq(off_grid, 0, "never off the walkable cells")
+	assert_gt(ErrorFixture.flat(s.global_position, f.global_position), Tuning.STATIC_FLARE_RANGE - 0.01,
+		"out of the flare's 6 m (%.1f s)" % t)
+	assert_lt(t, 12.0, "it never froze")
+
+
+## Review item 11: inside the field the post drain reads at least 0.6 (08 §3), as well as
+## grain and CA (02 §8); outside it is released.
+func test_drain_floor_inside() -> void:
+	var s := _static_at(Vector3.ZERO)
+	s.wake()
+	await await_physics_frames(5)
+	assert_approx(CoherenceRenderer.drain_floor, Tuning.STATIC_FORCED_DRAIN, 0.0001)
+	var p := CoherencePost.compute(1.0, 0.0, 0.0, {}, {}, 0.0, false, false, 1.0, CoherenceRenderer.drain_floor)
+	var full := CoherencePost.compute(0.4, 0.0, 0.0, {}, {}, 0.0, false, false)
+	assert_approx(float(p[&"sat"]), float(full[&"sat"]), 0.0001, "graded as at drain 0.6")
+	_p.global_position = Vector3(15, 0.05, 0)
+	await await_physics_frames(3)
+	assert_approx(CoherenceRenderer.drain_floor, 0.0, 0.0001, "released outside")
+
+
+## Review item 18: with two Statics only the nearest pushes the renderer state.
+func test_two_fields_share_one_renderer_state() -> void:
+	var near := _static_at(Vector3.ZERO)
+	var far := _static_at(Vector3(20, 0, 0))
+	near.wake()
+	far.wake()
+	await await_physics_frames(5)
+	assert_gt(CoherenceRenderer.static_amount, 0.99)
+	far.queue_free()
+	await await_physics_frames(3)
+	assert_gt(CoherenceRenderer.static_amount, 0.99, "the far one leaving does not clear it")
+	near.queue_free()
+	await await_physics_frames(3)
+	assert_approx(CoherenceRenderer.static_amount, 0.0, 0.0001, "the last one leaving clears it")
+	assert_approx(CoherenceRenderer.drain_floor, 0.0, 0.0001)
+
+
+## Review item 18: the headless script cost of one Static (inside its field, drifting),
+## printed for the report; the 14 budget is 0.3 ms for every error together.
+func test_script_cost() -> void:
+	var s := _static_at(Vector3(1.0, 0, 0))
+	s.clear_hint()
+	s.wake()
+	var usec := 0
+	for i in 120:
+		await get_tree().physics_frame
+		usec += int(ErrorTiming.frame_usec_by_id.get(&"static", 0))
+	var ms := usec / 1000.0 / 120.0
+	print("  # static: script %.3f ms/frame headless" % ms)
+	assert_gt(ms, 0.0)
+	assert_lt(ms, Tuning.BUDGET_ERRORS_SCRIPT_MS, "within the errors' budget")

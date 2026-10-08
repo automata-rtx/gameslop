@@ -346,6 +346,7 @@ const ERROR_PROXIMITY_HZ := 10.0                    # error_proximity emission r
 const ERROR_PROXIMITY_INTERVAL := 0.1               # s
 # Build-task constants (M1.7; 08 gives no number): how errors walk.
 const ERROR_ARRIVE_DIST := 0.6                      # m (XZ): a nav target counts as reached
+const ERROR_WAYPOINT_DIST := 0.3                    # m (R7, 3D: the path runs 0.2 m above the floor): a path corner counts as passed (0.6 cut corners into jambs and wall ends)
 const ERROR_DOOR_OPEN_DIST := 1.6                   # m (XZ): a closed door this near on the path is opened
 const ERROR_RETREAT_SAMPLES := 12                   # candidate points tried for an unhinted retreat
 const ERROR_CONTACT_MAX_DY := 2.0                   # m: contact also needs the bodies on one floor

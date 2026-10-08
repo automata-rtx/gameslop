@@ -371,10 +371,10 @@ func test_script_time_monitor() -> void:
 	var s := _still(Vector3(0, 0, 10))
 	s.wake()
 	await await_physics_frames(5)
-	assert_true(Performance.has_custom_monitor(ErrorBase.MONITOR))
-	assert_gt(ErrorBase.error_ms(&"still"), 0.0)
-	assert_gt(ErrorBase.errors_ms(), 0.0)
-	assert_gt(float(Performance.get_custom_monitor(ErrorBase.MONITOR)), 0.0)
+	assert_true(Performance.has_custom_monitor(ErrorTiming.MONITOR))
+	assert_gt(ErrorTiming.error_ms(&"still"), 0.0)
+	assert_gt(ErrorTiming.errors_ms(), 0.0)
+	assert_gt(float(Performance.get_custom_monitor(ErrorTiming.MONITOR)), 0.0)
 
 
 ## 08 §9: Still 25 m away, the player stands facing away: contact within 40 s.

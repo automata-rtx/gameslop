@@ -23,8 +23,6 @@ signal lost_player
 signal noticed_player
 
 const GROUP := &"errors"
-## Performance custom monitor (F3, the arena): error script ms in the last physics frame.
-const MONITOR := &"noclip/errors_ms"
 const SCENES: Dictionary = {
 	&"static": "res://scenes/errors/static.tscn",
 	&"still": "res://scenes/errors/still.tscn",
@@ -51,15 +49,6 @@ var state_time: float = 0.0
 var log_lines: PackedStringArray = []
 ## The seed given to setup() (presentation rngs derive from it).
 var seed_value: int = 0
-
-## Script cost of the errors (08 §2 budget, 14 BUDGET_ERRORS_SCRIPT_MS): microseconds spent
-## in every error's _physics_process during the last completed physics frame, total and
-## per error id. Exposed as the Performance custom monitor `noclip/errors_ms` (F3).
-static var frame_usec: int = 0
-static var frame_usec_by_id: Dictionary = {}
-static var _acc_usec: int = 0
-static var _acc_by_id: Dictionary = {}
-static var _acc_frame: int = -1
 
 var _wake_pending: bool = false
 ## start_search() before navigation was ready: enter Search (not Wander) once it is.
@@ -100,30 +89,7 @@ static func aggr_lerp(low: float, high: float, a: float) -> float:
 func _init() -> void:
 	add_to_group(GROUP)
 	add_to_group(DebugOverlay.GROUP)
-	if not Performance.has_custom_monitor(MONITOR):
-		Performance.add_custom_monitor(MONITOR, ErrorBase.errors_ms)
-
-
-## Milliseconds of error script time in the last physics frame (all errors).
-static func errors_ms() -> float:
-	return frame_usec / 1000.0
-
-
-## Milliseconds of `id`'s script time in the last physics frame (all errors of that id).
-static func error_ms(id: StringName) -> float:
-	return int(frame_usec_by_id.get(id, 0)) / 1000.0
-
-
-static func _account(id: StringName, usec: int) -> void:
-	var f := Engine.get_physics_frames()
-	if f != _acc_frame:
-		frame_usec = _acc_usec
-		frame_usec_by_id = _acc_by_id
-		_acc_usec = 0
-		_acc_by_id = {}
-		_acc_frame = f
-	_acc_usec += usec
-	_acc_by_id[id] = int(_acc_by_id.get(id, 0)) + usec
+	ErrorTiming.ensure_monitor()
 
 
 func _ready() -> void:
@@ -346,7 +312,7 @@ func try_contact(cost: float) -> bool:
 func _physics_process(delta: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	_process_error(delta)
-	_account(error_id, Time.get_ticks_usec() - t0)
+	ErrorTiming.account(error_id, Time.get_ticks_usec() - t0)
 
 
 func _process_error(delta: float) -> void:
@@ -374,7 +340,7 @@ func _process_error(delta: float) -> void:
 func debug_info() -> Dictionary:
 	var d := distance_to_player()
 	return {String(error_id): "%s %s" % [state, "-" if is_inf(d) else "%.1f m" % d],
-		"errors ms": "%.3f" % errors_ms()}
+		"errors ms": "%.3f" % ErrorTiming.errors_ms()}
 
 
 # --- virtuals -------------------------------------------------------------------------------

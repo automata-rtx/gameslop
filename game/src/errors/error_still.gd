@@ -68,52 +68,15 @@ func _configure() -> void:
 		(col.shape as CapsuleShape3D).height = Tuning.STILL_BODY_HEIGHT
 		col.position = Vector3.UP * Tuning.STILL_BODY_HEIGHT * 0.5
 	column.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	column.mesh = column_mesh()
+	column.mesh = StillNav.column_mesh()
 	column.position = Vector3.ZERO
 	agent.radius = Tuning.NAV_AGENT_RADIUS
 	agent.height = Tuning.NAV_AGENT_HEIGHT
-	agent.path_desired_distance = Tuning.ERROR_ARRIVE_DIST
+	agent.path_desired_distance = Tuning.ERROR_WAYPOINT_DIST
 	agent.target_desired_distance = Tuning.ERROR_ARRIVE_DIST
 	agent.avoidance_enabled = true
 	agent.velocity_computed.connect(_on_safe_velocity)
 	_set_line(false)
-
-
-## 02 §8: a capsule-topped column standing on its origin: open flat base (it stands on the
-## floor; a base disc would z-fight it), 0.5 m radius
-## (Tuning reading), 2.6 m tall with a hemispherical top. One shared mesh.
-static var _column_mesh: ArrayMesh
-
-
-static func column_mesh() -> ArrayMesh:
-	if _column_mesh != null:
-		return _column_mesh
-	const SEGMENTS := 24
-	const CAP_RINGS := 8
-	var r := Tuning.STILL_CAPSULE_RADIUS
-	var shaft := Tuning.STILL_CAPSULE_HEIGHT - r
-	# Rings from the base up: (height, radius).
-	var rings: Array[Vector2] = [Vector2(0.0, r), Vector2(shaft, r)]
-	for i in range(1, CAP_RINGS + 1):
-		var a := PI * 0.5 * float(i) / CAP_RINGS
-		rings.append(Vector2(shaft + sin(a) * r, cos(a) * r))
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for k in rings.size() - 1:
-		for j in SEGMENTS:
-			var a0 := TAU * float(j) / SEGMENTS
-			var a1 := TAU * float(j + 1) / SEGMENTS
-			var lo := rings[k]
-			var hi := rings[k + 1]
-			var p00 := Vector3(cos(a0) * lo.y, lo.x, sin(a0) * lo.y)
-			var p01 := Vector3(cos(a1) * lo.y, lo.x, sin(a1) * lo.y)
-			var p10 := Vector3(cos(a0) * hi.y, hi.x, sin(a0) * hi.y)
-			var p11 := Vector3(cos(a1) * hi.y, hi.x, sin(a1) * hi.y)
-			for v: Vector3 in [p00, p01, p11, p00, p11, p10]:
-				st.add_vertex(v)
-	st.generate_normals()
-	_column_mesh = st.commit()
-	return _column_mesh
 
 
 # --- body ---------------------------------------------------------------------------------
@@ -146,33 +109,13 @@ func _set_body_active(on: bool) -> void:
 		return
 	# 08 §2: movers freeze their CharacterBody3D processing when Dormant.
 	body.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
-	if on:
-		_bind_doors()
-
-
-## An open door leaf swings into the cell beside the doorway; it is a door, not a wall,
-## so Still's body ignores it while it is open (a closed leaf still blocks until Still
-## opens it). Gathered once; the leaf follows each door's opened_changed.
-func _bind_doors() -> void:
-	if _doors_bound or not is_inside_tree():
-		return
-	_doors_bound = true
-	for n in get_tree().get_nodes_in_group(&"doors"):
-		var door := n as Door
-		if door == null:
-			continue
-		_doors.append(door)
-		door.opened_changed.connect(_on_door_opened.bind(door))
-		_on_door_opened(door.is_open, door)
+	if on and not _doors_bound and is_inside_tree():
+		_doors_bound = true
+		_doors = StillNav.bind_doors(self)
 
 
 func _on_door_opened(open: bool, door: Door) -> void:
-	if not is_instance_valid(door) or door.leaf == null:
-		return
-	if open:
-		body.add_collision_exception_with(door.leaf)
-	else:
-		body.remove_collision_exception_with(door.leaf)
+	StillNav.on_door_opened(open, self, door)
 
 
 # --- 08 §8 aggression mapping --------------------------------------------------------------
@@ -265,7 +208,7 @@ func _enter_state(to: StringName, _from: StringName) -> void:
 			_inspect.clear()
 		Tuning.ERROR_STATE_SATIATED:
 			senses.suspicion = 0.0
-			_target = _retreat_point()
+			_target = StillNav.retreat_point(self)
 			_has_target = true
 		Tuning.ERROR_STATE_DORMANT:
 			body.velocity = Vector3.ZERO
@@ -346,49 +289,12 @@ func _arrived() -> bool:
 			or (agent.is_navigation_finished() and _repath_acc < INF and _repath_acc > 0.0)
 
 
-func _nav_map() -> RID:
-	return agent.get_navigation_map()
-
-
-func _snap(p: Vector3) -> Vector3:
-	var map := _nav_map()
-	if not map.is_valid():
-		return p
-	return NavigationServer3D.map_get_closest_point(map, p)
-
-
 ## A hint (Director) or a seeded random navmesh point within 14 m.
 func _wander_point() -> Vector3:
 	if _has_hint:
 		_has_hint = false
-		return _snap(_hint)
-	return _random_point_near(body_position(), Tuning.STILL_WANDER_RADIUS)
-
-
-func _random_point_near(centre: Vector3, radius: float) -> Vector3:
-	var a := rng.randf() * TAU
-	var r := sqrt(rng.randf()) * radius
-	return _snap(centre + Vector3(cos(a) * r, 0.0, sin(a) * r))
-
-
-## 08 §2: retreat to a hinted point >= 20 m away; without one, the farthest of a few
-## seeded candidates 20 to 30 m from the player.
-func _retreat_point() -> Vector3:
-	var from := player.global_position if player != null else body_position()
-	if _has_hint and _hint.distance_to(from) >= Tuning.ERROR_SATIATED_RETREAT_DIST:
-		_has_hint = false
-		return _snap(_hint)
-	var best := body_position()
-	var best_d := -1.0
-	for i in Tuning.ERROR_RETREAT_SAMPLES:
-		var a := rng.randf() * TAU
-		var r := Tuning.ERROR_SATIATED_RETREAT_DIST * (1.0 + rng.randf() * 0.5)
-		var p := _snap(from + Vector3(cos(a) * r, 0.0, sin(a) * r))
-		var d := p.distance_to(from)
-		if d > best_d:
-			best_d = d
-			best = p
-	return best
+		return StillNav.snap(self, _hint)
+	return StillNav.random_point_near(self, body_position(), Tuning.STILL_WANDER_RADIUS)
 
 
 ## 08 §2 Memory: go to last_known_pos, then inspect hide spots within 6 m (each with the
@@ -405,7 +311,7 @@ func _search_step(_delta: float) -> void:
 		if _arrived() or state_time > Tuning.ERROR_SEARCH_TIME * 2.0:
 			_search_arrived = true
 			state_time = 0.0
-			_plan_inspection()
+			_inspect = StillNav.plan_inspection(self)
 			_next_inspect()
 		return
 	if state_time >= Tuning.ERROR_SEARCH_TIME:
@@ -423,23 +329,6 @@ func _search_step(_delta: float) -> void:
 			_give_up()
 			return
 		_next_inspect()
-
-
-func _plan_inspection() -> void:
-	_inspect.clear()
-	var at := senses.last_known_pos
-	for n in get_tree().get_nodes_in_group(&"hide_spots"):
-		var spot := n as HideSpot
-		if spot == null or spot.global_position.distance_to(at) > Tuning.STILL_HIDE_SEARCH_RADIUS:
-			continue
-		if rng.randf() < hide_check_chance():
-			_inspect.append({"pos": _snap(spot.exit_point.global_position), "spot": spot})
-	for i in Tuning.ERROR_SEARCH_INSPECT_CELLS:
-		var p := _random_point_near(at, Tuning.ERROR_SEARCH_INSPECT_RADIUS)
-		if _has_hint and i == 0:
-			_has_hint = false
-			p = _snap(_hint)
-		_inspect.append({"pos": p, "spot": null})
 
 
 func _next_inspect() -> void:
@@ -462,46 +351,17 @@ func _try_skip() -> void:
 		return
 	if distance_to_player() <= Tuning.STILL_SKIP_MIN_DIST:
 		return
-	var path := agent.get_current_navigation_path()
-	if path.size() < 2:
-		return
-	var left := Tuning.STILL_SKIP_STEP
-	var at := body_position()
-	var dest := at
-	for i in range(agent.get_current_navigation_path_index(), path.size()):
-		var seg := path[i] - at
-		if seg.length() >= left:
-			dest = at + seg.normalized() * left
-			left = 0.0
-			break
-		left -= seg.length()
-		at = path[i]
-		dest = at
-	dest = _snap(dest)
-	if _in_player_frustum(dest):
+	var dest := StillNav.skip_destination(self)
+	if dest == Vector3.INF:
 		return
 	_skip_cooldown = Tuning.STILL_SKIP_INTERVAL
 	place_at(dest)
 	_repath_acc = INF
 
 
-func _in_player_frustum(p: Vector3) -> bool:
-	if player == null or player.rig == null:
-		return false
-	var cam := player.rig.camera
-	return cam.is_position_in_frustum(p + Vector3.UP * COLUMN_CENTRE) \
-			or cam.is_position_in_frustum(p + Vector3.UP * Tuning.STILL_CAPSULE_HEIGHT)
-
-
 ## 08 §2: doors on the path are opened; Chase opens them with a slam.
 func _open_doors_near() -> void:
-	var p := body_position()
-	for door in _doors:
-		if not is_instance_valid(door) or door.is_open:
-			continue
-		var d := door.global_position
-		if Vector2(d.x - p.x, d.z - p.z).length() <= Tuning.ERROR_DOOR_OPEN_DIST:
-			door.open(state == Tuning.ERROR_STATE_CHASE)
+	StillNav.open_doors_near(self, _doors)
 
 
 # --- render tick (02 §8, 08 §4) -------------------------------------------------------------

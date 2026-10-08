@@ -17,16 +17,6 @@ const HUM := &"static_hum"
 const BAND := &"static_band"
 const SOURCE := &"static"
 
-## Every Static's current field strength on the player (several share one renderer) and
-## its distance; only the nearest pushes renderer, bed and jitter state, and only on change.
-static var _strength_by_error: Dictionary = {}
-static var _dist_by_error: Dictionary = {}
-static var _pushed: float = -1.0
-## Burning flares, gathered at most once per physics frame for every Static, and only
-## while the group is not empty (get_node_count_in_group is the cheap counter).
-static var _flare_cache: Array[Node3D] = []
-static var _flare_frame: int = -1
-
 @onready var field: Area3D = %Field
 @onready var mesh: MeshInstance3D = %Mesh
 
@@ -85,10 +75,7 @@ func _apply_radius() -> void:
 
 
 func _exit_tree() -> void:
-	var key := get_instance_id()
-	_strength_by_error.erase(key)
-	_dist_by_error.erase(key)
-	_push_state()
+	StaticFeed.forget(get_instance_id(), player)
 	_release_audio()
 
 
@@ -169,7 +156,7 @@ func _enter_state(to: StringName, _from: StringName) -> void:
 		Tuning.ERROR_STATE_DORMANT:
 			_path.clear()
 			_release_field()
-			_dist_by_error.erase(get_instance_id())
+			StaticFeed.forget(get_instance_id(), player)
 			_stop_audio()
 
 
@@ -198,10 +185,11 @@ func _tick(delta: float) -> void:
 
 
 func _drift(delta: float) -> void:
-	var flare := _nearest_flare()
+	var flare := StaticPaths.nearest_flare(get_tree(), global_position)
 	if flare != null:
 		# 08 §3: a burning flare within 6 m pushes it away at 1.2 m/s.
-		_flare_step(flare, delta)
+		global_position = StaticPaths.push_step(grid, global_position, flare,
+				Tuning.STATIC_FLARE_PUSH_SPEED * delta, _escape)
 		return
 	_escape.clear()
 	if _path.is_empty():
@@ -303,144 +291,16 @@ func _plan_to(dest: Vector3) -> void:
 		_path.append(grid.world_of(c))
 
 
-## BFS cell path from `from` to `to` (both included after `from`), empty if unreachable.
+## BFS cell path (StaticPaths.cell_path; 08 Interfaces, the sim bot).
 static func cell_path(g: LevelGrid, from: Vector2i, to: Vector2i) -> Array[Vector2i]:
-	var out: Array[Vector2i] = []
-	if from == to:
-		out.append(to)
-		return out
-	var prev := PackedInt32Array()
-	prev.resize(g.cell_count())
-	prev.fill(-1)
-	var start := g.idx(from)
-	var goal := g.idx(to)
-	prev[start] = start
-	var queue := PackedInt32Array([start])
-	var head := 0
-	while head < queue.size():
-		var i := queue[head]
-		head += 1
-		if i == goal:
-			break
-		var c := g.cell_at(i)
-		for d in 4:
-			if not g.can_step(c, d):
-				continue
-			var j := g.idx(c + LevelGrid.DIRS[d])
-			if prev[j] == -1:
-				prev[j] = i
-				queue.append(j)
-	if prev[goal] == -1:
-		return out
-	var k := goal
-	while k != start:
-		out.push_front(g.cell_at(k))
-		k = prev[k]
-	return out
+	return StaticPaths.cell_path(g, from, to)
 
 
 # --- flares (08 §3) ---------------------------------------------------------------------------
 
-func _flares() -> Array[Node3D]:
-	if not is_inside_tree() or get_tree().get_node_count_in_group(Tuning.STATIC_FLARE_GROUP) == 0:
-		_flare_cache.clear()
-		return _flare_cache
-	var frame := Engine.get_physics_frames()
-	if frame != _flare_frame:
-		_flare_frame = frame
-		_flare_cache.clear()
-		for n in get_tree().get_nodes_in_group(Tuning.STATIC_FLARE_GROUP):
-			var f := n as Node3D
-			if f != null and f.is_inside_tree():
-				_flare_cache.append(f)
-	return _flare_cache
-
-
-## The nearest burning flare within 6 m (XZ), or null.
-func _nearest_flare() -> Node3D:
-	var best: Node3D = null
-	var best_d := INF
-	for f in _flares():
-		var d := _flare_dist(global_position, f)
-		if d < Tuning.STATIC_FLARE_RANGE and d < best_d:
-			best_d = d
-			best = f
-	return best
-
-
-func _flare_dist(p: Vector3, flare: Node3D) -> float:
-	return Vector2(p.x - flare.global_position.x, p.z - flare.global_position.z).length()
-
-
-## One push step at 1.2 m/s straight away from `flare`. A step that would leave the
-## walkable cells (or cross a wall between cells) is rejected; it slides along one axis
-## instead, else follows the cell path to the nearest cell outside the flare's 6 m, so it
-## never freezes inside a flare's reach.
-func _flare_step(flare: Node3D, delta: float) -> void:
-	var step := Tuning.STATIC_FLARE_PUSH_SPEED * delta
-	if _escape.is_empty():
-		var off := global_position - flare.global_position
-		off.y = 0.0
-		var away := off.normalized() if off.length() > 0.001 else Vector3.RIGHT
-		for dir: Vector3 in [away, Vector3(signf(away.x), 0.0, 0.0), Vector3(0.0, 0.0, signf(away.z))]:
-			if dir.length() < 0.5:
-				continue
-			var next := global_position + dir.normalized() * step
-			if _walkable_step(global_position, next) and _flare_dist(next, flare) > _flare_dist(global_position, flare):
-				global_position = next
-				return
-		_escape = _escape_path(flare)
-		if _escape.is_empty():
-			return  # nowhere outside its reach on foot: hold until the flare burns out
-	var target := _escape[0]
-	var to := Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)
-	if to.length() <= step:
-		global_position = target
-		_escape.remove_at(0)
-	else:
-		global_position += to.normalized() * step
-
-
-## True when moving from `a` to `b` stays on walkable cells and crosses only open edges.
-func _walkable_step(a: Vector3, b: Vector3) -> bool:
-	if grid == null:
-		return true
-	var ca := grid.cell_of(a)
-	var cb := grid.cell_of(b)
-	if not grid.in_bounds(cb) or not grid.is_walkable(cb):
-		return false
-	if ca == cb:
-		return true
-	var d := cb - ca
-	if absi(d.x) + absi(d.y) != 1:
-		return false
-	return grid.can_step(ca, LevelGrid.DIRS.find(d))
-
-
-## Cell path to the nearest walkable cell (walking) outside the flare's 6 m.
-func _escape_path(flare: Node3D) -> Array[Vector3]:
-	var out: Array[Vector3] = []
-	if grid == null:
-		return out
-	var from := grid.cell_of(global_position)
-	var dist := grid.distance_field(from)
-	var best := -1
-	for i in dist.size():
-		if dist[i] < 0 or _flare_dist(grid.world_of(grid.cell_at(i)), flare) < Tuning.STATIC_FLARE_RANGE:
-			continue
-		if best == -1 or dist[i] < dist[best]:
-			best = i
-	if best == -1:
-		return out
-	for c in cell_path(grid, from, grid.cell_at(best)):
-		out.append(grid.world_of(c))
-	return out
-
-
 func _blocked_by_flare(next: Vector3) -> bool:
-	for f in _flares():
-		var a := Vector2(next.x - f.global_position.x, next.z - f.global_position.z).length()
-		if a < Tuning.STATIC_FLARE_RANGE:
+	for f in StaticPaths.flares(get_tree()):
+		if StaticPaths.flare_dist(next, f) < Tuning.STATIC_FLARE_RANGE:
 			return true
 	return false
 
@@ -486,46 +346,14 @@ func _release_field() -> void:
 	_set_strength(0.0)
 
 
-## Feeds the renderer (02 §8: grain 0.6, CA 0.02 inside; 08 §3: the drain floor 0.6),
-## the static bed (03) and the 0.002 m camera jitter (11 §3) with the strongest field over
-## every Static. Only the Static nearest the player pushes, and only when the value moves.
+## Feeds the renderer, the static bed and the camera jitter (StaticFeed: the strongest
+## field over every Static, pushed by the nearest).
 func _set_strength(s: float) -> void:
-	var key := get_instance_id()
-	if s > 0.0:
-		_strength_by_error[key] = s
-	else:
-		_strength_by_error.erase(key)
-	_dist_by_error[key] = distance_to_player()
-	if _is_nearest(key):
-		_push_state()
-
-
-func _is_nearest(key: int) -> bool:
-	var mine: float = _dist_by_error.get(key, INF)
-	for k: int in _dist_by_error:
-		var d: float = _dist_by_error[k]
-		if d < mine or (d == mine and k < key):
-			return false
-	return true
-
-
-func _push_state() -> void:
-	var top := strongest_field()
-	if top == _pushed:
-		return
-	_pushed = top
-	CoherenceRenderer.set_static(top)
-	CoherenceRenderer.set_drain_floor(Tuning.STATIC_FORCED_DRAIN * top)
-	AudioManager.set_static_inside(top > 0.0)
-	if player != null and is_instance_valid(player) and player.rig != null:
-		player.rig.set_jitter(Tuning.FEEDBACK_STATIC_JITTER if top > 0.0 else 0.0)
+	StaticFeed.report(get_instance_id(), s, distance_to_player(), player)
 
 
 static func strongest_field() -> float:
-	var top := 0.0
-	for v: float in _strength_by_error.values():
-		top = maxf(top, v)
-	return top
+	return StaticFeed.strongest()
 
 
 # --- audio (03: hum through walls, the band rises inside) -----------------------------------------
