@@ -25,10 +25,11 @@ extends StyleBox
 
 
 func _draw(to_canvas_item: RID, rect: Rect2) -> void:
-	var step := maxi(period, thickness + 1)
+	var t := maxi(thickness, UiTokens.hairline())
+	var step := maxi(period, t + 1) if t == thickness else maxi(period * t, t + 1)
 	var y := floorf(rect.position.y + rect.size.y * vertical_ratio)
 	var x := ceilf(rect.position.x)
-	var x_end := rect.end.x - thickness
+	var x_end := rect.end.x - t
 	while x <= x_end:
-		RenderingServer.canvas_item_add_rect(to_canvas_item, Rect2(x, y, thickness, thickness), color)
+		RenderingServer.canvas_item_add_rect(to_canvas_item, Rect2(x, y, t, t), color)
 		x += step

@@ -1492,6 +1492,27 @@ const SETTINGS_FOV_HFOV_TO_VFOV_NUM := 9.0          # vfov = 2 atan(tan(hfov/2) 
 const SETTINGS_FOV_HFOV_TO_VFOV_DEN := 16.0
 const SETTINGS_FLICKER_REDUCED_PULSE_HZ := 2.0      # Flicker's tell at intensity 0.3
 const SETTINGS_REDUCE_FLASHING_FADE_MS := LIGHT_FLICKER_REDUCED_FADE_MS
+# 12 §2 to §7 ranges not listed above (M2.11 mirrors of the tables)
+const SETTINGS_VERSION := 1                         # settings.cfg settings_version (12 §8)
+const SETTINGS_UI_SCALE_MIN := 0.75
+const SETTINGS_UI_SCALE_MAX := 1.5
+const SETTINGS_UI_SCALE_STEP := 0.05
+const SETTINGS_UI_REFERENCE_HEIGHT := 1080          # UI sizes are at 1080p; the scale is auto-derived from height (12 §2)
+const SETTINGS_UNIT_STEP := 0.05                    # head bob, screen shake, flicker intensity, text size sliders
+const SETTINGS_TEXT_SIZE_MIN := 0.9
+const SETTINGS_TEXT_SIZE_MAX := 1.4
+const SETTINGS_LIGHT_POOL_DEFAULT := LIGHT_POOL_SIZE_MEDIUM
+const SETTINGS_SENS_TEST_SIZE := 200                # px, the live TEST square (04 §7)
+const SETTINGS_REBIND_FLASH := 2.0                  # s, swapped rows flash ui_accent (04 §7, 12 §5)
+## 02 §12 has no texture row; the Low preset uses the 512 noise textures, the others 1024 (12 §3).
+const SETTINGS_PRESET_TEXTURE_DETAIL: Dictionary = {&"low": &"low", &"medium": &"high", &"high": &"high"}
+const SETTINGS_PARTICLES_LOW_RATIO := 0.5           # 02 §12 Low: 50% counts
+## Windowed and exclusive resolutions offered when they fit the screen (12 §2: modes >= 1280x720).
+const SETTINGS_RESOLUTIONS: Array[Vector2i] = [
+	Vector2i(1280, 720), Vector2i(1366, 768), Vector2i(1440, 900), Vector2i(1600, 900), Vector2i(1680, 1050),
+	Vector2i(1920, 1080), Vector2i(1920, 1200), Vector2i(2560, 1080), Vector2i(2560, 1440), Vector2i(3440, 1440),
+	Vector2i(3840, 2160),
+]
 
 
 # =====================================================================================

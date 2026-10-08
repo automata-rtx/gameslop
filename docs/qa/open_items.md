@@ -15,7 +15,6 @@ Deferred work found during production. Each line names the task that should abso
 - M1.10/M3.6: typed note text wraps with a leading space on the new line (note sheet, 1280x720 H3); UI scale for 720p arrives in M3.6; ui_dim text over bright fixtures has no backing.
 - M1.11b/M2.14: AudioManager heartbeat should lock to `CoherenceRenderer.heartbeat_phase()` instead of its own timer.
 - M1.2 follow-up / M3.5: `apply_viewport_preset` (game/src/lighting/stratum_environment.gd) needs FSR 2 when render scale < 1.0.
-- M2.11: add a `texture_detail` settings key; CoherenceRenderer.apply_texture_detail is ready.
 - M1.9/M2.10: GameState must subscribe to note_found and record notes into run/meta; add meta.stats.strata_reached (ItemSpawner uses found notes as a proxy for tier 2).
 - M2.1: `BuildPlan` builds Halls only (`SUPPORTED_STRATA`); per-cell floor heights, ramps, basins, racks and water arrive with the other grammars (see `TODO(M2.1)` in `build_plan.gd`).
 - M3.x: void blocks have collision but no rendered inner faces; at full unrender (screen door, u ≥ 0.95) a wall next to one shows the next corridor through the block rather than a filled volume. Normally hidden.
@@ -30,7 +29,6 @@ Deferred work found during production. Each line names the task that should abso
 - M2.14: Director should feed `MusicDirector.set_intensity` once it exists.
 - M2.7/M3.4: the sim bot walks the critical path and never provokes Peak; add an exploring/sprinting bot profile so simulated playtests cover the full sawtooth on real levels.
 - Player owner: player.gd is 421 lines (limit 400, 14 §6); split it in the next player task.
-- M2.11: title shows `SaveManager.consume_reset_notice()` and the Daily result; title asks `GameState.is_mode_available`/`is_loadout_available` before start_run.
 - Player/run owner: apply `RunState.crank_rate_mult` (player crank) and `flicker_attract_mult` (Flicker, M2.5); update `RunState.distance_m` from player movement.
 - (M2.10 done: custom user dir, note recording, strata_reached, score via Clock.)
 
@@ -46,3 +44,5 @@ Deferred work found during production. Each line names the task that should abso
 - Watch: LevelBuilder slice p90 measured 4.91 ms once under machine load (budget 4 ms); passes when the machine is quieter. M3.5 should measure on a real machine.
 - M2.13: Garage fails T1 near the camera (floor 0.04–0.05 at 2–4 m in pillar shadows; black corners in ramp and soft-wall frames). LevelShots measures floor brightness only at y = 0 (no T1 for deck 1). Garage corridor_long pose can start inside a parked car.
 - Errors owner: in the screenshot tour (DirectLevel with its player freed) ErrorStatic._set_strength calls `report` with a freed player (`error_static.gd:352`, SCRIPT ERROR on every field release). Guard with is_instance_valid.
+- CoherenceRenderer owner: quitting while noise textures regenerate after a texture-detail change hangs Godot's exit; wait for or cancel regeneration on quit.
+- Archive: new notes do not blink on first open (meta has no read state); Polaroids show as a count, not thumbnails.

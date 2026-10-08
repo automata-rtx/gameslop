@@ -6,11 +6,14 @@ extends Control
 ## restarts within 1 s) and `TITLE`. Reads GameState and Clock; writes nothing but the
 ## next GameState.start_run. SCORE and BEST come from GameState (05 §5); unlocks earned this
 ## run follow the table in ui_accent, worded as the HUD notifications (04 §6, §7).
+## Items (04 §7): DESCEND AGAIN, ARCHIVE (the title opens on the Archive), TITLE. A spent
+## Daily Descent restarts as a Descent (05 §8: one attempt per day).
 
 const RUN_SCENE := "res://scenes/run.tscn"
 const TITLE_SCENE := "res://scenes/title.tscn"
 const WIN_CAUSE := &"threshold"
 const ITEM_AGAIN := &"descend_again"
+const ITEM_ARCHIVE := &"archive"
 const ITEM_TITLE := &"title"
 
 var lines: Array[UiTypedLabel] = []
@@ -45,6 +48,7 @@ func _ready() -> void:
 	col.add_child(spacer2)
 	menu = MenuList.new()
 	menu.add_item(ITEM_AGAIN, Strings.SUMMARY_DESCEND_AGAIN)
+	menu.add_item(ITEM_ARCHIVE, Strings.SUMMARY_ARCHIVE)
 	menu.add_item(ITEM_TITLE, Strings.SUMMARY_TITLE)
 	menu.activated.connect(choose)
 	col.add_child(menu)
@@ -163,9 +167,20 @@ func choose(id: StringName) -> void:
 		return
 	_leaving = true
 	if id == ITEM_AGAIN:
+		var mode := again_mode()
 		var run := GameState.run
-		GameState.start_run(run.mode if run != null else Tuning.MODE_DESCENT,
-				run.loadout if run != null else &"faller", Run.new_seed())
+		var loadout: StringName = run.loadout if run != null else &"faller"
+		if not GameState.is_loadout_available(loadout):
+			loadout = &"faller"
+		GameState.start_run(mode, loadout, GameState.daily_seed() if mode == Tuning.MODE_DAILY else Run.new_seed())
 		SceneRouter.change_to(RUN_SCENE)
 	else:
+		if id == ITEM_ARCHIVE:
+			Title.open_on_enter = Title.PAGE_ARCHIVE
 		SceneRouter.change_to(TITLE_SCENE)
+
+
+## The mode DESCEND AGAIN starts: the same one if it is still available, else Descent.
+static func again_mode() -> StringName:
+	var mode: StringName = GameState.run.mode if GameState.run != null else Tuning.MODE_DESCENT
+	return mode if GameState.is_mode_available(mode) else Tuning.MODE_DESCENT

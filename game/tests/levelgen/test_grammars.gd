@@ -1,24 +1,25 @@
 extends TestCase
 ## 07 §10: every grammar validates for 1,000 seeds (after retries) within the worker budget.
-## Halls runs the full 1,000 in the gate; Pools and Garage (M2.1) run GATE_SEEDS here to keep
-## the gate under 5 minutes, and the full 1,000 through `--validate-levels 1000` (14 §9).
+## The per-merge gate runs GATE_SEEDS per stratum; the checkpoint script (NOCLIP_FULL_TESTS=1,
+## tools/ci/checkpoint.sh) runs the full 1,000 and enforces the worker-time budget.
 
 const SEEDS := Tuning.VALIDATE_SEEDS_PER_STRATUM
 const GATE_SEEDS := 300
 
 
 func test_halls_1000_seeds_validate() -> void:
-	var report := LevelValidator.run_batch(&"halls", SEEDS)
+	var n := SEEDS if full_run() else GATE_SEEDS
+	var report := LevelValidator.run_batch(&"halls", n)
 	print("  # halls x%d: valid %d, retried %d, fallbacks %d, path %.0f m (%.0f..%.0f), walkable %.0f (%d..%d), %.1f ms/level (max %.0f)" % [
 		report["count"], report["valid"], report["retried"], report["fallbacks"],
 		report["path_m_mean"], report["path_m_min"], report["path_m_max"],
 		report["walkable_mean"], report["walkable_min"], report["walkable_max"],
 		report["ms_mean"], report["ms_max"]])
-	assert_eq(report["count"], SEEDS)
+	assert_eq(report["count"], n)
 	assert_eq(report["invalid"], 0, "levels shipped invalid: %s" % [report["failures"]])
 	assert_eq(report["fallbacks"], 0, "no seed should need the simplest grammar")
 	# 07 §3: layout and placement under 300 ms on the worker thread.
-	assert_lt(report["ms_mean"], float(Tuning.LEVELGEN_WORKER_BUDGET_MS))
+	assert_budget(report["ms_mean"], float(Tuning.LEVELGEN_WORKER_BUDGET_MS), "mean ms per level")
 
 
 ## Halls only appears at depth 1 in a Descent, but the grammar must hold at every grid size
@@ -87,15 +88,15 @@ func _batch(stratum: StringName, n: int, depth: int = 0) -> void:
 	assert_eq(report["count"], n)
 	assert_eq(report["invalid"], 0, "levels shipped invalid: %s" % [report["failures"]])
 	assert_eq(report["fallbacks"], 0, "no seed should need the simplest grammar")
-	assert_lt(report["ms_mean"], float(Tuning.LEVELGEN_WORKER_BUDGET_MS))
+	assert_budget(report["ms_mean"], float(Tuning.LEVELGEN_WORKER_BUDGET_MS), "mean ms per level")
 
 
 func test_pools_seeds_validate() -> void:
-	_batch(&"pools", GATE_SEEDS)
+	_batch(&"pools", SEEDS if full_run() else GATE_SEEDS)
 
 
 func test_garage_seeds_validate() -> void:
-	_batch(&"garage", GATE_SEEDS)
+	_batch(&"garage", SEEDS if full_run() else GATE_SEEDS)
 
 
 ## Pools and Garage appear at depths 2 to 5 and in Cycle 2 (+2 cells a side).

@@ -76,6 +76,8 @@ func _ready() -> void:
 	hud.bind_inventory(player.inventory)
 	player.dissolved.connect(_on_dissolved)
 	EventBus.breaker_thrown.connect(_on_breaker_thrown)
+	# M2.11: the pause menu (04 §7) opens on the `pause` action through Clock.set_menu_pause.
+	add_child(PauseMenu.create(self))
 	_connect_drop_signal.call_deferred()
 	_start.call_deferred()
 

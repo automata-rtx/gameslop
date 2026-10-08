@@ -17,7 +17,8 @@ NOCLIP is a first-person horror roguelite built in Godot 4.7 (GDScript, Forward+
 ```
 tools/godot/fetch.sh                          # downloads the pinned Godot into tools/godot/bin (sets GODOT_BIN)
 $GODOT_BIN --headless --path game --import    # import after asset changes
-tools/ci/test.sh                              # run the test suite headless (the merge gate)
+tools/ci/test.sh                              # run the test suite headless (the merge gate; --filter <name> while iterating)
+tools/ci/checkpoint.sh                        # full suite with 1,000 seeds and budgets enforced, validator, smoke, exports (before a tag)
 python3 tools/audio/synth.py --out game/assets/audio   # regenerate all audio from recipes
 $GODOT_BIN --path game -- --seed 1 --depth 1 --stratum halls   # launch straight into a level (needs a GPU)
 tools/ci/render.sh --path game -- --tour build/tour   # screenshot tour on the CPU renderer
