@@ -43,10 +43,13 @@ var _cranking: bool = false
 var _turning: bool = false
 var _crank_timer: float = 0.0
 var _held_rest: Vector3
+var _held_rest_basis: Basis
+var _dip_tween: Tween
 
 
 func _ready() -> void:
 	_held_rest = held.position
+	_held_rest_basis = held.basis
 	# The beam leaves the held lens (it sits under %Held, so it bobs with the hand), but
 	# points along the camera's view axis, not the model's slight inward tilt.
 	beam.basis = held.basis.inverse()
@@ -116,6 +119,24 @@ func is_cranking() -> bool:
 ## True while the wheel actually turns (cranking and not yet full).
 func is_turning() -> bool:
 	return _turning
+
+
+## 11 §2 crouch / stand Image: the held light (and its beam) pitches down `deg` and back
+## over the camera dip's 120 ms. Interruptible (11 §5).
+func dip(deg: float) -> void:
+	if _dip_tween:
+		_dip_tween.kill()
+	if not is_inside_tree() or held == null:
+		return
+	var half := Tuning.CAMERA_DIP_MS / 2000.0
+	var rad := deg_to_rad(deg)
+	_dip_tween = create_tween().set_trans(Tween.TRANS_SINE)
+	_dip_tween.tween_method(_set_held_dip, 0.0, rad, half).set_ease(Tween.EASE_OUT)
+	_dip_tween.tween_method(_set_held_dip, rad, 0.0, half).set_ease(Tween.EASE_IN_OUT)
+
+
+func _set_held_dip(rad: float) -> void:
+	held.basis = _held_rest_basis.rotated(Vector3.RIGHT, -rad)
 
 
 func set_charge(v: float) -> void:

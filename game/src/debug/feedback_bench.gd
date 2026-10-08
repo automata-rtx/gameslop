@@ -195,15 +195,21 @@ func _store(result: Dictionary) -> void:
 		_refresh_ui()
 
 
-## What a row's channels did after the anchor.
+## What a row's channels did after the anchor. Only the channels the row lists are credited
+## (11 §1); an unlisted channel is still reported (`x*` in the checklist) on a full row, and
+## ignored altogether on a gap or sparse row, so a coincidence can neither pass nor fail them.
+## A lookback window (a continuous channel already moving before the anchor) credits only the
+## row's expected keys; a channel without expected keys gets no lookback.
 func _evaluate(row: Dictionary) -> Dictionary:
 	var channels: Dictionary = {}
 	if _anchor_index >= 0:
 		var end_tick := _anchor_tick + int(row[&"window"])
 		for ch: StringName in FeedbackSpy.CHANNELS:
-			var lookback := int((row[&"lookback"] as Dictionary).get(ch, 0))
-			var noisy: Dictionary = {} if lookback > 0 else spy.noisy_keys(_anchor_index, ch)
+			if not watches(row, ch):
+				continue
 			var expect: Array = (row[&"expect"] as Dictionary).get(ch, [])
+			var lookback := lookback_ticks(row, ch)
+			var noisy: Dictionary = {} if lookback > 0 else spy.noisy_keys(_anchor_index, ch)
 			var first := -1
 			var keys: Dictionary = {}
 			var start := _anchor_index
@@ -231,6 +237,29 @@ func _evaluate(row: Dictionary) -> Dictionary:
 	return _result_for(row, channels)
 
 
+## True when the row lists `ch` (11 §2/§3 fills the column).
+static func lists(row: Dictionary, ch: StringName) -> bool:
+	return String(row[&"listed"]).contains(String(ch))
+
+
+## Gap rows and sparse rows (fewer than three listed channels) look only at what they list.
+static func is_strict(row: Dictionary) -> bool:
+	return row[&"status"] == FeedbackRows.GAP or String(row[&"listed"]).length() < 3
+
+
+## Whether the bench evaluates channel `ch` of `row` at all.
+static func watches(row: Dictionary, ch: StringName) -> bool:
+	return lists(row, ch) or not is_strict(row)
+
+
+## The lookback a channel gets: only a channel with expected keys has one, and then only
+## those keys count (a continuous animation elsewhere can never pass the row).
+static func lookback_ticks(row: Dictionary, ch: StringName) -> int:
+	if ((row[&"expect"] as Dictionary).get(ch, []) as Array).is_empty():
+		return 0
+	return int((row[&"lookback"] as Dictionary).get(ch, 0))
+
+
 ## The changed keys that count: not noisy, and (when the row names what it expects) matching.
 static func _accepted(changed: PackedStringArray, noisy: Dictionary, expect: Array) -> PackedStringArray:
 	var out := PackedStringArray()
@@ -248,13 +277,14 @@ func _result_for(row: Dictionary, channels: Dictionary) -> Dictionary:
 	var late: Array[String] = []
 	var missing: Array[String] = []
 	for ch: StringName in FeedbackSpy.CHANNELS:
-		var listed: bool = String(row[&"listed"]).contains(String(ch))
+		if not lists(row, ch):
+			continue  # reported in `channels` on a full row, never credited
 		if channels.has(ch):
 			if within(channels[ch]):
 				fired += 1
 			else:
 				late.append(String(ch))
-		elif listed:
+		else:
 			missing.append(String(ch))
 	var pending: bool = row[&"status"] == FeedbackRows.PENDING
 	return {

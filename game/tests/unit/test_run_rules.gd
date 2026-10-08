@@ -189,6 +189,21 @@ func test_drop_cell_rules() -> void:
 	assert_false(RunLevelSetup.is_drop_cell(data, data.exit_cell, [] as Array[Vector3]), "never the exit room")
 
 
+## 04 §7 (CHANGELOG 2026-10-08): the summary names the stratum that was generated, which is
+## the HUD's, not the one the order planned for the depth.
+func test_summary_names_the_generated_stratum() -> void:
+	GameState.start_run(Tuning.MODE_DESCENT, &"faller", 21)
+	GameState.run.depth = 2
+	var planned := GameState.stratum_for(2)
+	assert_ne(planned, &"halls", "depth 2 is never Halls in the order (05 §2)")
+	GameState.run.stratum = &"halls"
+	GameState.end_run(&"still")
+	assert_eq(RunSummary.generated_stratum(), &"halls")
+	assert_eq(RunSummary.top_line(), "DISSOLVED BY STILL · DEPTH 02 · HALLS")
+	GameState.start_run(Tuning.MODE_DESCENT, &"faller", 21)
+	assert_eq(RunSummary.generated_stratum(), GameState.stratum_for(1), "no level entered yet: the planned one")
+
+
 func test_summary_lines() -> void:
 	GameState.start_run(Tuning.MODE_DESCENT, &"faller", 21)
 	GameState.record_wall_pass()

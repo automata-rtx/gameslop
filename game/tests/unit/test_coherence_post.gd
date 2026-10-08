@@ -71,7 +71,7 @@ func test_noclip_commit_holds_through_hitstop_and_pass_then_decays() -> void:
 	assert_approx(CoherencePost.commit_envelope(0.63), 0.0, 0.0, "fully decayed 300 ms after the pass")
 	assert_approx(CoherencePost.commit_envelope(INF), 0.0)
 	var p := _compute(1.0, {&"noclip_commit": 0.1})
-	assert_approx(p[&"ca"], 0.05, 0.0001, "commit pulse CA 0.05")
+	assert_approx(p[&"ca"], Tuning.POST_PULSE_NOCLIP_CA, 0.0001, "commit pulse CA (02 §4)")
 	assert_approx(p[&"scan"], 1.0, 0.0001, "commit pulse scanline 1.0")
 	assert_gt(p[&"grain"], 0.18, "grain spike on commit (11 §2)")
 

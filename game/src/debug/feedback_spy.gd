@@ -138,7 +138,11 @@ func _image(tree: SceneTree) -> Dictionary:
 		d["light.hand"] = f.hand_light.light_energy
 		d["light.lens"] = f.lens_emission()
 		d["light.wheel"] = f.wheel.rotation
+		# The wheel turning or stopped (11 §2 crank full: "wheel stops"); its angle is
+		# noise while it turns, so the stop itself is its own key.
+		d["light.wheel_turning"] = f.is_turning()
 		d["light.held"] = f.held.position
+		d["light.held_rot"] = f.held.rotation
 		d["held.bob_amp"] = snappedf(float(p.rig.get(&"_bob_amp_target")) * p.rig.bob_scale, 0.05)
 		var hand: HeldHand = p.inventory.get(&"_hand")
 		if hand != null and hand.root != null:

@@ -17,6 +17,11 @@ const COHERENCE_STEPS: Array[float] = [100.0, 60.0, 30.0, 10.0]
 const POSES: Array[StringName] = [&"spawn", &"corridor", &"exit_room"]
 ## The extra pose where T1 is read out to 12 m (LevelShots' head of the longest corridor).
 const T1_POSE := &"corridor_long"
+## 02 §5 soft wall: LevelShots' soft_wall pose at Coherence 100, photographed twice this far
+## apart in world time (the band runs at 0.5 Hz, so 1 s is half a period: its largest swing)
+## for the temporal-contrast measurement tour_check reads.
+const SOFT_POSE := &"soft_wall"
+const SOFT_INTERVAL_S := 1.0
 const NOCLIP_COHERENCE := 70.0
 const NULL_DISTANCE := 8.0
 const SETTLE_POSE := 12
@@ -62,7 +67,36 @@ static func plan(data: LevelData) -> Dictionary:
 			wanted.append(by_name[n])
 	if by_name.has(T1_POSE):
 		wanted.append(by_name[T1_POSE])
-	return {&"poses": wanted, &"noclip": noclip_view(data)}
+	return {&"poses": wanted, &"noclip": noclip_view(data), &"soft": by_name.get(SOFT_POSE, {})}
+
+
+## The soft wall of LevelShots' soft_wall pose (data.soft_walls[0]) as a screen-space
+## rectangle seen by `cam`: [x0, y0, x1, y1] in pixels, clamped to `size`; empty when none.
+static func soft_wall_rect(data: LevelData, cam: Camera3D, size: Vector2) -> Array:
+	if data.soft_walls.is_empty():
+		return []
+	var e := data.soft_walls[0]
+	var g := data.grid
+	var dv := LevelGrid.DIRS[e.z]
+	var fwd := Vector3(dv.x, 0.0, dv.y)
+	var along := Vector3(-fwd.z, 0.0, fwd.x)
+	var centre := g.world_of(Vector2i(e.x, e.y)) + fwd * (Tuning.GRID_CELL_SIZE * 0.5)
+	var h := float(Tuning.STRATUM_CEILING_HEIGHT.get(data.stratum, 2.4))
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for s: float in [-0.5, 0.5]:
+		for y: float in [0.0, h]:
+			var p := centre + along * (Tuning.GRID_CELL_SIZE * s) + Vector3(0.0, y, 0.0)
+			if cam.is_position_behind(p):
+				continue
+			var px := cam.unproject_position(p)
+			lo = lo.min(px)
+			hi = hi.max(px)
+	if lo.x > hi.x:
+		return []
+	lo = lo.clamp(Vector2.ZERO, size)
+	hi = hi.clamp(Vector2.ZERO, size)
+	return [int(lo.x), int(lo.y), int(hi.x), int(hi.y)]
 
 
 ## A wall between two walkable cells, seen from 0.4 m behind the cell centre: the camera, its
@@ -134,9 +168,14 @@ func _tour_stratum(stratum: StringName) -> void:
 	_camera = _shots.begin(_level)
 	_entries = {}
 	manifest[&"strata"][String(stratum)] = {&"t1_limit_m": t1_limit(stratum), &"shots": _entries}
+	var exit := _place_exit(d.data)
 	var tour_plan := plan(d.data)
 	for pose in tour_plan[&"poses"]:
-		_aim(pose[&"from"], pose[&"to"])
+		var to: Vector3 = pose[&"to"]
+		if pose[&"name"] == &"exit_room" and exit != null:
+			# The exit room faces the exit itself (its sight point), not just its wall.
+			to = exit.sight_point.global_position
+		_aim(pose[&"from"], to)
 		await _frames(SETTLE_POSE)
 		var steps: Array[float] = COHERENCE_STEPS.duplicate()
 		if pose[&"name"] == T1_POSE:
@@ -147,12 +186,53 @@ func _tour_stratum(stratum: StringName) -> void:
 			_save("%s_c%03d" % [pose[&"name"], int(c)], {&"pose": pose[&"name"], &"coherence": c,
 					&"kind": &"pose"})
 	CoherenceRenderer.set_coherence(Tuning.COHERENCE_MAX)
+	await _soft_frames(tour_plan[&"soft"], d.data)
 	await _noclip_frame(tour_plan[&"noclip"])
 	await _null_frame(tour_plan[&"poses"])
 	_reset()
 	_shots.queue_free()
 	d.queue_free()
 	await get_tree().process_frame
+
+
+## The run's exit prefab (RunLevelSetup, as a Descent places it) so the exit room shows the
+## exit. A Powered exit room starts dark (07 §6); the tour photographs it after the breaker
+## (fixtures on, exit powered), the state T1 and T3 are about.
+func _place_exit(data: LevelData) -> Exit:
+	var setup := RunLevelSetup.prepare(_level, data)
+	var exit := setup[&"exit"] as Exit
+	for f in _level.light_pool.fixtures():
+		if not f.powered:
+			f.set_powered(true)
+	if exit != null and data.exit_lock == Tuning.LOCK_POWERED:
+		exit.power()
+	_level.light_pool.reevaluate()
+	return exit
+
+
+## 02 §5 soft wall: `soft_wall_c100`, then `soft_wall_c100_t1` SOFT_INTERVAL_S of world time
+## later, with the wall's screen rectangle so tour_check can measure the band's temporal
+## contrast against the rest of the frame (grain is the control).
+func _soft_frames(pose: Dictionary, data: LevelData) -> void:
+	if pose.is_empty():
+		return
+	_aim(pose[&"from"], pose[&"to"])
+	CoherenceRenderer.set_coherence(Tuning.COHERENCE_MAX)
+	await _frames(SETTLE_POSE)
+	var rect := soft_wall_rect(data, _camera, get_viewport().get_visible_rect().size)
+	# The CPU renderer runs a few frames per second, so world time is pinned rather than
+	# waited for: the renderer pauses and g_time is set to exactly t0 and t0 + 1 s, each
+	# held long enough for TAA to settle. The grain holds still too, so what differs
+	# between the two frames is the band (and TAA residue, which the control region shows).
+	var t0 := CoherenceRenderer.world_time
+	CoherenceRenderer.set_process(false)
+	for i in 2:
+		var t := t0 + SOFT_INTERVAL_S * i
+		RenderingServer.global_shader_parameter_set(CoherenceRenderer.G_TIME, t)
+		await _frames(SETTLE_POSE)
+		_save("soft_wall_c100" if i == 0 else "soft_wall_c100_t1", {&"pose": SOFT_POSE,
+				&"coherence": 100.0, &"kind": &"soft", &"soft_rect": rect, &"world_time": t})
+	CoherenceRenderer.set_process(true)
 
 
 ## The mid-noclip frame: the commit pass at a wall, the pulse held at its peak (the CPU

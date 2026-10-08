@@ -280,6 +280,8 @@ const COHERENCE_DISSOLVE_TIME := 1.5                # s
 const COHERENCE_LOW_INTENSITY_BELOW := 30.0         # Director +0.10 once when crossing (10 §2)
 const COHERENCE_HINT_BELOW := 50.0                  # hint 7 (04 §9)
 const COHERENCE_TICK_RATE := 30.0                   # HUD numeral ticks at 30 units per s (04 §6, 11 §3)
+const COHERENCE_TICK_RATE_FAST := 60.0              # a single change of >= 20 ticks at 60 per s (04 §6, R11)
+const COHERENCE_TICK_FAST_FROM := 20.0              # units: the size of change that ticks fast
 const COHERENCE_BAR_WIDTH := 240.0                  # px (04 §6)
 
 # 06 §9  Contact rules
@@ -957,7 +959,7 @@ const POST_NULL_LINE_COLOR := "#E6E6E6"
 const POST_PULSE_HIT_CA := 0.03
 const POST_PULSE_HIT_INVERT_FRAMES := 2
 const POST_PULSE_HIT_DECAY_MS := 400
-const POST_PULSE_NOCLIP_CA := 0.05
+const POST_PULSE_NOCLIP_CA := 0.004                # R11: the commit lines lead (was 0.05)
 const POST_PULSE_NOCLIP_SCANLINE := 1.0
 const POST_PULSE_NOCLIP_DECAY_MS := 300
 const POST_PULSE_GAIN_SATURATION := 1.15
@@ -1001,7 +1003,8 @@ const WORLD_SCREEN_DOOR_MAX := 0.6                  # at u >= 0.95 a fraction 0.
 const WORLD_SCREEN_DOOR_CELL := 0.01                # m; hash cell lattice: 1 cm, halved/doubled by octaves
                                                     # until one cell is at most a pixel (world-anchored)
 const WORLD_SOFT_BAND_HZ := 0.5
-const WORLD_SOFT_BAND_AMPLITUDE := 0.03
+const WORLD_SOFT_BAND_AMPLITUDE := 0.08             # albedo (R11: 0.03 did not read as a shimmer)
+const WORLD_SOFT_BAND_K := 6.3                      # rad per m up the wall: bands about 1 m apart (render-task constant)
 const WORLD_SOFT_PREVIEW_U := 0.3
 const WORLD_SOFT_PREVIEW_DIST := 2.0                # m crosshair range
 const WORLD_SOFT_PREVIEW_SPAN := 1.2                # m around the aimed point (render-task constant)
@@ -1380,6 +1383,7 @@ const FEEDBACK_NOCLIP_FALL_PITCH_DEG := 10.0
 const FEEDBACK_NOCLIP_SOUND_GAP_MS := 60
 const FEEDBACK_CHALK_NOD_DEG := 1.0
 const FEEDBACK_CHALK_MISS_NOD_DEG := 0.3            # chalk at nothing: a smaller nod (R4 constant)
+const FEEDBACK_CROUCH_HELD_DIP_DEG := 1.0          # 11 §2 crouch / stand Image: the held light dips 1° with the 0.05 m camera dip (R11)
 const FEEDBACK_GAIN_FOV_DEG := 2.0                  # +2 then back over 400 ms
 const FEEDBACK_GAIN_FOV_MS := 400
 const FEEDBACK_STATIC_JITTER := 0.002               # m
