@@ -527,6 +527,16 @@ func _use_in_reach() -> void:
 	if run.breaker != null and not run.breaker.is_thrown \
 			and DirectorSpawn.flat_dist(p.global_position, run.breaker.global_position) < REACH:
 		run.breaker.interactable.interact(p)
+		# Variant B: the first interact inserts the carried fuse, the next throws the lever.
+		if run.breaker.fuse_in and not run.breaker.is_thrown:
+			run.breaker.interactable.interact(p)
+	# M2.9 locks: the fuse (Variant B) and the keycard (Keyed) are picked up, then swiped.
+	var want := _lock_pickup()
+	if want != null and DirectorSpawn.flat_dist(p.global_position, want.global_position) < REACH:
+		want.interactable.interact(p)
+	if run.exit != null and run.exit.reader != null and not run.exit.reader.accepted and p.inventory.keycard \
+			and DirectorSpawn.flat_dist(p.global_position, run.exit.reader.global_position) < REACH + 0.5:
+		run.exit.reader.interactable.interact(p)
 	if _hide_spot != null and DirectorSpawn.flat_dist(p.global_position, _hide_spot.global_position) < REACH:
 		if _hide_spot.interactable.can_interact(p):
 			_hide_spot.interactable.interact(p)
@@ -568,11 +578,31 @@ func _goal_now() -> Vector3:
 	return _objective()
 
 
+## The pickup the lock still needs (07 §6): the Variant B fuse while the socket is empty and
+## the belt holds none, or the keycard while the reader has not accepted one. Null otherwise.
+func _lock_pickup() -> ItemPickup:
+	var kind := &""
+	if run.breaker != null and not run.breaker.is_thrown and not run.breaker.fuse_in and not run.player.inventory.has(&"fuse"):
+		kind = &"fuse"
+	elif run.exit != null and run.exit.reader != null and not run.exit.reader.accepted and not run.player.inventory.keycard:
+		kind = &"keycard"
+	if kind == &"":
+		return null
+	for n in tree.get_nodes_in_group(ItemPickup.GROUP):
+		var it := n as ItemPickup
+		if it != null and not it.picked and it.kind == kind and run.level.is_ancestor_of(it):
+			return it
+	return null
+
+
 func _objective() -> Vector3:
+	var want := _lock_pickup()
+	if want != null:
+		return want.global_position
 	if run.breaker != null and not run.breaker.is_thrown and run.data.breaker_cell != LevelData.NO_CELL:
 		return run.data.grid.world_of(run.data.breaker_cell)
 	if run.exit != null:
-		return run.exit.to_global(Vector3(0.0, 0.1, -0.45))
+		return run.exit.walk_in_point()
 	return run.data.grid.world_of(run.data.exit_cell)
 
 
@@ -725,7 +755,7 @@ func _clear_path() -> void:
 
 func _exit_point() -> Vector3:
 	if run.exit != null:
-		return run.exit.to_global(Vector3(0.0, 0.1, -0.45))
+		return run.exit.walk_in_point()
 	return run.data.grid.world_of(run.data.exit_cell)
 
 
