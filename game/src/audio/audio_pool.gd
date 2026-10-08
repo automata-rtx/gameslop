@@ -53,10 +53,15 @@ func active_3d() -> int:
 	return players_3d.filter(func(p: AudioStreamPlayer3D) -> bool: return p.playing).size()
 
 
-## Starts `p` (already given its stream and bus). Returns whether it may caption: only when
-## no other instance of the same id on the same bus is playing (a power wave is one caption).
+## Sounds that fire as a burst of overlapping instances and caption once per burst (a power
+## wave igniting fixture after fixture is one caption). Every other sound captions each time;
+## the HUD caption stack merges an identical line that is still on screen (04 §10).
+const BURST_CAPTION_IDS: Array[StringName] = [&"power_wave_ignite"]
+
+
+## Starts `p` (already given its stream and bus). Returns whether it may caption.
 func start(p: Node, id: StringName, volume_db: float, clock: float) -> bool:
-	var captioned := not is_playing(id, StringName(p.get(&"bus")))
+	var captioned := not (id in BURST_CAPTION_IDS and is_playing(id, StringName(p.get(&"bus"))))
 	p.set_meta(META_ID, id)
 	p.set_meta(META_STARTED, clock)
 	p.set_meta(AudioLoop.META_BASE, volume_db)
