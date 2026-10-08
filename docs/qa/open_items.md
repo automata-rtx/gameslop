@@ -31,3 +31,4 @@ Deferred work found during production. Each line names the task that should abso
 - Errors owner: `ErrorBase.start_search` before navigation is ready ends in Wander, not Search (Director re-calls it on navigation_ready as a workaround).
 - M2.14: Director should feed `MusicDirector.set_intensity` once it exists.
 - M2.7/M3.4: the sim bot walks the critical path and never provokes Peak; add an exploring/sprinting bot profile so simulated playtests cover the full sawtooth on real levels.
+- Player owner: player.gd is 421 lines (limit 400, 14 §6); split it in the next player task.
