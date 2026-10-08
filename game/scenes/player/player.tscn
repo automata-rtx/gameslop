@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://src/player/camera_rig.gd" id="4_rig"]
 [ext_resource type="Script" path="res://src/player/flashlight.gd" id="5_flashlight"]
 [ext_resource type="Script" path="res://src/player/inventory.gd" id="6_inventory"]
+[ext_resource type="Script" path="res://src/player/noclip_targeting.gd" id="7_noclip"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -58,9 +59,10 @@ rings = 1
 [sub_resource type="BoxMesh" id="Mesh_handle"]
 size = Vector3(0.006, 0.006, 0.022)
 
-[node name="Player" type="CharacterBody3D"]
+[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("noclip_targeting")]
 collision_layer = 2
 script = ExtResource("1_player")
+noclip_targeting = NodePath("NoclipTargeting")
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 unique_name_in_owner = true
@@ -74,6 +76,10 @@ script = ExtResource("2_sm")
 [node name="Inventory" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("6_inventory")
+
+[node name="NoclipTargeting" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("7_noclip")
 
 [node name="Interactor" type="Node" parent="."]
 unique_name_in_owner = true

@@ -24,6 +24,10 @@ signal flashlight_toggled(on: bool)
 signal crank_changed(turning: bool)
 signal prompt_changed(text: String, hold_time: float)
 signal prompt_progress(fraction: float)
+## M1.4 (06 Interfaces): a pass or drop committed (`to` = `from` for a drop); the floor
+## drop hook the run flow consumes (it calls GameState.descend(false)). See NoclipTargeting.
+signal noclip_committed(target: StringName, from: Vector3, to: Vector3)
+signal floor_drop_committed
 
 const SETTING_SENSITIVITY := &"mouse_sensitivity"
 const SETTING_INVERT_Y := &"invert_y"
@@ -47,8 +51,8 @@ const HALT_STATES: Array[StringName] = [
 @onready var inventory: Inventory = %Inventory
 @onready var collision: CollisionShape3D = %Collision
 
-## M1.4 seam: a NoclipTargeting component with physics_update(player, held, delta) and
-## cancel(). It calls begin_noclip_charge / end_noclip_charge / report_noclip.
+## M1.4 seam: a NoclipTargeting component with physics_update(player, held, delta),
+## cancel() and reset(). It calls begin_noclip_charge / end_noclip_charge / report_noclip.
 @export var noclip_targeting: Node
 ## Floor surface when the floor collider has no `surface` meta (the stratum's floor).
 @export var default_surface: StringName = NoiseModel.DEFAULT_SURFACE
@@ -110,6 +114,8 @@ func reset_for_run(start_coherence: float = Tuning.COHERENCE_MAX) -> void:
 	sounds.reset()
 	rig.fov_hold(0.0, 0.0, CameraRig.HOLD_SPRINT)
 	rig.fov_hold(0.0, 0.0, CameraRig.HOLD_NOCLIP)
+	if noclip_targeting != null and noclip_targeting.has_method(&"reset"):
+		noclip_targeting.call(&"reset")
 	state_machine.reset()
 	inventory.reset()
 	_feed_coherence()
