@@ -59,12 +59,20 @@ var _present_rng: RandomNumberGenerator = Seeds.rng(0)
 var _beam_state: Array = [true, 0.0]
 var _flash_frame: int = -1
 var _flash_usec: int = -1
+## The stutter's sound emitter (the group centroid, or the beam while attached).
+var _emitter: Node3D
+var _loops: Array[AudioLoop] = []
 
 
 func _configure() -> void:
 	error_id = &"flicker"
 	senses.sight_range = 0.0
 	senses.hearing_mult = Tuning.FLICKER_HEARING_MULT
+	_emitter = Node3D.new()
+	_emitter.name = "Emitter"
+	_emitter.top_level = true
+	add_child(_emitter)
+	_loops = FlickerPresent.stutter_loops(_emitter)
 
 
 func _on_seeded() -> void:
@@ -77,8 +85,9 @@ func bind_level(p_level: Level) -> void:
 
 
 func _exit_tree() -> void:
+	FlickerPresent.stutter(_loops, false, 0.0)
 	_show_group(-1)
-	_end_dark()
+	FlickerLunge.end_dark(self)
 	_beam_steady()
 
 
@@ -210,15 +219,16 @@ func _floor_y(c: Vector3) -> float:
 func _tick(delta: float) -> void:
 	if pool() == null:
 		return
-	_tick_dark(delta)
+	FlickerLunge.tick_dark(self, delta)
 	if state != Tuning.ERROR_STATE_ATTACHED and state != Tuning.ERROR_STATE_LUNGE and current_group >= 0 \
 			and _dark_left <= 0.0 and not FlickerHabitat.habitable(light_pool, current_group):
 		# "Does not persist in darkness": the nearest lit group within 10 m, else despawn.
 		var g := FlickerHabitat.nearest_habitable(light_pool, global_position, Tuning.FLICKER_HABITAT_LOST_DIST, current_group)
 		if g < 0:
-			_despawn("habitat dark")
+			FlickerMoves.despawn(self, "habitat dark")
 			return
-		_hop_to(g)
+		FlickerMoves.hop_to(self, g)
+	_tick_sound()
 	match state:
 		Tuning.ERROR_STATE_RESIDENT:
 			_tick_resident(delta)
@@ -229,7 +239,7 @@ func _tick(delta: float) -> void:
 		Tuning.ERROR_STATE_ATTACHED:
 			_tick_attached(delta)
 		Tuning.ERROR_STATE_SATIATED:
-			_tick_satiated(delta)
+			FlickerMoves.tick_satiated(self, delta)
 
 
 func _player_in_lit_area() -> bool:
@@ -252,7 +262,7 @@ func _attach_step(delta: float) -> bool:
 	attach_time += delta
 	if attach_time < Tuning.FLICKER_ATTACH_TIME:
 		return false
-	_attach()
+	FlickerMoves.attach(self)
 	return true
 
 
@@ -266,7 +276,7 @@ func _tick_resident(delta: float) -> void:
 		return
 	_hop_left -= delta
 	if _hop_left <= 0.0:
-		_hop_resident()
+		FlickerMoves.hop_resident(self)
 		_hop_left = hop_interval()
 
 
@@ -283,18 +293,18 @@ func _tick_stalk(delta: float) -> void:
 			return
 	light_pool.set_group_flicker_rate(current_group, stutter_hz())
 	if charge >= 1.0:
-		_begin_lunge(false)
+		FlickerLunge.begin_lunge(self, false)
 
 
 func _tick_attached(delta: float) -> void:
 	if not has_player() or not player.flashlight.on:
-		_shed("flashlight off", true)
+		FlickerMoves.shed(self, "flashlight off", true)
 		return
 	global_position = player.global_position
 	charge = minf(charge + delta / charge_time(), 1.0)
 	FlickerPresent.beam_stutter(player.flashlight, _beam_state, stutter_hz(), delta, _present_rng)
 	if charge >= 1.0:
-		_begin_lunge(true)
+		FlickerLunge.begin_lunge(self, true)
 
 
 func _tick_lunge() -> void:
@@ -302,212 +312,16 @@ func _tick_lunge() -> void:
 	if _lunge_attached and has_player():
 		FlickerPresent.beam_flash(player.flashlight, _flash_frame, _flash_usec)
 	if _lunge_frames >= Tuning.FLICKER_LUNGE_FLASH_FRAMES:
-		_resolve_lunge()
+		FlickerLunge.resolve_lunge(self)
 
 
-func _tick_satiated(delta: float) -> void:
-	_satiated_left -= delta
-	if current_group < 0 and not despawned:
-		# Retreated while attached: shed now (no lunge, no evasion: the Director sent it).
-		_shed("retreat", false)
-		if despawned:
-			return
-	if _dark_left <= 0.0:
-		if _hop_after_dark:
-			_hop_after_dark = false
-			var ids := FlickerHabitat.habitable_neighbours(light_pool, current_group)
-			if not ids.is_empty():
-				_hop_to(ids[rng.randi_range(0, ids.size() - 1)])
-			_hop_left = hop_interval()
-		else:
-			_hop_left -= delta
-			if _hop_left <= 0.0:
-				_hop_retreat()
-				_hop_left = hop_interval()
-	if _satiated_left <= 0.0 and _dark_left <= 0.0:
-		transition_to(Tuning.ERROR_STATE_RESIDENT, "satiated over")
-
-
-# --- hops ---------------------------------------------------------------------------------------
-
-func _hop_resident() -> void:
-	var lk := senses.last_known_pos if senses.has_last_known() else Vector3.INF
-	var h := _hint if _has_hint else Vector3.INF
-	var g := FlickerHabitat.pick_hop(light_pool, current_group, rng, near_chance(), lk, h)
-	if g >= 0:
-		_hop_to(g)
-	_clear_reached_hint()
-
-
-## Satiated: toward the Director's hint, else away from where it struck.
-func _hop_retreat() -> void:
-	var ids := FlickerHabitat.habitable_neighbours(light_pool, current_group)
-	if ids.is_empty():
-		return
-	var g := -1
-	if _has_hint:
-		g = FlickerHabitat.by_centroid(light_pool, ids, _hint)
-	elif _retreat_from != Vector3.INF:
-		g = FlickerHabitat.by_centroid(light_pool, ids, _retreat_from, true)
-		var here := FlickerHabitat.flat(light_pool.group_centroid(current_group), _retreat_from)
-		if FlickerHabitat.flat(light_pool.group_centroid(g), _retreat_from) <= here:
-			g = -1
-	if g >= 0:
-		_hop_to(g)
-	_clear_reached_hint()
-
-
-## A hint is spent once no adjacent habitable group is nearer to it than this one.
-func _clear_reached_hint() -> void:
-	if not _has_hint or current_group < 0:
-		return
-	var here := FlickerHabitat.flat(light_pool.group_centroid(current_group), _hint)
-	for id in FlickerHabitat.habitable_neighbours(light_pool, current_group):
-		if FlickerHabitat.flat(light_pool.group_centroid(id), _hint) < here:
-			return
-	clear_hint()
-
-
-## A hop: the spark burst at both groups (02 §8, 03 "jump").
-func _hop_to(g: int) -> void:
-	if g == current_group:
-		return
-	var from := light_pool.group_centroid(current_group) if current_group >= 0 else Vector3.INF
-	FlickerPresent.spark(self, from)
-	_set_group(g)
-	FlickerPresent.spark(self, light_pool.group_centroid(g))
-	hops += 1
-
-
-# --- attach, shed, lunge --------------------------------------------------------------------
-
-func _attach() -> void:
-	FlickerPresent.spark(self, light_pool.group_centroid(current_group))
-	_set_group(-1)
-	attach_time = 0.0
-	_beam_state = [true, 0.0]
-	transition_to(Tuning.ERROR_STATE_ATTACHED, "beam on near it %.1f s" % Tuning.FLICKER_ATTACH_TIME)
-	if state == Tuning.ERROR_STATE_ATTACHED:
-		_notice()
-		if has_player():
-			FlickerPresent.spark(self, player.flashlight.beam_origin())
-
-
-## Drops off the beam to the nearest habitable group within 10 m of the player, or
-## despawns. `evasion`: the player shed it by turning the flashlight off.
-func _shed(reason: String, evasion: bool) -> void:
-	_beam_steady()
-	var at := player.global_position if has_player() else global_position
-	if has_player():
-		FlickerPresent.spark(self, player.flashlight.beam_origin())
-	sheds += 1
-	charge = 0.0
-	attach_time = 0.0
-	if evasion:
-		_evade()
-	var g := FlickerHabitat.nearest_habitable(light_pool, at, Tuning.FLICKER_SHED_DIST)
-	if g < 0:
-		_despawn(reason)
-		return
-	_set_group(g)
-	FlickerPresent.spark(self, light_pool.group_centroid(g))
-	if state == Tuning.ERROR_STATE_ATTACHED:
-		transition_to(Tuning.ERROR_STATE_RESIDENT, "shed: %s" % reason)
-
-
-func _begin_lunge(attached: bool) -> void:
-	_lunge_attached = attached
-	_lunge_frames = 0
-	lunges += 1
-	charge = 1.0
-	_flash_frame = Engine.get_process_frames()
-	_flash_usec = Time.get_ticks_usec()
-	var at := global_position
-	if attached and has_player():
-		at = player.flashlight.beam_origin()
-		FlickerPresent.beam_flash(player.flashlight, _flash_frame, _flash_usec)
-	elif current_group >= 0:
-		at = light_pool.group_centroid(current_group)
-		light_pool.group_lunge_flash(current_group)
-	FlickerPresent.play(FlickerPresent.FLASH_SOUND, at)
-	_silence_left = Tuning.FLICKER_FLASH_NOISE_MS / 1000.0
-	transition_to(Tuning.ERROR_STATE_LUNGE, "charge 1.0")
-
-
-func _resolve_lunge() -> void:
-	if _lunge_attached:
-		_resolve_attached_lunge()
-		return
-	var g := current_group
-	var hit := _player_in_lit_area() and FlickerHabitat.group_distance(light_pool, g, player.global_position) <= Tuning.FLICKER_LUNGE_RANGE
-	_retreat_from = global_position
-	# Hit or miss: the group is dark and silent for 1.5 s, then it hops (08 §5).
-	_dark_group = g
-	_dark_left = Tuning.FLICKER_DARK_TIME
-	_hop_after_dark = true
-	light_pool.set_group_lunge_dark(g, true)
-	if hit and try_contact(Tuning.FLICKER_LUNGE_COST):
-		return
-	_satiate("lunge %s" % ("refused" if hit else "missed"))
-
-
-func _resolve_attached_lunge() -> void:
-	_beam_steady()
-	_retreat_from = player.global_position if has_player() else global_position
-	var hit := has_player() and not player.is_hidden()
-	var contacted := hit and try_contact(Tuning.FLICKER_LUNGE_COST)
-	_lunge_attached = false
-	# Then it sheds itself and is Satiated (08 §5); the shed is not an evasion.
-	var g := FlickerHabitat.nearest_habitable(light_pool, _retreat_from, Tuning.FLICKER_SHED_DIST)
-	if has_player():
-		FlickerPresent.spark(self, player.flashlight.beam_origin())
-	sheds += 1
-	if g < 0:
-		_despawn("shed after lunge")
-		return
-	_set_group(g)
-	FlickerPresent.spark(self, light_pool.group_centroid(g))
-	if not contacted:
-		_satiate("lunge %s" % ("refused" if hit else "missed"))
-
-
-## A lunge that did not land (a miss, or refused without the Director's retreat): the
-## engagement ends without an evasion and Satiated applies.
-func _satiate(reason: String) -> void:
-	if state != Tuning.ERROR_STATE_LUNGE:
-		return
-	_engaged = false
-	_satiated_left = Tuning.ERROR_SATIATED_TIME
-	transition_to(Tuning.ERROR_STATE_SATIATED, reason)
-
-
-func _despawn(reason: String) -> void:
-	_set_group(-1)
-	despawned = true
-	_engaged = false
-	transition_to(Tuning.ERROR_STATE_DORMANT, "despawn: %s" % reason)
-
-
-# --- the lunge dark and silence ---------------------------------------------------------------
-
-func _tick_dark(delta: float) -> void:
-	if _silence_left >= 0.0:
-		_silence_left -= delta
-		if _silence_left < 0.0:
-			FlickerPresent.silence()
-	if _dark_left <= 0.0:
-		return
-	_dark_left -= delta
-	if _dark_left <= 0.0:
-		_end_dark()
-		_apply_presence()
-
-
-func _end_dark() -> void:
-	if _dark_group >= 0 and light_pool != null and is_instance_valid(light_pool):
-		light_pool.set_group_lunge_dark(_dark_group, false)
-	_dark_group = -1
-	_dark_left = 0.0
+## 03: the stutter sounds wherever Flicker shows (its stuttering group, or the beam).
+func _tick_sound() -> void:
+	var beam := state == Tuning.ERROR_STATE_ATTACHED and has_player()
+	var on := beam or _flicker_group >= 0
+	if on and _emitter != null:
+		_emitter.global_position = player.flashlight.beam_origin() if beam else light_pool.group_centroid(_flicker_group)
+	FlickerPresent.stutter(_loops, on, charge)
 
 
 # --- state hooks ------------------------------------------------------------------------------
@@ -529,7 +343,7 @@ func _enter_state(to: StringName, from: StringName) -> void:
 			attach_time = 0.0
 			_silence_left = -1.0
 			_hop_after_dark = false
-			_end_dark()
+			FlickerLunge.end_dark(self)
 	_apply_presence()
 
 
@@ -548,6 +362,8 @@ func _apply_presence() -> void:
 			Tuning.ERROR_STATE_STALK, Tuning.ERROR_STATE_SATIATED]:
 		want = current_group
 	_show_group(want)
+	if want < 0 and state != Tuning.ERROR_STATE_ATTACHED:
+		FlickerPresent.stutter(_loops, false, 0.0)
 	if want >= 0:
 		light_pool.set_group_flicker_rate(want, stutter_hz())
 

@@ -2,13 +2,19 @@ class_name FlickerPresent
 extends RefCounted
 ## Flicker's presentation (02 §8, 03 Errors, 11 §3): the spark burst when it jumps (1 cm
 ## white sparks, 0.3 s, GPUParticles3D), the flash noise and the 1.5 s total silence of a
-## lunge, and the attached beam's stutter and flash. The group stutter itself is the
-## fixtures' (Fixture.set_flicker, rate by LightPool.set_group_flicker_rate) and its sound
-## is the fixture hum gated by the LightPool. Sounds play only when the sample exists (03:
-## `flicker_spark`, `flicker_flash`; the audio recipes own them).
+## lunge, the ballast stutter loops, and the attached beam's stutter and flash. The group
+## stutter itself is the fixtures' (Fixture.set_flicker, rate by LightPool.
+## set_group_flicker_rate). Sound (03, M2.14 recipes): one 3D stutter at the group centroid
+## (or the beam), `flicker_stutter` (8 Hz) crossfaded into `flicker_stutter_fast` (20 Hz) by
+## the charge; `flicker_spark` on a jump; `flicker_lunge` (100 ms) then World silent 1.5 s.
 
 const SPARK_SOUND := &"flicker_spark"
-const FLASH_SOUND := &"flicker_flash"
+const FLASH_SOUND := &"flicker_lunge"
+const STUTTER_SLOW := &"flicker_stutter"
+const STUTTER_FAST := &"flicker_stutter_fast"
+## Crossfade floor: a voice at zero weight sits this far down instead of -inf.
+const STUTTER_FLOOR_DB := -60.0
+const STUTTER_FADE_S := 0.05
 const BUS := &"Errors"
 
 static var _spark_mesh: QuadMesh
@@ -40,6 +46,28 @@ static func spark(owner: Node3D, pos: Vector3) -> void:
 static func play(id: StringName, pos: Vector3) -> void:
 	if AudioManager.has_sound(id):
 		AudioManager.play_3d(id, pos, BUS)
+
+
+## The two stutter voices on `emitter` ([slow, fast]).
+static func stutter_loops(emitter: Node3D) -> Array[AudioLoop]:
+	var out: Array[AudioLoop] = [AudioManager.loop(STUTTER_SLOW, emitter), AudioManager.loop(STUTTER_FAST, emitter)]
+	return out
+
+
+## Plays the stutter (on) crossfaded by `charge` (0: 8 Hz, 1: 20 Hz), or stops it.
+static func stutter(loops: Array[AudioLoop], on: bool, charge: float) -> void:
+	if loops.size() < 2:
+		return
+	for i in 2:
+		var l := loops[i]
+		if not on:
+			if l.is_playing():
+				l.stop(STUTTER_FADE_S)
+			continue
+		var w := clampf(charge, 0.0, 1.0) if i == 1 else 1.0 - clampf(charge, 0.0, 1.0)
+		l.set_volume(maxf(linear_to_db(maxf(w, 0.0001)), STUTTER_FLOOR_DB))
+		if not l.is_playing():
+			l.start(STUTTER_FADE_S)
 
 
 ## 03 §6 rule 3: room tone -inf for the 1.5 s lunge dark (after the 100 ms flash noise).

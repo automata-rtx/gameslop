@@ -7,8 +7,8 @@ extends Node3D
 ## Interface (02): register_fixture, set_group_flicker, power_wave. Also is_lit(pos) for
 ## the player's observation light queries (06, 08 §4), and Flicker's group queries (08
 ## Interfaces): group_centroid, groups_adjacent, is_group_lit, lit_fixtures_near, plus its
-## presentation hooks (stutter rate, lunge flash and dark). A flickering fixture's hum is
-## gated with its off instants (03: the ballast stutter).
+## presentation hooks (stutter rate, lunge flash and dark). The stutter's sound is Flicker's
+## own loop (FlickerPresent), not the fixture hum.
 
 ## The node the pool measures from (the player's camera or body). Null: the pool origin.
 var target: Node3D
@@ -44,8 +44,6 @@ var _assigned_i: PackedInt32Array = PackedInt32Array()
 var _fade: PackedFloat32Array = PackedFloat32Array()
 var _hums: Array = []
 var _timer: float = 0.0
-## Per light: true while its hum is gated off by a stutter instant.
-var _hum_gated: PackedByteArray = PackedByteArray()
 ## Group centroids and adjacency (08 §5), rebuilt lazily after a fixture registers.
 var _topology: FixtureGroups
 ## The level grid (optional): enables walking-distance ranking and grid-sight lending.
@@ -95,7 +93,6 @@ func _make_lights(n: int, shadows: int) -> void:
 	_assigned.clear()
 	_assigned_i.clear()
 	_hums.clear()
-	_hum_gated.clear()
 	pool_size = clampi(n, 0, Tuning.LIGHT_POOL_SIZE_MAX)
 	shadowed = mini(shadows, pool_size)
 	_fade.resize(pool_size)
@@ -115,7 +112,6 @@ func _make_lights(n: int, shadows: int) -> void:
 		_assigned.append(null)
 		_assigned_i.append(-1)
 		_hums.append({})
-		_hum_gated.append(0)
 
 
 func _new_light() -> Light3D:
@@ -324,7 +320,6 @@ func _process(delta: float) -> void:
 			continue
 		_fade[i] = minf(1.0, _fade[i] + delta / Tuning.LIGHT_POOL_FADE_IN)
 		_lights[i].light_energy = float(f.light_value(&"energy", light_energy)) * f.intensity * f.energy_scale() * _fade[i]
-		_gate_hum(i, f)
 
 
 func _origin() -> Vector3:
@@ -383,27 +378,11 @@ func _lend(i: int, fi: int) -> void:
 
 
 func _release(i: int) -> void:
-	if int(_hum_gated[i]) != 0:
-		_hum_gated[i] = 0
-		for k in (_hums[i] as Dictionary):
-			((_hums[i] as Dictionary)[k] as AudioLoop).set_volume(0.0)
 	_assigned[i] = null
 	_assigned_i[i] = -1
 	_lights[i].visible = false
 	_lights[i].shadow_enabled = false
 	_set_hum(i, &"")
-
-
-## 03 Flicker: the ballast stutter is the fixture hum gated at the stutter rate (and
-## silent through the lunge dark).
-func _gate_hum(i: int, f: Fixture) -> void:
-	var off := f.is_flickering() and not f.is_emitting() or f.is_lunge_dark()
-	if int(_hum_gated[i]) == int(off):
-		return
-	_hum_gated[i] = int(off)
-	var hums: Dictionary = _hums[i]
-	if hums.has(f.hum_id):
-		(hums[f.hum_id] as AudioLoop).set_volume(Tuning.AUDIO_SLIDER_MUTE_DB if off else 0.0)
 
 
 ## Each pooled light carries the hum of the fixture it is lent to (03).

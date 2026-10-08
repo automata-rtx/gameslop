@@ -37,7 +37,7 @@ static func capture(arena: ErrorArena, dir: String) -> void:
 	pool.set_group_lunge_dark(g, false)
 	# Attached: the beam carries it; look down the room with the flashlight on.
 	p.flashlight.set_on(true, true)
-	e._attach()
+	FlickerMoves.attach(e)
 	p.rig.add_pitch(deg_to_rad(-12.0))
 	p.flashlight.stutter = 1.0
 	p.flashlight.refresh()
