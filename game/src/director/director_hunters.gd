@@ -12,6 +12,9 @@ class Survey:
 	var chasing: int = 0
 	var hunters: int = 0
 	var threat: float = 0.0
+	## The scare gate's distance (10 §5, pillar 3): as `nearest`, but a Flicker counts from
+	## the nearest fixture of its group (where it lunges from), not the group's centre.
+	var scare_d: float = INF
 
 const STATIC := &"static"
 
@@ -212,6 +215,11 @@ func survey() -> Survey:
 		if e.error_id == &"null":
 			null_d = minf(null_d, dist)
 		s.nearest = minf(s.nearest, dist)
+		var sd := dist
+		var fl := e as ErrorFlicker
+		if fl != null and _player_ok():
+			sd = minf(sd, FlickerHabitat.group_distance(fl.pool(), fl.current_group, director.player.global_position))
+		s.scare_d = minf(s.scare_d, sd)
 		hunter_max = maxf(hunter_max, DirectorRules.hunter_threat(dist, ch))
 	s.threat = DirectorRules.threat_target(hunter_max, inside_static, null_d)
 	return s

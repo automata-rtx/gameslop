@@ -68,7 +68,7 @@ var _check_left: float = 0.0
 var _static_left: float = 0.0
 var _telemetry_left: float = 0.0
 var _scare_left: float = 0.0
-var _nearest: float = INF
+var _scare_d: float = INF
 ## The scare kind that ran since the last telemetry row (its `scare` column).
 var _scare_mark: StringName = &""
 
@@ -187,7 +187,7 @@ func spawn_error(id: StringName, spawn_point: Vector3) -> ErrorBase:
 ## 10 Interfaces: asks for a scare now (10 §5 gating: Build, intensity, intervals, no hunter
 ## near). Returns true when one ran. The Director also asks every 5 s of Build by itself.
 func request_scare() -> bool:
-	var k := scares.try_any(pacing.phase, pacing.intensity, pacing.level_time, _nearest)
+	var k := scares.try_any(pacing.phase, pacing.intensity, pacing.level_time, _scare_d)
 	if k != &"":
 		_scare_mark = k
 	return k != &""
@@ -219,7 +219,7 @@ func _tick(dt: float) -> void:
 	pacing.step(dt, s.nearest, s.chasing, s.hunters if wake_allowed() else 0)
 	for a in pacing.take_actions():
 		hunters.act(a)
-	_nearest = s.nearest
+	_scare_d = s.scare_d
 	if pacing.phase != before:
 		EventBus.director_phase.emit(pacing.phase)
 		if pacing.phase != DirectorPacing.BUILD:

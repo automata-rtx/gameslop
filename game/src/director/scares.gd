@@ -18,6 +18,10 @@ const PRE_ECHO := &"pre_echo"
 ## Cheapest first: as intensity climbs from 0.2 to 0.5 more of the list opens.
 const ORDER: Array[StringName] = [STATIC_SWELL, FIXTURE_DROPOUT, DOOR_SLAM, PRE_ECHO, PAYPHONE]
 
+## Debug benches that measure one reaction at a time (the feedback bench) switch every
+## Director's scares off, so a background event never lands in a row's window.
+static var suppressed: bool = false
+
 var last_any: float = -INF
 var last_by_kind: Dictionary = {}
 ## Every request (kind, time), for tests and telemetry.
@@ -54,7 +58,7 @@ static func min_interval(kind: StringName) -> float:
 ## INF when none).
 func available(phase: StringName, intensity: float, now: float, hunter_d: float = INF) -> Array[StringName]:
 	var out: Array[StringName] = []
-	if phase != Tuning.DIRECTOR_PHASE_BUILD or intensity < Tuning.SCARE_INTENSITY_NONE_BELOW:
+	if suppressed or phase != Tuning.DIRECTOR_PHASE_BUILD or intensity < Tuning.SCARE_INTENSITY_NONE_BELOW:
 		return out
 	if hunter_d < Tuning.SCARE_HUNTER_CLEAR_DIST:
 		return out

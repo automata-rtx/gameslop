@@ -118,6 +118,14 @@ func test_never_in_calm_peak_relief_or_pursuit() -> void:
 	assert_true(_ran.is_empty(), "no executor was called outside Build")
 
 
+func test_suppressed_for_benches() -> void:
+	var s := _recording()
+	Scares.suppressed = true
+	assert_true(s.available(BUILD, 0.9, 100.0).is_empty(), "a bench switched scares off")
+	Scares.suppressed = false
+	assert_false(s.available(BUILD, 0.9, 100.0).is_empty())
+
+
 func test_intensity_scale() -> void:
 	var s := _recording()
 	assert_true(s.available(BUILD, 0.19, 100.0).is_empty(), "none below 0.2")
@@ -389,3 +397,24 @@ func test_pre_echo_needs_a_far_quiet_echo_and_the_door_slam_a_far_closed_door() 
 	slammed.close()
 	_p.global_position = home
 	_p.rotation = home_rot
+
+
+## A Flicker lunges from its group's lit area, so the scare gate measures it from the nearest
+## fixture of its group, not the group's centre (sim: a swell 19.8 m from the centre was 4 s
+## before a lunge).
+func test_flicker_counts_from_its_nearest_fixture() -> void:
+	_d.begin(_level, _p, Tuning.RUN_ARRIVE_START)
+	var fixtures := get_tree().get_nodes_in_group(&"fixtures")
+	assert_gt(fixtures.size(), 0)
+	var e := _d.hunters.spawn(&"flicker", (fixtures[0] as Node3D).global_position)
+	assert_not_null(e, "Flicker has a scene")
+	e.wake()
+	await await_physics_frames(3)
+	var fl := e as ErrorFlicker
+	var s := _d.hunters.survey()
+	if fl.current_group < 0 or fl.is_dormant():
+		return  # no habitat at that fixture on this seed
+	var want := minf(fl.distance_to_player(), FlickerHabitat.group_distance(fl.pool(), fl.current_group, _p.global_position))
+	assert_true(s.scare_d <= want + 0.001, "scare distance %.1f ≤ nearest fixture %.1f" % [s.scare_d, want])
+	assert_true(s.scare_d <= s.nearest + 0.001)
+

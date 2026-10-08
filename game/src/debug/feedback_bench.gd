@@ -122,6 +122,8 @@ func start() -> void:
 	_host.name = "FeedbackHost"
 	add_child(_host)
 	SceneRouter.set_host(_host)
+	# Rows are measured one at a time: no Director scare (10 §5) may land in a row's window.
+	Scares.suppressed = true
 	GameState.start_run(Tuning.MODE_DESCENT, LOADOUT, RUN_SEED)
 	run = (load("res://scenes/run.tscn") as PackedScene).instantiate() as Run
 	run.capture_mouse = false
@@ -138,6 +140,7 @@ func start() -> void:
 
 
 func _teardown() -> void:
+	Scares.suppressed = false
 	release_all()
 	if _host != null and is_instance_valid(_host):
 		_host.queue_free()
