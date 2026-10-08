@@ -58,6 +58,7 @@ func generate(stratum: StringName, depth: int, run_seed: int, first_run: bool, c
 	layout()
 	compute_paths()
 	decorate()
+	release()
 	return data
 
 
@@ -75,6 +76,11 @@ func layout() -> void:
 ## Lock objective, soft walls, hide spots, items, notes, props, fixtures, error spawns.
 func decorate() -> void:
 	push_error("StratumGenerator.decorate is abstract")
+
+
+## Drops helpers that point back at the grammar (RefCounted cycles never free).
+func release() -> void:
+	pass
 
 
 # ------------------------------------------------------------------ sizes and lock

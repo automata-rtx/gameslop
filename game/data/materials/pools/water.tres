@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/water.gdshader" id="1_water"]
+[ext_resource type="Texture2D" path="res://data/materials/noise_normal.tres" id="2_normal"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_water")
+shader_parameter/water_color = Color(0.180392, 0.545098, 0.545098, 0.75)
+shader_parameter/normal_noise = ExtResource("2_normal")
+shader_parameter/scale_a = 0.09
+shader_parameter/scale_b = 0.23
+shader_parameter/normal_strength = 0.35
+shader_parameter/refraction = 0.03
+shader_parameter/roughness = 0.06

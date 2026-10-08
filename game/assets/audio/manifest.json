@@ -693,6 +693,141 @@
     96000
    ]
   },
+  "room_tone_pools": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ambience/room_tone_pools_v01.wav"
+   ],
+   "length_s": [
+    8.000021
+   ],
+   "loop_frames": [
+    384000
+   ],
+   "runtime": {
+    "level_db": -30
+   }
+  },
+  "fixture_hum_pools": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_hum_pools_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "fixture_buzz_pools": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_buzz_pools_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "water_lap": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/water_lap_v01.wav"
+   ],
+   "length_s": [
+    6.000021
+   ],
+   "loop_frames": [
+    288000
+   ],
+   "runtime": {
+    "max_distance": 14.0
+   }
+  },
+  "drip": {
+   "group": "world",
+   "bus": "Ambience",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/world/drip_v01.wav",
+    "res://assets/audio/world/drip_v02.wav",
+    "res://assets/audio/world/drip_v03.wav",
+    "res://assets/audio/world/drip_v04.wav"
+   ],
+   "length_s": [
+    0.322,
+    0.322,
+    0.322,
+    0.322
+   ],
+   "runtime": {
+    "max_distance": 18.0
+   }
+  },
+  "room_tone_garage": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ambience/room_tone_garage_v01.wav"
+   ],
+   "length_s": [
+    8.000021
+   ],
+   "loop_frames": [
+    384000
+   ],
+   "runtime": {
+    "level_db": -30
+   }
+  },
+  "fixture_hum_garage": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_hum_garage_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "fixture_buzz_garage": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_buzz_garage_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
   "power_wave_ignite": {
    "group": "world",
    "bus": "Ambience",

@@ -14,6 +14,10 @@ static func grammar_for(stratum: StringName) -> StratumGenerator:
 	match stratum:
 		&"halls":
 			return HallsGenerator.new()
+		&"pools":
+			return PoolsGenerator.new()
+		&"garage":
+			return GarageGenerator.new()
 	return null
 
 

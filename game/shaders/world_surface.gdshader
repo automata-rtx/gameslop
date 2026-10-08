@@ -58,6 +58,12 @@ uniform float baseboard_roughness = 0.45;
 uniform float ceiling_line_y = 0.0;
 uniform float ceiling_line_width = 0.05;
 uniform float ceiling_line_darken = 0.35;
+// A painted horizontal band on walls (02 §7 Garage: #D9D0B0 at 1.2 m): its centre height
+// above each floor level `band_period` apart (0: absolute), its width (0 = off) and colour.
+uniform vec4 band_color : source_color = vec4(0.85, 0.82, 0.69, 1.0);
+uniform float band_y = 1.2;
+uniform float band_width = 0.0;
+uniform float band_period = 0.0;
 // Floors (vertex colour B = metres to the nearest wall, 07 §8): darkening at the wall seam
 // within floor_seam_width metres (0 = off), and carpet wear lanes along corridor centre lines
 // (vertex colour A marks corridors): lighter, flattened pile where B > wear_from.
@@ -246,6 +252,11 @@ void fragment() {
 	if (vertical && ceiling_line_y > 0.0) {
 		float d = ceiling_line_y - v_world_pos.y;
 		base *= 1.0 - ceiling_line_darken * (1.0 - smoothstep(0.0, ceiling_line_width, d));
+	}
+	if (vertical && band_width > 0.0) {
+		float yy = band_period > 0.0 ? mod(v_world_pos.y, band_period) : v_world_pos.y;
+		float band = aa_band(yy - band_y, band_width * 0.5);
+		base = mix(base, band_color.rgb * mix(0.92, 1.04, nz), band);
 	}
 	if (!vertical && n.y > 0.5 && floor_seam > 0.0) {
 		base *= 1.0 - floor_seam * (1.0 - smoothstep(0.0, floor_seam_width, COLOR.b));
