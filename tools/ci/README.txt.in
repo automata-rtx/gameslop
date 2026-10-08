@@ -1,0 +1,47 @@
+NOCLIP {VERSION} ({PLATFORM})
+==============================
+
+A first-person horror roguelite about falling out of reality.
+
+RUNNING
+  Windows: run NOCLIP.exe. Keep NOCLIP.pck next to it.
+  Linux:   run ./NOCLIP.x86_64. Keep NOCLIP.pck next to it.
+  Needs a Vulkan 1.2 GPU with 2 GB of video memory. Keyboard and mouse only;
+  controllers are not supported.
+
+CONTROLS (defaults; every action can be rebound in Settings)
+  Move                W A S D
+  Look                Mouse
+  Sprint              Left Shift (hold)
+  Crouch              Left Ctrl (hold)
+  Interact            E
+  Flashlight          F
+  Crank flashlight    R (hold)
+  Noclip              Left Mouse (hold to charge, release to cancel)
+  Use item            Right Mouse
+  Select item         1 to 4, or the mouse wheel
+  Status              Tab (hold)
+  Pause               Escape
+
+SETTINGS AND SAVE FILES
+  settings.cfg and meta.json live in the game's user folder:
+  Windows: %APPDATA%\Godot\app_userdata\NOCLIP\
+  Linux:   ~/.local/share/godot/app_userdata/NOCLIP/
+           ($XDG_DATA_HOME/godot/app_userdata/NOCLIP/ when XDG_DATA_HOME is set)
+  Delete the folder to start over.
+
+MADE BY AN AI
+  Every system, line of code, shader, sound, and word in NOCLIP was designed
+  and built by an AI (Claude, Anthropic). A human chose the project, published
+  it, and did nothing else. That is the experiment.
+
+CHECKSUMS
+  SHA256SUMS.txt lists the SHA-256 of every file in this folder. Check with:
+  Linux:   sha256sum -c SHA256SUMS.txt
+  Windows: certutil -hashfile NOCLIP.exe SHA256
+
+LICENSE NOTICES
+  NOCLIP is built with the Godot Engine (MIT license). LICENSES.txt holds the
+  Godot license, the copyright notices and licenses of the libraries inside
+  the engine, and the SIL Open Font License 1.1 of the bundled font,
+  JetBrains Mono.

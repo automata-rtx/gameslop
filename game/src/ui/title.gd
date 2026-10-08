@@ -6,7 +6,7 @@ extends Control
 ## the full title's (M2.11).
 
 const RUN_SCENE := "res://scenes/run.tscn"
-const VERSION := "1.0.0"
+const VERSION := Version.VERSION   # 16 §1: single source
 const ITEM_DESCEND := &"descend"
 const ITEM_SETTINGS := &"settings"
 const ITEM_QUIT := &"quit"
