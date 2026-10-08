@@ -114,6 +114,10 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 					in_band.append(c)
 			if not in_band.is_empty():
 				cell = in_band[rng.randi_range(0, in_band.size() - 1)]
+		if id == &"null" and null_cell_ok(data, player_pos, used):
+			# 07 §5.6: Null's own point, 55% along the critical path, >= 20 m from the player.
+			# It draws nothing while Dormant, so the view cone does not apply (07 wins, 00 §8).
+			cell = data.null_spawn_cell
 		if cell == LevelData.NO_CELL:
 			cell = _pick_one(data, id, native, markers, off_path, used, spawn_room, rng)
 		if cell == LevelData.NO_CELL and not fallback_done:
@@ -131,17 +135,22 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 	return out
 
 
-## One cell for `id` from `cells` (not `used`): Null takes LevelData.null_spawn_cell when
-## it is eligible; the native hunter prefers 35% to 65% of the critical path, the others
-## side branches. NO_CELL when none is eligible.
+## 07 §5.6: LevelData.null_spawn_cell exists, is walkable, unused and >= 20 m (XZ) from
+## the player.
+static func null_cell_ok(data: LevelData, player_pos: Vector3, used: Array[Vector2i]) -> bool:
+	var c := data.null_spawn_cell
+	if c == LevelData.NO_CELL or used.has(c) or not data.grid.in_bounds(c) or not data.grid.is_walkable(c):
+		return false
+	return flat_dist(data.grid.world_of(c), player_pos) >= Tuning.NULL_SPAWN_MIN_DIST
+
+
+## One cell for `id` from `cells` (not `used`): the native hunter prefers 35% to 65% of
+## the critical path, the others side branches. NO_CELL when none is eligible.
 static func _pick_one(data: LevelData, id: StringName, native: StringName, cells: Array[Vector2i], off_path: Dictionary,
 		used: Array[Vector2i], spawn_room: Array[Vector3], rng: RandomNumberGenerator) -> Vector2i:
 	var pool := _eligible(cells, used, id, spawn_room)
 	if pool.is_empty():
 		return LevelData.NO_CELL
-	if id == &"null" and pool.has(data.null_spawn_cell):
-		# 07 §5.6: Null's own spawn point, the critical path at 55% (when it is fair now).
-		return data.null_spawn_cell
 	var preferred: Array[Vector2i] = []
 	for c in pool:
 		if id == native and DirectorRules.is_hunter(id):

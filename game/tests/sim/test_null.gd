@@ -239,17 +239,28 @@ func test_never_in_the_roster_outside_depth_6_and_the_cycle_2_substrate() -> voi
 
 
 func test_director_spawns_it_at_its_spawn_cell() -> void:
-	var data := LevelGenerator.generate(&"substrate", 6, 3)
+	var data := LevelGenerator.generate(&"substrate", 6, 4)
 	assert_ne(data.null_spawn_cell, LevelData.NO_CELL)
 	var g := data.grid
 	var pos := g.world_of(data.spawn_cell)
+	var eye := pos + Vector3.UP * 1.6
+	# Facing away from the cell (seed 4: 32 m out, no grid sight).
+	var away := pos - g.world_of(data.null_spawn_cell)
+	away.y = 0.0
+	away = away.normalized()
+	assert_true(DirectorSpawn.spawn_ok(g, data.null_spawn_cell, pos, eye, away, deg_to_rad(40.0),
+		g.distance_field(g.cell_of(pos))))
 	var cells := DirectorSpawn.pick_cells(data, [&"static", &"static", &"null"] as Array[StringName], &"null",
-		pos, pos + Vector3.UP * 1.6, Vector3(0, 0, -1), deg_to_rad(40.0), make_rng(1))
-	if DirectorSpawn.spawn_ok(g, data.null_spawn_cell, pos, pos + Vector3.UP * 1.6, Vector3(0, 0, -1),
-			deg_to_rad(40.0), g.distance_field(g.cell_of(pos))):
-		assert_eq(cells[2], data.null_spawn_cell, "07 §5.6: 55% of the critical path")
-	else:
-		assert_ne(cells[2], LevelData.NO_CELL)
+		pos, eye, away, deg_to_rad(40.0), make_rng(1))
+	assert_eq(cells[2], data.null_spawn_cell, "07 §5.6: 55% of the critical path")
+	# Facing it: Dormant Null draws nothing, so 07 §5.6's point stands (the cone is for bodies).
+	cells = DirectorSpawn.pick_cells(data, [&"null"] as Array[StringName], &"null", pos, eye, -away,
+		deg_to_rad(40.0), make_rng(1))
+	assert_eq(cells[0], data.null_spawn_cell)
+	# Within 20 m of it: another fair cell.
+	var near := g.world_of(data.null_spawn_cell) + Vector3(4.0, 0.0, 0.0)
+	assert_false(DirectorSpawn.null_cell_ok(data, near, []))
+	assert_true(DirectorSpawn.null_cell_ok(data, pos, []))
 
 
 # --- determinism ---------------------------------------------------------------------------------
