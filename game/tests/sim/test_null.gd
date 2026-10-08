@@ -154,6 +154,7 @@ func test_core_drains_12_per_second_without_a_contact() -> void:
 	assert_approx(before - _p.coherence, Tuning.NULL_DRAIN_PER_S, 0.25, "12 per second")
 	assert_approx(e.drained, before - _p.coherence, 0.001)
 	assert_eq(_gate_calls, 0, "not a contact: the gate is never asked")
+	assert_false(e.can_contact(), "Null never contacts")
 	assert_eq(hits.size(), 0)
 	assert_ne(_p.state_machine.state, PlayerStateMachine.STUNNED, "no stun")
 	assert_eq(e.state, Tuning.ERROR_STATE_CHASE, "no Satiated")

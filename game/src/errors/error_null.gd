@@ -107,6 +107,12 @@ func start_search(_pos: Vector3) -> void:
 	pass
 
 
+## Null never contacts (08 §7: the core is a drain, not a contact). It never calls
+## contact_step/try_contact; this also answers the base's contact predicate (R12).
+func can_contact() -> bool:
+	return false
+
+
 ## Null has no Satiated: nothing sends it away (08 §7).
 func retreat(_seconds: float) -> void:
 	pass
