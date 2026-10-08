@@ -45,13 +45,11 @@ func noclip_commit_wall(b: FeedbackBench) -> void:
 	var spots := noclip_spots(b)
 	await face_edge(b, spots[&"good"])
 	b.set_coherence(80.0)
-	await b.ticks(70)  # the previous pass' 1 s cooldown
 	await b.arm()
 	b.anchor_on(b.player().noclip_committed)
 	b.press(&"noclip")
 	await b.until(b.is_anchored, 400)
 	b.release(&"noclip")
-	await b.ticks(30)
 
 
 func noclip_commit_floor(b: FeedbackBench) -> void:
@@ -60,7 +58,7 @@ func noclip_commit_floor(b: FeedbackBench) -> void:
 	b.set_coherence(90.0)
 	p.flashlight.set_on(true, true)
 	p.rig.add_pitch(deg_to_rad(-80.0))
-	await b.ticks(70)
+	await b.ticks(6)
 	await b.arm()
 	b.anchor_on(p.noclip_committed)
 	b.press(&"noclip")
@@ -172,20 +170,20 @@ func breaker(b: FeedbackBench) -> void:
 	b.release(&"interact")
 
 
+## Chained after the breaker: the real event is the power wave reaching the exit. If it
+## already came, the exit is closed again and unlocked by hand for the row.
 func exit_unlocked(b: FeedbackBench) -> void:
 	var ex := b.run.exit
-	# The breaker's wave opens it; wait for that, close it again, then unlock it for the row.
-	await b.until(func() -> bool: return ex.is_open(), 900)
-	await b.ticks(90)
-	ex.set_lock(Tuning.LOCK_POWERED)
-	ex.is_seen = true
 	var stand := ex.to_global(Vector3(0.0, 0.0, -5.0))
 	b.place(stand, FeedbackBench.yaw_to(stand, ex.global_position), 0.0)
-	await b.ticks(20)
-	await b.arm()
-	b.anchor()
-	ex.power()
-	await b.ticks(2)
+	if ex.is_open():
+		ex.set_lock(Tuning.LOCK_POWERED)
+		await b.arm()
+		b.anchor()
+		ex.power()
+		return
+	b.anchor_on(ex.status_changed, func(st: StringName) -> bool: return st == Tuning.EXIT_STATUS_OPEN)
+	await b.until(b.is_anchored, 1200)
 
 
 # --- notes and unlocks ----------------------------------------------------------------------------

@@ -35,16 +35,24 @@ func _run() -> void:
 				(tc as Node).free()
 			continue
 		var case := tc as TestCase
+		# With a filter, a file with no matching test is skipped whole (before_all may be slow).
+		var wanted: PackedStringArray = []
+		for m in case.get_method_list():
+			var name: String = m["name"]
+			var label := "%s::%s" % [path.trim_prefix(ROOT + "/"), name]
+			if name.begins_with("test_") and (_filter.is_empty() or label.contains(_filter)):
+				wanted.append(name)
+		if wanted.is_empty():
+			case.free()
+			continue
 		root.add_child(case)
 		if case.has_method("before_all"):
 			await case.call("before_all")
 		for m in case.get_method_list():
 			var name: String = m["name"]
-			if not name.begins_with("test_"):
+			if not wanted.has(name):
 				continue
 			var label := "%s::%s" % [path.trim_prefix(ROOT + "/"), name]
-			if not _filter.is_empty() and not label.contains(_filter):
-				continue
 			total += 1
 			case._failures = []
 			case._current = name

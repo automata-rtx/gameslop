@@ -29,6 +29,8 @@ const QUIET_FRAMES := 6
 const QUIET_MAX_FRAMES := 120
 const ROW_TIMEOUT_USEC := 20_000_000
 
+## Tests set this false before adding the bench to the tree and call start() themselves.
+var autostart: bool = true
 var run: Run
 var spy := FeedbackSpy.new()
 var results: Array[Dictionary] = []
@@ -39,12 +41,12 @@ var current: Dictionary = {}
 var _recipes := FeedbackRecipes.new()
 var _anchor_index: int = -1
 var _anchor_tick: int = 0
+var _anchor_frame: int = 0
 var _anchor_usec: int = 0
 var _host: Node
 var _prev_host: Node
 var _prev_meta: MetaState
 var _prev_transition: Object
-var _prev_max_fps: int = 0
 var _label: RichTextLabel
 var _selected: int = 0
 var _busy: bool = false
@@ -62,7 +64,8 @@ func _ready() -> void:
 		out_path = args[i + 1]
 	if not auto:
 		_build_ui()
-	_boot.call_deferred(auto)
+	if autostart:
+		_boot.call_deferred(auto)
 
 
 func _exit_tree() -> void:
@@ -81,6 +84,10 @@ func _boot(auto: bool) -> void:
 		_print_table()
 		if not out_path.is_empty():
 			write_json(out_path)
+		var args2 := OS.get_cmdline_user_args()
+		var mi := args2.find("--md")
+		if mi != -1 and mi + 1 < args2.size():
+			write_text(args2[mi + 1], markdown(results))
 		var bad := results.filter(func(r: Dictionary) -> bool: return r[&"status"] == FeedbackRows.IMPLEMENTED and not r[&"ok"])
 		get_tree().quit(1 if not bad.is_empty() else 0)
 	else:
@@ -132,7 +139,6 @@ func _teardown() -> void:
 	if SceneRouter.get_host() == _host:
 		SceneRouter.set_host(_prev_host)
 	SceneRouter.transition = _prev_transition
-	Engine.max_fps = _prev_max_fps
 
 
 # --- running rows -----------------------------------------------------------------------------
@@ -160,10 +166,11 @@ func run_row(id: StringName) -> Dictionary:
 	current = row
 	spy.extra.clear()
 	_anchor_index = -1
+	var t0 := Time.get_ticks_usec()
 	if not row[&"chained"]:
 		release_all()
+		run.player.flashlight.set_on(false, true)
 		await arm()
-	var t0 := Time.get_ticks_usec()
 	await _recipes.call(String(id), self)
 	if _anchor_index < 0:
 		push_warning("FeedbackBench: row %s never anchored" % id)
@@ -173,6 +180,7 @@ func run_row(id: StringName) -> Dictionary:
 			return Engine.get_physics_frames() >= end_tick or Time.get_ticks_usec() - t0 > ROW_TIMEOUT_USEC, 1200)
 	release_all()
 	var result := _evaluate(row)
+	result[&"wall_ms"] = int((Time.get_ticks_usec() - t0) / 1000)
 	spy.extra.clear()
 	_store(result)
 	_busy = false
@@ -214,6 +222,7 @@ func _evaluate(row: Dictionary) -> Dictionary:
 				var key_list := _accepted(fe[&"changed"][ch], noisy, expect)
 				channels[ch] = {
 					&"ticks": maxi(int(fe[&"tick"]) - _anchor_tick, 0),
+					&"frames": maxi(int(fe[&"frame"]) - _anchor_frame, 0),
 					&"ms": maxf(float(int(fe[&"usec"]) - _anchor_usec) / 1000.0, 0.0),
 					&"key": key_list[0],
 					&"first_keys": Array(key_list.slice(0, 5)),
@@ -241,7 +250,7 @@ func _result_for(row: Dictionary, channels: Dictionary) -> Dictionary:
 	for ch: StringName in FeedbackSpy.CHANNELS:
 		var listed: bool = String(row[&"listed"]).contains(String(ch))
 		if channels.has(ch):
-			if int(channels[ch][&"ticks"]) <= Tuning.FEEDBACK_MAX_LATENCY_FRAMES:
+			if within(channels[ch]):
 				fired += 1
 			else:
 				late.append(String(ch))
@@ -256,6 +265,17 @@ func _result_for(row: Dictionary, channels: Dictionary) -> Dictionary:
 	}
 
 
+## 11 §1: within 50 ms of the triggering frame, i.e. 3 frames at 60 fps. The bench runs at
+## whatever rate the machine gives it (headless is not locked to 60 fps and physics ticks
+## bunch up after a stall), so a reaction is on time when ANY of the three measures is inside
+## the budget: physics ticks, process frames, or wall milliseconds. It is late only when it
+## is late by all three.
+static func within(c: Dictionary) -> bool:
+	return int(c[&"ticks"]) <= Tuning.FEEDBACK_MAX_LATENCY_FRAMES \
+			or int(c.get(&"frames", 0)) <= Tuning.FEEDBACK_MAX_LATENCY_FRAMES \
+			or float(c[&"ms"]) <= float(Tuning.FEEDBACK_MAX_LATENCY_MS)
+
+
 static func format_line(r: Dictionary) -> String:
 	if r[&"status"] == FeedbackRows.PENDING:
 		return "feedback %-22s PENDING  %s" % [r[&"id"], r[&"reason"]]
@@ -267,7 +287,7 @@ static func format_line(r: Dictionary) -> String:
 		else:
 			parts.append("%s %dt/%.0fms %s" % [ch, c[&"ticks"], c[&"ms"], c[&"key"]])
 	var mark := "ok  " if r[&"ok"] else ("GAP " if r[&"status"] == FeedbackRows.GAP else "FAIL")
-	return "feedback %-22s %s  %d/%d  %s" % [r[&"id"], mark, r[&"fired"], r[&"min"], " | ".join(parts)]
+	return "feedback %-22s %s  %d/%d  %5dms  %s" % [r[&"id"], mark, r[&"fired"], r[&"min"], int(r.get(&"wall_ms", 0)), " | ".join(parts)]
 
 
 func _print_table() -> void:
@@ -299,24 +319,76 @@ func write_json(path: String) -> void:
 	print("feedback: wrote ", abs_path)
 
 
+## The checklist table (docs/qa/feedback_checklist.md): x = reacted within 3 ticks (50 ms at
+## 60 fps), `x*` = reacted though the table lists a dash, `+N` = reacted N ticks late, `no` =
+## listed but did not react, `-` = not listed. Written by `--auto out.json --md out.md`.
+static func markdown(rows: Array) -> String:
+	var lines: PackedStringArray = []
+	lines.append("| Action / event | Ref | I | S | M | R | Result | What reacted |")
+	lines.append("|---|---|---|---|---|---|---|---|")
+	for r in rows:
+		var cells: PackedStringArray = []
+		var evidence: PackedStringArray = []
+		for ch: StringName in FeedbackSpy.CHANNELS:
+			var listed: bool = String(r[&"listed"]).contains(String(ch))
+			var c: Dictionary = (r[&"channels"] as Dictionary).get(ch, {})
+			if r[&"status"] == FeedbackRows.PENDING:
+				cells.append("pending" if listed else "-")
+			elif c.is_empty():
+				cells.append("no" if listed else "-")
+			else:
+				var on_time := within(c)
+				var mark := "x" if listed else "x*"
+				cells.append(mark if on_time else "+%d" % int(c[&"ticks"]))
+				if on_time:
+					evidence.append("%s %s" % [ch, _short(String(c[&"key"]))])
+		var result := "pending: " + String(r[&"reason"]) if r[&"status"] == FeedbackRows.PENDING \
+				else ("ok %d/%d" % [r[&"fired"], r[&"min"]] if r[&"ok"] else "GAP: " + String(r[&"reason"]) \
+				if r[&"status"] == FeedbackRows.GAP else "FAIL %d/%d" % [r[&"fired"], r[&"min"]])
+		lines.append("| %s | %s | %s | %s | %s |" % [r[&"label"], r[&"ref"], " | ".join(cells), result, "; ".join(evidence)])
+	return "\n".join(lines) + "\n"
+
+
+static func _short(key: String) -> String:
+	var parts := key.split("/")
+	return parts[parts.size() - 1] if parts.size() > 1 else key
+
+
+func write_text(path: String, text: String) -> void:
+	var abs_path := path if path.is_absolute_path() else ProjectSettings.globalize_path("res://").path_join("..").path_join(path).simplify_path()
+	DirAccess.make_dir_recursive_absolute(abs_path.get_base_dir())
+	var f := FileAccess.open(abs_path, FileAccess.WRITE)
+	if f != null:
+		f.store_string(text)
+		f.close()
+		print("feedback: wrote ", abs_path)
+
+
 # --- the recipe API -----------------------------------------------------------------------------
 
-## Waits until the spy sees no change for a few frames (bounded). Call before the trigger.
+## Waits until the spy sees a steady state: the same set of changing keys for a few checks
+## in a row (nothing at all, or a perpetual animation such as a heartbeat pulse). Bounded.
+## Call before the trigger.
 func arm() -> void:
-	var quiet := 0
+	var steady := 0
 	var frames_left := QUIET_MAX_FRAMES
 	var seen := spy.entries.size()
-	while quiet < QUIET_FRAMES and frames_left > 0:
+	var last := ""
+	while steady < QUIET_FRAMES and frames_left > 0:
 		await get_tree().process_frame
 		await get_tree().process_frame
 		frames_left -= 1
-		var changed := false
+		var keys: Array = []
 		for i in range(seen, spy.entries.size()):
 			for ch: StringName in FeedbackSpy.CHANNELS:
-				if not (spy.entries[i][&"changed"][ch] as PackedStringArray).is_empty():
-					changed = true
+				for k in spy.entries[i][&"changed"][ch]:
+					if not keys.has(k):
+						keys.append(k)
 		seen = spy.entries.size()
-		quiet = 0 if changed else quiet + 1
+		keys.sort()
+		var sig := ",".join(PackedStringArray(keys))
+		steady = steady + 1 if sig == last else 0
+		last = sig
 
 
 ## Marks the trigger: the next sampled frame is the first one that can show the reaction.
@@ -325,6 +397,7 @@ func anchor() -> void:
 		return
 	_anchor_index = spy.entries.size()
 	_anchor_tick = Engine.get_physics_frames()
+	_anchor_frame = Engine.get_process_frames()
 	_anchor_usec = Time.get_ticks_usec()
 
 

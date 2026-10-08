@@ -23,7 +23,7 @@ extends RefCounted
 const IMPLEMENTED := &"implemented"
 const PENDING := &"pending"
 const GAP := &"gap"
-const DEFAULT_WINDOW := 24
+const DEFAULT_WINDOW := 12
 
 ## Rows in the order the automatic sequence fires them. The order is load-bearing: the
 ## level-bound rows come first; the drop, the exit and the dissolve end the Descent and so
@@ -63,7 +63,8 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"interact_press", "Interact press", "11 §2", "ISMR",
 			{&"expect": {&"S": ["play.door_"], &"R": ["Prompt"]}}))
 	rows.append(_row(&"interact_hold", "Interact hold", "11 §2", "ISR", {&"window": 30,
-			&"lookback": {&"I": 20, &"R": 20}, &"expect": {&"S": ["play.ui_hold_tick"], &"R": ["Prompt"]}}))
+			&"lookback": {&"I": 20, &"R": 20}, &"expect": {&"I": ["ui.underline"], &"S": ["play.ui_hold_tick"],
+			&"R": ["Prompt"]}}))
 	rows.append(_row(&"noclip_charge", "Noclip charge", "11 §2", "ISMR",
 			{&"expect": {&"S": ["loop.noclip_charge"], &"R": ["Crosshair"]}}))
 	rows.append(_row(&"noclip_cancel", "Noclip cancel", "11 §2", "ISMR",
@@ -97,7 +98,7 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"breaker", "Breaker thrown by player", "11 §3", "ISMR", {&"window": 30,
 			&"expect": {&"S": ["play.breaker_lever"]}}))
 	rows.append(_row(&"exit_unlocked", "Exit unlocked", "11 §3", "ISR",
-			{&"expect": {&"S": ["play.exit_open", "play.exit_latch"], &"R": ["Depth", "Notifications"]}}))
+			{&"chained": true, &"expect": {&"S": ["play.exit_open", "play.exit_latch"], &"R": ["Depth", "Notifications"]}}))
 	rows.append(_row(&"note_found", "Note found", "11 §3", "ISR",
 			{&"expect": {&"S": ["play.note_pickup"], &"R": ["NoteSheet", "Notifications"]}}))
 	rows.append(_row(&"unlock_earned", "Unlock earned", "11 §3", "SR",
