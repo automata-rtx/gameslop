@@ -805,8 +805,17 @@ def finish(chans: np.ndarray, rec: dict, group: dict, sr: int, info: dict | None
     norm = rec.get("norm") or group.get("norm") or {"peak_db": -1.0}
     (mode, target), = norm.items()
     ceiling = float(rec.get("ceiling_db", group.get("ceiling_db", -1.0)))
-    gain_db = float(target) - measure(shape(chans), sr, mode)
     out, gr = chans, 0.0
+    if mode == "gain_db":  # a fixed gain (derived recipes keep their source's level)
+        out, gr = limit(chans * g * undb(float(target)), ceiling - 0.03, sr, loop)
+        out = shape(out)
+        pk = peak_db(out)
+        if pk > ceiling - 0.01:
+            out = out * undb(ceiling - 0.01 - pk)
+        if info is not None:
+            info["gr_db"] = gr
+        return out
+    gain_db = float(target) - measure(shape(chans), sr, mode)
     for _ in range(10):
         lim, gr = limit(chans * g * undb(gain_db), ceiling - 0.03, sr, loop)
         out = shape(lim)
@@ -839,6 +848,13 @@ def load_recipes(path: Path) -> dict:
             raise RecipeError(f"bad recipe id {rid!r}")
         if rec.get("group") not in groups:
             raise RecipeError(f"{rid}: unknown group {rec.get('group')!r}")
+        if "from" in rec:  # a derived recipe: another one-shot's variants through an extra chain
+            src = data["recipes"].get(rec["from"])
+            if src is None or src.get("loop") or "from" in src:
+                raise RecipeError(f"{rid}: 'from' must name a one-shot recipe that is not derived")
+            if rec.get("layers") or rec.get("loop") or "variants" in rec or "dur" in rec:
+                raise RecipeError(f"{rid}: a derived recipe has no layers, loop, variants or dur")
+            continue
         if not rec.get("layers"):
             raise RecipeError(f"{rid}: no layers")
         if "dur" not in rec:
@@ -849,7 +865,9 @@ def load_recipes(path: Path) -> dict:
     return data
 
 
-def variants_of(rec: dict) -> int:
+def variants_of(rec: dict, data: dict | None = None) -> int:
+    if "from" in rec and data is not None:
+        return variants_of(data["recipes"][rec["from"]])
     return int(rec.get("variants", 1 if rec.get("loop") else 3))
 
 
@@ -862,6 +880,18 @@ def render_variant(data: dict, rid: str, v: int, info: dict | None = None) -> np
     group = data["groups"][rec["group"]]
     sr = int(data["format"]["rate"])
     nch = int(rec.get("channels", group.get("channels", 1)))
+    if "from" in rec:
+        # The source's own finished variant v (same file the game plays), with a tail of
+        # silence for the extra chain to ring into, then this recipe's fx and finish.
+        src = render_variant(data, rec["from"], v)
+        tail = int(round(float(rec.get("tail", 0.0)) * sr))
+        src = np.concatenate((src, np.zeros((src.shape[0], tail))), axis=1)
+        key = [int(data.get("seed", 0)), crc(rid), v]
+        out = []
+        for ch in range(src.shape[0]):
+            ctx = Ctx(sr, list(key), 1.0, None, ch, src.shape[0], False, data)
+            out.append(apply_chain(src[ch], rec.get("fx", []), ctx, 0.0, key + [P_LFO, 999]))
+        return finish(np.stack(out), rec, group, sr, info)
     loop_n = int(round(float(rec["dur"]) * sr)) if rec.get("loop") else None
     key = [int(data.get("seed", 0)), crc(rid), v]
     chans = []
@@ -942,7 +972,7 @@ def build_manifest(data: dict, out: Path) -> dict:
     for rid, rec in data["recipes"].items():
         group = data["groups"][rec["group"]]
         files, lengths, loop_frames = [], [], []
-        for v in range(1, variants_of(rec) + 1):
+        for v in range(1, variants_of(rec, data) + 1):
             rel = f"{group['dir']}/{file_name(rid, v)}"
             p = out / rel
             if not p.exists():
@@ -986,11 +1016,12 @@ def check_audio(rid: str, v: int, chans: np.ndarray, rec: dict, group: dict, sr:
     dur = n / sr
     loop = bool(rec.get("loop"))
     # duration
-    want = float(rec["dur"])
-    lead = 0.0 if loop else float(rec.get("lead", 0.0))
-    j = 0.0 if loop else float(rec.get("jitter", {}).get("dur", 0.0))
-    if not (want * (1 - j) + lead - 0.001 <= dur <= want * (1 + j) + lead + 0.001):
-        errs.append(f"{tag}: duration {dur:.4f}s outside {want}s +/- {j:.0%}")
+    if "dur" in rec:  # derived recipes take their source's length plus `tail`
+        want = float(rec["dur"])
+        lead = 0.0 if loop else float(rec.get("lead", 0.0))
+        j = 0.0 if loop else float(rec.get("jitter", {}).get("dur", 0.0))
+        if not (want * (1 - j) + lead - 0.001 <= dur <= want * (1 + j) + lead + 0.001):
+            errs.append(f"{tag}: duration {dur:.4f}s outside {want}s +/- {j:.0%}")
     lo, hi = group.get("dur_range", [0.0, 60.0])
     if not (lo <= dur <= hi):
         errs.append(f"{tag}: duration {dur:.3f}s outside group range {lo}..{hi}s")
@@ -1004,7 +1035,7 @@ def check_audio(rid: str, v: int, chans: np.ndarray, rec: dict, group: dict, sr:
         errs.append(f"{tag}: clipped samples")
     norm = rec.get("norm") or group.get("norm") or {"peak_db": -1.0}
     (mode, target), = norm.items()
-    got = measure(chans, sr, mode)
+    got = float(target) if mode == "gain_db" else measure(chans, sr, mode)
     if abs(got - float(target)) > NORM_TOL_DB:
         errs.append(f"{tag}: {mode} {got:.2f} misses target {target} (ceiling-limited? lower the target)")
     dc = float(np.max(np.abs(chans.mean(axis=1))))
@@ -1053,12 +1084,12 @@ def verify(data: dict, out: Path, ids: list[str]) -> list[str]:
     expected_files = set()
     for rid, rec in data["recipes"].items():
         group = data["groups"][rec["group"]]
-        for v in range(1, variants_of(rec) + 1):
+        for v in range(1, variants_of(rec, data) + 1):
             expected_files.add((out / group["dir"] / file_name(rid, v)).resolve())
     for rid in ids:
         rec = data["recipes"][rid]
         group = data["groups"][rec["group"]]
-        nv = variants_of(rec)
+        nv = variants_of(rec, data)
         lo, hi = group.get("variants_loop" if rec.get("loop") else "variants", [1, 99])
         if not (lo <= nv <= hi):
             errs.append(f"{rid}: {nv} variants outside {lo}..{hi} (03 §2)")
@@ -1131,7 +1162,7 @@ def remove_stale(data: dict, out: Path) -> None:
     keep = set()
     for rid, rec in data["recipes"].items():
         group = data["groups"][rec["group"]]
-        for v in range(1, variants_of(rec) + 1):
+        for v in range(1, variants_of(rec, data) + 1):
             keep.add((out / group["dir"] / file_name(rid, v)).resolve())
     for group in data["groups"].values():
         d = out / group["dir"]
@@ -1183,17 +1214,17 @@ def main(argv: list[str] | None = None) -> int:
         errs = verify(data, out, ids)
         for e in errs:
             print(f"FAIL {e}")
-        nfiles = sum(variants_of(data["recipes"][i]) for i in ids)
+        nfiles = sum(variants_of(data["recipes"][i], data) for i in ids)
         print(f"synth --verify: {len(ids)} recipes, {nfiles} files, {len(errs)} problems")
         return 1 if errs else 0
 
     for rid in ids:
         rec = data["recipes"][rid]
         group = data["groups"][rec["group"]]
-        for v in range(1, variants_of(rec) + 1):
+        for v in range(1, variants_of(rec, data) + 1):
             chans = render_variant(data, rid, v)
             write_wav(out / group["dir"] / file_name(rid, v), to_pcm16(chans), sr, bool(rec.get("loop")))
-        print(f"rendered {rid} x{variants_of(rec)}")
+        print(f"rendered {rid} x{variants_of(rec, data)}")
     if not args.only:
         remove_stale(data, out)
     manifest = build_manifest(data, out)
