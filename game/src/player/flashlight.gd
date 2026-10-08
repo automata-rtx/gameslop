@@ -38,6 +38,10 @@ var on: bool = false
 var lightbearer: bool = false
 ## 0..1 extra dimming of the held light (noclip charge dims it 30%, 11 §2).
 var dim: float = 0.0
+## Flicker attached (08 §5): the beam's stutter gate (1 lit, 0 an off instant) and its
+## lunge flash (0..1 toward white x3). Set by ErrorFlicker only; 1 and 0 otherwise.
+var stutter: float = 1.0
+var flash: float = 0.0
 
 var _cranking: bool = false
 var _turning: bool = false
@@ -45,6 +49,7 @@ var _crank_timer: float = 0.0
 var _held_rest: Vector3
 var _held_rest_basis: Basis
 var _dip_tween: Tween
+var _beam_color: Color = Color.WHITE
 
 
 func _ready() -> void:
@@ -56,6 +61,7 @@ func _ready() -> void:
 	beam.spot_range = Tuning.FLASH_RANGE
 	beam.spot_attenuation = Tuning.FLASH_ATTENUATION_ANGLE
 	beam.shadow_enabled = true
+	_beam_color = beam.light_color
 	hand_light.omni_range = Tuning.FLASH_HAND_LIGHT_RANGE
 	_apply_visuals()
 
@@ -139,6 +145,11 @@ func _set_held_dip(rad: float) -> void:
 	held.basis = _held_rest_basis.rotated(Vector3.RIGHT, -rad)
 
 
+## Re-applies the beam after `stutter` or `flash` changed (ErrorFlicker).
+func refresh() -> void:
+	_apply_visuals()
+
+
 func set_charge(v: float) -> void:
 	charge = clampf(v, 0.0, Tuning.FLASH_CHARGE_MAX)
 	charge_changed.emit(charge)
@@ -183,12 +194,15 @@ func tick(dt: float, bob_phase: float, bob_amp: float) -> void:
 func _apply_visuals() -> void:
 	if beam == null:
 		return
-	var e := energy_for(charge) * (1.0 - dim)
+	var e := energy_for(charge) * (1.0 - dim) * stutter
+	if flash > 0.0:
+		e = lerpf(e, energy_for(charge) * Tuning.LIGHT_FLICKER_FLASH_INTENSITY, flash)
 	beam.visible = on
+	beam.light_color = _beam_color.lerp(Color.WHITE, flash)
 	beam.light_energy = e
 	beam.spot_angle = spot_angle_for(charge)
 	hand_light.visible = on
-	hand_light.light_energy = Tuning.FLASH_HAND_LIGHT_ENERGY * (1.0 - dim)
+	hand_light.light_energy = Tuning.FLASH_HAND_LIGHT_ENERGY * (1.0 - dim) * stutter
 	var mat := lens.material_override as StandardMaterial3D
 	if mat:
 		mat.emission_energy_multiplier = lens_emission()
@@ -198,7 +212,7 @@ func _apply_visuals() -> void:
 ## with the light off (11 §2 crank: "lens brightens"); dark otherwise.
 func lens_emission() -> float:
 	if on:
-		return LENS_EMISSION_ON * energy_for(charge) * (1.0 - dim) / Tuning.FLASH_ENERGY_MAX
+		return LENS_EMISSION_ON * energy_for(charge) * (1.0 - dim) * maxf(stutter, flash) / Tuning.FLASH_ENERGY_MAX
 	if _turning:
 		var c := clampf(charge / Tuning.FLASH_CHARGE_MAX, 0.0, 1.0)
 		return LENS_EMISSION_CRANK * lerpf(LENS_EMISSION_CRANK_MIN, 1.0, c)

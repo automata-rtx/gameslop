@@ -469,6 +469,9 @@ const FLICKER_RESPAWN_MIN_DIST := 20.0              # m, lit group
 const FLICKER_HABITAT_LOST_DIST := 10.0             # m: no lit group within 10 m -> respawn
 const FLICKER_SPARK_SIZE := 0.01                    # m (1 cm sparks)
 const FLICKER_SPARK_LIFETIME := 0.3                 # s
+const FLICKER_SPARK_COUNT := 24                     # sparks per burst (M2.5; 02 gives no number)
+const FLICKER_FLASH_NOISE_MS := 100                 # 03: lunge flash noise 100 ms, then total silence 1.5 s
+const FLICKER_SILENCE_BUS := &"World"               # 03 §6 rule 3: room tone -inf during the lunge dark
 
 # 08 §6  Echo
 const ECHO_CAPSULE_RADIUS := 0.35                   # m
@@ -577,7 +580,7 @@ const DIRECTOR_MAX_CHASERS: Dictionary = {1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2}   
 const DIRECTOR_CONTACT_REFUSED_RETREAT := 5.0       # s, retreat(5) for the refused error
 # M1.8 build-task constants (10 gives no number)
 const DIRECTOR_TICK := 0.1                          # s, one intensity step (1 / DIRECTOR_UPDATE_HZ)
-const DIRECTOR_CHASE_STATES: Array[StringName] = [&"chase", &"follow", &"stalk"]   # 10 §2 "in Chase/Follow/Stalk"
+const DIRECTOR_CHASE_STATES: Array[StringName] = [&"chase", &"follow", &"stalk", &"attached"]   # 10 §2 "in Chase/Follow/Stalk"; Attached is Stalk carried on the beam (M2.5)
 const DIRECTOR_PLAYER_NOISE_DIST := 2.0             # m, a noise this close to the player is the player's
 const DIRECTOR_CALM_CHECK_INTERVAL := 1.0           # s, Calm keeps awake hunters >= 30 m (hints)
 const DIRECTOR_HINT_AWAY_MAX := 40.0                # m, Relief/Calm hint-away cells lie 25 (30) to 40 m out
@@ -1155,6 +1158,8 @@ const LIGHT_FLICKER_LUNGE_FLASH_FRAMES := 2
 const LIGHT_FLICKER_LUNGE_DARK_TIME := 1.5          # s
 const LIGHT_FLICKER_REDUCED_FADE_MS := 200          # reduce flashing: soft fade to 60% white (12 §6)
 const LIGHT_FLICKER_REDUCED_WHITE := 0.6
+const LIGHT_FLICKER_FLASH_INTENSITY := 3.0          # lunge flash: lent light x3 and a white tube (M2.5; 02 gives no number)
+const LIGHT_FLICKER_RATE_SPREAD := 1.5              # each stutter interval is 1 / random(rate, rate x 1.5) Hz, within 8..20 (M2.5)
 const SUBSTRATE_FOG_START := 25.0                   # m, distance fog to #000000 (02 §7)
 const SUBSTRATE_FOG_END := 45.0                     # (02 §6 says "to black at 40 m"; 02 §7 range used)
 
@@ -1430,6 +1435,12 @@ const NOTE_MAX_WORDS := 70                          # hard limit (01 §6)
 const CAPTION_NEAR_DIST := 6.0                      # m: "near" under, none 6 to 20, "far" over
 const CAPTION_FAR_DIST := 20.0
 const CAPTION_SECTORS := 8                          # listener-relative angle sectors
+# M2.12 build-task constants (04 §8, §10 give no lifetime or stack): the caption stack
+const CAPTION_TIME := 4.0                           # s on screen (the notification hold, 04 §6)
+const CAPTION_MAX_STACK := 3                        # lines; a fourth pushes the oldest out
+const CAPTION_GAP := 4                              # px between stacked lines (half a grid unit)
+const CAPTION_PROMPT_CLEARANCE := 40                # px: the stack's bottom sits this far above the prompt centre (11 §6)
+const ARCHIVE_NEW_BLINK_S := 0.5                    # one 2 Hz blink of an unread note cell (13 §5)
 
 # 04 §9 first-run guidance
 const HINT_SHOW_TIME := 6.0                         # s or until performed

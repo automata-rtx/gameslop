@@ -3,7 +3,8 @@ extends Node3D
 ## 08 §9 error arena: a built Halls level (seed 1) with the player, spawn buttons per error,
 ## a light toggle, an aggression slider and the state log. Used to tune errors and to
 ## capture their signature frames (02 §13).
-##   Keys: 1 spawn Static, 2 spawn Still, 3 spawn Echo, L fixtures on/off, K remove every error,
+##   Keys: 1 spawn Static, 2 spawn Still, 3 spawn Echo, 4 spawn Flicker (in the lit group
+##   nearest ahead of the player), L fixtures on/off, K remove every error,
 ##   H hint every error away at once (10 §2 Relief: hint(pos, true)).
 ##   F (the player's own flashlight) toggles the beam.
 ## The log shows the errors' script time per physics frame (ErrorTiming.MONITOR, also in the
@@ -11,7 +12,9 @@ extends Node3D
 ##   -- --shots <dir>   capture still_lit_6m, still_dark, still_tick, static_outside,
 ##                      static_inside, echo_4m_halls into <dir> (relative to the repository)
 ##                      and quit. With `--stratum pools` the arena is a Pools level and the
-##                      shots are echo_4m_pools only.
+##                      shots are echo_4m_pools only; with `--stratum offices` they are
+##                      Flicker's: flicker_stutter_a/_b (a stuttering group), flicker_lunge_flash,
+##                      flicker_lunge_dark, flicker_attached_on/_off (the stuttering beam).
 ##   -- --stratum <id>  the arena's stratum (default halls).
 ## Errors spawn the Director's way: an `error_spawns` marker >= 20 m away and outside the
 ## camera frustum (08 §2), else the farthest walkable cell.
@@ -81,6 +84,9 @@ func spawn(id: StringName, at: Vector3 = Vector3.INF) -> ErrorBase:
 		(e as ErrorEcho).place_at(pos)
 	else:
 		e.global_position = pos
+	if e is ErrorFlicker and at == Vector3.INF:
+		# The bench puts Flicker where the player can watch it: the lit group nearest ahead.
+		(e as ErrorFlicker).respawn_at(_group_ahead())
 	e.set_aggression(aggression)
 	e.state_changed.connect(func(_f: StringName, _t: StringName) -> void: _refresh_log())
 	errors.append(e)
@@ -145,6 +151,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			spawn(&"still").wake()
 		KEY_3:
 			spawn(&"echo").wake()
+		KEY_4:
+			spawn(&"flicker").wake()
 		KEY_L:
 			set_lights(not _lights_on)
 		KEY_K:
@@ -163,7 +171,7 @@ func _build_ui() -> void:
 	box.position = Vector2(16, 120)
 	layer.add_child(box)
 	for spec: Array in [["SPAWN STATIC [1]", &"static"], ["SPAWN STILL [2]", &"still"],
-			["SPAWN ECHO [3]", &"echo"]]:
+			["SPAWN ECHO [3]", &"echo"], ["SPAWN FLICKER [4]", &"flicker"]]:
 		var b := Button.new()
 		b.text = spec[0]
 		b.focus_mode = Control.FOCUS_NONE
@@ -215,8 +223,9 @@ func _refresh_log() -> void:
 	if _log == null:
 		return
 	var lines: PackedStringArray = ["AGGRESSION %.2f" % aggression,
-		"ERRORS %.3f MS (STATIC %.3f, STILL %.3f, ECHO %.3f)" % [ErrorTiming.errors_ms(),
-			ErrorTiming.error_ms(&"static"), ErrorTiming.error_ms(&"still"), ErrorTiming.error_ms(&"echo")]]
+		"ERRORS %.3f MS (STATIC %.3f, STILL %.3f, ECHO %.3f, FLICKER %.3f)" % [ErrorTiming.errors_ms(),
+			ErrorTiming.error_ms(&"static"), ErrorTiming.error_ms(&"still"), ErrorTiming.error_ms(&"echo"),
+			ErrorTiming.error_ms(&"flicker")]]
 	for e in errors:
 		if is_instance_valid(e):
 			lines.append_array(e.log_lines)
@@ -258,6 +267,10 @@ func _pose_player(cell: Vector2i, dir: int) -> Vector3:
 func _capture_all(dir: String) -> void:
 	var abs_dir := dir if dir.is_absolute_path() else ProjectSettings.globalize_path("res://").path_join("..").path_join(dir).simplify_path()
 	DirAccess.make_dir_recursive_absolute(abs_dir)
+	if _stratum == &"offices":
+		await ArenaFlickerShots.capture(self, abs_dir)
+		print("error_arena: shots in ", abs_dir)
+		return
 	if _stratum != &"halls":
 		await _echo_shot(abs_dir)
 		print("error_arena: shots in ", abs_dir)
@@ -309,10 +322,33 @@ func _echo_shot(abs_dir: String) -> void:
 	await _shot(abs_dir, "echo_4m_%s" % _stratum)
 
 
+## The lit fixture group whose centroid is nearest a point 7 m ahead of the camera and in
+## view, else the nearest lit group.
+func _group_ahead() -> int:
+	var cam := player.rig.camera
+	var ahead := cam.global_position - cam.global_transform.basis.z * 7.0
+	var pool := level.light_pool
+	var best := -1
+	var best_d := INF
+	for g: int in pool.group_ids():
+		if not pool.is_group_lit(g):
+			continue
+		var c := pool.group_centroid(g)
+		var d := FlickerHabitat.flat(c, ahead) + (0.0 if cam.is_position_in_frustum(c) else 100.0)
+		if d < best_d:
+			best_d = d
+			best = g
+	return best
+
+
 func free_error(e: ErrorBase) -> void:
 	if is_instance_valid(e):
 		e.queue_free()
 	errors.erase(e)
+
+
+func shot(dir: String, name: String) -> void:
+	await _shot(dir, name)
 
 
 func _shot(dir: String, name: String) -> void:

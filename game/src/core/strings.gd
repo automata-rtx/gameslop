@@ -77,6 +77,8 @@ const HUD_EXIT_STATUS: Dictionary = {                         # keyed by exit_st
 }
 const HUD_BELT_EMPTY := "—"
 const HUD_BELT_SLOT := "{slot} {glyph} ×{count}"
+const HUD_BELT_BURNING := "{seconds}S"                         # a flare burning in the belt: seconds of burn left (M2.12)
+const HUD_BELT_ON := "ON"                                      # the radio switched on (M2.12)
 const HUD_CRANK_PERCENT := "{percent}%"
 
 # 04 §6, 06 §8  Noclip invalid reasons (one word under the crosshair)
@@ -136,6 +138,8 @@ const HINT_COHERENCE := "COHERENCE IS HOW REAL YOU ARE"
 const HINTS_IN_ORDER: Array[String] = [
 	HINT_MOVE, HINT_FLASHLIGHT, HINT_CRANK, HINT_NOCLIP, HINT_DROP, HINT_ITEMS, HINT_COHERENCE,
 ]
+## Hint ids (meta.json `hints_shown`), in the order of 04 §9 and HINTS_IN_ORDER.
+const HINT_IDS: Array[StringName] = [&"move", &"flashlight", &"crank", &"noclip", &"drop", &"items", &"coherence"]
 
 # 04 §9, 12 §5  Key and button names for bindings that are not keyboard keys
 const BINDING_MOUSE_LEFT := "LMB"

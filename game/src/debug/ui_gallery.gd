@@ -5,7 +5,11 @@ extends Control
 ## note-sheet voices, and the HUD states (M1.6, HudGalleryStates). Menus join it as they
 ## are built. Flags after `--`:
 ##   --hud-state NAME   show one HUD state full screen
-##   --hud-shots DIR    save every HUD state as DIR/hud_<state>_<w>x<h>.png, then quit Debug-only text: the strings here are labels for review, not player text, so
+##   --hud-shots DIR    save every HUD state as DIR/hud_<state>_<w>x<h>.png, then quit
+##   --states A,B       with --hud-shots: only these states
+##   --text-size V      12 §6 Text size for the shots (not saved to settings)
+##   --ui-scale V       12 §2 UI scale for the shots (not saved); the 12 §9 manual pass is
+##                      --resolution 1280x720 --text-size 1.4 --ui-scale 1.5 Debug-only text: the strings here are labels for review, not player text, so
 ## they do not live in strings.gd.
 
 const GLYPH_COLUMNS := 6
@@ -321,14 +325,31 @@ func _full_screen_state(state: StringName) -> Control:
 
 func _hud_shots(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
-	var vp_size := get_viewport().get_visible_rect().size
-	for state in HudGalleryStates.STATES:
+	var args := OS.get_cmdline_user_args()
+	var suffix := ""
+	var ts := _arg(args, "--text-size")
+	var us := _arg(args, "--ui-scale")
+	if not ts.is_empty() or not us.is_empty():
+		SettingsManager.persist = false  # review shots never write the player's settings
+	if not ts.is_empty():
+		SettingsManager.set_value(&"text_size", float(ts))
+		suffix += "_ts%s" % ts
+	if not us.is_empty():
+		SettingsManager.set_value(&"ui_scale", float(us))
+		suffix += "_ui%s" % us
+	var states: Array[StringName] = HudGalleryStates.STATES
+	var only := _arg(args, "--states")
+	if not only.is_empty():
+		states = []
+		for s in only.split(","):
+			states.append(StringName(s))
+	for state in states:
 		var root := _full_screen_state(state)
 		for i in 4:
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()
-		var path := "%s/hud_%s_%dx%d.png" % [dir, state, int(vp_size.x), int(vp_size.y)]
+		var path := "%s/hud_%s_%dx%d%s.png" % [dir, state, img.get_width(), img.get_height(), suffix]
 		img.save_png(path)
 		print("ui_gallery: saved ", path)
 		root.free()

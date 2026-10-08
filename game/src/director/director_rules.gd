@@ -120,22 +120,7 @@ static func met_hunter(native: StringName, met: Array, rng: RandomNumberGenerato
 	return pool[rng.randi_range(0, pool.size() - 1)]
 
 
-## TEMPORARY, remove in M2.5 (Flicker; Echo is built, M2.4): until Flicker has a scene,
-## an unbuilt native hunter is replaced by Still (05 §3, M1.13 ruling), so every level with
-## a native slot carries a hunter. Returns the roster to spawn and the native it carries
-## ({&"roster": Array[StringName], &"native": StringName}). This is the one place the
-## substitution happens; the design roster (`roster()`) is untouched.
-static func substitute_unbuilt_native(design: Array[StringName], native: StringName) -> Dictionary:
-	var out: Array[StringName] = design.duplicate()
-	if native != &"flicker" or spawnable(native) or not spawnable(&"still"):
-		return {&"roster": out, &"native": native}
-	var i := out.find(native)
-	if i >= 0:
-		out[i] = &"still"
-	return {&"roster": out, &"native": &"still" if i >= 0 else native}
-
-
-## M1: only Static and Still have scenes (ErrorBase.SCENES).
+## An id is spawned when it has a scene (ErrorBase.SCENES); Null arrives with M2.6.
 static func spawnable(id: StringName) -> bool:
 	return ErrorBase.SCENES.has(id)
 

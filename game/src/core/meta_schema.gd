@@ -14,6 +14,7 @@ const DEATH_CAUSES: Array[String] = ["still", "echo", "flicker", "static", "null
 const KNOWN_KEYS: Array[String] = [
 	"version", "created_at", "first_descent_done", "unlocks", "notes_found", "codex",
 	"polaroids_seen", "stats", "daily", "last_run", "endless_best_depth", "cycle_unlocked",
+	"notes_read", "hints_shown", "hints_retired",
 ]
 const DAILY_KEY_LENGTH := 8
 ## Upper bound for counters read from disk (a hand-edited 1e300 must not overflow an int).
@@ -88,7 +89,33 @@ static func to_dict(m: MetaState) -> Dictionary:
 	d["last_run"] = m.last_run.duplicate(true)
 	d["endless_best_depth"] = m.endless_best_depth
 	d["cycle_unlocked"] = m.cycle_unlocked
+	d["notes_read"] = _names_out(m.notes_read)
+	d["hints_shown"] = _names_out(m.hints_shown)
+	d["hints_retired"] = m.hints_retired
 	return d
+
+
+static func _names_out(list: Array[StringName]) -> Array:
+	var out: Array = []
+	for n in list:
+		out.append(String(n))
+	return out
+
+
+## A list of non-empty, distinct ids; anything else in the list is dropped. `allowed` (when
+## not empty) limits the ids to a known set.
+static func _names_in(v: Variant, allowed: Array = []) -> Array[StringName]:
+	var out: Array[StringName] = []
+	if not (v is Array):
+		return out
+	for n: Variant in v:
+		if not (n is String or n is StringName) or String(n).is_empty():
+			continue
+		var id := StringName(n)
+		if out.has(id) or (not allowed.is_empty() and not allowed.has(id)):
+			continue
+		out.append(id)
+	return out
 
 
 # --- Dictionary -> MetaState (validated) -------------------------------------------------------
@@ -126,6 +153,13 @@ static func from_dict(d: Dictionary) -> MetaState:
 	m.last_run = _validate_last_run(d.get("last_run", {}))
 	m.endless_best_depth = to_int(d.get("endless_best_depth"), 0, 0, Tuning.META_DEPTH_MAX)
 	m.cycle_unlocked = to_bool(d.get("cycle_unlocked"), false)
+	# M2.12 additive fields (13 §5 Archive read state, 04 §9 hints); absent in older files.
+	# A note can only be read once it is found.
+	for n in _names_in(d.get("notes_read", [])):
+		if m.notes_found.has(n):
+			m.notes_read.append(n)
+	m.hints_shown = _names_in(d.get("hints_shown", []), Strings.HINT_IDS)
+	m.hints_retired = to_bool(d.get("hints_retired"), false)
 	return m
 
 

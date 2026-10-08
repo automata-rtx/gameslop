@@ -39,7 +39,7 @@ var errors: Array[ErrorBase] = []
 ## The roster as designed (05 §3) and the ids skipped because they have no scene yet.
 var roster: Array[StringName] = []
 var skipped: Array[StringName] = []
-## The roster as spawned: `roster` after the temporary Still substitution (M2.4/M2.5 remove it).
+## The roster as spawned (since M2.5 the design roster; ids without a scene are `skipped`).
 var spawned_roster: Array[StringName] = []
 var native: StringName = &""
 ## 10 §4 contact exclusivity: the one clock (CHANGELOG: owned by the Director). −1: none.
@@ -57,6 +57,7 @@ var scare_events := ScareEvents.new()
 var inputs := DirectorInputs.new()
 var rng: RandomNumberGenerator = Seeds.rng(0)
 var hunters := DirectorHunters.new()
+var statics := DirectorStatics.new()
 
 var _active: bool = false
 var _game_time: float = 0.0
@@ -101,6 +102,7 @@ func begin(p_level: Level, p_player: Player, p_arrival: StringName = Tuning.RUN_
 	pacing = DirectorPacing.new(rng.randi(), arrival, DirectorRules.cycle_depth(depth) == 6)
 	hunters.director = self
 	inputs.director = self
+	statics.director = self
 	var level_seed := data.level_seed if data != null else 0
 	scares = Scares.new(Seeds.derive(level_seed, Tuning.SEED_LABEL_SCARES))
 	scare_events = ScareEvents.new()
@@ -120,13 +122,10 @@ func begin(p_level: Level, p_player: Player, p_arrival: StringName = Tuning.RUN_
 				if DirectorRules.is_hunter(id):
 					native = id
 					break
-		# TEMPORARY until M2.4/M2.5: an unbuilt native spawns as Still (one function).
-		var sub := DirectorRules.substitute_unbuilt_native(roster, native)
-		spawned_roster.assign(sub[&"roster"])
-		native = sub[&"native"]
+		spawned_roster.assign(roster)
 		hunters.spawn_roster(spawned_roster)
 		hunters.awake_arrivals(DirectorRules.awake_hunters(drops_in_a_row))
-		hunters.bound_statics_off_path()
+		statics.bound_statics_off_path()
 	_apply_aggression(true)
 	EventBus.director_phase.emit(pacing.phase)
 
@@ -236,10 +235,11 @@ func _tick(dt: float) -> void:
 		_check_left = Tuning.DIRECTOR_CALM_CHECK_INTERVAL
 		hunters.enforce_caps(s)
 		hunters.spawn_pending()
+		hunters.respawn_flickers(now())
 	_static_left -= dt
 	if _static_left <= 0.0:
 		_static_left = Tuning.STATIC_FAIR_CHECK_INTERVAL
-		hunters.static_fairness(Tuning.STATIC_FAIR_CHECK_INTERVAL)
+		statics.static_fairness(Tuning.STATIC_FAIR_CHECK_INTERVAL)
 	_aggr_left -= dt
 	if _aggr_left <= 0.0:
 		_aggr_left = Tuning.DIRECTOR_AGGRESSION_UPDATE_INTERVAL

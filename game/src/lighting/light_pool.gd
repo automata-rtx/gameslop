@@ -5,7 +5,10 @@ extends Node3D
 ## keeps its fixture while that fixture stays in the nearest set, so only the far edge of
 ## the set swaps, and a re-assigned light ramps in (with distance_fade) to hide the swap.
 ## Interface (02): register_fixture, set_group_flicker, power_wave. Also is_lit(pos) for
-## the player's observation light queries (06, 08 §4).
+## the player's observation light queries (06, 08 §4), and Flicker's group queries (08
+## Interfaces): group_centroid, groups_adjacent, is_group_lit, lit_fixtures_near, plus its
+## presentation hooks (stutter rate, lunge flash and dark). The stutter's sound is Flicker's
+## own loop (FlickerPresent), not the fixture hum.
 
 ## The node the pool measures from (the player's camera or body). Null: the pool origin.
 var target: Node3D
@@ -41,6 +44,8 @@ var _assigned_i: PackedInt32Array = PackedInt32Array()
 var _fade: PackedFloat32Array = PackedFloat32Array()
 var _hums: Array = []
 var _timer: float = 0.0
+## Group centroids and adjacency (08 §5), rebuilt lazily after a fixture registers.
+var _topology: FixtureGroups
 ## The level grid (optional): enables walking-distance ranking and grid-sight lending.
 var grid: LevelGrid:
 	set(g):
@@ -49,6 +54,7 @@ var grid: LevelGrid:
 		_selector = LightSelector.new(g)
 		for f in _fixtures:
 			_selector.add(f.global_position)
+		_topology = null
 var _selector: LightSelector = LightSelector.new()
 ## Fixture -> its light's anchor (fixtures never move; cleared when the light fields change).
 var _anchors: Dictionary = {}
@@ -132,6 +138,7 @@ func register_fixture(fixture: Fixture) -> void:
 	if not _groups.has(fixture.group_id):
 		_groups[fixture.group_id] = [] as Array[Fixture]
 	(_groups[fixture.group_id] as Array[Fixture]).append(fixture)
+	_topology = null
 	# 03: about one fixture in six carries the tired-ballast buzz instead of the hum.
 	var h := hash(Vector3i((fixture.global_position * 10.0).round())) if fixture.is_inside_tree() else _fixtures.size()
 	var buzz := posmod(h, 6) == 0 and bool(fixture.light_value(&"buzz", true))
@@ -159,6 +166,58 @@ func group_ids() -> Array:
 func set_group_flicker(group_id: int, on: bool) -> void:
 	for f in group(group_id):
 		f.set_flicker(on)
+
+
+## 08 §5: the stutter rate of a group (8 Hz resident, up to 20 Hz as Flicker's charge builds).
+func set_group_flicker_rate(group_id: int, hz: float) -> void:
+	for f in group(group_id):
+		f.set_flicker_rate(hz)
+
+
+## 08 §5, 02 §8 lunge: the whole group flashes white for 2 frames.
+func group_lunge_flash(group_id: int) -> void:
+	for f in group(group_id):
+		f.lunge_flash()
+
+
+## 08 §5: the whole group dark (not unpowered) for the 1.5 s after a lunge.
+func set_group_lunge_dark(group_id: int, on: bool) -> void:
+	for f in group(group_id):
+		f.set_lunge_dark(on)
+
+
+# --- Flicker's group queries (08 Interfaces) ---------------------------------------------
+
+## The centroid of a group's fixtures (Flicker's position for proximity and captions).
+func group_centroid(group_id: int) -> Vector3:
+	return _topo().centroids.get(group_id, Vector3.INF)
+
+
+## Groups adjacent to `group_id` (fixtures within 8 m in XZ, or sharing a door), sorted.
+func groups_adjacent(group_id: int) -> Array[int]:
+	return _topo().neighbours(group_id)
+
+
+## A group is lit (habitable for Flicker) while any of its fixtures is powered: the power
+## state, never whether the pool lends it a light (08 §4, §5).
+func is_group_lit(group_id: int) -> bool:
+	for f in group(group_id):
+		if f.powered:
+			return true
+	return false
+
+
+## Lit fixtures (powered, not in a lunge dark) within `radius` of `pos` in XZ whose light
+## has a clear grid sight line to `pos` (CHANGELOG 2026-10-08), nearest first.
+func lit_fixtures_near(pos: Vector3, radius: float) -> Array[Fixture]:
+	return FixtureGroups.lit_near(_fixtures, grid, anchor_of, pos, radius)
+
+
+func _topo() -> FixtureGroups:
+	if _topology == null:
+		_topology = FixtureGroups.new()
+		_topology.build(_groups, grid)
+	return _topology
 
 
 func set_group_powered(group_id: int, on: bool) -> void:

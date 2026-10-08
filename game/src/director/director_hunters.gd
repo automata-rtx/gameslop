@@ -16,14 +16,14 @@ class Survey:
 const STATIC := &"static"
 
 var director: Director
-## Static instance id -> seconds its field has cut the only route (08 §3).
-var _cut_time: Dictionary = {}
 var _counts: Dictionary = {}
 ## Hunters with no fair cell at level entry, retried once per second (`spawn_pending`).
 var pending: Array[StringName] = []
 ## Hunters that arrived in Search after a drop (05 §3), and chasers sent away by the cap.
 var awake: Array[ErrorBase] = []
 var cap_retreats: int = 0
+## Flicker instance id -> Director seconds of its last respawn (10 §4: once per 60 s).
+var _respawned_at: Dictionary = {}
 
 
 func live() -> Array[ErrorBase]:
@@ -119,6 +119,22 @@ func spawn_pending() -> void:
 		if e != null and director.pacing.phase != DirectorPacing.CALM and director.wake_allowed():
 			_wake(e)
 	pending = left
+
+
+## 10 §4: a Flicker that lost its habitat is respawned in Build at a lit group >= 20 m away
+## (and out of view), at most once per 60 s. Called once per second.
+func respawn_flickers(now: float) -> void:
+	if director.pacing.phase != DirectorPacing.BUILD or not _player_ok():
+		return
+	var cam := director.player.rig.camera
+	for e in live():
+		var fl := e as ErrorFlicker
+		if fl == null or not fl.despawned or now - float(_respawned_at.get(fl.get_instance_id(), -INF)) < Tuning.FLICKER_RESPAWN_INTERVAL:
+			continue
+		var ids := FlickerHabitat.respawn_groups(fl.pool(), director.player.global_position, Tuning.FLICKER_RESPAWN_MIN_DIST,
+			func(p: Vector3) -> bool: return cam.is_inside_tree() and cam.is_position_in_frustum(p))
+		if not ids.is_empty() and fl.respawn_at(ids[director.rng.randi_range(0, ids.size() - 1)]):
+			_respawned_at[fl.get_instance_id()] = now
 
 
 func spawn(id: StringName, pos: Vector3) -> ErrorBase:
@@ -327,35 +343,6 @@ func _first_descent_depth1() -> bool:
 	return director.first_descent and DirectorRules.cycle_depth(director.depth) == 1 and _grid() != null
 
 
-## 05 §10 first Descent, as the M1.13 ruling places it: the first Static spawns between the
-## breaker and the exit and its drift stays within 6 m of that stretch of the critical path
-## (`DirectorSpawn.breaker_exit_band`); any other Static drifts in a side loop
-## (`side_loop_cells`). Each gets its wander filter through `ErrorStatic.set_wander_filter`
-## (called only when it exists). Returns the first Static's filter, or an invalid Callable
-## when none applies.
-func bound_statics_off_path() -> Callable:
-	var d := director
-	if not _first_descent_depth1():
-		return Callable()
-	var statics := _statics()
-	if statics.is_empty():
-		return Callable()
-	var first := Callable()
-	for i in statics.size():
-		var st := statics[i]
-		var allowed := DirectorSpawn.breaker_exit_band(d.data) if i == 0 else {}
-		if allowed.is_empty():
-			allowed = DirectorSpawn.side_loop_cells(_grid(), d.data.critical_path, st.global_position)
-		if allowed.is_empty():
-			continue
-		var filter := DirectorSpawn.cell_filter(_grid(), allowed)
-		if i == 0:
-			first = filter
-		if st.has_method(&"set_wander_filter"):
-			st.call(&"set_wander_filter", filter)
-	return first
-
-
 ## Once per second: Calm keeps awake hunters ≥ 30 m (rule 2); chaser caps (rule 6, Null
 ## exempt): over the cap the farthest chasers retreat 5 s, at it the others are hinted away.
 func enforce_caps(_s: Survey) -> void:
@@ -377,24 +364,3 @@ func enforce_caps(_s: Survey) -> void:
 	for h in _free_hunters():
 		if DirectorRules.phase_wakes(h.error_id):
 			_hint_ring(h, Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST, Tuning.DIRECTOR_HINT_AWAY_MAX)
-
-
-## 08 §3, 10 §7 rule 4: every 5 s, does a Static field cut the only route from the player
-## to the exit? After 40 s cumulative it is nudged off the critical path at 1.2 m/s.
-func static_fairness(interval: float) -> void:
-	if not _player_ok() or _grid() == null or director.data.exit_cell == LevelData.NO_CELL:
-		return
-	var from := _grid().cell_of(director.player.global_position)
-	for st in _statics():
-		if st.is_dormant():
-			continue
-		var key := st.get_instance_id()
-		if DirectorSpawn.static_cuts_path(_grid(), st.centre(), st.radius, from, director.data.exit_cell):
-			_cut_time[key] = float(_cut_time.get(key, 0.0)) + interval
-		if float(_cut_time.get(key, 0.0)) >= Tuning.STATIC_FAIR_CUMULATIVE_LIMIT:
-			_cut_time[key] = 0.0
-			_hint_off_path(st, true)
-
-
-func cut_time(st: ErrorStatic) -> float:
-	return float(_cut_time.get(st.get_instance_id(), 0.0))
