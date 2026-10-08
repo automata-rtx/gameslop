@@ -92,7 +92,7 @@ static func column_mesh() -> ArrayMesh:
 			var p01 := Vector3(cos(a1) * lo.y, lo.x, sin(a1) * lo.y)
 			var p10 := Vector3(cos(a0) * hi.y, hi.x, sin(a0) * hi.y)
 			var p11 := Vector3(cos(a1) * hi.y, hi.x, sin(a1) * hi.y)
-			for v: Vector3 in [p00, p11, p01, p00, p10, p11]:
+			for v: Vector3 in [p00, p01, p11, p00, p11, p10]:
 				st.add_vertex(v)
 	st.generate_normals()
 	_column_mesh = st.commit()
