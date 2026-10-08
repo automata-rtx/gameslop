@@ -67,9 +67,10 @@ func test_still_scene_contract() -> void:
 	var shape := (s.body.get_child(0) as CollisionShape3D).shape as CapsuleShape3D
 	assert_approx(shape.radius, Tuning.STILL_CAPSULE_RADIUS)
 	assert_approx(shape.height, Tuning.STILL_CAPSULE_HEIGHT)
-	var mesh := s.column.mesh as CapsuleMesh
-	assert_approx(mesh.radius, Tuning.STILL_CAPSULE_RADIUS)
-	assert_approx(mesh.height, Tuning.STILL_CAPSULE_HEIGHT)
+	var box := s.column.mesh.get_aabb()
+	assert_approx(box.position.y, 0.0, 0.001, "stands on the floor (flat base)")
+	assert_approx(box.size.y, Tuning.STILL_CAPSULE_HEIGHT, 0.001)
+	assert_approx(box.size.x, Tuning.STILL_CAPSULE_RADIUS * 2.0, 0.01)
 	assert_eq(s.column.cast_shadow, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "never casts a shadow")
 	assert_true(s.agent.avoidance_enabled, "avoidance on movers")
 	assert_approx(s.senses.sight_range, Tuning.STILL_SIGHT_RANGE)

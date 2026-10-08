@@ -51,6 +51,8 @@ func _configure() -> void:
 	body.collision_layer = 1 << (Tuning.LAYER_ERRORS - 1)
 	body.collision_mask = 1 << (Tuning.LAYER_WORLD - 1)
 	column.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	column.mesh = column_mesh()
+	column.position = Vector3.ZERO
 	agent.radius = Tuning.NAV_AGENT_RADIUS
 	agent.height = Tuning.NAV_AGENT_HEIGHT
 	agent.path_desired_distance = Tuning.ERROR_ARRIVE_DIST
@@ -58,6 +60,43 @@ func _configure() -> void:
 	agent.avoidance_enabled = true
 	agent.velocity_computed.connect(_on_safe_velocity)
 	_set_line(false)
+
+
+## 02 §8: a capsule-topped column standing on its origin: open flat base (it stands on the
+## floor; a base disc would z-fight it), 0.5 m radius
+## (Tuning reading), 2.6 m tall with a hemispherical top. One shared mesh.
+static var _column_mesh: ArrayMesh
+
+
+static func column_mesh() -> ArrayMesh:
+	if _column_mesh != null:
+		return _column_mesh
+	const SEGMENTS := 24
+	const CAP_RINGS := 8
+	var r := Tuning.STILL_CAPSULE_RADIUS
+	var shaft := Tuning.STILL_CAPSULE_HEIGHT - r
+	# Rings from the base up: (height, radius).
+	var rings: Array[Vector2] = [Vector2(0.0, r), Vector2(shaft, r)]
+	for i in range(1, CAP_RINGS + 1):
+		var a := PI * 0.5 * float(i) / CAP_RINGS
+		rings.append(Vector2(shaft + sin(a) * r, cos(a) * r))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in rings.size() - 1:
+		for j in SEGMENTS:
+			var a0 := TAU * float(j) / SEGMENTS
+			var a1 := TAU * float(j + 1) / SEGMENTS
+			var lo := rings[k]
+			var hi := rings[k + 1]
+			var p00 := Vector3(cos(a0) * lo.y, lo.x, sin(a0) * lo.y)
+			var p01 := Vector3(cos(a1) * lo.y, lo.x, sin(a1) * lo.y)
+			var p10 := Vector3(cos(a0) * hi.y, hi.x, sin(a0) * hi.y)
+			var p11 := Vector3(cos(a1) * hi.y, hi.x, sin(a1) * hi.y)
+			for v: Vector3 in [p00, p11, p01, p00, p10, p11]:
+				st.add_vertex(v)
+	st.generate_normals()
+	_column_mesh = st.commit()
+	return _column_mesh
 
 
 # --- body ---------------------------------------------------------------------------------

@@ -12,8 +12,8 @@ instance uniform float line_height = 0.5;
 varying float v_h;
 
 void vertex() {
-	// CapsuleMesh is centred on its origin.
-	v_h = VERTEX.y / STILL_HEIGHT + 0.5;
+	// ErrorStill.column_mesh() stands on its origin.
+	v_h = VERTEX.y / STILL_HEIGHT;
 }
 
 void fragment() {

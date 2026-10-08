@@ -11,8 +11,8 @@ render_mode unshaded, cull_front, depth_test_disabled, depth_draw_never, shadows
 const float STATIC_OFFSET = 0.04;          // STATIC_DISTORTION_OFFSET
 const float STATIC_FILL = 0.08;            // STATIC_FILL_ALPHA
 const float STATIC_INNER = 0.6;            // STATIC_FIELD_FULL_FRACTION
-const float STATIC_NOISE_CELLS = 18.0;     // shader-local: noise cells across the screen height
-const float STATIC_NOISE_SPEED = 1.7;      // shader-local: noise drift, cells per second
+const float STATIC_NOISE_CELLS = 34.0;     // shader-local: noise cells across the screen height
+const float STATIC_NOISE_SPEED = 2.5;      // shader-local: noise drift, cells per second
 const float STATIC_THICK = 0.8;            // shader-local: ray length (x r) inside the field for full strength
 const float STATIC_GRAIN_FPS = 24.0;       // POST_GRAIN_FPS
 
@@ -57,6 +57,9 @@ void fragment() {
 	vec2 uv = clamp(SCREEN_UV + (n * 2.0 - 1.0) * STATIC_OFFSET * strength, vec2(0.0), vec2(1.0));
 	vec3 refracted = textureLod(screen_tex, uv, 0.0).rgb;
 	float grain = coh_hash12(floor(FRAGCOORD.xy) + floor(g_time * STATIC_GRAIN_FPS) * 13.7);
-	ALBEDO = mix(refracted, vec3(grain), STATIC_FILL);
+	// The 8% fill is mixed in display space, so it stays faint over dark rooms (a linear
+	// 0.04 would lift a dark corridor to mid-grey).
+	vec3 shown = pow(max(refracted, vec3(0.0)), vec3(1.0 / 2.2));
+	ALBEDO = pow(mix(shown, vec3(grain), STATIC_FILL), vec3(2.2));
 	ALPHA = strength;
 }
