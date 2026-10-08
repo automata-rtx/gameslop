@@ -27,7 +27,7 @@ func _ready() -> void:
 		_run_tour(args.tour_dir)
 		return
 	if args.validate_levels > 0:
-		_run_validate_levels(args.validate_levels)
+		_run_validate_levels(args.validate_levels, args.stratum)
 		return
 	if args.wants_direct_level():
 		_show(DirectLevel.from_args(args))
@@ -52,10 +52,12 @@ func _run_tour(out_dir: String) -> void:
 
 
 ## 14 §9 --validate-levels N: N levels per stratum with a grammar; prints one report line
-## per stratum and quits 1 if any level shipped invalid.
-func _run_validate_levels(n: int) -> void:
+## per stratum and quits 1 if any level shipped invalid. With --stratum S, only that stratum.
+func _run_validate_levels(n: int, only: StringName = &"") -> void:
 	var ok := true
 	for stratum in CliArgs.STRATA:
+		if only != &"" and stratum != only:
+			continue
 		var report := LevelValidator.run_batch(stratum, n)
 		var failures: Array = report["failures"]
 		report.erase("failures")

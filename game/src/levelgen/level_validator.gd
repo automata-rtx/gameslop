@@ -2,8 +2,8 @@ class_name LevelValidator
 extends RefCounted
 ## 07 §8 validation on the data, before build. `validate` returns the failure lines (empty
 ## means valid). Rule numbers in the messages match 07 §8. Rule 10 covers Pools and Garage
-## (M2.1); Offices, Server and Substrate add theirs; rule 11 (navmesh) runs after build in
-## the builder tests.
+## (M2.1); Offices and Server (M2.2) and the Substrate (M2.3) add theirs, with the Cycle 2
+## corruption checks (StratumRules); rule 11 (navmesh) runs after build in the builder tests.
 
 
 ## `--validate-levels N` (14 §9): generates `n` levels of `stratum` (run seeds 1..n, the
@@ -99,7 +99,8 @@ static func _rule1_spawn_exit_path(level: LevelData, ds: PackedInt32Array, f: Pa
 	var grid := level.grid
 	var sr := grid.room_of(level.spawn_cell)
 	var er := grid.room_of(level.exit_cell)
-	if sr == null or er == null or sr == er or sr.kind != RoomData.SPAWN or er.kind != RoomData.EXIT:
+	var exit_kind := RoomData.POCKET if level.stratum == Tuning.STRATUM_SUBSTRATE else RoomData.EXIT
+	if sr == null or er == null or sr == er or sr.kind != RoomData.SPAWN or er.kind != exit_kind:
 		f.append("r1: spawn and exit must be in distinct spawn/exit rooms")
 	var path := level.critical_path
 	if path.is_empty() or path[0] != level.spawn_cell or path[path.size() - 1] != level.exit_cell:
@@ -135,6 +136,9 @@ static func path_band(level: LevelData) -> Vector2:
 		&"server":
 			var s := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[4])
 			return Vector2(Tuning.VALIDATE_SERVER_PATH_MIN, Tuning.VALIDATE_SERVER_PATH_MAX) * s
+		&"substrate":
+			# 07 §5.6, §8 rule 2: 140 to 220 m of walking whatever the Cycle.
+			return Vector2(Tuning.SUBSTRATE_PATH_MIN, Tuning.SUBSTRATE_PATH_MAX)
 	var scale := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[1])
 	return Vector2(Tuning.VALIDATE_HALLS_PATH_MIN, Tuning.VALIDATE_HALLS_PATH_MAX) * scale
 
@@ -350,6 +354,10 @@ static func _rule10_stratum(level: LevelData, ds: PackedInt32Array, f: PackedStr
 			StratumRules.offices(level, ds, f)
 		&"server":
 			StratumRules.server(level, ds, f)
+		&"substrate":
+			StratumRules.substrate(level, ds, f)
+	if level.cycle > 1:
+		StratumRules.cycle2(level, f)
 
 
 ## 05 §10 first Descent guarantees that the data can show: Powered with the breaker room on

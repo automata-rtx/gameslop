@@ -37,6 +37,12 @@ var exit_room: RoomData = null
 var breaker_room: RoomData = null
 var closets: Array[RoomData] = []
 var _protected: Dictionary = {}
+## M2.3 hooks for the Substrate, which runs this layout and then unfinishes it (07 §5.6):
+## the walkable target is scaled up by the cells the unfinish step removes, and no closets
+## are cut (no hide spots in the Substrate).
+var walkable_scale: float = 1.0
+var closets_enabled: bool = true
+var exit_band_inset: Vector2 = EXIT_BAND_INSET
 
 
 func layout() -> void:
@@ -46,12 +52,14 @@ func layout() -> void:
 	data.spawn_dir = side
 	data.spawn_cell = side_middle(spawn_room, side)
 	var closet_count := rng_layout.randi_range(Tuning.HALLS_CLOSETS_MIN, Tuning.HALLS_CLOSETS_MAX)
+	if not closets_enabled:
+		closet_count = 0
 	var powered := data.exit_lock == Tuning.LOCK_POWERED
 	var total := rng_layout.randi_range(Tuning.HALLS_ROOMS_MIN, Tuning.HALLS_ROOMS_MAX)
 	var generic := 0 if simplest else maxi(0, total - 2 - closet_count - (1 if powered else 0))
 	var rooms := RoomOps.carve_rooms(grid, generic, Tuning.HALLS_ROOM_SIZE_MIN, Tuning.HALLS_ROOM_SIZE_MAX,
 		Tuning.HALLS_ROOM_MARGIN, rng_layout)
-	var target := int(walkable_target(data.depth) * (1.0 - rng_layout.randf() * WALKABLE_JITTER))
+	var target := int(walkable_target(data.depth) * walkable_scale * (1.0 - rng_layout.randf() * WALKABLE_JITTER))
 	var room_cells := 0
 	for r in grid.room_list:
 		room_cells += r.rect.get_area()
@@ -127,8 +135,8 @@ func _insert_exit_room(spawn_side: int) -> void:
 	var sz := Tuning.HALLS_EXIT_ROOM_SIZE
 	var ds := grid.distance_field(data.spawn_cell)
 	var band := LevelValidator.path_band(data) / Tuning.GRID_CELL_SIZE
-	var lo := band.x + EXIT_BAND_INSET.x
-	var hi := band.y - EXIT_BAND_INSET.y
+	var lo := band.x + exit_band_inset.x
+	var hi := band.y - exit_band_inset.y
 	var mid := (lo + hi) * 0.5
 	var good: Array[Vector3i] = []
 	var best := Vector3i(-1, -1, -1)

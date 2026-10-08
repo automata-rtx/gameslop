@@ -21,7 +21,7 @@ signal built
 
 ## Floor `surface` meta per stratum (06 §6 noise by surface).
 const FLOOR_SURFACE: Dictionary = {&"halls": &"carpet", &"pools": &"tile", &"garage": &"concrete",
-	&"offices": &"carpet", &"server": &"raised_floor"}
+	&"offices": &"carpet", &"server": &"raised_floor", &"substrate": &"substrate"}
 
 var level: LevelData
 var stratum: StratumData
@@ -206,7 +206,7 @@ func _job(c: Callable, key: StringName) -> void:
 
 func _material(cls: int) -> Material:
 	if not _materials.has(cls):
-		_materials[cls] = LevelMaterials.for_class(stratum, cls)
+		_materials[cls] = LevelMaterials.for_level(stratum, cls, level.cycle)
 	return _materials[cls]
 
 

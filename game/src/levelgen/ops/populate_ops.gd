@@ -271,7 +271,8 @@ static func error_spawns(gen: StratumGenerator) -> void:
 		if r != null and r.kind == RoomData.CLOSET:
 			continue
 		cells.append(c)
-	var want := Tuning.VALIDATE_ERROR_SPAWNS_MIN + 2
+	# 07 §9: one extra Static spawn point in Cycle 2.
+	var want := Tuning.VALIDATE_ERROR_SPAWNS_MIN + 2 + (Tuning.CYCLE2_EXTRA_STATIC if gen.data.cycle > 1 else 0)
 	var picks := PlaceOps.poisson_cells(cells, want, SPAWN_POINT_SPACING, gen.rng_place)
 	if picks.size() < Tuning.VALIDATE_ERROR_SPAWNS_MIN:
 		picks.append_array(PlaceOps.poisson_cells(cells, want - picks.size(), 1, gen.rng_place, PackedFloat32Array(), picks))

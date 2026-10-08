@@ -271,6 +271,9 @@ func _on_exit_entering(p: Node3D) -> void:
 	tw.tween_property(player, ^"global_position", exit.entry_transform().origin, Tuning.EXIT_ENTER_TWEEN_TIME)
 	await tw.finished
 	GameState.run.coherence = player.coherence
+	if RunLevelSetup.ends_descent(exit.exit_kind, GameState.run.mode):
+		_cross_threshold()
+		return
 	GameState.descend(true)
 	_begin_generation()
 	await _transition(&"out")
@@ -358,6 +361,16 @@ func _on_breaker_thrown(pos: Vector3) -> void:
 	RunLevelSetup.run_power_wave(level, data, exit, pos)
 	# 11 §3 Breaker thrown by player: 0.3 trauma.
 	player.rig.add_trauma(Tuning.FEEDBACK_BREAKER_TRAUMA)
+
+
+## 01 §8 the win (M2.3 path; M2.15 replaces the summary jump with the ending scene): the run
+## ends with cause `threshold`.
+func _cross_threshold() -> void:
+	_set_phase(PHASE_ENDED)
+	GameState.end_run(GameState.WIN_CAUSE)
+	if capture_mouse and DisplayServer.get_name() != "headless":
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	SceneRouter.change_to(SUMMARY_SCENE)
 
 
 # --- dissolve (06 §9, 11 §3) ---------------------------------------------------------------------

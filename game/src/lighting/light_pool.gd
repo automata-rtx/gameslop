@@ -143,6 +143,9 @@ func register_fixture(fixture: Fixture) -> void:
 	var h := hash(Vector3i((fixture.global_position * 10.0).round())) if fixture.is_inside_tree() else _fixtures.size()
 	var buzz := posmod(h, 6) == 0 and bool(fixture.light_value(&"buzz", true))
 	fixture.hum_id = buzz_id if buzz else hum_id
+	# M2.3: a profile with `hum` false is silent (the Substrate's studio lights; 03 has no hum there).
+	if not bool(fixture.light_value(&"hum", true)):
+		fixture.hum_id = &""
 	# R4 V3: the buzzing ballast also looks tired: greener, 85% energy, steady.
 	fixture.set_buzzing(buzz)
 

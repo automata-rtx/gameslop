@@ -60,6 +60,9 @@ func generate(stratum: StringName, depth: int, run_seed: int, first_run: bool, c
 	layout()
 	compute_paths()
 	decorate()
+	# 07 §9, 02 §7: Cycle 2 corruption, on its own sub-seed so Cycle 1 streams are untouched.
+	if cycle > 1:
+		Cycle2Ops.corrupt(self, _sub_rng(Cycle2Ops.SEED_LABEL, attempt))
 	release()
 	return data
 
@@ -83,6 +86,21 @@ func decorate() -> void:
 ## Drops helpers that point back at the grammar (RefCounted cycles never free).
 func release() -> void:
 	pass
+
+
+## M2.3: makes this grammar work on `host`'s level: the same data, grid, options and
+## sub-seed streams (the Substrate runs the Halls or Offices layout, then unfinishes it).
+func adopt(host: StratumGenerator) -> void:
+	data = host.data
+	grid = host.grid
+	options = host.options
+	simplest = host.simplest
+	rng_layout = host.rng_layout
+	rng_place = host.rng_place
+	rng_props = host.rng_props
+	rng_fixtures = host.rng_fixtures
+	spawn_dist = host.spawn_dist
+	occupied = host.occupied
 
 
 # ------------------------------------------------------------------ sizes and lock

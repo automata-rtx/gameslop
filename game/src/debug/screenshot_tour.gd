@@ -31,10 +31,19 @@ const T1_LIMIT_M := 12.0
 const T1_LIMIT_DARK_M := 6.0
 const DARK_STRATA: Array[StringName] = [&"server", &"substrate"]
 const SUBSTRATE_PATH := "res://data/strata/substrate.tres"
+## Stratum poses beyond the three (StratumShots), photographed at Coherence 100 only (M2.3:
+## the Substrate's Threshold pocket, a studio light, an unfinished room).
+const EXTRA_POSES: Array[StringName] = [&"pocket", &"studio", &"checker"]
+## M2.3 `cycle2` group: one Cycle 2 level (Halls at depth 7), its poses at Coherence 100.
+const CYCLE2_STRATUM := &"halls"
+const CYCLE2_DEPTH := 7
+const CYCLE2_POSES: Array[StringName] = [&"spawn", &"corridor", &"corridor_long", &"patch"]
+## The hand position of the tour's flashlight relative to the camera (02 §9: lower right).
+const FLASHLIGHT_OFFSET := Vector3(0.18, -0.22, -0.1)
 
 var manifest: Dictionary = {}
-## Iteration aid: `--tour-only poses,soft,noclip,null` limits the frame groups and
-## `--tour-strata halls,pools` the strata (empty = everything, the default tour).
+## Iteration aid: `--tour-only poses,soft,noclip,null,cycle2` limits the frame groups and
+## `--tour-strata halls,pools,cycle2` the strata (empty = everything, the default tour).
 var only: PackedStringArray = []
 var only_strata: PackedStringArray = []
 
@@ -59,6 +68,35 @@ static func t1_limit(stratum: StringName) -> float:
 	return T1_LIMIT_DARK_M if DARK_STRATA.has(stratum) else T1_LIMIT_M
 
 
+## The depth the tour builds a stratum at: the Substrate exists only at depth 6.
+static func tour_depth(stratum: StringName) -> int:
+	return Tuning.RUN_FINAL_DEPTH if stratum == Tuning.STRATUM_SUBSTRATE else 1
+
+
+## 02 §2 dark-strata ruling (CHANGELOG 2026-10-08): in Server and the Substrate the player
+## brings the light, so their pose frames are taken with the flashlight on at full charge
+## (02 §6: a 38 degree spot, 22 m, energy 1.6, #FFF4E0, attenuation 1.2, shadowed, plus the
+## hand light), and T1 is read in them.
+static func make_flashlight() -> Node3D:
+	var root := Node3D.new()
+	root.name = "TourFlashlight"
+	root.position = FLASHLIGHT_OFFSET
+	var spot := SpotLight3D.new()
+	spot.spot_angle = Tuning.FLASH_SPOT_ANGLE
+	spot.spot_range = Tuning.FLASH_RANGE
+	spot.spot_angle_attenuation = Tuning.FLASH_ATTENUATION_ANGLE
+	spot.light_energy = Tuning.FLASH_ENERGY_MAX
+	spot.light_color = Color("#FFF4E0")
+	spot.shadow_enabled = true
+	root.add_child(spot)
+	var hand := OmniLight3D.new()
+	hand.omni_range = Tuning.FLASH_HAND_LIGHT_RANGE
+	hand.light_energy = Tuning.FLASH_HAND_LIGHT_ENERGY
+	hand.light_color = Color("#FFF4E0")
+	root.add_child(hand)
+	return root
+
+
 ## What the tour photographs in `data`'s level: {poses: [{name, from, to}], noclip:
 ## {from, to, point, normal} (empty when the level has no wall between two walkable cells)}.
 static func plan(data: LevelData) -> Dictionary:
@@ -71,6 +109,9 @@ static func plan(data: LevelData) -> Dictionary:
 			wanted.append(by_name[n])
 	if by_name.has(T1_POSE):
 		wanted.append(by_name[T1_POSE])
+	for n in EXTRA_POSES:
+		if by_name.has(n):
+			wanted.append(by_name[n])
 	return {&"poses": wanted, &"noclip": noclip_view(data), &"soft": by_name.get(SOFT_POSE, {})}
 
 
@@ -154,6 +195,8 @@ func run(out_dir: String) -> void:
 	for s in strata():
 		if only_strata.is_empty() or only_strata.has(String(s)):
 			await _tour_stratum(s)
+	if _wants("cycle2") and (only_strata.is_empty() or only_strata.has("cycle2")):
+		await _tour_cycle2()
 	var f := FileAccess.open(_out.path_join("manifest.json"), FileAccess.WRITE)
 	f.store_string(JSON.stringify(manifest, "  "))
 	f.close()
@@ -167,7 +210,7 @@ func _tour_stratum(stratum: StringName) -> void:
 	var d := DirectLevel.new()
 	d.name = "TourLevel"
 	d.stratum = stratum
-	d.depth = 1
+	d.depth = tour_depth(stratum)
 	d.run_seed = SEED
 	d.capture_mouse = false
 	add_child(d)
@@ -179,9 +222,14 @@ func _tour_stratum(stratum: StringName) -> void:
 	add_child(_shots)
 	_camera = _shots.begin(_level)
 	_entries = {}
-	manifest[&"strata"][String(stratum)] = {&"t1_limit_m": t1_limit(stratum), &"shots": _entries}
+	var dark := DARK_STRATA.has(stratum)
+	manifest[&"strata"][String(stratum)] = {&"t1_limit_m": t1_limit(stratum), &"shots": _entries,
+		&"depth": d.depth, &"flashlight": dark, &"monochrome": stratum == Tuning.STRATUM_SUBSTRATE}
 	var exit := _place_exit(d.data)
 	var tour_plan := plan(d.data)
+	var torch: Node3D = make_flashlight() if dark else null
+	if torch != null:
+		_camera.add_child(torch)
 	for pose in (tour_plan[&"poses"] if _wants("poses") else []):
 		var to: Vector3 = pose[&"to"]
 		if pose[&"name"] == &"exit_room" and exit != null:
@@ -190,7 +238,7 @@ func _tour_stratum(stratum: StringName) -> void:
 		_aim(pose[&"from"], to)
 		await _frames(SETTLE_POSE)
 		var steps: Array[float] = COHERENCE_STEPS.duplicate()
-		if pose[&"name"] == T1_POSE:
+		if pose[&"name"] == T1_POSE or EXTRA_POSES.has(StringName(pose[&"name"])):
 			steps = [100.0]
 		for c in steps:
 			CoherenceRenderer.set_coherence(c)
@@ -198,12 +246,55 @@ func _tour_stratum(stratum: StringName) -> void:
 			_save("%s_c%03d" % [pose[&"name"], int(c)], {&"pose": pose[&"name"], &"coherence": c,
 					&"kind": &"pose"})
 	CoherenceRenderer.set_coherence(Tuning.COHERENCE_MAX)
+	if torch != null:
+		torch.queue_free()
 	if _wants("soft"):
 		await _soft_frames(tour_plan[&"soft"], d.data)
 	if _wants("noclip"):
 		await _noclip_frame(tour_plan[&"noclip"])
 	if _wants("null"):
 		await _null_frame(tour_plan[&"poses"])
+	_reset()
+	_shots.queue_free()
+	d.queue_free()
+	await get_tree().process_frame
+
+
+## 02 §7 Cycle 2 corruption (M2.3): a Cycle 2 Halls level's poses at Coherence 100, under
+## `<stratum>_cycle2` in the manifest (`extra`: no T4, noclip or Null frames expected).
+func _tour_cycle2() -> void:
+	var key := "%s_cycle2" % CYCLE2_STRATUM
+	_stratum = StringName(key)
+	DirAccess.make_dir_recursive_absolute(_out.path_join(key))
+	var d := DirectLevel.new()
+	d.name = "TourLevelCycle2"
+	d.stratum = CYCLE2_STRATUM
+	d.depth = CYCLE2_DEPTH
+	d.run_seed = SEED
+	d.capture_mouse = false
+	add_child(d)
+	await d.built
+	if d.player != null:
+		d.player.queue_free()
+	_level = d.level
+	_shots = LevelShots.new()
+	add_child(_shots)
+	_camera = _shots.begin(_level)
+	_entries = {}
+	manifest[&"strata"][key] = {&"t1_limit_m": t1_limit(CYCLE2_STRATUM), &"shots": _entries,
+		&"depth": CYCLE2_DEPTH, &"cycle": d.data.cycle, &"extra": true}
+	_place_exit(d.data)
+	var poses: Array[Dictionary] = LevelShots.poses(d.data)
+	var patch := StratumShotsM23.checker_pose(d.data)
+	if not patch.is_empty():
+		patch[&"name"] = "patch"
+		poses.append(patch)
+	for pose in poses:
+		if not CYCLE2_POSES.has(StringName(pose[&"name"])):
+			continue
+		_aim(pose[&"from"], pose[&"to"])
+		await _frames(SETTLE_POSE)
+		_save("%s_c100" % pose[&"name"], {&"pose": pose[&"name"], &"coherence": 100.0, &"kind": &"pose"})
 	_reset()
 	_shots.queue_free()
 	d.queue_free()

@@ -24,11 +24,12 @@ func test_t1_limit_is_shorter_in_the_dark_strata() -> void:
 
 func test_plan_has_the_three_poses_the_t1_pose_and_a_noclip_wall() -> void:
 	for s in ScreenshotTour.strata():
-		var data := LevelGenerator.generate(s, 1, ScreenshotTour.SEED)
+		var data := LevelGenerator.generate(s, ScreenshotTour.tour_depth(s), ScreenshotTour.SEED)
 		var plan := ScreenshotTour.plan(data)
 		var names: Array = []
 		for p in plan[&"poses"]:
-			names.append(p[&"name"])
+			if not ScreenshotTour.EXTRA_POSES.has(StringName(p[&"name"])):
+				names.append(p[&"name"])
 		assert_eq(names, ["spawn", "corridor", "exit_room", "corridor_long"], String(s))
 		var view: Dictionary = plan[&"noclip"]
 		assert_false(view.is_empty(), "%s has a wall between two walkable cells" % s)
@@ -42,6 +43,25 @@ func test_plan_has_the_three_poses_the_t1_pose_and_a_noclip_wall() -> void:
 
 ## R11 #9: the tour frames a soft wall (02 §5) when the level has one, from inside the 2 m
 ## preview range, facing it.
+## M2.3: the Substrate tours at depth 6 with its pocket, studio light and checker poses, and
+## the dark strata are photographed with the flashlight on (02 §2 ruling).
+func test_substrate_tour_poses_and_flashlight() -> void:
+	assert_eq(ScreenshotTour.tour_depth(&"substrate"), 6)
+	assert_eq(ScreenshotTour.tour_depth(&"halls"), 1)
+	var data := LevelGenerator.generate(&"substrate", 6, ScreenshotTour.SEED)
+	var names: Array = []
+	for p in ScreenshotTour.plan(data)[&"poses"]:
+		names.append(p[&"name"])
+	for n in ["pocket", "studio", "checker"]:
+		assert_contains(names, n)
+	var torch := ScreenshotTour.make_flashlight()
+	var spot := torch.get_child(0) as SpotLight3D
+	assert_approx(spot.spot_angle, Tuning.FLASH_SPOT_ANGLE)
+	assert_approx(spot.light_energy, Tuning.FLASH_ENERGY_MAX)
+	assert_approx(spot.spot_range, Tuning.FLASH_RANGE)
+	torch.free()
+
+
 func test_plan_frames_a_soft_wall() -> void:
 	var data := LevelGenerator.generate(&"halls", 1, ScreenshotTour.SEED)
 	var soft: Dictionary = ScreenshotTour.plan(data)[&"soft"]

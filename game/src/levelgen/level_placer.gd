@@ -34,6 +34,9 @@ var level: LevelData
 var stratum: StratumData
 var pool: LightPool
 var _scenes: Dictionary = {}
+## Cycle 2 (02 §7): the fixtures' light and tube colours turned towards the next stratum's.
+var _cycle2_tubes: Dictionary = {}
+var _next: StratumData = null
 
 
 func _init(level_data: LevelData, data: StratumData, light_pool: LightPool) -> void:
@@ -143,12 +146,42 @@ func _fixture(p: Dictionary, parent: Node3D) -> Node3D:
 			t.basis = Basis(Vector3.UP, PI * 0.5)
 	f.transform = t
 	f.group_id = int(params.get(&"group", -1))
+	if level.cycle > 1:
+		_corrupt_fixture(f)
 	parent.add_child(f)
+	# 02 §7 Cycle 2: a dead fixture is dark for good: unpowered, never lent a light, out of the
+	# pool (so no breaker wave lights it and Flicker cannot live in it).
+	if bool(params.get(&"dead", false)):
+		f.set_powered(false)
+		f.remove_from_group(&"fixtures")
+		return f
 	pool.register_fixture(f)
 	# 07 §5.4: a dark group starts unpowered; the breaker's power wave lights it.
 	if bool(params.get(&"dark", false)):
 		f.set_powered(false)
 	return f
+
+
+## 02 §7 Cycle 2: the fixture's lent light and its tube turned CYCLE2_FIXTURE_HUE_SHIFT
+## degrees towards the next stratum's light colour (Cycle2Ops.next_stratum).
+func _corrupt_fixture(f: Fixture) -> void:
+	if _next == null:
+		var path := "res://data/strata/%s.tres" % Cycle2Ops.next_stratum(stratum.id)
+		_next = load(path) as StratumData if ResourceLoader.exists(path) else stratum
+	var base: Color = f.light_profile.get(&"color", stratum.fixture_light_color)
+	f.light_profile = f.light_profile.duplicate()
+	f.light_profile[&"color"] = Cycle2Ops.hue_toward(base, _next.fixture_light_color)
+	var tube := f.get_node_or_null(^"%Tube") as MeshInstance3D
+	if tube == null or not (tube.material_override is ShaderMaterial):
+		return
+	var mat := tube.material_override as ShaderMaterial
+	if not _cycle2_tubes.has(mat):
+		var twin := mat.duplicate() as ShaderMaterial
+		var em: Variant = mat.get_shader_parameter(&"emission")
+		if em is Color:
+			twin.set_shader_parameter(&"emission", Cycle2Ops.hue_toward(em, _next.fixture_emission_color))
+		_cycle2_tubes[mat] = twin
+	tube.material_override = _cycle2_tubes[mat]
 
 
 func _prop(p: Dictionary, parent: Node3D) -> Node3D:

@@ -31,7 +31,13 @@ const C_BASIN := 6
 ## its edge strips (two 1 m racks back to back), open above; its faces run rack_leds.gdshader
 ## (vertex colour B = 1 on the fronts, the faces across the rows).
 const C_RACK := 7
-const CLASS_NAMES: Array[StringName] = [&"floor", &"ceiling", &"wall", &"partition", &"glass", &"soft", &"basin", &"rack"]
+## Substrate (M2.3, 07 §5.6, §8 "unfinished"): the placeholder checker on the floors,
+## ceilings and walls of UNFINISHED cells, and the drawing's boundary (SOLID edges to VOID
+## and the grid border), drawn as the brighter grid.
+const C_UNFINISHED := 8
+const C_EDGE := 9
+const CLASS_NAMES: Array[StringName] = [&"floor", &"ceiling", &"wall", &"partition", &"glass", &"soft", &"basin", &"rack",
+	&"unfinished", &"edge"]
 
 ## Body keys for collision. Wall bodies are split by wall type so the body itself carries
 ## a single `wall_kind` meta (noise wall counting reads it from the collider).
@@ -44,7 +50,10 @@ const BODY_RAIL := &"rail"
 const BODY_RACK := &"rack"
 
 ## Strata whose grids the plan models faithfully (M2.1: heights, ramps, basins, pillars).
-const SUPPORTED_STRATA: Array[StringName] = [&"halls", &"pools", &"garage", &"offices", &"server"]
+const SUPPORTED_STRATA: Array[StringName] = [&"halls", &"pools", &"garage", &"offices", &"server", &"substrate"]
+## Strata whose UNFINISHED cells and SOLID boundary get their own classes (C_UNFINISHED,
+## C_EDGE). Elsewhere (Cycle 2) the UNFINISHED flag rides in vertex colour G only.
+const UNFINISHED_STRATA: Array[StringName] = [&"substrate"]
 ## Strata whose ceiling stays level over sunken floors (a pool hall's 6 m ceiling); every
 ## other stratum's ceiling is the room height above the floor (Garage decks and ramps).
 const FLAT_CEILING_STRATA: Array[StringName] = [&"pools"]
@@ -58,6 +67,8 @@ var follow: bool = true
 ## Server: true when the rack rows run along x (their fronts face +-z).
 var rows_along_x: bool = true
 var rack_height: float = 2.0
+## True in UNFINISHED_STRATA.
+var unfinished_classes: bool = false
 
 ## Mesh surfaces: Array of {key: String, chunk: Vector2i, cls: int, soft: int (edge index
 ## or -1), arrays: Array (Mesh.ARRAY_MAX), aabb: AABB}.
@@ -110,6 +121,7 @@ static func make(level: LevelData, ceiling_height: float) -> BuildPlan:
 	p._part_h = Tuning.GRID_PARTITION_HEIGHT
 	p.rack_height = Tuning.SERVER_RACK_HEIGHT
 	p.rows_along_x = p._rows_along_x()
+	p.unfinished_classes = UNFINISHED_STRATA.has(level.stratum)
 	p.chunks = Vector2i(ceili(level.grid.size.x / float(p.chunk_cells)), ceili(level.grid.size.y / float(p.chunk_cells)))
 	if not SUPPORTED_STRATA.has(level.stratum):
 		p.errors.append("BuildPlan: stratum '%s' has special cells this plan does not model yet; built as far as it can" % level.stratum)
@@ -323,6 +335,8 @@ func _classify_strip(i: int, j: int) -> void:
 		return
 	if t == LevelGrid.GLASS:
 		_cls[f] = C_GLASS
+	elif t == LevelGrid.SOLID and unfinished_classes:
+		_cls[f] = C_EDGE
 	elif t == LevelGrid.SOFT:
 		var key := LevelGrid.edge_key(a, dir)
 		if _soft_index.has(key):
@@ -361,6 +375,16 @@ func _classify_post(i: int, j: int) -> void:
 	var f := _fi(i, j)
 	_set_open(f, Vector2(lo, lo), Vector2(hi, hi), -1, C_BASIN if basin else bot, C_CEILING)
 	_nav[f] = 1 if nav else 0
+
+
+## The class a face of class `cls` takes on a cell whose vertex colour is `col`: in
+## UNFINISHED_STRATA the floors, ceilings, walls and boundary of an UNFINISHED cell are the
+## placeholder checker (07 §5.6: whole rooms and corridor segments); soft walls,
+## partitions and glass keep theirs.
+func face_class(cls: int, col: Color) -> int:
+	if unfinished_classes and col.g > 0.5 and (cls == C_FLOOR or cls == C_CEILING or cls == C_WALL or cls == C_EDGE):
+		return C_UNFINISHED
+	return cls
 
 
 # ---------------------------------------------------------------- lattice

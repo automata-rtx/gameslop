@@ -8,7 +8,14 @@ installed, otherwise a small zlib PNG decoder reads the frames (set TOUR_CHECK_N
 force it).
 
 T1  Readability of the floor. At Coherence 100, flashlight off, every floor reading the
-    tour took (2..12 m ahead, 2..6 m in Server and Substrate) is above 8% luminance.
+    tour took (2..12 m ahead, 2..6 m in Server and Substrate) is above 8% luminance. In the
+    dark strata (manifest `flashlight`: Server, Substrate) the frames are taken with the
+    flashlight on and T3's dark threshold does not apply (02 section 2 ruling, 2026-10-08).
+Extra entries (manifest `extra`: the Cycle 2 sample) take T1 and T3 only; their T1 is
+    reported as INFO (02 section 7 darkens a quarter of Cycle 2 fixtures on purpose).
+Monochrome strata (manifest `monochrome`: the Substrate, lines on black) report T4 as
+    MANUAL: CA paints colour onto white lines as Coherence falls and sparse lines swing the
+    vignette ratio, so the three measures do not order its frames; check them by eye.
 T3  No flat black, no flat white. At Coherence 100 the darkest 1% of a frame is above 2%
     luminance (fog in the shadow) and bright clipped pixels stay under 2% of the frame
     (the brightest fixture blooms but is not a white slab).
@@ -268,16 +275,21 @@ def run(tour_dir):
     for stratum, sdata in manifest["strata"].items():
         entries = sdata["shots"]
         status, detail = check_t1(entries, sdata["t1_limit_m"])
+        if sdata.get("extra") and status == "FAIL":
+            status = "INFO"
         rows.append((stratum, "T1 floor", status, detail))
         failed |= status == "FAIL"
         imgs = {}
         for name, e in entries.items():
             if e.get("kind") == "pose" and e["coherence"] == 100:
                 imgs[name] = decode_png(os.path.join(tour_dir, e["file"]))
+        lit_by_player = bool(sdata.get("flashlight", False))
         for name, e in sorted(entries.items()):
             if name not in imgs:
                 continue
             dark, p01, white, frac = check_t3(e, imgs[name])
+            if lit_by_player:
+                dark = "INFO"
             rows.append((stratum, "T3 dark  " + name, dark, "p01 %.3f (>= %.2f)" % (p01, T3_MIN_P01)))
             rows.append((stratum, "T3 white " + name, white, "clipped %.2f%% (<= %.0f%%)" % (frac * 100, T3_MAX_CLIPPED_FRACTION * 100)))
             failed |= dark == "FAIL" or white == "FAIL"
@@ -291,9 +303,13 @@ def run(tour_dir):
                 feats.append(features(decode_png(os.path.join(tour_dir, entries[key]["file"]))))
             if len(feats) == len(steps):
                 status, detail = check_t4(feats)
+                if sdata.get("monochrome") and status == "FAIL":
+                    status = "MANUAL"
                 shown = " ".join("%.2f/%.4f/%.2f" % (f["sat"], f["grain"], f["vig"]) for f in feats)
                 rows.append((stratum, "T4 order " + pose, status, "%s  [sat/grain/vig %s]" % (detail, shown)))
                 failed |= status == "FAIL"
+        if sdata.get("extra"):
+            continue
         if "soft_wall_c100" in entries and "soft_wall_c100_t1" in entries:
             a, b = entries["soft_wall_c100"], entries["soft_wall_c100_t1"]
             status, detail = check_soft(decode_png(os.path.join(tour_dir, a["file"])),

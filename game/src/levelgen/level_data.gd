@@ -16,7 +16,7 @@ const P_NOTE := &"note"                   # params: slot (0 or 1), early (bool),
 const P_HIDE_SPOT := &"hide_spot"         # params: kind (&"locker"), dir, view_yaw_limit
 const P_PROP := &"prop"                   # params: prop, dir (wall it stands against, -1 free)
 const P_FIXTURE := &"fixture"             # params: group, fixture
-const P_ERROR_SPAWN := &"error_spawn"     # params: off_path (bool)
+const P_ERROR_SPAWN := &"error_spawn"     # params: off_path (bool); Substrate: error (&"null", &"static")
 ## M2.1 (07 §2 "water volumes"): one per wet basin. cell = the basin rect's first cell;
 ## params: rect (Rect2i, the basin cells), surface_y (water level, m), floor_y (basin floor).
 const P_WATER := &"water"
@@ -59,6 +59,11 @@ var expected_items: int = 0
 var expected_notes: int = 0
 var expected_hide_spots: int = 0
 var expected_soft_walls: int = 0
+## M2.3 Substrate (07 §5.6): Null's spawn cell (55% of the critical path), the cells the
+## unfinish step removed (VOID now), and the corridor cell count it removed them from.
+var null_spawn_cell: Vector2i = NO_CELL
+var unfinished_void: Array[Vector2i] = []
+var unfinish_base: int = 0
 
 
 func add_placement(kind: StringName, cell: Vector2i, offset: Vector3 = Vector3.ZERO,
@@ -91,7 +96,8 @@ func to_bytes() -> PackedByteArray:
 	var out := grid.to_bytes() if grid != null else PackedByteArray()
 	out.append_array(var_to_bytes([stratum, depth, cycle, run_seed, level_seed, first_run, attempt,
 		fallback, exit_lock, lock_variant, spawn_cell, spawn_dir, exit_cell, exit_dir, breaker_cell,
-		keycard_cell, fuse_cell, critical_path, soft_walls, floor_solid]))
+		keycard_cell, fuse_cell, critical_path, soft_walls, floor_solid, null_spawn_cell, unfinished_void,
+		unfinish_base]))
 	out.append_array(var_to_bytes(placements))
 	return out
 
@@ -107,9 +113,11 @@ func hash_hex() -> String:
 # ------------------------------------------------------------------ ASCII dump
 
 ## Top-down debug map: one character per cell centre, one per edge.
-## Cells: ' ' corridor (',' on Garage deck 1), '.' room, '#' void, '*' critical path,
+## Cells: ' ' corridor (',' on Garage deck 1), '.' room, '#' void ('%' void the Substrate's
+## unfinish step removed), '*' critical path,
 ## 'u' basin, 'W' deep water, '^' ramp or steps, 'I' pillar; markers S spawn, X exit,
-## B breaker, K keycard, F fuse, i item, n note, h hide spot, p prop, e error spawn.
+## B breaker, K keycard, F fuse, i item, n note, h hide spot, p prop, e error spawn (N Null's,
+## s a Static's), L studio light.
 ## Edges: '|' '-' wall, 'H' '=' solid, '}' '~' soft, 'd' door, ':' partition, 'g' glass.
 func to_ascii() -> String:
 	var w := grid.size.x
@@ -151,7 +159,7 @@ func _cell_char(c: Vector2i) -> String:
 	if grid.is_pillar(c):
 		return "I"
 	if not grid.is_walkable(c):
-		return "#"
+		return "%" if unfinished_void.has(c) else "#"
 	if grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
 		return "*"
 	match k:
@@ -230,5 +238,12 @@ func _marker(p: Dictionary) -> String:
 		P_PROP:
 			return "p"
 		P_ERROR_SPAWN:
+			match p[&"params"].get(&"error", &""):
+				&"null":
+					return "N"
+				&"static":
+					return "s"
 			return "e"
+		P_FIXTURE:
+			return "L" if p[&"params"].get(&"fixture", &"") == &"studio_light" else ""
 	return ""

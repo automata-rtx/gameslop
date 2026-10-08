@@ -71,9 +71,11 @@ func test_halls_counts_match_the_grammar() -> void:
 			assert_true(g.fixture_groups()[id].size() <= Tuning.HALLS_GROUP_MAX_FIXTURES, "group %d too big" % id)
 
 
+## M2.3: every stratum has a grammar now; an unknown id is still reported unsupported.
 func test_unbuilt_stratum_is_reported_unsupported() -> void:
-	assert_false(LevelGenerator.supports(&"substrate"))
-	var r := LevelValidator.run_batch(&"substrate", 3)
+	assert_true(LevelGenerator.supports(&"substrate"))
+	assert_false(LevelGenerator.supports(&"nowhere"))
+	var r := LevelValidator.run_batch(&"nowhere", 3)
 	assert_false(r["supported"])
 	assert_eq(r["count"], 0)
 

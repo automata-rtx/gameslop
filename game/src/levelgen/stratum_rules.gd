@@ -137,3 +137,129 @@ static func _both_ways(level: LevelData, ds: PackedInt32Array, c: Vector2i) -> b
 	if not grid.in_bounds(c) or ds[grid.idx(c)] < 0:
 		return false
 	return grid.distance_field(c)[grid.idx(level.exit_cell)] >= 0
+
+
+## Substrate (07 §8 rule 10, §5.6; M2.3): the Threshold pocket is 3x3, lit (a studio light
+## in it) and holds the threshold_door at the exit cell; the VOID the unfinish step left is
+## 15% to 25% of the corridor cells it started from; no dead-end chain is longer than 4 cells
+## unless a soft wall opens its tip (08 §7: Null never corners the player); every edge
+## between walkable space and VOID is SOLID or SOFT; the spawn room is finished; 6 to 10
+## studio lights at least 6 cells apart and no other fixture; no doors, hide spots or lock;
+## the floor is solid in a Descent; Null's spawn on the critical path at least 20 m from the
+## spawn, and the Statics off it.
+static func substrate(level: LevelData, ds: PackedInt32Array, f: PackedStringArray) -> void:
+	var grid := level.grid
+	var pocket := grid.room_of(level.exit_cell)
+	if pocket == null or pocket.rect.size != Tuning.SUBSTRATE_THRESHOLD_POCKET_SIZE:
+		f.append("r10: the Threshold pocket must be a %s room" % Tuning.SUBSTRATE_THRESHOLD_POCKET_SIZE)
+	var exits := level.placements_of(LevelData.P_EXIT)
+	if exits.size() != 1 or exits[0][&"cell"] != level.exit_cell or exits[0][&"params"].get(&"exit_kind", &"") != SubstrateGenerator.THRESHOLD_DOOR:
+		f.append("r10: the threshold_door must stand at the exit cell")
+	var lights: Array[Vector2i] = []
+	var pocket_lit := false
+	for p in level.placements_of(LevelData.P_FIXTURE):
+		if p[&"params"].get(&"fixture", &"") != SubstrateGenerator.STUDIO_LIGHT:
+			f.append("r10: a %s fixture in the Substrate" % p[&"params"].get(&"fixture", &""))
+			continue
+		var c: Vector2i = p[&"cell"]
+		# "At least 6 cells apart" on foot: the spawn room's and the pocket's lights may face
+		# each other across a SOLID edge, never across a short walk.
+		var walk := grid.distance_field(c)
+		for o in lights:
+			var d := walk[grid.idx(o)]
+			if d >= 0 and d < Tuning.SUBSTRATE_STUDIO_LIGHT_SPACING_CELLS:
+				f.append("r10: studio lights at %s and %s closer than %d cells" % [o, c, Tuning.SUBSTRATE_STUDIO_LIGHT_SPACING_CELLS])
+		lights.append(c)
+		pocket_lit = pocket_lit or (pocket != null and grid.room_of(c) == pocket)
+	if lights.size() < Tuning.SUBSTRATE_STUDIO_LIGHTS_MIN or lights.size() > Tuning.SUBSTRATE_STUDIO_LIGHTS_MAX:
+		f.append("r10: %d studio lights, want %d to %d" % [lights.size(), Tuning.SUBSTRATE_STUDIO_LIGHTS_MIN, Tuning.SUBSTRATE_STUDIO_LIGHTS_MAX])
+	if not pocket_lit:
+		f.append("r10: the Threshold pocket is not lit")
+	var frac := void_fraction(level)
+	if frac < Tuning.SUBSTRATE_VOID_FRACTION_MIN or frac > Tuning.SUBSTRATE_VOID_FRACTION_MAX:
+		f.append("r10: VOID fraction %.2f outside %.2f..%.2f" % [frac, Tuning.SUBSTRATE_VOID_FRACTION_MIN, Tuning.SUBSTRATE_VOID_FRACTION_MAX])
+	for c in level.unfinished_void:
+		if grid.kind(c) != LevelGrid.VOID:
+			f.append("r10: unfinished cell %s is not VOID" % c)
+			break
+	for chain in MazeOps.dead_end_chains(grid):
+		if chain.size() > Tuning.NULL_DEAD_END_MAX_CELLS and not _soft_tip(grid, chain[0]):
+			f.append("r10: Substrate dead end of %d cells at %s" % [chain.size(), chain[0]])
+	var spawn := grid.room_of(level.spawn_cell)
+	for i in grid.cell_count():
+		var c := grid.cell_at(i)
+		if spawn != null and spawn.has_cell(c) and grid.has_flag(c, LevelGrid.F_UNFINISHED):
+			f.append("r10: the spawn room is unfinished at %s" % c)
+		if not LevelGrid.kind_walkable(grid.cells[i]):
+			continue
+		for d in 4:
+			var o := c + LevelGrid.DIRS[d]
+			var t := grid.wall(c, d)
+			if t == LevelGrid.DOOR:
+				f.append("r10: a door at %s %s" % [c, LevelGrid.DIR_NAMES[d]])
+			if grid.in_bounds(o) and grid.kind(o) == LevelGrid.VOID and t != LevelGrid.SOLID and t != LevelGrid.SOFT:
+				f.append("r10: edge %s %s to VOID is not SOLID" % [c, LevelGrid.DIR_NAMES[d]])
+	if not level.placements_of(LevelData.P_HIDE_SPOT).is_empty() or level.exit_lock != Tuning.LOCK_OPEN:
+		f.append("r10: the Substrate has no hide spots and no lock")
+	if level.depth == Tuning.RUN_FINAL_DEPTH and not level.floor_solid:
+		f.append("r10: the Substrate floor must be solid in a Descent")
+	var null_ok := false
+	var statics := 0
+	for p in level.placements_of(LevelData.P_ERROR_SPAWN):
+		var c: Vector2i = p[&"cell"]
+		match p[&"params"].get(&"error", &""):
+			&"null":
+				null_ok = c == level.null_spawn_cell and grid.has_flag(c, LevelGrid.F_CRITICAL_PATH) \
+					and ds[grid.idx(c)] * Tuning.GRID_CELL_SIZE >= Tuning.NULL_SPAWN_MIN_DIST
+			&"static":
+				statics += 1
+				if grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
+					f.append("r10: a Static spawn on the critical path at %s" % c)
+	if not null_ok:
+		f.append("r10: Null's spawn must be on the critical path, %.0f m or more from the spawn" % Tuning.NULL_SPAWN_MIN_DIST)
+	var want := Tuning.SUBSTRATE_STATIC_COUNT + (Tuning.CYCLE2_EXTRA_STATIC if level.cycle > 1 else 0)
+	if statics != want:
+		f.append("r10: %d Static spawns, want %d" % [statics, want])
+
+
+## Removed cells over the corridor cells the unfinish step started from (07 §8 rule 10).
+static func void_fraction(level: LevelData) -> float:
+	return float(level.unfinished_void.size()) / maxf(1.0, float(level.unfinish_base))
+
+
+static func _soft_tip(grid: LevelGrid, tip: Vector2i) -> bool:
+	for d in 4:
+		if grid.wall(tip, d) == LevelGrid.SOFT:
+			return true
+	return false
+
+
+## Cycle 2 corruption (07 §9, 02 §7; M2.3): the spawn and exit rooms keep every fixture and
+## stay finished; dead fixtures are about the 02 share; outside the Substrate, UNFINISHED
+## surfaces cover about the 02 share.
+static func cycle2(level: LevelData, f: PackedStringArray) -> void:
+	var grid := level.grid
+	if level.stratum == Tuning.STRATUM_SUBSTRATE:
+		return
+	var keep := LevelGrid.F_SPAWN_ROOM | LevelGrid.F_EXIT_ROOM
+	var fixtures := 0
+	var dead := 0
+	for p in level.placements_of(LevelData.P_FIXTURE):
+		fixtures += 1
+		if bool(p[&"params"].get(&"dead", false)):
+			dead += 1
+			if grid.has_flag(p[&"cell"], keep):
+				f.append("c2: a dead fixture in the spawn or exit room at %s" % p[&"cell"])
+	if dead > ceili(fixtures * Tuning.CYCLE2_FIXTURES_DARK) + 1:
+		f.append("c2: %d of %d fixtures dead" % [dead, fixtures])
+	var marked := 0
+	for i in grid.cell_count():
+		if (grid.flags[i] & LevelGrid.F_UNFINISHED) == 0:
+			continue
+		marked += 1
+		if (grid.flags[i] & keep) != 0:
+			f.append("c2: an unfinished surface in the spawn or exit room at %s" % grid.cell_at(i))
+			break
+	var share := float(marked) / maxf(1.0, float(grid.walkable_count()))
+	if share < Tuning.CYCLE2_SURFACE_UNRENDER_FRACTION * 0.5 or share > Tuning.CYCLE2_SURFACE_UNRENDER_FRACTION * 2.0:
+		f.append("c2: %.2f of the surfaces unfinished, want about %.2f" % [share, Tuning.CYCLE2_SURFACE_UNRENDER_FRACTION])

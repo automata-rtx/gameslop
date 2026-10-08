@@ -22,6 +22,8 @@ static func grammar_for(stratum: StringName) -> StratumGenerator:
 			return OfficesGenerator.new()
 		&"server":
 			return ServerGenerator.new()
+		&"substrate":
+			return SubstrateGenerator.new()
 	return null
 
 
