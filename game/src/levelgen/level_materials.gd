@@ -1,6 +1,11 @@
 class_name LevelMaterials
 extends RefCounted
-## World-shader materials for the level surface classes (02 §5, §7).
+## World-shader materials for the level surface classes (02 §5, §7), plus the door prefab's
+## parts (09 §5), so every stratum's doors wear its own palette.
+
+## Door parts (not BuildPlan mesh classes; LevelPlacer asks for them per door).
+const C_DOOR_LEAF := 100
+const C_DOOR_HANDLE := 101
 
 ## Surface material per class for each stratum (02 §7); a stratum without a table gets
 ## plain world-shader materials from its StratumData colours.
@@ -10,6 +15,8 @@ const MATERIALS: Dictionary = {
 		BuildPlan.C_CEILING: "res://data/materials/halls/ceiling_tile.tres",
 		BuildPlan.C_WALL: "res://data/materials/halls/wallpaper.tres",
 		BuildPlan.C_SOFT: "res://data/materials/halls/soft_wall.tres",
+		C_DOOR_LEAF: "res://data/materials/halls/door_wood.tres",
+		C_DOOR_HANDLE: "res://data/materials/halls/prop_metal.tres",
 	},
 }
 const WORLD_SHADER := "res://shaders/world_surface.gdshader"
@@ -18,12 +25,20 @@ static func paths(stratum: StringName) -> Array:
 	return (MATERIALS.get(stratum, {}) as Dictionary).values()
 
 
+## Fallback materials made so far, by "stratum:class" (one shared material per pair).
+static var _made: Dictionary = {}
+
+
 static func for_class(stratum: StratumData, cls: int) -> Material:
 	var table: Dictionary = MATERIALS.get(stratum.id, {})
-	var path: String = table.get(cls, table.get(BuildPlan.C_WALL, ""))
+	var fallback_cls := BuildPlan.C_WALL if cls < C_DOOR_LEAF else -1
+	var path: String = table.get(cls, table.get(fallback_cls, ""))
 	var mat: Material = load(path) as Material if path != "" else null
 	if mat == null:
-		mat = _fallback(stratum, cls)
+		var key := "%s:%d" % [stratum.id, cls]
+		if not _made.has(key):
+			_made[key] = _fallback(stratum, cls)
+		mat = _made[key]
 	return mat
 
 
@@ -38,6 +53,13 @@ static func _fallback(stratum: StratumData, cls: int) -> ShaderMaterial:
 			m.set_shader_parameter(&"albedo", stratum.ceiling_color)
 		BuildPlan.C_PARTITION:
 			m.set_shader_parameter(&"albedo", stratum.partition_color)
+		C_DOOR_LEAF:
+			m.set_shader_parameter(&"albedo", stratum.wall_color.darkened(0.35))
+			m.set_shader_parameter(&"roughness", 0.7)
+		C_DOOR_HANDLE:
+			m.set_shader_parameter(&"albedo", Color(0.6, 0.6, 0.58))
+			m.set_shader_parameter(&"roughness", 0.45)
+			m.set_shader_parameter(&"metallic", 0.5)
 		_:
 			m.set_shader_parameter(&"albedo", stratum.wall_color)
 	if cls == BuildPlan.C_SOFT:

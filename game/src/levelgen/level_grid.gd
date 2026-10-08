@@ -52,6 +52,11 @@ var flags: PackedInt32Array = PackedInt32Array()
 var room_list: Array[RoomData] = []
 ## Fixture group id -> Array[Vector2i] of fixture cells (filled by decorate).
 var groups: Dictionary = {}
+## Runtime state (main thread, not part of the generated data or its hash): DOOR edges whose
+## leaf is closed, keyed by edge_key. A closed door blocks sight (SightOps, 09 §5).
+var closed_doors: Dictionary = {}
+## Bumped on every door change so sight caches know to drop their rows.
+var door_version: int = 0
 
 
 func _init(grid_size: Vector2i = Vector2i(1, 1)) -> void:
@@ -138,6 +143,26 @@ func set_wall(c: Vector2i, dir: int, type: int) -> void:
 		return
 	walls[idx(c) * 4 + dir] = type
 	walls[idx(o) * 4 + opposite(dir)] = type
+
+## Edge key independent of which side names it (E or S form).
+static func edge_key(c: Vector2i, dir: int) -> Vector3i:
+	if dir == N or dir == W:
+		return Vector3i(c.x + DIRS[dir].x, c.y + DIRS[dir].y, opposite(dir))
+	return Vector3i(c.x, c.y, dir)
+
+## Records a door leaf's state on its edge (Door calls this; runtime only).
+func set_door_closed(c: Vector2i, dir: int, closed: bool) -> void:
+	var k := edge_key(c, dir)
+	if closed == closed_doors.has(k):
+		return
+	if closed:
+		closed_doors[k] = true
+	else:
+		closed_doors.erase(k)
+	door_version += 1
+
+func is_door_closed(c: Vector2i, dir: int) -> bool:
+	return closed_doors.has(edge_key(c, dir))
 
 static func wall_walkable(type: int) -> bool:
 	return type == NONE or type == DOOR

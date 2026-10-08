@@ -52,7 +52,11 @@ func test_light_matches_09() -> void:
 	assert_eq(s.collision_layer, 128, "layer 8, thrown")
 	assert_eq(s.collision_mask, 1, "collides with the world only")
 	var tube := s.get_node("Model/Tube") as MeshInstance3D
-	assert_true((tube.material_override as StandardMaterial3D).emission_enabled)
+	var tm := tube.material_override as ShaderMaterial
+	assert_not_null(tm, "R4 #9: items use the world shader")
+	if tm != null:
+		assert_gt(float(tm.get_shader_parameter(&"emission_strength")), 0.0)
+		assert_eq(float(tm.get_shader_parameter(&"held")), 0.0, "a stick in the world is not held")
 	s.free()
 
 
@@ -177,3 +181,48 @@ func test_item_used_is_announced_per_throw() -> void:
 	_inv.use_selected()
 	EventBus.item_used.disconnect(cb)
 	assert_eq(used, [&"glowstick"])
+
+
+## Two parallel corridors (z = 0 and z = 1) split by a wall, all walkable.
+func _two_corridors() -> LevelGrid:
+	var g := LevelGrid.new(Vector2i(4, 2))
+	for z in 2:
+		for x in 4:
+			g.set_kind(Vector2i(x, z), LevelGrid.FLOOR)
+	for x in 3:
+		for z in 2:
+			g.set_wall(Vector2i(x, z), LevelGrid.E, LevelGrid.NONE)
+	for x in 4:
+		g.set_wall(Vector2i(x, 0), LevelGrid.S, LevelGrid.WALL)
+	return g
+
+
+## R4 #6: the chemical light counts only with a clear grid line from the stick to the point.
+func test_lit_predicate_needs_grid_sight() -> void:
+	var g := _two_corridors()
+	var s := Glowstick.new()
+	add_child(s)
+	s.global_position = g.world_of(Vector2i(1, 0)) + Vector3(0, 0.05, 0)
+	var same := g.world_of(Vector2i(2, 0)) + Vector3(0, 1, 0)
+	var behind := g.world_of(Vector2i(1, 1)) + Vector3(0, 1, 0)
+	assert_true(Glowstick.is_lit(get_tree(), same, g), "2 m along the corridor")
+	assert_false(Glowstick.is_lit(get_tree(), behind, g), "2 m away behind the wall")
+	assert_true(Glowstick.is_lit(get_tree(), behind), "no grid: range only")
+	s.free()
+
+
+## R4 #6: the light node is hidden while the stick is out of grid view of the eye; the
+## predicate does not care whether it is drawn.
+func test_light_hidden_out_of_view() -> void:
+	var g := _two_corridors()
+	var s := Glowstick.new()
+	add_child(s)
+	s.global_position = g.world_of(Vector2i(0, 0))
+	s.update_view(g, g.world_of(Vector2i(3, 1)))
+	assert_false(s.light.visible, "behind the wall, not one step from view")
+	assert_true(Glowstick.is_lit(get_tree(), g.world_of(Vector2i(1, 0)), g), "still lights its corridor")
+	s.update_view(g, g.world_of(Vector2i(3, 0)))
+	assert_true(s.light.visible, "in view down the corridor")
+	s.update_view(null, Vector3.ZERO)
+	assert_true(s.light.visible, "no grid: always shown")
+	s.free()

@@ -55,9 +55,20 @@ func test_bob_is_two_centimetres_at_point_two_hertz() -> void:
 		p._process(0.1)  # 60 s: 12 cycles
 		lo = minf(lo, p.bob.position.y)
 		hi = maxf(hi, p.bob.position.y)
-	assert_approx(hi - ItemPickup.BASE_HEIGHT, 0.02, 0.001)
-	assert_approx(ItemPickup.BASE_HEIGHT - lo, 0.02, 0.001)
+	assert_approx(hi - lo, 0.04, 0.002, "+-2 cm")
 	assert_approx(Tuning.ITEM_WORLD_BOB_HZ, 0.2)
+
+
+## R4 #12: a pickup rests just above the floor: its lowest point is 3 cm up at the bottom of the bob.
+func test_pickups_rest_three_centimetres_above_the_floor() -> void:
+	for kind in [&"polaroid", &"chalk", &"glowstick"]:
+		var p := _pickup(kind)
+		var model := p.bob.get_child(p.bob.get_child_count() - 1) as Node3D
+		var low := INF
+		for i in 60:
+			p._process(0.1)
+			low = minf(low, p.bob.position.y + ItemPickup.model_bottom(model))
+		assert_approx(low, Tuning.ITEM_WORLD_REST_HEIGHT, 0.003, kind)
 
 
 func test_ray_finds_the_pickup_and_prompts() -> void:
@@ -123,6 +134,35 @@ func test_swap_when_the_belt_holds_four_other_kinds() -> void:
 	assert_eq(dropped[0].count, 2)
 	assert_lt(dropped[0].global_position.distance_to(_p.global_position), 1.0)
 	await get_tree().create_timer(0.5).timeout
+
+
+## R4 #5: a swap puts the selected stack on the floor; a kind without a world scene (the
+## fuse until M2.8) cannot lie there, so the swap is refused rather than destroying it.
+func test_swap_refused_when_the_selected_kind_has_no_world_scene() -> void:
+	_inv.add(&"polaroid", 2)
+	_inv.add(&"chalk", 8)
+	_inv.add(&"radio")
+	_inv.add(&"fuse")
+	_inv.select(_inv.slot_of(&"fuse"))
+	var p := _pickup(&"glowstick", Vector3(1, 0, -3))
+	assert_false(_inv.can_swap_out())
+	assert_false(p.can_take(_inv))
+	assert_false(p.take(_p))
+	assert_null(_inv.swap_in(&"glowstick", 1))
+	assert_true(_inv.has(&"fuse"), "the fuse is still on the belt")
+
+
+## R4 #17: a partly fitting Polaroid pickup moves only the accepted photos to the belt.
+func test_partial_polaroid_pickup_moves_only_accepted_photos() -> void:
+	_inv.add(&"polaroid", 2, {&"images": [0, 1]})
+	var p := _pickup(&"polaroid")
+	p.count = 2
+	p.state = {&"images": [5, 6]}
+	assert_false(p.take(_p), "only one fits; the pickup stays")
+	assert_eq(_inv.count_of(&"polaroid"), 3)
+	assert_eq(_inv.slots[_inv.slot_of(&"polaroid")].state[&"images"], [0, 1, 5])
+	assert_eq(p.count, 1)
+	assert_eq(p.state[&"images"], [6], "the photo of the one left behind stays with it")
 
 
 func test_a_fifth_kind_without_a_selected_item_cannot_swap_nothing() -> void:
@@ -202,7 +242,10 @@ func test_spawner_places_items_and_notes_at_the_markers() -> void:
 	assert_eq(notes.size(), 2)
 	assert_eq(root.get_child_count(), 5)
 	var pol := items.filter(func(n: ItemPickup) -> bool: return n.kind == &"polaroid")[0] as ItemPickup
-	assert_eq(pol.position, Vector3(6.0, 0.0, 8.0), "cell (3,4) at 2 m per cell")
+	var j := Tuning.ITEM_PLACE_JITTER + 0.0001
+	assert_eq(pol.position.y, 0.0, "on the floor")
+	assert_lt(absf(pol.position.x - 6.0), j, "cell (3,4) at 2 m per cell, jittered in the cell")
+	assert_lt(absf(pol.position.z - 8.0), j)
 	assert_eq(pol.state[&"images"].size(), 1, "a Polaroid pickup is assigned one photo")
 	assert_lt(int(pol.state[&"images"][0]), 8)
 	var chalk := items.filter(func(n: ItemPickup) -> bool: return n.kind == &"chalk")[0] as ItemPickup
@@ -225,6 +268,7 @@ func test_spawner_is_deterministic_per_seed() -> void:
 		var sig := []
 		for n in out:
 			sig.append(n.name)
+			sig.append(n.transform)
 			if n is ItemPickup:
 				sig.append(n.state.get(&"images"))
 		picks.append(sig)
@@ -287,5 +331,10 @@ func test_spawner_on_a_generated_level() -> void:
 	assert_eq(notes.size(), level.placements_of(LevelData.P_NOTE).size())
 	assert_gt(items.size(), 0)
 	for n in out:
-		assert_eq(n.position, level.grid.world_of(level.grid.cell_of(n.position)), "on the placement's cell")
+		var centre := level.grid.world_of(level.grid.cell_of(n.position))
+		if n is ItemPickup:
+			assert_lt(absf(n.position.x - centre.x), Tuning.ITEM_PLACE_JITTER + 0.0001, "in the placement's cell")
+			assert_lt(absf(n.position.z - centre.z), Tuning.ITEM_PLACE_JITTER + 0.0001)
+		else:
+			assert_eq(n.position, centre, "on the placement's cell")
 	root.free()

@@ -6,7 +6,9 @@ extends Node3D
 ## systems read: power (Powered lock, Offices dark groups), flicker (Flicker's habitat
 ## signature, 08), and an intensity the pool multiplies into the lent light.
 ## Scene contract: %Tube (MeshInstance3D, the emissive part, material_override = the lit
-## material).
+## material); optional %Glow (the ceiling halo, fixture_glow.gdshader, instance `energy`).
+## One fixture in six (the hashed tired ballast that buzzes, 03) is `buzzing`: a slightly
+## greener tube at 85% energy, its lent light too. It is steady: only Flicker flickers (02 §6).
 
 signal power_changed(on: bool)
 
@@ -17,8 +19,11 @@ var powered: bool = true
 var intensity: float = 1.0
 ## The hum loop this fixture carries while it holds a pooled light (03).
 var hum_id: StringName = &""
+## The tired-ballast fixture (LightPool.register_fixture): greener, 85% energy, steady.
+var buzzing: bool = false
 
 @onready var tube: MeshInstance3D = %Tube
+@onready var glow: GeometryInstance3D = get_node_or_null(^"%Glow") as GeometryInstance3D
 
 var _lit_material: Material
 var _flickering: bool = false
@@ -29,6 +34,8 @@ var _wave: Tween
 
 ## Unlit twins of lit materials, shared by every fixture of a stratum.
 static var _dark_materials: Dictionary = {}
+## Buzzing twins (greener, 85% emission) of lit materials.
+static var _buzz_materials: Dictionary = {}
 
 
 func _ready() -> void:
@@ -36,6 +43,22 @@ func _ready() -> void:
 	_lit_material = tube.material_override
 	set_process(false)
 	_apply_visual()
+
+
+## Marks the fixture as the buzzing kind (03; R4 V3): greener tube and light at 85% energy.
+func set_buzzing(on: bool) -> void:
+	buzzing = on
+	_apply_visual()
+
+
+## Multiplier on the lent light's energy and the glow (1, or 0.85 for a buzzing fixture).
+func energy_scale() -> float:
+	return Tuning.LIGHT_FIXTURE_BUZZ_ENERGY if buzzing else 1.0
+
+
+## The lent light's colour for this fixture, given the stratum's.
+func light_tint(base: Color) -> Color:
+	return base * Tuning.LIGHT_FIXTURE_BUZZ_TINT if buzzing else base
 
 
 ## True when the fixture currently emits (powered, and not in a flicker-off instant).
@@ -108,7 +131,29 @@ func _process(delta: float) -> void:
 func _apply_visual() -> void:
 	if tube == null or _lit_material == null:
 		return
-	tube.material_override = _lit_material if is_emitting() else dark_twin(_lit_material)
+	var lit := buzz_twin(_lit_material) if buzzing else _lit_material
+	tube.material_override = lit if is_emitting() else dark_twin(_lit_material)
+	if glow != null:
+		var e := Tuning.LIGHT_FIXTURE_GLOW_ENERGY * energy_scale() * clampf(intensity, 0.0, 1.3) if is_emitting() else 0.0
+		glow.set_instance_shader_parameter(&"energy", e)
+		glow.visible = e > 0.0
+
+
+## The same material greener and at 85% emission (the buzzing fixtures).
+static func buzz_twin(lit: Material) -> Material:
+	if _buzz_materials.has(lit):
+		return _buzz_materials[lit]
+	var m := lit.duplicate() as Material
+	if m is ShaderMaterial:
+		var sm := m as ShaderMaterial
+		sm.set_shader_parameter(&"emission", (sm.get_shader_parameter(&"emission") as Color) * Tuning.LIGHT_FIXTURE_BUZZ_TINT)
+		sm.set_shader_parameter(&"emission_strength", float(sm.get_shader_parameter(&"emission_strength")) * Tuning.LIGHT_FIXTURE_BUZZ_ENERGY)
+	elif m is StandardMaterial3D:
+		var st := m as StandardMaterial3D
+		st.emission = st.emission * Tuning.LIGHT_FIXTURE_BUZZ_TINT
+		st.emission_energy_multiplier *= Tuning.LIGHT_FIXTURE_BUZZ_ENERGY
+	_buzz_materials[lit] = m
+	return m
 
 
 ## The same material with its emission off (a dark tube still reads as a fixture).

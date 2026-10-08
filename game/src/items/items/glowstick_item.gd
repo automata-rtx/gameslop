@@ -76,7 +76,7 @@ func throw(slot: ItemSlot) -> Glowstick:
 	return stick
 
 
-## Sets one glowstick down at the player's feet; no impact noise.
+## Sets one glowstick down at the player's feet, silently: no crack sound, no impact noise.
 func drop_at_feet(slot: ItemSlot) -> Glowstick:
 	if slot == null or slot.count <= 0:
 		return null
@@ -90,7 +90,7 @@ func drop_at_feet(slot: ItemSlot) -> Glowstick:
 		yaw = p.global_rotation.y
 	var stick := _spawn()
 	stick.set_down(pos, yaw)
-	AudioManager.play_3d(SOUND_CRACK, pos, &"", -6.0)
+	# 09 §2: set down silently (no crack, no impact).
 	inventory.consume(kind, 1)
 	return stick
 

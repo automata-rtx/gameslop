@@ -111,3 +111,81 @@ func test_plan_is_deterministic() -> void:
 	assert_eq(again.meshes.size(), _plan.meshes.size())
 	assert_eq(again.triangle_count, _plan.triangle_count)
 	assert_eq(again.boxes.size(), _plan.boxes.size())
+
+
+## R4 #3: the plan models Halls only until M2.1 (heights, ramps, basins, racks); any other
+## stratum is reported loudly instead of being built wrong in silence.
+func test_unsupported_stratum_is_reported() -> void:
+	assert_eq(_plan.errors.size(), 0, "Halls is supported")
+	# The Pools grammar arrives with M2; a Halls grid labelled Pools stands in for it.
+	var was := _level.stratum
+	_level.stratum = &"pools"
+	var p := BuildPlan.make(_level, 3.0)
+	_level.stratum = was
+	assert_eq(p.errors.size(), 1)
+	assert_contains(p.errors[0], "M2.1")
+	assert_false(BuildPlan.SUPPORTED_STRATA.has(&"pools"))
+
+
+## R4 #2: every void cell next to walkable space has a solid block.
+func test_void_blocks_next_to_walkable() -> void:
+	var g := _level.grid
+	var blocks: Dictionary = {}
+	for b in _plan.boxes:
+		if b[&"kind"] == BuildPlan.BODY_VOID:
+			blocks[b[&"meta"][&"cell"]] = b
+			assert_eq(b[&"meta"][&"wall_type"], LevelGrid.SOLID)
+	var want := 0
+	for i in g.cell_count():
+		var c := g.cell_at(i)
+		if g.is_walkable(c):
+			continue
+		for d in LevelGrid.DIRS:
+			if g.is_walkable(c + d):
+				want += 1
+				assert_true(blocks.has(c), "void %s has a block" % c)
+				break
+	assert_eq(blocks.size(), want)
+
+
+## R4 V2: floor vertex colour B is the distance to the nearest wall (0 at the wall, about
+## 0.9 m at a corridor's centre line); A marks corridor cells.
+func test_floor_colour_carries_wall_distance() -> void:
+	var g := _level.grid
+	var lo := 1.0
+	var hi := 0.0
+	var corridor := 0
+	for m in _plan.meshes:
+		if m[&"cls"] != BuildPlan.C_FLOOR:
+			continue
+		var v: PackedVector3Array = m[&"arrays"][Mesh.ARRAY_VERTEX]
+		var col: PackedColorArray = m[&"arrays"][Mesh.ARRAY_COLOR]
+		for k in v.size():
+			lo = minf(lo, col[k].b)
+			hi = maxf(hi, col[k].b)
+			var c := g.cell_of(v[k])
+			if col[k].a > 0.5:
+				corridor += 1
+			# A vertex at a cell centre of a 1-wide corridor is 0.9 m from both walls.
+			if v[k].distance_to(g.world_of(c)) < 0.01 and g.kind(c) == LevelGrid.FLOOR \
+					and not g.can_step(c, LevelGrid.N) and not g.can_step(c, LevelGrid.S):
+				assert_approx(col[k].b, 0.9, 0.01, "corridor centre %s" % c)
+	assert_approx(lo, 0.0, 0.001, "vertices on the wall line")
+	assert_gt(hi, 0.85)
+	assert_gt(corridor, 100)
+
+
+## R4 #16: the plan stays under the 400-line script limit (14).
+func test_build_plan_script_size() -> void:
+	var f := FileAccess.open("res://src/levelgen/build_plan.gd", FileAccess.READ)
+	assert_lt(f.get_as_text().split("\n").size(), 400)
+
+
+## R4 #22: LevelShots has a pose at the head of the longest corridor (T1 at 12 m).
+func test_level_shots_long_corridor_pose() -> void:
+	var names: Array = []
+	for p in LevelShots.poses(_level):
+		names.append(p[&"name"])
+		if p[&"name"] == "corridor_long":
+			assert_gt(float(p[&"run_m"]), 6.0, "a corridor long enough to look down")
+	assert_contains(names, "corridor_long")

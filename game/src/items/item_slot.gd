@@ -33,3 +33,22 @@ func merge_state(extra: Dictionary) -> void:
 			(state[key] as Array).append_array(v as Array)
 		elif not state.has(key):
 			state[key] = v.duplicate(true) if v is Array or v is Dictionary else v
+
+
+## The part of a pickup's `state` that travels with `accepted` items: per-item arrays (the
+## Polaroid's `images`) keep their first `accepted` entries; everything else is copied.
+static func accepted_state(state: Dictionary, accepted: int) -> Dictionary:
+	var out: Dictionary = {}
+	for key: Variant in state:
+		var v: Variant = state[key]
+		out[key] = (v as Array).slice(0, accepted) if v is Array else v
+	return out
+
+
+## The rest of `state` once `accepted` items left with accepted_state().
+static func remaining_state(state: Dictionary, accepted: int) -> Dictionary:
+	var out: Dictionary = {}
+	for key: Variant in state:
+		var v: Variant = state[key]
+		out[key] = (v as Array).slice(accepted) if v is Array else v
+	return out

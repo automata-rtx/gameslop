@@ -15,6 +15,8 @@ var _field_cell: int = -1
 var _field: PackedInt32Array = PackedInt32Array()
 ## Player cell index -> PackedByteArray per fixture: 0 untested, 1 in view, 2 not.
 var _sight: Dictionary = {}
+## The grid's door_version the cache was traced under (a door swing drops it).
+var _door_version: int = 0
 
 
 func _init(level_grid: LevelGrid = null) -> void:
@@ -42,6 +44,9 @@ func position(i: int) -> Vector3:
 func select(from: Vector3, eligible: PackedByteArray, n: int) -> PackedInt32Array:
 	var pc := grid.cell_of(from) if grid != null else Vector2i(-1, -1)
 	var use_grid := grid != null and grid.is_walkable(pc)
+	if grid != null and grid.door_version != _door_version:
+		_door_version = grid.door_version
+		_sight.clear()
 	var pi := grid.idx(pc) if use_grid else -1
 	if use_grid and pi != _field_cell:
 		_field_cell = pi

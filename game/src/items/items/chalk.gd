@@ -4,10 +4,17 @@ extends ItemBase
 ## pointing the way the player faces (yaw snapped to 45 degrees). The stamp lands the frame
 ## the key goes down (decal scale-in 100 ms, three scrapes, a 1 degree nod, one use spent); the
 ## hand then spends 0.3 s on the stroke, during which the chalk is busy. Aiming at nothing
-## within reach stamps nothing and costs nothing. Decals persist for the level (at most 40;
-## the oldest is removed) and are cleared when the level is left or a run starts.
+## within reach stamps nothing and costs nothing, but still answers on three channels: a dull
+## tick, the hand jabbing at the air, a small nod (pillar 4). Decals persist for the level (at
+## most 40; the oldest is removed) and are cleared when the level is left or a run starts. A
+## stamp on a moving body (a door leaf) is parented to it, so the arrow swings with the door.
 
 const SOUND := &"chalk_mark"
+## Chalk at nothing: the hold tick, pitched down and quiet, reads as a dull tap (03 has no
+## dedicated sample; no new sound is synthesised for it).
+const SOUND_MISS := &"ui_hold_tick"
+const MISS_PITCH := 0.55
+const MISS_DB := -10.0
 const SOURCE_GROUP := ChalkDecal.GROUP
 
 var _left: float = 0.0
@@ -48,9 +55,11 @@ func use(slot: ItemSlot) -> bool:
 	var dir := -cam.global_transform.basis.z
 	var hit := raycast(cam, origin, dir)
 	if hit.is_empty():
+		miss()
 		return false
 	var facing := -player().global_transform.basis.z
-	stamp(hit["position"], hit["normal"], facing)
+	var collider := hit.get("collider") as Node3D
+	stamp(hit["position"], hit["normal"], facing, collider if collider is AnimatableBody3D else null)
 	busy = true
 	_left = Tuning.CHALK_STAMP_TIME
 	return true
@@ -66,12 +75,22 @@ func raycast(cam: Camera3D, origin: Vector3, dir: Vector3) -> Dictionary:
 	return cam.get_world_3d().direct_space_state.intersect_ray(q)
 
 
+## 11 §2 feedback for a stamp at nothing in reach: nothing is spent, no decal; a dull tick,
+## the hand jabs at the air, a small nod.
+func miss() -> void:
+	AudioManager.play_2d(SOUND_MISS, MISS_DB, MISS_PITCH)
+	var p := player()
+	if p != null:
+		p.rig.nod(Tuning.FEEDBACK_CHALK_MISS_NOD_DEG)
+	_stroke_hand(0.5)
+
+
 ## Places an arrow decal at `point` on a surface with `normal`, spends one use, plays the
-## feedback. Returns the decal.
-func stamp(point: Vector3, normal: Vector3, facing: Vector3) -> ChalkDecal:
+## feedback. `onto` (a moving body such as a door leaf) carries the decal. Returns the decal.
+func stamp(point: Vector3, normal: Vector3, facing: Vector3, onto: Node3D = null) -> ChalkDecal:
 	var d := ChalkDecal.new()
 	d.name = "ChalkDecal"
-	_decal_parent().add_child(d)
+	(onto if onto != null else _decal_parent()).add_child(d)
 	d.global_transform = Transform3D(ChalkDecal.arrow_basis(normal, facing), point + normal.normalized() * 0.02)
 	_trim(Tuning.CHALK_MAX_DECALS)
 	# 11 §2: the decal scales in over 100 ms.
@@ -108,8 +127,8 @@ func _decal_parent() -> Node:
 	return tree.current_scene if tree.current_scene != null else tree.root
 
 
-## The hand swipes forward and back over the 0.3 s of the stamp.
-func _stroke_hand() -> void:
+## The hand swipes forward and back over the 0.3 s of the stamp (`depth` scales the reach).
+func _stroke_hand(depth: float = 1.0) -> void:
 	var model := inventory.held_model()
 	if model == null or model.get_meta(&"kind", &"") != kind:
 		return
@@ -118,7 +137,7 @@ func _stroke_hand() -> void:
 	var t := Tuning.CHALK_STAMP_TIME * 0.5
 	model.position = Vector3.ZERO
 	_stroke = create_tween().set_trans(Tween.TRANS_QUAD)
-	_stroke.tween_property(model, "position", Vector3(-0.02, 0.01, -0.07), t).set_ease(Tween.EASE_OUT)
+	_stroke.tween_property(model, "position", Vector3(-0.02, 0.01, -0.07) * depth, t).set_ease(Tween.EASE_OUT)
 	_stroke.tween_property(model, "position", Vector3.ZERO, t).set_ease(Tween.EASE_IN)
 
 

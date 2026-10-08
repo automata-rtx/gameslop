@@ -182,6 +182,10 @@ func door(c: Vector2i, dir: int, parent: Node3D) -> Node3D:
 	d.start_open = not closet
 	parent.add_child(d)
 	d.set_edge_meta(BuildCollision.wall_meta(level.grid, c, dir))
+	d.apply_materials(LevelMaterials.for_class(stratum, BuildPlan.C_WALL),
+		LevelMaterials.for_class(stratum, LevelMaterials.C_DOOR_LEAF),
+		LevelMaterials.for_class(stratum, LevelMaterials.C_DOOR_HANDLE))
+	d.grid = level.grid
 	return d
 
 

@@ -4,11 +4,14 @@ extends Node3D
 ## closed, never locks. A chasing error slams it open (0.15 s). The leaf body carries the
 ## edge's 07 §7 metadata so noclip treats a closed door as a candidate wall.
 ## Scene contract: %Hinge (Node3D the leaf turns on), %Leaf (AnimatableBody3D on layers
-## world + interactable) with an Interactable child (%Interactable), %Jambs (StaticBody3D).
+## world + interactable) with an Interactable child (%Interactable), %Jambs (StaticBody3D),
+## meshes %JambL, %JambR, %LeafMesh, %Knob (materials per stratum, apply_materials).
 
 signal opened_changed(open: bool)
 
 const OPEN_ANGLE := deg_to_rad(-95.0)
+const WALL_KIND := &"wall_kind"
+const KIND_PROP := &"PROP"
 
 @export var start_open: bool = false
 
@@ -18,6 +21,12 @@ const OPEN_ANGLE := deg_to_rad(-95.0)
 @onready var interactable: Interactable = %Interactable
 
 var is_open: bool = false
+## The level grid (set by LevelPlacer after the edge meta): the door keeps its edge's
+## closed state there, so a closed door blocks grid sight (SightOps).
+var grid: LevelGrid:
+	set(g):
+		grid = g
+		_sync_grid()
 var _swing: Tween
 
 
@@ -27,11 +36,33 @@ func _ready() -> void:
 	_set_open(start_open, 0.0, false)
 
 
-## Copies the edge metadata (07 §7) onto the bodies: the leaf is the DOOR wall itself.
+## Copies the edge metadata (07 §7) onto the bodies: the leaf is the DOOR wall itself; the
+## jambs are plain wall (WALL). The leaf counts as a wall for noise (06 §6) only while it is
+## closed: an open leaf's `wall_kind` is PROP.
 func set_edge_meta(meta: Dictionary) -> void:
-	for body: Node in [leaf, jambs]:
-		for k in meta:
-			body.set_meta(k, meta[k])
+	for k in meta:
+		leaf.set_meta(k, meta[k])
+		jambs.set_meta(k, meta[k])
+	jambs.set_meta(&"wall_type", LevelGrid.WALL)
+	jambs.set_meta(WALL_KIND, Tuning.GRID_WALL_TYPES[LevelGrid.WALL])
+	_apply_leaf_kind()
+
+
+## Per-stratum materials (LevelMaterials): jamb panels, leaf, handle.
+func apply_materials(jamb: Material, leaf_mat: Material, handle: Material) -> void:
+	for n in [%JambL, %JambR]:
+		(n as MeshInstance3D).material_override = jamb
+	(%LeafMesh as MeshInstance3D).material_override = leaf_mat
+	(%Knob as MeshInstance3D).material_override = handle
+
+
+func _sync_grid() -> void:
+	if grid != null and leaf != null and leaf.has_meta(&"cell"):
+		grid.set_door_closed(leaf.get_meta(&"cell"), int(leaf.get_meta(&"dir")), not is_open)
+
+
+func _apply_leaf_kind() -> void:
+	leaf.set_meta(WALL_KIND, KIND_PROP if is_open else Tuning.GRID_WALL_TYPES[LevelGrid.DOOR])
 
 
 func toggle() -> void:
@@ -52,6 +83,8 @@ func _set_open(on: bool, time: float, audible: bool, slam: bool = false) -> void
 	is_open = on
 	interactable.prompt = Strings.PROMPT_CLOSE_DOOR if on else Strings.PROMPT_OPEN_DOOR
 	leaf.set_meta(&"closed", not on)
+	_apply_leaf_kind()
+	_sync_grid()
 	var angle := OPEN_ANGLE if on else 0.0
 	if _swing != null:
 		_swing.kill()

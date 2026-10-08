@@ -1,6 +1,6 @@
 extends TestCase
 ## 09 §2, §4, §10: the Polaroid. +25 Coherence with the gain pulse after 1.2 s, the flash on the
-## last frame, lockouts (stunned, charging noclip, cranking), the error hook, the photographs.
+## last frame, lockouts (stunned, charging noclip, cranking), no error hook, the photographs.
 
 class FakeError extends Node3D:
 	var error_id: StringName = &"still"
@@ -131,40 +131,18 @@ func test_starting_noclip_mid_use_cancels() -> void:
 	assert_eq(_inv.count_of(&"polaroid"), 2)
 
 
-func test_in_cone_rule() -> void:
-	var o := Vector3.ZERO
-	var fwd := Vector3(0, 0, -1)
-	assert_true(PolaroidItem.in_cone(o, fwd, Vector3(0, 0, -10)))
-	assert_true(PolaroidItem.in_cone(o, fwd, Vector3(3, 0, -10)))
-	assert_false(PolaroidItem.in_cone(o, fwd, Vector3(10, 0, -3)), "70 degrees off axis")
-	assert_false(PolaroidItem.in_cone(o, fwd, Vector3(0, 0, 5)), "behind")
-	assert_false(PolaroidItem.in_cone(o, fwd, Vector3(0, 0, -Tuning.POLAROID_RANGE - 1.0)), "out of range")
-
-
-func test_errors_in_the_cone_get_the_hook() -> void:
+## R4 #8: no error reacts to the Polaroid; a node in `errors` with an `on_polaroid` method
+## in the flash is never called.
+func test_no_error_hook() -> void:
 	var front := FakeError.new()
 	front.add_to_group(&"errors")
 	_world.add_child(front)
 	front.global_position = Vector3(0, 1.65, -6)
-	var behind := FakeError.new()
-	behind.add_to_group(&"errors")
-	_world.add_child(behind)
-	behind.global_position = Vector3(0, 1.65, 6)
-	var walled := FakeError.new()
-	walled.add_to_group(&"errors")
-	_world.add_child(walled)
-	walled.global_position = Vector3(0, 1.65, -12)
-	PlayerFixture.wall(_world, Vector3(4, 3, 0.2), Vector3(0, 1.5, -9))
-	var no_hook := Node3D.new()
-	no_hook.add_to_group(&"errors")
-	_world.add_child(no_hook)
-	no_hook.global_position = Vector3(0, 1.65, -5)
 	await await_physics_frames(2)
 	_inv.use_selected()
 	_pol.tick(1.3)
-	assert_eq(front.flashed_from.size(), 1, "in the cone and in sight")
-	assert_eq(behind.flashed_from.size(), 0, "behind the player")
-	assert_eq(walled.flashed_from.size(), 0, "behind a wall")
+	assert_eq(front.flashed_from.size(), 0, "the flash calls nothing on errors")
+	assert_false(PolaroidItem.new().has_method(&"_flash_errors"))
 
 
 func test_photo_queue_is_consumed_oldest_first() -> void:
