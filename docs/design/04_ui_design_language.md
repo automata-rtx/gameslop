@@ -165,3 +165,4 @@ These are suppressed after the player has reached depth 3 once. The settings `GA
 - Inventory contract the HUD needs: `signal changed(slots: Array, selected: int)`; optional `slots` and `selected` read once at bind.
 - Noclip target ids are `wall`, `soft`, `floor` (anything else times as a wall).
 - The theme carries a `NoclipTokens` type (colours, sizes, `leader`) and named text-role styles; code uses `UiTokens`.
+- `Hud.show_notice_prompt(text)` draws a dim keyless prompt; texts in `Strings.NOTICE_PROMPTS` (`FUSE MISSING`, `NO CARD`) route there automatically. `HudDepth.clear_exit_status()` runs on `level_left`.
