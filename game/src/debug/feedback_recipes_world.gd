@@ -78,6 +78,10 @@ func noclip_commit_floor(b: FeedbackBench) -> void:
 func coherence_loss(b: FeedbackBench) -> void:
 	await b.pose_sightline()
 	b.set_coherence(70.0)
+	# Row isolation: earlier rows' losses may still hold the loss tick's rate limit (11 §3
+	# "rate-limited"); let it lapse so this row's first tick is its own.
+	b.player().sounds.clear_loss()
+	await b.ticks(12)
 	await b.arm()
 	b.anchor()
 	b.player().apply_coherence(-10.0, &"bench")
