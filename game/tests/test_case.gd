@@ -26,6 +26,23 @@ func await_physics_frames(n: int = 1) -> void:
 	for i in n:
 		await get_tree().physics_frame
 
+## True when the checkpoint script runs the suite (NOCLIP_FULL_TESTS=1): full seed counts
+## and wall-clock budgets. The per-merge gate runs smaller samples and reports budgets
+## without failing on them, because agents share one loaded machine (15 §1).
+func full_run() -> bool:
+	return OS.get_environment("NOCLIP_FULL_TESTS") == "1"
+
+
+## A wall-clock budget: fails only in a full run, printed either way.
+func assert_budget(actual: float, budget: float, msg: String = "") -> void:
+	if actual < budget:
+		return
+	if full_run():
+		fail("over budget: %s >= %s%s" % [actual, budget, _ctx(msg)])
+	else:
+		print("  # budget (not enforced in the gate): %s >= %s%s" % [actual, budget, _ctx(msg)])
+
+
 func fail(msg: String) -> void:
 	_failures.append(msg)
 

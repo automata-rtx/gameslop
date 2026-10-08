@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Everything a checkpoint needs before tagging (15 §1 rule 2): the full test suite with
+# 1,000 seeds per stratum and wall-clock budgets enforced, the level validator, the headless
+# smoke, and from cp-06 the exports with their smoke. Run on a quiet machine (no other gates).
+# Usage: tools/ci/checkpoint.sh [--no-export]
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+GODOT_BIN="${GODOT_BIN:-$ROOT/tools/godot/bin/godot}"
+NOCLIP_FULL_TESTS=1 "$ROOT/tools/ci/test.sh"
+"$GODOT_BIN" --headless --path "$ROOT/game" -- --validate-levels 1000
+"$GODOT_BIN" --headless --path "$ROOT/game" -- --smoke
+if [[ "${1:-}" != "--no-export" ]]; then
+  "$ROOT/tools/ci/export.sh"
+  "$ROOT/tools/ci/smoke.sh"
+fi
+echo "checkpoint.sh: all green"

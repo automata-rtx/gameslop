@@ -137,3 +137,26 @@ static func escape_path(g: LevelGrid, pos: Vector3, flare: Node3D) -> Array[Vect
 	for c in cell_path(g, from, g.cell_at(best)):
 		out.append(g.world_of(c))
 	return out
+
+
+## 08 §3 Wander: a seeded walkable cell within 10 cells (grid walking distance) that
+## passes `filter` ((cell: Vector2i) -> bool; invalid: every cell); with none in reach,
+## the nearest passing cell by walking. Without a grid, a seeded point within 20 m.
+static func wander_target(grid: LevelGrid, here: Vector3, rng: RandomNumberGenerator, filter: Callable) -> Vector3:
+	if grid == null:
+		var a := rng.randf() * TAU
+		var r := rng.randf() * Tuning.STATIC_WANDER_CELLS * Tuning.GRID_CELL_SIZE
+		return here + Vector3(cos(a) * r, 0.0, sin(a) * r)
+	var dist := grid.distance_field(grid.cell_of(here))
+	var pool: Array[Vector2i] = []
+	var nearest := -1
+	for i in dist.size():
+		if dist[i] <= 0 or (filter.is_valid() and not bool(filter.call(grid.cell_at(i)))):
+			continue
+		if dist[i] <= Tuning.STATIC_WANDER_CELLS:
+			pool.append(grid.cell_at(i))
+		elif nearest == -1 or dist[i] < dist[nearest]:
+			nearest = i
+	if pool.is_empty():
+		return grid.world_of(grid.cell_at(nearest)) if nearest != -1 else here
+	return grid.world_of(pool[rng.randi_range(0, pool.size() - 1)])

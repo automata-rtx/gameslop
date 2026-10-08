@@ -59,15 +59,29 @@ func test_crouched_player_observes_a_tall_column_at_2_5_m() -> void:
 	assert_true(_p.is_observing(still), "any point in the frustum is enough")
 
 
-func test_every_observe_point_still_needs_a_clear_ray() -> void:
-	Input.action_press(&"crouch")
-	await await_physics_frames(20)
-	var still := _column(Vector3(0, 0, -2.5), 2.6)
+func test_any_clear_lit_point_observes_when_the_top_is_hidden() -> void:
+	# 08 §4 (2026-10-08): ANY observe point in the frustum, clear and lit is enough.
 	_p.flashlight.set_on(true)
-	# A beam that hides the top from the eye but not the centre.
-	PlayerFixture.box(_world, Vector3(2, 0.3, 0.2), Vector3(0, 2.3, -2.2))
+	var still := _column(Vector3(0, 0, -6), 2.6)
+	# A beam (a door header) that hides the top from the eye but not the centre.
+	PlayerFixture.box(_world, Vector3(2, 0.6, 0.2), Vector3(0, 2.3, -5.0))
 	await await_physics_frames(1)
-	assert_false(_p.is_observing(still))
+	var space := _p.get_world_3d().direct_space_state
+	assert_false(PlayerObservation.clear_line(space, _p.eye_position(), still.observe_points()[1], [_p.get_rid()]),
+			"the top is hidden")
+	assert_true(_p.is_observing(still), "the clear, lit centre is enough")
+
+
+func test_a_point_must_be_clear_and_lit_on_its_own() -> void:
+	var still := _column(Vector3(0, 0, -6), 2.6)
+	var centre: Vector3 = still.observe_points()[0]
+	# Only the top is lit; the centre is clear but dark.
+	_p.add_light_query(func(pos: Vector3) -> bool: return pos.y > centre.y + 0.5)
+	assert_true(_p.is_observing(still), "the top is clear and lit")
+	# Hide the top: the clear centre is unlit, the lit top is occluded.
+	PlayerFixture.box(_world, Vector3(2, 0.6, 0.2), Vector3(0, 2.3, -5.0))
+	await await_physics_frames(1)
+	assert_false(_p.is_observing(still), "no single point is clear and lit")
 
 
 func test_no_observe_point_in_frustum_is_not_observed() -> void:

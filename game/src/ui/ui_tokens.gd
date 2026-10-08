@@ -137,3 +137,11 @@ static func tracking_px(font_size: int, em: float = TRACKING_UPPER_EM) -> int:
 ## Line thickness at a UI scale: 1 px at 1.0, scaled, never below 1 px (04 §4).
 static func line_px(ui_scale: float) -> int:
 	return maxi(1, roundi(LINE * ui_scale))
+
+
+## A 1 px line in layout units that stays at least one screen pixel when the root window
+## scales the UI down (12 §2 UI scale below 1080p): 04 §4 "minimum 1 px".
+static func hairline() -> int:
+	var ml := Engine.get_main_loop() as SceneTree
+	var scale := ml.root.content_scale_factor if ml != null and ml.root != null else 1.0
+	return maxi(LINE, ceili(LINE / maxf(scale, 0.01) - 0.001))

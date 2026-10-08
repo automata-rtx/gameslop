@@ -31,6 +31,18 @@ const TITLE_LABEL_LAST_CAUSE := "LAST CAUSE OF DEATH"
 const TITLE_LABEL_LOADOUT := "LOADOUT"
 const TITLE_DAILY_DONE := "SCORE {score} · DEPTH {depth}"   # Daily item once played today (not selectable)
 const TITLE_ARCHIVE_RESET := "ARCHIVE RESET"        # 13 §2: shown once after a corrupt meta file
+const TITLE_LABEL_SEED := "SEED OF THE DAY"         # DAILY DESCENT detail column (05 §8)
+const TITLE_LABEL_ENDLESS_BEST := "ENDLESS BEST DEPTH"
+const TITLE_LABEL_NOTES := "NOTES FOUND"
+const TITLE_LABEL_ERRORS := "ERRORS ENCOUNTERED"
+const TITLE_VALUE_NONE := "—"
+const TITLE_NOTES_COUNT := "{found} / {total}"
+const TITLE_DAILY_RULES := "One attempt per day. Faller loadout. Every item is in the pool."
+const TITLE_DAILY_PLAYED := "Today's attempt is spent. A new seed arrives at midnight UTC."
+const TITLE_ENDLESS_RULES := "The Threshold opens onto Cycle 2. The Descent ends only at dissolution."
+const TITLE_ARCHIVE_DESC := "Notes found, errors met, statistics and unlocks."
+const TITLE_SETTINGS_DESC := "Display, graphics, audio, controls, accessibility and gameplay."
+const TITLE_LOADOUT_HELP := "LEFT RIGHT CHOOSE · ENTER DESCEND"
 
 # 04 §7  Pause
 const PAUSE_RESUME := "RESUME"
@@ -40,6 +52,9 @@ const PAUSE_QUIT_TITLE := "QUIT TO TITLE"
 const PAUSE_ABANDON_CONFIRM := "This ends the run. Depth and notes found are kept."
 const PAUSE_ABANDON_YES := "ABANDON"
 const PAUSE_ABANDON_NO := "BACK"
+const PAUSE_TITLE := "PAUSED"
+const PAUSE_QUIT_CONFIRM := "This ends the run and returns to the title. Depth and notes found are kept."
+const PAUSE_QUIT_YES := "QUIT TO TITLE"
 
 
 # =====================================================================================
@@ -166,6 +181,11 @@ const ARCHIVE_ERRORS := "ERRORS"
 const ARCHIVE_STATISTICS := "STATISTICS"
 const ARCHIVE_UNLOCKS := "UNLOCKS"
 const ARCHIVE_LOCKED_CELL := "··"                   # undiscovered note or error
+const ARCHIVE_NOTES_COUNT := "NOTES FOUND {found} / {total}"
+const ARCHIVE_ENCOUNTERS := "ENCOUNTERS {count}"
+const ARCHIVE_NOTES_HELP := "Select a found note to read it."
+const ARCHIVE_DISTANCE := "{value} M"
+const ARCHIVE_UNLOCKED_COUNT := "{earned} / {total}"
 const NOTE_HEADER_FALLER := "NOTE {id} · HANDWRITTEN"
 const NOTE_HEADER_BUILDER := "RENDER NOTE {number}"
 const NOTE_HEADER_STRAY := "FOUND OBJECT"

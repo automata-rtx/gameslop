@@ -5,8 +5,8 @@ extends ErrorBase
 ## Tell: the room goes quiet within 8 m (AudioManager, from error_proximity) and a
 ## matte-black column. Cost: 35 on contact.
 ##
-## Every physics frame, if Player.is_observing(self) (frustum, <= 30 m, unoccluded, lit:
-## the Player's observation API owns the lit predicate) the body's velocity is zero and the
+## Every physics frame, if Player.is_observing(self) (any observe point in the frustum,
+## <= 30 m, unoccluded and lit: the Player's observation API owns it) the body's velocity is zero and the
 ## navigation agent pauses. Observed for 2 s continuously: the render-line tick (a 1 px
 ## white line for 100 ms and the 6 kHz blip), once per 2 s.
 ## Scene contract: %Body (CharacterBody3D, layer 3) holding %Column (MeshInstance3D with
@@ -102,6 +102,7 @@ func place_at(pos: Vector3) -> void:
 	if body != null:
 		body.position = Vector3.ZERO
 		body.velocity = Vector3.ZERO
+	StillPresent.fit_column(self)
 
 
 func _set_body_active(on: bool) -> void:
@@ -147,8 +148,8 @@ func speed_for(s: StringName) -> float:
 # --- the rule -------------------------------------------------------------------------------
 
 func _tick(delta: float) -> void:
-	observed = player != null and player.is_inside_tree() and player.is_observing(self)
-	_render_tick(delta)
+	observed = has_player() and player.is_observing(self)
+	StillPresent.render_tick(self, delta)
 	_think(delta)
 	if observed:
 		# 08 §4: velocity zero, the agent pauses. Not a millimetre.
@@ -212,6 +213,27 @@ func _enter_state(to: StringName, _from: StringName) -> void:
 			_has_target = true
 		Tuning.ERROR_STATE_DORMANT:
 			body.velocity = Vector3.ZERO
+
+
+## 10 §2 Relief (hint(pos, true)): Wander walks to the hint now; Search inspects it now
+## (a newer heard noise still pulls the Search back to it: senses stay honest).
+func _retarget_to_hint() -> void:
+	var dest := StillNav.snap(self, _hint)
+	_has_hint = false
+	if state == Tuning.ERROR_STATE_SEARCH:
+		_search_arrived = true
+		_search_known_time = senses.last_known_time
+		state_time = 0.0
+		_inspect = [{"pos": dest, "spot": null}]
+	_target = dest
+	_has_target = true
+	_repath_acc = INF
+
+
+func _on_player_gone() -> void:
+	observed = false
+	if body != null:
+		body.velocity = Vector3.ZERO
 
 
 func _on_contact() -> void:
@@ -281,6 +303,7 @@ func _sync_root() -> void:
 	var p := body.global_position
 	global_position = p
 	body.position = Vector3.ZERO
+	StillPresent.fit_column(self)
 
 
 func _arrived() -> bool:
@@ -320,7 +343,7 @@ func _search_step(_delta: float) -> void:
 	if _arrived():
 		var cur: Dictionary = _inspect.pop_front() if not _inspect.is_empty() else {}
 		var spot: Variant = cur.get("spot")
-		if spot != null and is_instance_valid(spot) and player != null and (spot as HideSpot).occupant == player:
+		if spot != null and is_instance_valid(spot) and has_player() and (spot as HideSpot).occupant == player:
 			# 08 §4: checking the player's spot is a contact. A refused one is answered by
 			# the Director (retreat); never undo that by carrying on the search.
 			if try_contact(Tuning.STILL_CONTACT_COST) or state != Tuning.ERROR_STATE_SEARCH:
@@ -364,39 +387,11 @@ func _open_doors_near() -> void:
 	StillNav.open_doors_near(self, _doors)
 
 
-# --- render tick (02 §8, 08 §4) -------------------------------------------------------------
-
-func _render_tick(delta: float) -> void:
-	if tick_left > 0.0:
-		tick_left -= delta
-		if tick_left <= 0.0:
-			_set_line(false)
-	if not observed:
-		observed_time = 0.0
-		_next_tick_at = Tuning.STILL_RENDER_TICK_AFTER
-		return
-	var first := is_zero_approx(observed_time)
-	observed_time += delta
-	if first and state == Tuning.ERROR_STATE_WANDER and not _wander_ticked:
-		# 08 §4: the tick plays once when the player first observes it in Wander.
-		_wander_ticked = true
-		_play_tick()
-	elif observed_time >= _next_tick_at:
-		_next_tick_at += Tuning.STILL_RENDER_TICK_INTERVAL
-		_play_tick()
-
+# --- presentation (StillPresent) --------------------------------------------------------------
 
 func _play_tick() -> void:
-	ticks += 1
-	tick_left = Tuning.STILL_RENDER_TICK_DURATION_MS / 1000.0
-	_set_line(true, _present_rng.randf_range(0.08, 0.92))
-	AudioManager.play_3d(TICK_SOUND, body_position() + Vector3.UP * COLUMN_CENTRE)
+	StillPresent.play_tick(self)
 
 
-## The 1 px line across the column at `height01` of its height (instance uniforms).
 func _set_line(on: bool, height01: float = 0.5) -> void:
-	if column == null:
-		return
-	column.set_instance_shader_parameter(&"line_on", 1.0 if on else 0.0)
-	if on:
-		column.set_instance_shader_parameter(&"line_height", height01)
+	StillPresent.set_line(self, on, height01)
