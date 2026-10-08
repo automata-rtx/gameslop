@@ -156,6 +156,9 @@ func echo_4m(b: FeedbackBench) -> void:
 	await b.arm()
 	b.anchor()
 	e.place_at(ahead(b, 3.5))
+	# Echo comes inside 4 m by walking: the stride that lands it plays its step (the R
+	# column's `[footsteps, …, late]` caption, M2.12). The placement stands in for the walk.
+	EchoPresent.play_step(e, NoiseModel.DEFAULT_SURFACE)
 	await b.ticks(8)
 	free_error(e)
 
