@@ -106,10 +106,13 @@ func test_notice_and_evasion() -> void:
 	assert_approx(CoherenceRenderer.static_amount, 0.0, 0.0001, "renderer released")
 	_p.global_position = Vector3(0, 0.05, 0)
 	await await_physics_frames(int(2.2 * Engine.physics_ticks_per_second))
-	assert_eq(counts["notice"], 2, "a new engagement")
+	assert_eq(counts["notice"], 1, "back within 5 s: the same engagement (2026-10-08)")
 	_p.global_position = Vector3(15, 0.05, 0)
 	await await_physics_frames(3)
 	assert_eq(counts["lost"], 1, "released after 2 s: an evasion")
+	_p.global_position = Vector3(0, 0.05, 0)
+	await await_physics_frames(3)
+	assert_eq(counts["notice"], 2, "an evasion re-arms the notice")
 
 
 func test_drift_speed_by_aggression() -> void:

@@ -393,6 +393,7 @@ const STATIC_FAIR_CUMULATIVE_LIMIT := 40.0          # s before it is hinted off 
 const STATIC_FAIR_NUDGE_SPEED := 1.2                # m/s
 const STATIC_SPAWN_MIN_FROM_SPAWN_ROOM := 20.0      # m
 const STATIC_MIN_EVADE_TIME := 2.0                  # s inside before release counts as an evasion
+const STATIC_NOTICE_REARM_TIME := 5.0              # s outside the field before a new entry is a new notice (08 §2, 2026-10-08)
 const STATIC_FORCED_DRAIN := 0.6                    # renderer drain floor inside the field (08 §3)
 const STATIC_FORCED_BED := 0.6                      # static bed inside the field
 const STATIC_VISIBLE_DIST := 15.0                   # m, distortion visible at (08 §1)
@@ -404,6 +405,7 @@ const STATIC_FLARE_GROUP := &"flares_burning"       # burning flares join this g
 # 08 §4  Still
 const STILL_CAPSULE_RADIUS := 0.5                   # m (reading: "0.5 x 2.6" = radius x height, as Echo/player)
 const STILL_CAPSULE_HEIGHT := 2.6                   # m
+const STILL_COLUMN_DOORWAY_HEIGHT := 2.05          # m (LEVELBUILD_DOOR_HEIGHT - 0.05), drawn column top while it overlaps a door header strip (R9, presentation only)
 const STILL_BODY_RADIUS := NAV_AGENT_RADIUS         # m, collision only (R7): the 0.5 m column must pass a 1.0 m doorway
 const STILL_BODY_HEIGHT := NAV_AGENT_HEIGHT         # m, collision only (R7): ... and its 2.1 m header (the column draws 2.6 m)
 const STILL_WANDER_SPEED := 1.8                     # m/s

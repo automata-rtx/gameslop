@@ -232,40 +232,11 @@ func death_cause(source: StringName) -> StringName:
 	return _last_damage_source if _last_damage_source != &"" else source
 
 
-## 06 §9 contact rules: cost (at most COHERENCE_MAX_SINGLE_HIT, 05 §9 rule 5), 1.2 s
-## stun, 1.5 m push, trauma 0.6, 60 ms hitstop. Refused (false, nothing applied) when
-## the player has no body to touch: passing through a wall, Landing, dropping,
-## dissolving, cinematic. Contact exclusivity (3 s) belongs to the Director (10 §4):
-## `contact_gate` is asked after the player's own refusals and may refuse too.
+## 06 §9 contact rules (PlayerContact): cost (at most COHERENCE_MAX_SINGLE_HIT), 1.2 s
+## stun, 1.5 m push, trauma 0.6, 60 ms hitstop. Refused (false, nothing applied) when the
+## player has no body to touch; `contact_gate` (the Director, 10 §4) may refuse too.
 func contact(error: Node3D, amount: float) -> bool:
-	if not can_be_contacted():
-		return false
-	if contact_gate.is_valid() and not bool(contact_gate.call(error)):
-		return false
-	var id := _error_id(error)
-	if hiding.spot != null:
-		hiding.eject()
-	if state_machine.is_in(PlayerStateMachine.NOCLIP_CHARGE) and noclip_targeting != null \
-			and noclip_targeting.has_method(&"cancel"):
-		noclip_targeting.call(&"cancel")
-	contacted.emit(id)
-	apply_coherence(-minf(absf(amount), Tuning.COHERENCE_MAX_SINGLE_HIT), id)
-	if is_dissolving():
-		return true
-	if state_machine.transition_to(PlayerStateMachine.STUNNED) or is_stunned():
-		_stun_left = Tuning.CONTACT_STUN_TIME
-		stun_changed.emit(true)
-	if error != null and error.is_inside_tree():
-		locomotion.push(global_position - error.global_position)
-	else:
-		locomotion.push(global_transform.basis.z)
-	# 11 §3 error contact: flash/CA/grain (post), contact hit, push + trauma + stun, readout.
-	rig.add_trauma(Tuning.CONTACT_TRAUMA)
-	CoherenceRenderer.pulse(&"hit")
-	sounds.play(&"error_contact_hit")
-	NoiseModel.emit(global_position, Tuning.NOISE_CONTACT_RADIUS, Tuning.NOISE_KIND_TEAR)
-	Clock.hitstop(Tuning.CONTACT_HITSTOP_MS)
-	return true
+	return PlayerContact.contact(self, error, amount)
 
 
 ## The player's own refusals only (06 Interfaces readings): no contact during the noclip
@@ -276,30 +247,8 @@ func can_be_contacted() -> bool:
 		PlayerStateMachine.NOCLIP_CHARGE, PlayerStateMachine.STUNNED, PlayerStateMachine.HIDDEN]
 
 
-func _error_id(error: Node3D) -> StringName:
-	if error != null:
-		var id: Variant = error.get(&"error_id")
-		if id is StringName or id is String:
-			return StringName(id)
-	return SOURCE_UNKNOWN_ERROR
-
-
 func _dissolve(cause: StringName) -> void:
-	if not state_machine.transition_to(PlayerStateMachine.DISSOLVING):
-		return
-	# 06 §9: input locked; 11 §3: the grid dissolve (post), the dissolve sound, 0.02 m drift.
-	velocity = Vector3.ZERO
-	flashlight.set_cranking(false)
-	interactor.clear()
-	_stun_left = 0.0
-	var tw := create_tween()
-	tw.tween_method(rig.drift, Vector3.ZERO, DISSOLVE_DRIFT_DIR * Tuning.FEEDBACK_DISSOLVE_DRIFT,
-			Tuning.COHERENCE_DISSOLVE_TIME)
-	sounds.clear_loss()
-	CoherenceRenderer.pulse(&"dissolve")
-	sounds.play(&"dissolve")
-	# The run flow (M1.9) plays the 1.5 s sequence and then calls GameState.end_run(cause).
-	dissolved.emit(cause)
+	PlayerContact.dissolve(self, cause)
 
 
 # --- input ------------------------------------------------------------------------------
