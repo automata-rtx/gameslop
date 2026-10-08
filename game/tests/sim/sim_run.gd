@@ -14,7 +14,7 @@ extends SceneTree
 ## Depths beyond 1 start the run there (`RunState.depth`); strata without a grammar
 ## generate as Halls (M1.9).
 
-const SUMMARY_HEADER := "profile,depth,seed,stratum,outcome,time_s,calm,build,peak,peak_chased,relief,max_intensity,contacts,refused,chases,sent_away,violations,stuck_events,coherence,roster"
+const SUMMARY_HEADER := "profile,depth,seed,stratum,outcome,time_s,calm,build,peak,peak_chased,relief,max_intensity,contacts,unchased,relief_contacts,refused,chases,sent_away,violations,stuck_events,coherence,hunter,static,spawned"
 
 var _seeds: int = 3
 var _from: int = 1
@@ -110,9 +110,11 @@ static func summary_rows(results: Array) -> Array:
 		out.append([r.get(&"profile", ""), r.get(&"depth", 0), r.get(&"seed", 0), r.get(&"stratum", ""),
 			r.get(&"outcome", ""), r.get(&"time_s", 0.0), pc.get(&"calm", 0), pc.get(&"build", 0),
 			pc.get(&"peak", 0), r.get(&"peaks_with_chase", 0), pc.get(&"relief", 0), r.get(&"max_intensity", 0.0), r.get(&"contacts", 0),
+			r.get(&"contacts_unchased", 0), r.get(&"contacts_in_relief", 0),
 			r.get(&"refused", 0), r.get(&"encounters", 0), r.get(&"retreated_chases", 0),
 			(r.get(&"contact_violations", []) as Array).size(), r.get(&"stuck_events", 0),
-			r.get(&"coherence", 0.0), "+".join(PackedStringArray((r.get(&"roster", []) as Array).map(
+			r.get(&"coherence", 0.0), r.get(&"has_hunter", false), r.get(&"has_static", false),
+			"+".join(PackedStringArray((r.get(&"spawned", []) as Array).map(
 				func(v: Variant) -> String: return str(v))))])
 	return out
 
