@@ -97,6 +97,18 @@ static func _path_side_walls(gen: StratumGenerator, exclude_flags: int, reach: i
 	return out
 
 
+## 07 / 05 §10 (2026-10-08): the breaker sits at least BREAKER_EXIT_MIN_PATH_FRACTION of
+## the critical path's length (spawn to exit, cells) from the exit, walking.
+static func breaker_min_exit_cells(path_cells: int) -> int:
+	return ceili(path_cells * Tuning.BREAKER_EXIT_MIN_PATH_FRACTION)
+
+
+## True when cell index `i` of an exit distance field is far enough for the breaker, with
+## `margin` cells to spare (a room cut later may open a shortcut).
+static func breaker_far_enough(exit_dist: PackedInt32Array, i: int, path_cells: int, margin: int = 0) -> bool:
+	return exit_dist[i] >= breaker_min_exit_cells(path_cells) + margin
+
+
 ## Cells whose spawn distance lies in [lo, hi] (cells), walkable, not in the spawn or exit
 ## room, not occupied, not a ramp or pool steps (a pickup on a slope rests on air or in the
 ## steps), passing `extra` (Callable(Vector2i) -> bool) when valid.

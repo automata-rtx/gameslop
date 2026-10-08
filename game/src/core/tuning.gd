@@ -824,7 +824,6 @@ const GARAGE_DECK_WIDTH_MIN := 10                   # cells along the band
 const GARAGE_RAMP_SPACING := 3                      # cells between two ramps
 const GARAGE_LAMP_HEIGHT := 2.85                    # m above the deck, the lamp's mount on the pillar face
 const GARAGE_PILLAR_SIZE := 0.6                     # m, square pillar in its void cell
-const GARAGE_CAR_LENGTH := 4.2                      # m, parked along a wall over two bay cells
 const GARAGE_EXIT_SIGN_HEIGHT := 2.45               # m, above the stairwell door
 
 # 07 §5.4 Offices
@@ -919,6 +918,7 @@ const VALIDATE_ERROR_SPAWN_MIN_WALK := 20.0         # m from spawn
 const VALIDATE_DEAD_END_CHAIN_MAX := 12             # cells
 const VALIDATE_HALLS_PATH_MIN := 80.0               # m at depth 1, scaling by size
 const VALIDATE_HALLS_PATH_MAX := 160.0
+const BREAKER_EXIT_MIN_PATH_FRACTION := 0.5         # breaker room >= 50% of the critical path's length from the exit, walking (07, 05 §10; 2026-10-08)
 const VALIDATE_POOLS_PATH_MIN := 40.0               # m at depth 2 (28 cells), scaling by size (M2.1; 07 gives none)
 const VALIDATE_POOLS_PATH_MAX := 140.0
 const VALIDATE_GARAGE_PATH_MIN := 40.0              # m at depth 2, scaling by size (M2.1; 07 gives none)

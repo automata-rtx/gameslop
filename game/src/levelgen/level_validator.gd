@@ -148,6 +148,13 @@ static func _rule3_lock(level: LevelData, ds: PackedInt32Array, f: PackedStringA
 			objective = level.breaker_cell
 			if level.placements_of(LevelData.P_BREAKER).size() != 1:
 				f.append("r3: Powered needs exactly one breaker")
+			# 07 / 05 §10 (2026-10-08): the breaker is at >= 50% of the path's length from the exit.
+			var path_cells := level.critical_path.size() - 1
+			if grid.in_bounds(objective) and grid.in_bounds(level.exit_cell):
+				var de := grid.distance_field(level.exit_cell)
+				if not PopulateOps.breaker_far_enough(de, grid.idx(objective), path_cells):
+					f.append("r3: breaker %d cells from the exit, needs %d (50%% of the critical path)" % [
+						de[grid.idx(objective)], PopulateOps.breaker_min_exit_cells(path_cells)])
 			if level.lock_variant == &"b":
 				var fuses := 0
 				for p in level.placements_of(LevelData.P_ITEM):

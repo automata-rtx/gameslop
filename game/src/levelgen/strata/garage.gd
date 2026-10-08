@@ -99,7 +99,10 @@ func _cores() -> void:
 		return
 	var ub := options[rng_layout.randi_range(0, options.size() - 1)]
 	var powered := data.exit_lock == Tuning.LOCK_POWERED
-	var on_deck := rng_layout.randi_range(0, 1)
+	# The breaker room is on deck 1, the spawn's side: at least half the walk from the exit
+	# (07 / 05 §10, 2026-10-08). The draw is kept so the rest of the layout is unchanged.
+	rng_layout.randi_range(0, 1)
+	var on_deck := 0
 	for k in 2:
 		var r := deck_uv[k]
 		var vb := r.position.y + (r.size.y - sz.y) / 2

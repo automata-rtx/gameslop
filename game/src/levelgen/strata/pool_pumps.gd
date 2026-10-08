@@ -21,6 +21,14 @@ func _init(generator: PoolsGenerator) -> void:
 func insert(count: int) -> void:
 	gen.pump_target = count
 	var sz := Tuning.POOLS_PUMP_ROOM_SIZE
+	# Powered: the first pump room is the breaker room, at least half the spawn-to-exit walk
+	# from the exit (07 / 05 §10, 2026-10-08).
+	var de := PackedInt32Array()
+	var walk := 0
+	if gen.data.exit_lock == Tuning.LOCK_POWERED:
+		GridHeights.refresh_ledges(gen.grid)
+		de = gen.grid.distance_field(gen.data.exit_cell)
+		walk = de[gen.grid.idx(gen.data.spawn_cell)]
 	for k in count:
 		_pump_rects.clear()
 		var by_corridor: Array[Vector3i] = []
@@ -34,6 +42,10 @@ func insert(count: int) -> void:
 				var o := Vector2i(door.x, door.y) + LevelGrid.DIRS[door.z]
 				(by_corridor if gen.grid.kind(o) == LevelGrid.FLOOR else by_hall).append(door)
 		var pool := by_corridor if not by_corridor.is_empty() else by_hall
+		if k == 0 and not de.is_empty():
+			pool = _far(by_corridor, de, walk)
+			if pool.is_empty():
+				pool = _far(by_hall, de, walk)
 		if pool.is_empty():
 			return
 		var pick := pool[gen.rng_layout.randi_range(0, pool.size() - 1)]
@@ -65,6 +77,17 @@ func _pump_door(rect: Rect2i) -> Vector3i:
 	if best.x >= 0:
 		_pump_rects[best] = rect
 	return best
+
+
+## Doors whose outside cell is far enough from the exit for the breaker (2 cells spare).
+func _far(doors: Array[Vector3i], de: PackedInt32Array, walk: int) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	for e in doors:
+		var o := Vector2i(e.x, e.y) + LevelGrid.DIRS[e.z]
+		var i := gen.grid.idx(o)
+		if walk > 0 and PopulateOps.breaker_far_enough(de, i, walk, 2):
+			out.append(e)
+	return out
 
 
 func _pump_rect_of(door: Vector3i) -> Rect2i:

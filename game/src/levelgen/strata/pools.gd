@@ -7,7 +7,9 @@ extends StratumGenerator
 ## arch to the spine, a branch, or a hall already attached. Corridor stubs nothing opens
 ## onto are trimmed. Every hall gets a sunken basin (PoolBasins); the exit hall, the far
 ## east hall, has the dry 1.8 m basin with the drain hatch at its bottom. Pump rooms (2x2,
-## a door) are cut beside corridors and host the pump-corner hide spots (and the breaker).
+## a door) are cut beside corridors and host the pump-corner hide spots (and the breaker;
+## PoolPumps). The simplest grammar (07 §1 rule 5) keeps every basin dry and gives every
+## hall a second arch.
 
 const HALL := &"pool_hall"
 const PUMP := &"pump"
