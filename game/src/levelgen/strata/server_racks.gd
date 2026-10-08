@@ -50,7 +50,7 @@ func build() -> void:
 		var lengths: Array[int] = []
 		var cuts: Array[int] = []
 		for t in CROSS_TRIES:
-			lengths = _partition(m, Tuning.SERVER_ROW_LENGTH_MIN, Tuning.SERVER_CROSS_AISLE_MAX - 1, 1)
+			lengths = _partition(m, Tuning.SERVER_ROW_LENGTH_MIN, Tuning.SERVER_CROSS_AISLE_MAX - 1, 1, t % 2 == 1)
 			cuts = _cuts(u0, lengths)
 			var clash := false
 			for c in cuts:
@@ -82,10 +82,13 @@ func build() -> void:
 
 
 ## Splits `total` into parts in [lo, hi] with `gap` cells between parts, the fewest parts
-## that fit; the slack is spread one cell at a time at random.
-func _partition(total: int, lo: int, hi: int, gap: int) -> Array[int]:
+## that fit (with `more`, one more part when that still fits); the slack is spread one
+## cell at a time at random.
+func _partition(total: int, lo: int, hi: int, gap: int, more: bool = false) -> Array[int]:
 	var k := 1
 	while k * hi + (k - 1) * gap < total:
+		k += 1
+	if more and (k + 1) * lo + k * gap <= total:
 		k += 1
 	var parts: Array[int] = []
 	for i in k:

@@ -44,7 +44,8 @@ func begin_pass(locked: Dictionary, aim_dir: Vector3) -> void:
 	normal = locked[&"normal"]
 	aim = aim_dir
 	ref_y = float(locked.get(&"far_floor_y", from.y))
-	far = {&"has_cell": bool(locked.get(&"has_far_cell", false)), &"cell": locked.get(&"far_cell", Vector2i.ZERO)}
+	far = {&"has_cell": bool(locked.get(&"has_far_cell", false)), &"cell": locked.get(&"far_cell", Vector2i.ZERO),
+		&"pass_depth": float(locked.get(&"pass_depth", 0.0))}
 	set_world_collision(false)
 
 

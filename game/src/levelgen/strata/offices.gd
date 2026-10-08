@@ -39,10 +39,11 @@ func layout() -> void:
 	data.exit_dir = far
 	data.exit_cell = side_middle(exit_room, far)
 	var rooms := OfficeRooms.new(self)
-	rooms.interior(rooms.cross_corridors())
-	rooms.band_pieces()
 	var reserve := Tuning.OFFICES_BREAKER_ROOM_SIZE.x * Tuning.OFFICES_BREAKER_ROOM_SIZE.y + Tuning.OFFICES_CLOSETS_MAX
 	var target := int(walkable_target(data.depth) * (1.0 - rng_layout.randf() * WALKABLE_JITTER)) - reserve
+	var sections := rooms.cross_corridors()
+	rooms.interior(sections, target)
+	rooms.band_pieces()
 	rooms.small_offices(target)
 	grid.finalize_walls()
 	rooms.breaker_room()

@@ -667,6 +667,103 @@
    "expect": {"centroid": [100, 3500]}
   },
 
+  "room_tone_offices": {
+   "group": "ambience", "dur": 8.0, "loop": true, "variants": 1, "decorrelate": true,
+   "norm": {"lufs": -30},
+   "runtime": {"level_db": -30},
+   "note": "03 §1 place: the Offices room tone, a dead office floor. Air handling through the ceiling (a soft pink-noise wash band-passed round 700 Hz under a slow swell), the carpet and the drop tiles eating the highs, and the troffer bank's 100 Hz with its 50 Hz buzz far off. Drier and closer than Halls (the bus reverb is room 0.4, wet 0.15). 03 §6 rule 3: never ducked below -40 dB.",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": -2, "chain": [{"fx": "lp", "f": 220, "q": 0.6}]},
+    {"src": "noise", "color": "pink", "peak_db": -8, "chain": [{"fx": "bp", "f": 700, "q": 0.6}, {"fx": "lp", "f": 1800}, {"fx": "am", "wave": "random", "freq": 0.18, "depth": 0.35}]},
+    {"src": "noise", "color": "pink", "peak_db": -24, "chain": [{"fx": "hp", "f": 2500}, {"fx": "lp", "f": 5000}]},
+    {"src": "sine", "freq": 100, "peak_db": -16},
+    {"src": "sine", "freq": 50, "peak_db": -22},
+    {"src": "sine", "freq": 200, "peak_db": -30}
+   ],
+   "fx": [{"fx": "am", "wave": "random", "freq": 0.2, "depth": 0.2}, {"fx": "hp", "f": 30}]
+  },
+
+  "fixture_hum_offices": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -28},
+   "note": "03 fixture hum loop, Offices colour: a troffer, 100 Hz with 200 Hz at -12 dB and a faint pink-noise air, and the 50 Hz buzz under it (03: Offices 100 Hz with 50 Hz buzz). Mono, one per lent light.",
+   "layers": [
+    {"src": "sine", "freq": 100, "peak_db": 0},
+    {"src": "sine", "freq": 200, "peak_db": -12},
+    {"src": "sine", "freq": 50, "peak_db": -9},
+    {"src": "saw", "freq": 50, "peak_db": -30, "chain": [{"fx": "bp", "f": 1500, "q": 1.0}]},
+    {"src": "noise", "color": "pink", "peak_db": -30, "chain": [{"fx": "hp", "f": 1000}]}
+   ],
+   "expect": {"peak_hz": [45, 210]}
+  },
+
+  "fixture_buzz_offices": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -27},
+   "note": "03 Offices fixtures, buzz colour: a troffer ballast going, a band-passed 50 Hz saw rattle with a slow irregular level over the 100 Hz hum. Steady; not Flicker's stutter.",
+   "layers": [
+    {"src": "saw", "freq": 50, "peak_db": 0, "chain": [{"fx": "bp", "f": 2200, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 2.0, "depth": 0.4}]},
+    {"src": "sine", "freq": 100, "peak_db": -3},
+    {"src": "sine", "freq": 50, "peak_db": -8},
+    {"src": "noise", "color": "white", "peak_db": -22, "chain": [{"fx": "bp", "f": 3800, "q": 1.0}, {"fx": "am", "wave": "square", "freq": 100, "duty": 0.2, "depth": 0.8}]}
+   ],
+   "expect": {"centroid": [100, 3000]}
+  },
+
+  "room_tone_server": {
+   "group": "ambience", "dur": 8.0, "loop": true, "variants": 1, "decorrelate": true,
+   "norm": {"lufs": -30},
+   "runtime": {"level_db": -30},
+   "note": "03 §1 place: the Server room tone, a cold room full of machines. A dense even wash of cooling air (brown and pink noise, a broad 400 Hz body), the units' faint high whine (a 5.2 kHz sine pair beating slowly, very low), and the mains 60/120 Hz of the power supplies. Steadier than the other strata: machines do not breathe. The bus reverb is small and dead (room 0.3, damping 0.8). 03 §6 rule 3: never ducked below -40 dB.",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": 0, "chain": [{"fx": "lp", "f": 300, "q": 0.6}]},
+    {"src": "noise", "color": "pink", "peak_db": -6, "chain": [{"fx": "bp", "f": 400, "q": 0.5}]},
+    {"src": "noise", "color": "pink", "peak_db": -18, "chain": [{"fx": "bp", "f": 2400, "q": 0.6}]},
+    {"src": "sine", "freq": 5200, "peak_db": -40},
+    {"src": "sine", "freq": 5207, "peak_db": -42},
+    {"src": "sine", "freq": 60, "peak_db": -18},
+    {"src": "sine", "freq": 120, "peak_db": -24}
+   ],
+   "fx": [{"fx": "am", "wave": "random", "freq": 0.1, "depth": 0.08}, {"fx": "hp", "f": 30}]
+  },
+
+  "fixture_hum_server": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -30},
+   "note": "03 fixture hum loop, Server colour: what a lent light carries here is the rack beside it (the LED aggregate) or an emergency box: a power supply's 120 Hz with a thin coil whine high above, and a little fan air. Mono, one per lent light.",
+   "layers": [
+    {"src": "sine", "freq": 120, "peak_db": 0},
+    {"src": "sine", "freq": 240, "peak_db": -14},
+    {"src": "sine", "freq": 3600, "peak_db": -30},
+    {"src": "noise", "color": "pink", "peak_db": -18, "chain": [{"fx": "bp", "f": 900, "q": 0.6}]}
+   ],
+   "expect": {"peak_hz": [100, 260]}
+  },
+
+  "fixture_buzz_server": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -29},
+   "note": "03 Server, buzz colour: a supply with a failing fan, the 120 Hz hum with a rough band-passed saw and a slow irregular level. Steady; not Flicker's stutter.",
+   "layers": [
+    {"src": "saw", "freq": 120, "peak_db": 0, "chain": [{"fx": "bp", "f": 1800, "q": 0.9}, {"fx": "am", "wave": "random", "freq": 2.5, "depth": 0.4}]},
+    {"src": "sine", "freq": 120, "peak_db": -4},
+    {"src": "noise", "color": "pink", "peak_db": -16, "chain": [{"fx": "bp", "f": 700, "q": 0.7}, {"fx": "am", "wave": "random", "freq": 6.0, "depth": 0.5}]}
+   ],
+   "expect": {"centroid": [120, 3000]}
+  },
+
+  "fan_loop": {
+   "group": "ambience", "channels": 1, "dur": 2.0, "loop": true, "variants": 1,
+   "norm": {"lufs": -30},
+   "runtime": {"max_distance": 10.0},
+   "note": "03 fan loop (Server): brown noise low-passed at 500 Hz with a 23 Hz rotor amplitude modulation, a touch of blade hiss above. Mono: one per ceiling fan grille (ServerFan).",
+   "layers": [
+    {"src": "noise", "color": "brown", "peak_db": 0, "chain": [{"fx": "lp", "f": 500, "q": 0.7}, {"fx": "am", "wave": "sine", "freq": 23, "depth": 0.45}]},
+    {"src": "noise", "color": "pink", "peak_db": -16, "chain": [{"fx": "bp", "f": 1600, "q": 0.8}, {"fx": "am", "wave": "sine", "freq": 23, "depth": 0.3}]}
+   ],
+   "expect": {"centroid": [60, 1500]}
+  },
+
   "power_wave_ignite": {
    "group": "world", "bus": "Ambience", "dur": 0.42, "variants": 3, "lead": 0.002,
    "jitter": {"pitch": 0.02, "time": 0.004, "gain_db": 1.0},

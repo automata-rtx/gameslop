@@ -27,7 +27,11 @@ const C_PARTITION := 3
 const C_GLASS := 4
 const C_SOFT := 5
 const C_BASIN := 6
-const CLASS_NAMES: Array[StringName] = [&"floor", &"ceiling", &"wall", &"partition", &"glass", &"soft", &"basin"]
+## Server racks (M2.2): a RACK cell is a block SERVER_RACK_HEIGHT high filling the cell and
+## its edge strips (two 1 m racks back to back), open above; its faces run rack_leds.gdshader
+## (vertex colour B = 1 on the fronts, the faces across the rows).
+const C_RACK := 7
+const CLASS_NAMES: Array[StringName] = [&"floor", &"ceiling", &"wall", &"partition", &"glass", &"soft", &"basin", &"rack"]
 
 ## Body keys for collision. Wall bodies are split by wall type so the body itself carries
 ## a single `wall_kind` meta (noise wall counting reads it from the collider).
@@ -36,9 +40,11 @@ const BODY_FLOOR := &"floor"
 const BODY_VOID := &"void"
 ## Pools: the invisible edge of deep water (07 §5.2 "SOLID for movement"; meta `rail`).
 const BODY_RAIL := &"rail"
+## Server: one box per rack cell (meta `rack`; `wall_kind` WALL, 07 §7).
+const BODY_RACK := &"rack"
 
 ## Strata whose grids the plan models faithfully (M2.1: heights, ramps, basins, pillars).
-const SUPPORTED_STRATA: Array[StringName] = [&"halls", &"pools", &"garage"]
+const SUPPORTED_STRATA: Array[StringName] = [&"halls", &"pools", &"garage", &"offices", &"server"]
 ## Strata whose ceiling stays level over sunken floors (a pool hall's 6 m ceiling); every
 ## other stratum's ceiling is the room height above the floor (Garage decks and ramps).
 const FLAT_CEILING_STRATA: Array[StringName] = [&"pools"]
@@ -49,6 +55,9 @@ var chunk_cells: int = 8
 var chunks: Vector2i = Vector2i.ONE
 ## True when ceilings follow floors (not FLAT_CEILING_STRATA).
 var follow: bool = true
+## Server: true when the rack rows run along x (their fronts face +-z).
+var rows_along_x: bool = true
+var rack_height: float = 2.0
 
 ## Mesh surfaces: Array of {key: String, chunk: Vector2i, cls: int, soft: int (edge index
 ## or -1), arrays: Array (Mesh.ARRAY_MAX), aabb: AABB}.
@@ -99,6 +108,8 @@ static func make(level: LevelData, ceiling_height: float) -> BuildPlan:
 	p.chunk_cells = Tuning.LEVELBUILD_CHUNK_CELLS
 	p._door_h = Tuning.LEVELBUILD_DOOR_HEIGHT
 	p._part_h = Tuning.GRID_PARTITION_HEIGHT
+	p.rack_height = Tuning.SERVER_RACK_HEIGHT
+	p.rows_along_x = p._rows_along_x()
 	p.chunks = Vector2i(ceili(level.grid.size.x / float(p.chunk_cells)), ceili(level.grid.size.y / float(p.chunk_cells)))
 	if not SUPPORTED_STRATA.has(level.stratum):
 		p.errors.append("BuildPlan: stratum '%s' has special cells this plan does not model yet; built as far as it can" % level.stratum)
@@ -128,6 +139,31 @@ func ceiling_at(c: Vector2i, y: float) -> float:
 	if not follow:
 		return height
 	return y + height
+
+
+## Server: a rack cell (a solid block up to rack_height, open above).
+func is_rack(c: Vector2i) -> bool:
+	return grid.kind(c) == LevelGrid.RACK
+
+
+## Open above the floor: sight-open cells and rack cells (whose air starts at the rack top).
+func is_built(c: Vector2i) -> bool:
+	return grid.is_sight_open(c) or grid.kind(c) == LevelGrid.RACK
+
+
+## The rows' direction: more rack-to-rack neighbours along x than along z.
+func _rows_along_x() -> bool:
+	var ax := 0
+	var az := 0
+	for i in grid.cell_count():
+		if grid.cells[i] != LevelGrid.RACK:
+			continue
+		var c := grid.cell_at(i)
+		if grid.kind(c + Vector2i(1, 0)) == LevelGrid.RACK:
+			ax += 1
+		if grid.kind(c + Vector2i(0, 1)) == LevelGrid.RACK:
+			az += 1
+	return ax >= az
 
 
 ## Basin-ish cells: a pool's floor and steps (class C_BASIN).
@@ -209,6 +245,12 @@ func _classify() -> void:
 func _classify_cell(i: int, j: int) -> void:
 	var c := Vector2i((i - 1) / 2, (j - 1) / 2)
 	var f := _fi(i, j)
+	if is_rack(c):
+		var ry := grid.floor_y(c) + rack_height
+		_set_open(f, Vector2(ry, ry), Vector2(ceiling_at(c, grid.floor_y(c)), ceiling_at(c, grid.floor_y(c))), -1, C_RACK, C_CEILING)
+		_cls[f] = C_RACK
+		_nav[f] = 0
+		return
 	if not grid.is_sight_open(c):
 		return
 	var axis := cell_axis(c)
@@ -239,6 +281,14 @@ func _classify_strip(i: int, j: int) -> void:
 	var t := grid.wall(a, dir) if grid.in_bounds(a) else grid.wall(b, LevelGrid.opposite(dir))
 	var oa := grid.is_sight_open(a)
 	var ob := grid.is_sight_open(b)
+	if (is_rack(a) or is_rack(b)) and is_built(a) and is_built(b):
+		# A rack's face strip: the rack fills it up to its top; open above.
+		var rc := a if is_rack(a) else b
+		var ry := grid.floor_y(rc) + rack_height
+		var top := minf(ceiling_at(a, grid.floor_y(a)), ceiling_at(b, grid.floor_y(b)))
+		_set_open(f, Vector2(ry, ry), Vector2(top, top), -1, C_RACK, C_CEILING)
+		_cls[f] = C_RACK
+		return
 	if not oa and not ob:
 		return
 	if t == LevelGrid.NONE and oa and ob:
@@ -298,8 +348,8 @@ func _classify_post(i: int, j: int) -> void:
 			bot = _bot[g]
 		hi = minf(hi, _hi[g].x)
 		basin = basin and _bot[g] == C_BASIN
-		if _cls[g] == C_PARTITION:
-			_cls[_fi(i, j)] = C_PARTITION
+		if _cls[g] == C_PARTITION or _cls[g] == C_RACK:
+			_cls[_fi(i, j)] = _cls[g]
 	# The post feeds navigation when a strip at its floor height does.
 	for d in LevelGrid.DIRS:
 		var g := _fi(i + d.x, j + d.y)
@@ -345,6 +395,8 @@ func _lattice() -> void:
 		var y := grid.floor_heights[i]
 		for v: float in [y, y + _door_h, y + _part_h, ceiling_at(grid.cell_at(i), y)]:
 			marks[roundi(v * 1000.0)] = v
+		if grid.cells[i] == LevelGrid.RACK:
+			marks[roundi((y + rack_height) * 1000.0)] = y + rack_height
 	var lo := 0.0
 	var hi := height
 	for k: int in marks:

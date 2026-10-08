@@ -1,0 +1,45 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Shader" path="res://shaders/fixture_glow.gdshader" id="1_r"]
+[ext_resource type="Material" path="res://data/materials/offices/fixture_housing.tres" id="2_r"]
+[ext_resource type="Material" path="res://data/materials/offices/fixture_emissive.tres" id="3_r"]
+[ext_resource type="Script" path="res://src/lighting/fixture.gd" id="4_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
+render_priority = 0
+shader = ExtResource("1_r")
+shader_parameter/glow_color = Color(0.9, 0.95, 1, 1)
+shader_parameter/core = Vector2(0.2, 0.42)
+shader_parameter/falloff = 0.22
+
+[sub_resource type="QuadMesh" id="QuadMesh_2"]
+size = Vector2(1.6, 2.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(0.66, 0.02, 1.26)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+size = Vector3(0.58, 0.012, 1.18)
+
+[node name="FixtureTroffer" type="Node3D"]
+script = ExtResource("4_r")
+
+[node name="Housing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.01, 0)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Tube" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.021, 0)
+mesh = SubResource("BoxMesh_4")
+material_override = ExtResource("3_r")
+cast_shadow = 0
+
+[node name="Glow" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, -0.002, 0)
+cast_shadow = 0
+mesh = SubResource("QuadMesh_2")
+material_override = SubResource("ShaderMaterial_1")

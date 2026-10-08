@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/glass.gdshader" id="1_s"]
+
+[resource]
+shader = ExtResource("1_s")
+shader_parameter/tint = Color(0.78, 0.86, 0.86, 0.12)

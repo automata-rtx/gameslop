@@ -38,6 +38,26 @@ const MATERIALS: Dictionary = {
 		C_DOOR_LEAF: "res://data/materials/garage/barrier.tres",
 		C_DOOR_HANDLE: "res://data/materials/garage/fixture_cage.tres",
 	},
+	&"offices": {
+		BuildPlan.C_FLOOR: "res://data/materials/offices/carpet_tile.tres",
+		BuildPlan.C_CEILING: "res://data/materials/offices/ceiling_tile.tres",
+		BuildPlan.C_WALL: "res://data/materials/offices/wall_panel.tres",
+		BuildPlan.C_SOFT: "res://data/materials/offices/soft_wall.tres",
+		BuildPlan.C_PARTITION: "res://data/materials/offices/partition.tres",
+		BuildPlan.C_GLASS: "res://data/materials/offices/glass.tres",
+		C_DOOR_LEAF: "res://data/materials/offices/door_leaf.tres",
+		C_DOOR_HANDLE: "res://data/materials/offices/prop_metal.tres",
+	},
+	&"server": {
+		BuildPlan.C_FLOOR: "res://data/materials/server/floor_tile.tres",
+		BuildPlan.C_CEILING: "res://data/materials/server/ceiling.tres",
+		BuildPlan.C_WALL: "res://data/materials/server/wall.tres",
+		BuildPlan.C_SOFT: "res://data/materials/server/soft_wall.tres",
+		BuildPlan.C_GLASS: "res://data/materials/server/fence.tres",
+		BuildPlan.C_RACK: "res://data/materials/server/rack.tres",
+		C_DOOR_LEAF: "res://data/materials/server/door_leaf.tres",
+		C_DOOR_HANDLE: "res://data/materials/server/prop_metal.tres",
+	},
 }
 const WORLD_SHADER := "res://shaders/world_surface.gdshader"
 

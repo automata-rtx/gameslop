@@ -1,0 +1,79 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Material" path="res://data/materials/offices/cooler_body.tres" id="1_r"]
+[ext_resource type="Material" path="res://data/materials/offices/cooler_bottle.tres" id="2_r"]
+[ext_resource type="Material" path="res://data/materials/offices/prop_metal.tres" id="3_r"]
+[ext_resource type="Material" path="res://data/materials/server/emergency_housing.tres" id="4_r"]
+[ext_resource type="Script" path="res://src/levelgen/props/merged_prop.gd" id="5_r"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(0.32, 0.95, 0.32)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_2"]
+top_radius = 0.14
+bottom_radius = 0.14
+height = 0.44
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_3"]
+top_radius = 0.05
+bottom_radius = 0.05
+height = 0.05
+radial_segments = 10
+rings = 1
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+size = Vector3(0.03, 0.04, 0.04)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(0.03, 0.04, 0.04)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+size = Vector3(0.2, 0.02, 0.06)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_7"]
+radius = 0.2
+height = 1.42
+
+[node name="WaterCooler" type="Node3D"]
+script = ExtResource("5_r")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.475, 0)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("1_r")
+
+[node name="Bottle" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+mesh = SubResource("CylinderMesh_2")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Neck" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.965, 0)
+mesh = SubResource("CylinderMesh_3")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="TapCold" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.06, 0.78, -0.17)
+mesh = SubResource("BoxMesh_4")
+material_override = ExtResource("3_r")
+
+[node name="TapHot" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.06, 0.78, -0.17)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("4_r")
+
+[node name="DripTray" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, -0.18)
+mesh = SubResource("BoxMesh_6")
+material_override = ExtResource("3_r")
+
+[node name="Collider" type="StaticBody3D" parent="."]
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Collider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.71, 0)
+shape = SubResource("CylinderShape3D_7")

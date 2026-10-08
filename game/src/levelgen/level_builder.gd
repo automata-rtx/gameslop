@@ -20,7 +20,8 @@ signal navigation_baked(ok: bool)
 signal built
 
 ## Floor `surface` meta per stratum (06 §6 noise by surface).
-const FLOOR_SURFACE: Dictionary = {&"halls": &"carpet", &"pools": &"tile", &"garage": &"concrete"}
+const FLOOR_SURFACE: Dictionary = {&"halls": &"carpet", &"pools": &"tile", &"garage": &"concrete",
+	&"offices": &"carpet", &"server": &"raised_floor"}
 
 var level: LevelData
 var stratum: StratumData
@@ -258,6 +259,10 @@ func _body(b: Dictionary) -> StaticBody3D:
 		body.set_meta(&"floor", true)
 	elif kind == BuildPlan.BODY_VOID:
 		body.set_meta(&"void", true)
+	elif kind == BuildPlan.BODY_RACK:
+		# Server racks (M2.2): a wall for noise and noclip (07 §7), marked `rack`.
+		body.set_meta(&"wall_kind", Tuning.GRID_WALL_TYPES[LevelGrid.WALL])
+		body.set_meta(&"rack", true)
 	elif kind == BuildPlan.BODY_RAIL:
 		# Deep water's invisible edge: solid for movement, not a noise wall (no wall_kind).
 		body.set_meta(&"rail", true)

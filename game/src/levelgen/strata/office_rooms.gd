@@ -79,19 +79,26 @@ static func _split(r: Rect2i, xs: Array[int], zs: Array[int]) -> Array[Rect2i]:
 # ---------------------------------------------------------------- open offices and meeting
 
 ## Open offices in the largest sections (2 to 3), each a cubicle maze; the rest of each
-## section and the sections without one become pieces. Then the meeting room.
-func interior(sections: Array[Rect2i]) -> void:
+## section and the sections without one become pieces. Then the meeting room. The open
+## offices share what the walkable `target` leaves after the corridors, lobbies, the
+## meeting room and the fewest small offices (07 §2 rule 4 wins over their size range).
+func interior(sections: Array[Rect2i], target: int) -> void:
 	sections.sort_custom(func(a: Rect2i, b: Rect2i) -> bool:
 		return a.get_area() > b.get_area() or (a.get_area() == b.get_area() and (a.position.y * 1000 + a.position.x) < (b.position.y * 1000 + b.position.x)))
 	var want := Tuning.OFFICES_OPEN_COUNT_MIN if gen.simplest else \
 		rng.randi_range(Tuning.OFFICES_OPEN_COUNT_MIN, Tuning.OFFICES_OPEN_COUNT_MAX)
+	var mt := Tuning.OFFICES_MEETING_SIZE
+	var small := Tuning.OFFICES_SMALL_SIZE_MIN
+	var budget := target - grid.walkable_count() - mt.x * mt.y - Tuning.OFFICES_SMALL_COUNT_MIN * small.x * small.y
 	for s in sections:
-		var size := _open_size(s) if gen.open_rooms.size() < want else Vector2i.ZERO
+		var left := want - gen.open_rooms.size()
+		var size := _open_size(s, budget / maxi(1, left)) if left > 0 else Vector2i.ZERO
 		if size == Vector2i.ZERO:
 			pieces.append(s)
 			continue
 		var at := _corner(s, size)
 		var room := RoomOps.add_room(grid, Rect2i(at, size), OPEN)
+		budget -= size.x * size.y
 		gen.open_rooms.append(room)
 		cubicles(room)
 		RoomOps.connect_rooms(grid, [room] as Array[RoomData], OPEN_OPENINGS, rng, 0.0)
@@ -99,8 +106,9 @@ func interior(sections: Array[Rect2i]) -> void:
 	_meeting()
 
 
-## A random open office size within 07's range that fits `s` (either orientation), or ZERO.
-func _open_size(s: Rect2i) -> Vector2i:
+## A random open office size within 07's range that fits `s` (either orientation), shrunk
+## towards the minimum while its area exceeds `max_area`; ZERO when none fits.
+func _open_size(s: Rect2i, max_area: int) -> Vector2i:
 	var mn := Tuning.OFFICES_OPEN_SIZE_MIN
 	var mx := Tuning.OFFICES_OPEN_SIZE_MAX
 	var options: Array[Vector2i] = []
@@ -108,7 +116,13 @@ func _open_size(s: Rect2i) -> Vector2i:
 		var a := Vector2i(mn.x, mn.y) if o == 0 else Vector2i(mn.y, mn.x)
 		var b := Vector2i(mx.x, mx.y) if o == 0 else Vector2i(mx.y, mx.x)
 		if s.size.x >= a.x and s.size.y >= a.y:
-			options.append(Vector2i(rng.randi_range(a.x, mini(b.x, s.size.x)), rng.randi_range(a.y, mini(b.y, s.size.y))))
+			var size := Vector2i(rng.randi_range(a.x, mini(b.x, s.size.x)), rng.randi_range(a.y, mini(b.y, s.size.y)))
+			while size.x * size.y > max_area and (size.x > a.x or size.y > a.y):
+				if size.x - a.x >= size.y - a.y:
+					size.x -= 1
+				else:
+					size.y -= 1
+			options.append(size)
 	if options.is_empty():
 		return Vector2i.ZERO
 	return options[rng.randi_range(0, options.size() - 1)]

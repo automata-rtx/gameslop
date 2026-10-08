@@ -8,7 +8,10 @@ extends RefCounted
 ##   (partitions 1.5 m; doors only above the opening);
 ## - a solid block in every void cell next to open space, over the heights around it;
 ## - Pools: an invisible rail on every edge from walkable floor into deep water (07 §5.2:
-##   "deeper is modelled as SOLID for movement"), POOLS_DEEP_RAIL_HEIGHT above the floor.
+##   "deeper is modelled as SOLID for movement"), POOLS_DEEP_RAIL_HEIGHT above the floor;
+## - Server: one box per RACK cell over the cell and its edge strips, rack height, tagged
+##   WALL (07 §7) with `rack` and the far cell beyond each face (the M2.2 rack ruling: a
+##   rack face passes through the whole rack to the walkable cell beyond it).
 ## Worker-thread safe; LevelBuilder makes the bodies.
 
 
@@ -21,6 +24,8 @@ static func boxes(p: BuildPlan) -> Array[Dictionary]:
 			var ch := Vector2i(x / p.chunk_cells, z / p.chunk_cells)
 			if grid.is_sight_open(c):
 				_floor(boxes, p, c, ch)
+			elif grid.kind(c) == LevelGrid.RACK:
+				rack_box(boxes, p, c, ch)
 			elif _touches_open(grid, c):
 				_void_box(boxes, p, c, ch)
 			var dirs: Array[int] = [LevelGrid.E, LevelGrid.S]
@@ -137,6 +142,8 @@ static func _edge_box(boxes: Array[Dictionary], p: BuildPlan, c: Vector2i, d: in
 	var type := grid.wall(c, d)
 	if (not oa and not ob) or type == LevelGrid.NONE:
 		return
+	if grid.kind(c) == LevelGrid.RACK or grid.kind(o) == LevelGrid.RACK:
+		return  # the rack's box covers its face strips
 	var span := Vector2(INF, -INF)
 	for x: Vector2i in [c, o]:
 		if grid.is_sight_open(x):
@@ -158,6 +165,33 @@ static func _edge_box(boxes: Array[Dictionary], p: BuildPlan, c: Vector2i, d: in
 	var body := "soft%d" % soft if soft >= 0 else "%d,%d,%s" % [ch.x, ch.y, type_name]
 	boxes.append({&"body": body, &"chunk": ch, &"kind": type_name, &"soft": soft,
 		&"size": size, &"pos": mid, &"meta": wall_meta(grid, c, d)})
+
+
+## Server (M2.2): a rack cell's box, the cell plus both edge strips each way, from the floor
+## to the rack top. Meta: {cell, rack, wall_type WALL, wall_kind WALL, thickness (the depth
+## a pass crosses), walkable false, far_walkable and far_floor_y per direction N E S W}.
+static func rack_box(boxes: Array[Dictionary], p: BuildPlan, c: Vector2i, ch: Vector2i) -> void:
+	var grid := p.grid
+	var cs := Tuning.GRID_CELL_SIZE
+	var t := Tuning.GRID_WALL_THICKNESS
+	var y := grid.floor_y(c)
+	boxes.append({&"body": "%d,%d,rack" % [ch.x, ch.y], &"chunk": ch, &"kind": BuildPlan.BODY_RACK, &"soft": -1,
+		&"size": Vector3(cs + t, p.rack_height, cs + t), &"pos": Vector3(c.x * cs, y + p.rack_height * 0.5, c.y * cs),
+		&"meta": rack_meta(grid, c)})
+
+
+static func rack_meta(grid: LevelGrid, c: Vector2i) -> Dictionary:
+	var far_walkable: Array[bool] = []
+	var far_floor_y: Array[float] = []
+	for d in 4:
+		var o := c + LevelGrid.DIRS[d]
+		far_walkable.append(grid.is_walkable(o))
+		far_floor_y.append(grid.floor_y(o))
+	return {
+		&"cell": c, &"rack": true, &"wall_type": LevelGrid.WALL, &"wall_kind": Tuning.GRID_WALL_TYPES[LevelGrid.WALL],
+		&"thickness": Tuning.GRID_CELL_SIZE + Tuning.GRID_WALL_THICKNESS, &"walkable": false,
+		&"far_walkable": far_walkable, &"far_floor_y": far_floor_y,
+	}
 
 
 ## Pools: the edge from walkable floor `c` into deep water, an invisible solid rail from the

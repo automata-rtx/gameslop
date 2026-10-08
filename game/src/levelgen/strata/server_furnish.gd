@@ -133,7 +133,7 @@ func _emergency_boxes() -> void:
 		var group := _group(cells)
 		for c in cells:
 			data.add_placement(LevelData.P_FIXTURE, c,
-				StratumGenerator.wall_offset(side, 0.0) + Vector3(0.0, Tuning.SERVER_EMERGENCY_HEIGHT, 0.0),
+				StratumGenerator.wall_offset(side, Tuning.SERVER_WALL_FIXTURE_INSET) + Vector3(0.0, Tuning.SERVER_EMERGENCY_HEIGHT, 0.0),
 				LevelData.yaw_facing(LevelGrid.opposite(side)), {&"group": group, &"fixture": EMERGENCY, &"dir": side})
 
 
@@ -156,7 +156,7 @@ func _rack_leds() -> void:
 			var along := c.x if gen.rows_along_x() else c.y
 			var face: int = across[posmod(along / spacing, 2)]
 			data.add_placement(LevelData.P_FIXTURE, c,
-				StratumGenerator.wall_offset(face, 0.0) + Vector3(0.0, Tuning.SERVER_LED_HEIGHT, 0.0),
+				StratumGenerator.wall_offset(face, Tuning.SERVER_WALL_FIXTURE_INSET) + Vector3(0.0, Tuning.SERVER_LED_HEIGHT, 0.0),
 				LevelData.yaw_facing(LevelGrid.opposite(face)), {&"group": group, &"fixture": RACK_LED, &"dir": face})
 
 

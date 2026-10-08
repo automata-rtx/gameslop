@@ -12,6 +12,9 @@ const GROUP_PREFIX := "placement_"
 const GROUP_ERROR_SPAWNS := &"error_spawns"
 const META_PLACEMENT := &"placement"
 const PROPS_DIR := "res://scenes/props/%s/%s.tscn"
+## A fixture kind other than the stratum's own (Server: rack_led, exit_light) has its own
+## prefab beside the props (M2.2).
+const FIXTURE_SCENE := "res://scenes/props/%s/fixture_%s.tscn"
 const DOOR_SCENE := "res://scenes/props/shared/door.tscn"
 const HIDE_SPOT_SCENES: Dictionary = {&"locker": "res://scenes/interactables/hide_spot_locker.tscn"}
 
@@ -46,6 +49,8 @@ func scene_paths() -> PackedStringArray:
 		var path := ""
 		if p[&"kind"] == LevelData.P_PROP:
 			path = PROPS_DIR % [stratum.id, params.get(&"prop", &"")]
+		elif p[&"kind"] == LevelData.P_FIXTURE:
+			path = _fixture_path(params)
 		elif p[&"kind"] == LevelData.P_HIDE_SPOT:
 			path = HIDE_SPOT_SCENES.get(params.get(&"kind", &"locker"), "")
 		if path != "" and not out.has(path) and ResourceLoader.exists(path):
@@ -101,24 +106,40 @@ func _marker(p: Dictionary, parent: Node3D) -> Node3D:
 	return m
 
 
+## The prefab for a fixture placement: its kind's own when one exists, else the stratum's.
+func _fixture_path(params: Dictionary) -> String:
+	var kind: StringName = params.get(&"fixture", stratum.fixture_kind)
+	if kind != stratum.fixture_kind:
+		var own := FIXTURE_SCENE % [stratum.id, kind]
+		if ResourceLoader.exists(own):
+			return own
+	return stratum.fixture_prefab_path
+
+
 func _fixture(p: Dictionary, parent: Node3D) -> Node3D:
-	var scene := _scene(stratum.fixture_prefab_path)
+	var params: Dictionary = p[&"params"]
+	var scene := _scene(_fixture_path(params))
 	if scene == null:
 		return null
 	var f := scene.instantiate() as Fixture
 	var c: Vector2i = p[&"cell"]
 	f.name = "Fixture_%d_%d_%d" % [c.x, c.y, parent.get_child_count()]
+	f.light_profile = Fixture.profile_for(params.get(&"fixture", &""))
 	var t := _xform(p)
-	# T2: tubes run along the corridor; rooms keep one orientation.
-	if level.grid.kind(c) == LevelGrid.FLOOR:
+	# T2: tubes run along the corridor; rooms keep one orientation. Wall-mounted fixtures
+	# (params.dir) keep their placement's yaw.
+	if level.grid.kind(c) == LevelGrid.FLOOR and not params.has(&"dir"):
 		var along_x := level.grid.can_step(c, LevelGrid.E) or level.grid.can_step(c, LevelGrid.W)
 		var along_z := level.grid.can_step(c, LevelGrid.N) or level.grid.can_step(c, LevelGrid.S)
 		if along_x and not along_z:
 			t.basis = Basis(Vector3.UP, PI * 0.5)
 	f.transform = t
-	f.group_id = int((p[&"params"] as Dictionary).get(&"group", -1))
+	f.group_id = int(params.get(&"group", -1))
 	parent.add_child(f)
 	pool.register_fixture(f)
+	# 07 §5.4: a dark group starts unpowered; the breaker's power wave lights it.
+	if bool(params.get(&"dark", false)):
+		f.set_powered(false)
 	return f
 
 
