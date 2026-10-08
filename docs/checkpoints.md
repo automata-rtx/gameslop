@@ -37,3 +37,10 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Stubbed:** score, unlocks, settings menu, other strata (depths 2+ are Halls), Echo/Flicker/Null, scares.
 - **Known issues (being fixed now):** Still can get stuck against an open door leaf; an unlit Still is drawn more clearly than it should be; the Director's intensity does not rise for a quiet player; Static looks like dark smoke. See `docs/qa/open_items.md`.
 - **Tester:** optional; same as cp-04.
+
+## cp-06-slice — 2026-10-08
+- **Works:** M1 complete and reviewed (M1.13), plus early M2. The full loop: title (Descent, Daily, Archive, settings with full rebinding), Halls, Pools and Garage levels (1,000 seeds each validate), the player, noclip, the Coherence renderer, HUD, items, Static and Still under the Director (Peak only with a chase, real Relief, a hunter on every level, fair spawns), breaker and exit, Landing, drop, dissolve, summary with score and unlocks, saves in a NOCLIP user folder. `tools/ci/checkpoint.sh` is green: 837 tests with budgets enforced, validator, smoke, Windows and Linux exports, Linux smoke four ways. The feedback bench passes every implemented row; the screenshot tour passes T1/T3/T4 for Halls and Pools.
+- **Stubbed:** Offices, Server, Substrate (depths 4–6 generate as an earlier stratum); Echo, Flicker, Null (Still stands in); Flare, Radio, Fuse, Keycard; scares; music; first-run hints; captions; the ending.
+- **Known issues:** Garage is too dark near the camera (tour T3 fails on Garage poses); Garage sim runs sometimes get the bot stuck; an intermittent worker-thread crash in sim children under heavy load (being root-caused); see `docs/qa/open_items.md`. Not verified without a GPU: frame times, mouse feel, audio by ear, the shortened Still column under door headers.
+- **Builds:** not attached (no GitHub release access in this session). Build from the tag with `tools/ci/export.sh` (needs `tools/godot/fetch.sh --templates`); outputs `build/NOCLIP-1.0.0-{windows,linux}.zip` with checksums.
+- **Tester (optional, 10 minutes):** `docs/qa/human_check_cp-06.md`.
