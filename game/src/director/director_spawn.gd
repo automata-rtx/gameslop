@@ -131,13 +131,17 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 	return out
 
 
-## One cell for `id` from `cells` (not `used`): the native hunter prefers 35% to 65% of
-## the critical path, the others side branches. NO_CELL when none is eligible.
+## One cell for `id` from `cells` (not `used`): Null takes LevelData.null_spawn_cell when
+## it is eligible; the native hunter prefers 35% to 65% of the critical path, the others
+## side branches. NO_CELL when none is eligible.
 static func _pick_one(data: LevelData, id: StringName, native: StringName, cells: Array[Vector2i], off_path: Dictionary,
 		used: Array[Vector2i], spawn_room: Array[Vector3], rng: RandomNumberGenerator) -> Vector2i:
 	var pool := _eligible(cells, used, id, spawn_room)
 	if pool.is_empty():
 		return LevelData.NO_CELL
+	if id == &"null" and pool.has(data.null_spawn_cell):
+		# 07 §5.6: Null's own spawn point, the critical path at 55% (when it is fair now).
+		return data.null_spawn_cell
 	var preferred: Array[Vector2i] = []
 	for c in pool:
 		if id == native and DirectorRules.is_hunter(id):
