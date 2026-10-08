@@ -122,3 +122,24 @@ static func pick_hop(pool: LightPool, group: int, rng: RandomNumberGenerator, ne
 	if hint != Vector3.INF:
 		return by_centroid(pool, ids, hint)
 	return ids[pick]
+
+
+## 10 §4 respawn candidates: habitable groups whose nearest fixture is at least `min_dist`
+## from `player_pos` in XZ, sorted by id. `visible` (Vector3 -> bool) drops groups with a
+## fixture in view (no error spawns in view, 00 §5).
+static func respawn_groups(pool: LightPool, player_pos: Vector3, min_dist: float, visible: Callable = Callable()) -> Array[int]:
+	var out: Array[int] = []
+	if pool == null:
+		return out
+	var ids: Array = pool.group_ids()
+	ids.sort()
+	for id: int in ids:
+		if not habitable(pool, id) or group_distance(pool, id, player_pos) < min_dist:
+			continue
+		var seen := false
+		if visible.is_valid():
+			for f in pool.group(id):
+				seen = seen or bool(visible.call(f.global_position))
+		if not seen:
+			out.append(id)
+	return out
