@@ -860,6 +860,57 @@
    "expect": {"centroid": [300, 3000]}
   },
 
+  "exit_open_door": {
+   "group": "world", "dur": 1.8, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.03, "time": 0.01, "gain_db": 1.0},
+   "norm": {"lufs": -18},
+   "note": "03: exit stairwell door (Garage, M2.9): the push bar's clack, the door closer's hydraulic hiss (noise LP 1.6 kHz 1.2 s), the heavy latch as it stands open, a fixture tink from the stairwell beyond.",
+   "layers": [
+    {"src": "noise", "color": "white", "dur": 0.02, "peak_db": -2, "env": {"type": "exp", "a": 0.0005, "t60": 0.02}, "chain": [{"fx": "bp", "f": 2500, "q": 1.2}, {"fx": "drive", "db": 6}]},
+    {"src": "square", "freq": 180, "dur": 0.03, "peak_db": -8, "env": {"type": "exp", "a": 0.001, "t60": 0.03}, "chain": [{"fx": "lp", "f": 1200}]},
+    {"src": "noise", "color": "white", "at": 0.08, "dur": 1.2, "peak_db": 0, "env": {"type": "adsr", "a": 0.15, "d": 0.3, "s": 0.55, "r": 0.4}, "chain": [{"fx": "lp", "f": 1600, "q": 0.7}, {"fx": "hp", "f": 300}]},
+    {"src": "sine", "freq": [90, 58], "at": 1.3, "dur": 0.2, "peak_db": -1, "env": {"type": "exp", "a": 0.002, "t60": 0.18}},
+    {"src": "noise", "color": "white", "at": 1.3, "dur": 0.03, "peak_db": -5, "env": {"type": "exp", "a": 0.0005, "t60": 0.03}, "chain": [{"fx": "bp", "f": 1600, "q": 1.0}, {"fx": "drive", "db": 6}]},
+    {"src": "sine", "freq": 4000, "at": 1.55, "dur": 0.012, "peak_db": -16, "env": {"type": "exp", "a": 0.0005, "t60": 0.008}}
+   ],
+   "fx": [{"fx": "hp", "f": 35, "track": false}],
+   "expect": {"centroid": [300, 3000]}
+  },
+
+  "exit_open_drain": {
+   "group": "world", "dur": 1.8, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.03, "time": 0.01, "gain_db": 1.0},
+   "norm": {"lufs": -18},
+   "note": "03: exit drain hatch (Pools, M2.9): the grate unlatches with a heavy clank, cold air hisses up the drain (noise LP 1.2 kHz 1.2 s over a low gurgle), the grate lands open, a drip tink in the shaft.",
+   "layers": [
+    {"src": "sine", "freq": [110, 62], "dur": 0.22, "peak_db": -1, "env": {"type": "exp", "a": 0.002, "t60": 0.2}},
+    {"src": "noise", "color": "white", "dur": 0.04, "peak_db": -4, "env": {"type": "exp", "a": 0.0005, "t60": 0.04}, "chain": [{"fx": "bp", "f": 1500, "q": 1.0}, {"fx": "drive", "db": 6}]},
+    {"src": "noise", "color": "pink", "at": 0.1, "dur": 1.2, "peak_db": 0, "env": {"type": "adsr", "a": 0.2, "d": 0.3, "s": 0.6, "r": 0.4}, "chain": [{"fx": "lp", "f": 1200, "q": 0.7}, {"fx": "hp", "f": 200}]},
+    {"src": "sine", "freq": 85, "fm": {"freq": 6, "dev": 18}, "at": 0.2, "dur": 1.0, "peak_db": -12, "env": {"type": "adsr", "a": 0.2, "d": 0.3, "s": 0.5, "r": 0.4}},
+    {"src": "sine", "freq": [80, 52], "at": 1.25, "dur": 0.2, "peak_db": -3, "env": {"type": "exp", "a": 0.002, "t60": 0.18}},
+    {"src": "sine", "freq": [2300, 1900], "at": 1.55, "dur": 0.06, "peak_db": -16, "env": {"type": "exp", "a": 0.001, "t60": 0.05}}
+   ],
+   "fx": [{"fx": "hp", "f": 35, "track": false}, {"fx": "reverb", "room": 0.6, "damp": 0.4, "wet": 0.15}],
+   "expect": {"centroid": [150, 3000]}
+  },
+
+  "exit_open_hatch": {
+   "group": "world", "dur": 1.7, "variants": 3, "lead": 0.002,
+   "jitter": {"pitch": 0.03, "time": 0.01, "gain_db": 1.0},
+   "norm": {"lufs": -18},
+   "note": "03: exit floor hatch (Server, M2.9): the hatch unlatches with a clank and a metal ring, its gas strut hisses it up (noise LP 2.5 kHz 1.0 s), it lands open with a dull thud.",
+   "layers": [
+    {"src": "sine", "freq": [130, 70], "dur": 0.18, "peak_db": -2, "env": {"type": "exp", "a": 0.002, "t60": 0.16}},
+    {"src": "noise", "color": "white", "dur": 0.03, "peak_db": -4, "env": {"type": "exp", "a": 0.0005, "t60": 0.03}, "chain": [{"fx": "bp", "f": 2200, "q": 1.0}, {"fx": "drive", "db": 6}]},
+    {"src": "sine", "freq": 340, "dur": 0.6, "peak_db": -14, "env": {"type": "exp", "a": 0.001, "t60": 0.5}},
+    {"src": "sine", "freq": 873, "dur": 0.4, "peak_db": -18, "env": {"type": "exp", "a": 0.001, "t60": 0.35}},
+    {"src": "noise", "color": "white", "at": 0.12, "dur": 1.0, "peak_db": 0, "env": {"type": "adsr", "a": 0.1, "d": 0.3, "s": 0.5, "r": 0.3}, "chain": [{"fx": "lp", "f": 2500, "q": 0.7}, {"fx": "hp", "f": 350}]},
+    {"src": "sine", "freq": [72, 50], "at": 1.2, "dur": 0.2, "peak_db": -2, "env": {"type": "exp", "a": 0.002, "t60": 0.18}}
+   ],
+   "fx": [{"fx": "hp", "f": 35, "track": false}],
+   "expect": {"centroid": [300, 3000]}
+  },
+
   "exit_latch": {
    "group": "world", "dur": 0.3, "variants": 3, "lead": 0.002,
    "jitter": {"pitch": 0.04, "time": 0.004, "gain_db": 1.0},

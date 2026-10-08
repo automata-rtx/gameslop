@@ -1,0 +1,338 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/interactables/exit.gd" id="1_x"]
+[ext_resource type="Shader" path="res://shaders/world_surface.gdshader" id="2_x"]
+[ext_resource type="Texture2D" path="res://data/materials/noise_albedo.tres" id="3_x"]
+[ext_resource type="Texture2D" path="res://data/materials/noise_normal.tres" id="4_x"]
+[ext_resource type="Material" path="res://data/materials/server/prop_metal.tres" id="5_x"]
+[ext_resource type="Material" path="res://data/materials/server/dark_metal.tres" id="6_x"]
+
+[sub_resource type="BoxMesh" id="Box_1"]
+size = Vector3(1.4, 0.04, 0.1)
+
+[sub_resource type="BoxMesh" id="Box_2"]
+size = Vector3(1.4, 0.04, 0.1)
+
+[sub_resource type="BoxMesh" id="Box_3"]
+size = Vector3(0.1, 0.04, 1.2)
+
+[sub_resource type="BoxMesh" id="Box_4"]
+size = Vector3(0.1, 0.04, 1.2)
+
+[sub_resource type="ShaderMaterial" id="Mat_5"]
+shader = ExtResource("2_x")
+shader_parameter/noise_albedo = ExtResource("3_x")
+shader_parameter/noise_normal = ExtResource("4_x")
+shader_parameter/albedo = Color(0.5412, 0.4157, 0.0627, 1)
+shader_parameter/pattern_mode = 0
+shader_parameter/pattern_scale = 1
+shader_parameter/pattern_detail = 0.01
+shader_parameter/roughness = 0.6
+shader_parameter/metallic = 0
+shader_parameter/emission = Color(0, 0, 0, 1)
+shader_parameter/emission_strength = 0
+shader_parameter/noise_albedo_amount = 0.04
+
+[sub_resource type="BoxMesh" id="Box_6"]
+size = Vector3(1.6, 0.012, 0.1)
+
+[sub_resource type="BoxMesh" id="Box_7"]
+size = Vector3(1.6, 0.012, 0.1)
+
+[sub_resource type="BoxMesh" id="Box_8"]
+size = Vector3(0.1, 0.012, 1.4)
+
+[sub_resource type="BoxMesh" id="Box_9"]
+size = Vector3(0.1, 0.012, 1.4)
+
+[sub_resource type="ShaderMaterial" id="Mat_10"]
+shader = ExtResource("2_x")
+shader_parameter/noise_albedo = ExtResource("3_x")
+shader_parameter/noise_normal = ExtResource("4_x")
+shader_parameter/albedo = Color(0.02, 0.025, 0.03, 1)
+shader_parameter/pattern_mode = 0
+shader_parameter/pattern_scale = 1
+shader_parameter/pattern_detail = 0.01
+shader_parameter/roughness = 0.8
+shader_parameter/metallic = 0
+shader_parameter/emission = Color(0.9176, 0.9412, 1, 1)
+shader_parameter/emission_strength = 0
+shader_parameter/noise_albedo_amount = 0
+
+[sub_resource type="BoxMesh" id="Box_11"]
+size = Vector3(1.2, 0.01, 1.2)
+
+[sub_resource type="BoxMesh" id="Box_12"]
+size = Vector3(0.5, 0.025, 0.03)
+
+[sub_resource type="BoxMesh" id="Box_13"]
+size = Vector3(0.5, 0.025, 0.03)
+
+[sub_resource type="BoxMesh" id="Box_14"]
+size = Vector3(0.5, 0.025, 0.03)
+
+[sub_resource type="ShaderMaterial" id="Mat_15"]
+shader = ExtResource("2_x")
+shader_parameter/noise_albedo = ExtResource("3_x")
+shader_parameter/noise_normal = ExtResource("4_x")
+shader_parameter/albedo = Color(0.01, 0.01, 0.012, 1)
+shader_parameter/pattern_mode = 0
+shader_parameter/pattern_scale = 1
+shader_parameter/pattern_detail = 0.01
+shader_parameter/roughness = 0.9
+shader_parameter/metallic = 0
+shader_parameter/emission = Color(0, 0, 0, 1)
+shader_parameter/emission_strength = 0
+shader_parameter/noise_albedo_amount = 0
+
+[sub_resource type="BoxMesh" id="Box_16"]
+size = Vector3(1.2, 0.012, 0.18)
+
+[sub_resource type="ShaderMaterial" id="Mat_17"]
+shader = ExtResource("2_x")
+shader_parameter/noise_albedo = ExtResource("3_x")
+shader_parameter/noise_normal = ExtResource("4_x")
+shader_parameter/albedo = Color(0.1255, 0.1412, 0.1725, 1)
+shader_parameter/pattern_mode = 0
+shader_parameter/pattern_scale = 1
+shader_parameter/pattern_detail = 0.012
+shader_parameter/roughness = 0.5
+shader_parameter/metallic = 0.45
+shader_parameter/emission = Color(0, 0, 0, 1)
+shader_parameter/emission_strength = 0
+shader_parameter/noise_albedo_amount = 0.1
+
+[sub_resource type="BoxMesh" id="Box_18"]
+size = Vector3(1.2, 0.03, 1.2)
+
+[sub_resource type="BoxMesh" id="Box_19"]
+size = Vector3(0.05, 0.03, 1.1)
+
+[sub_resource type="BoxMesh" id="Box_20"]
+size = Vector3(0.05, 0.03, 1.1)
+
+[sub_resource type="BoxMesh" id="Box_21"]
+size = Vector3(0.05, 0.03, 1.1)
+
+[sub_resource type="BoxMesh" id="Box_22"]
+size = Vector3(0.25, 0.04, 0.04)
+
+[sub_resource type="BoxMesh" id="Box_23"]
+size = Vector3(0.1, 1.6, 0.1)
+
+[sub_resource type="BoxMesh" id="Box_24"]
+size = Vector3(0.24, 0.04, 0.24)
+
+[sub_resource type="BoxMesh" id="Box_25"]
+size = Vector3(0.18, 0.1, 0.18)
+
+[sub_resource type="ShaderMaterial" id="Mat_26"]
+shader = ExtResource("2_x")
+shader_parameter/noise_albedo = ExtResource("3_x")
+shader_parameter/noise_normal = ExtResource("4_x")
+shader_parameter/albedo = Color(0.06, 0.06, 0.06, 1)
+shader_parameter/pattern_mode = 0
+shader_parameter/pattern_scale = 1
+shader_parameter/pattern_detail = 0.01
+shader_parameter/roughness = 0.5
+shader_parameter/metallic = 0
+shader_parameter/emission = Color(0.9176, 0.9412, 1, 1)
+shader_parameter/emission_strength = 0
+shader_parameter/noise_albedo_amount = 0
+
+[sub_resource type="BoxMesh" id="Box_27"]
+size = Vector3(0.14, 0.08, 0.14)
+
+[sub_resource type="BoxShape3D" id="Shape_28"]
+size = Vector3(0.14, 1.6, 0.14)
+
+[sub_resource type="BoxShape3D" id="Shape_29"]
+size = Vector3(1.1, 1.6, 1.1)
+
+[node name="FloorHatch" type="Node3D"]
+script = ExtResource("1_x")
+exit_kind = &"floor_hatch"
+sound_open = &"exit_open_hatch"
+leaf_motion = &"hinge"
+hinge_open_deg = Vector3(105, 0, 0)
+lamp_on = 4.0
+interior_on = 2.5
+button_on = 0.0
+light_on = 0.9
+entry_offset = Vector3(0, -0.35, 0)
+
+[node name="RailN" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.65)
+mesh = SubResource("Box_1")
+material_override = ExtResource("5_x")
+
+[node name="RailS" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.65)
+mesh = SubResource("Box_2")
+material_override = ExtResource("5_x")
+
+[node name="RailW" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.65, 0.02, 0)
+mesh = SubResource("Box_3")
+material_override = ExtResource("5_x")
+
+[node name="RailE" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65, 0.02, 0)
+mesh = SubResource("Box_4")
+material_override = ExtResource("5_x")
+
+[node name="EdgeN" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.006, -0.75)
+mesh = SubResource("Box_6")
+material_override = SubResource("Mat_5")
+cast_shadow = 0
+
+[node name="EdgeS" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.006, 0.75)
+mesh = SubResource("Box_7")
+material_override = SubResource("Mat_5")
+cast_shadow = 0
+
+[node name="EdgeW" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75, 0.006, 0)
+mesh = SubResource("Box_8")
+material_override = SubResource("Mat_5")
+cast_shadow = 0
+
+[node name="EdgeE" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.006, 0)
+mesh = SubResource("Box_9")
+material_override = SubResource("Mat_5")
+cast_shadow = 0
+
+[node name="Interior" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.006, 0)
+mesh = SubResource("Box_11")
+material_override = SubResource("Mat_10")
+cast_shadow = 0
+
+[node name="Rung0" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.018, -0.35)
+mesh = SubResource("Box_12")
+material_override = ExtResource("5_x")
+cast_shadow = 0
+
+[node name="Rung1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.018, 0)
+mesh = SubResource("Box_13")
+material_override = ExtResource("5_x")
+cast_shadow = 0
+
+[node name="Rung2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.018, 0.35)
+mesh = SubResource("Box_14")
+material_override = ExtResource("5_x")
+cast_shadow = 0
+
+[node name="ShaftWallN" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.012, -0.51)
+mesh = SubResource("Box_16")
+material_override = SubResource("Mat_15")
+cast_shadow = 0
+
+[node name="Leaf" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.045, 0.6)
+
+[node name="Plate" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.6)
+mesh = SubResource("Box_18")
+material_override = SubResource("Mat_17")
+
+[node name="Rib0" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, 0.03, -0.6)
+mesh = SubResource("Box_19")
+material_override = ExtResource("5_x")
+
+[node name="Rib1" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -0.6)
+mesh = SubResource("Box_20")
+material_override = ExtResource("5_x")
+
+[node name="Rib2" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.03, -0.6)
+mesh = SubResource("Box_21")
+material_override = ExtResource("5_x")
+
+[node name="Handle" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, -1.12)
+mesh = SubResource("Box_22")
+material_override = ExtResource("5_x")
+
+[node name="Post" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 0.8, 0.06)
+mesh = SubResource("Box_23")
+material_override = ExtResource("6_x")
+
+[node name="PostFoot" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 0.02, 0.06)
+mesh = SubResource("Box_24")
+material_override = ExtResource("6_x")
+
+[node name="LampHousing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 1.64, 0.06)
+mesh = SubResource("Box_25")
+material_override = ExtResource("6_x")
+
+[node name="Lamp" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 1.72, 0.06)
+mesh = SubResource("Box_27")
+material_override = SubResource("Mat_26")
+cast_shadow = 0
+
+[node name="PostBody" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+metadata/wall_kind = &"PROP"
+
+[node name="Shape" type="CollisionShape3D" parent="PostBody"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 0.8, 0.06)
+shape = SubResource("Shape_28")
+
+[node name="Display" type="Label3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 1.47, -0.002)
+visible = false
+pixel_size = 0.0016
+text = "01:10"
+font_size = 56
+outline_size = 0
+modulate = Color(1, 0.690196, 0, 1)
+shaded = false
+double_sided = false
+texture_filter = 1
+
+[node name="ReaderMount" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 0, -0.005)
+
+[node name="Light" type="OmniLight3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+visible = false
+light_color = Color(0.9176, 0.9412, 1, 1)
+light_energy = 0.0
+omni_range = 3.5
+omni_attenuation = 2.0
+shadow_enabled = false
+
+[node name="SightPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+
+[node name="Trigger" type="Area3D" parent="."]
+unique_name_in_owner = true
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="Shape" type="CollisionShape3D" parent="Trigger"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("Shape_29")
