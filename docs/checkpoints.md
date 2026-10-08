@@ -19,3 +19,9 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Stubbed:** no title, run flow, exit, Landing, or death screen yet (direct launch only, without the HUD). No errors or Director. Noclip charge input is a seam only. Items spawn only through the bench and tests, not in levels yet.
 - **Known issues:** see `docs/qa/open_items.md` (camera judder risk without physics interpolation, FSR 2 on Low, commit-frame lines lost under grain, note text wrap).
 - **Tester:** optional. `godot --path game -- --seed 1 --depth 1 --stratum halls`, walk around, F to toggle the light, hold the crank key, F3 for the overlay. Look for: mouse feel, the light pools every 4 m, the hum.
+
+## cp-03-noclip — 2026-10-08
+- **Works:** noclip through walls, soft walls and floors (hold the noclip key): target query with the four invalid reasons (SOLID, TOO FAR, TOO THIN, NO SPACE, including the never-into-a-void rule), 0.35/0.6/2.5 s charge, 5/10/30 Coherence, cancel paths, 80 ms hitstop and the 250 ms pass, floor drop hook. The charge preview is a wireframe disc anchored on the target; the HUD shows the cold arc, readiness ring and reason. The Coherence renderer (two passes) and the world shader respond to everything. 523 tests green.
+- **Stubbed:** floor drop in direct launch respawns at spawn (the run flow takes it over at cp-05). Direct launch has no HUD yet; HUD screenshots come from `noclip_shots.tscn`.
+- **Known issues:** in the commit frame the world lines within 3 m are nearly invisible (being fixed in the world shader); the invalid world preview is faint.
+- **Tester:** optional. Direct launch as at cp-02, hold the noclip key at a wall between two corridors.
