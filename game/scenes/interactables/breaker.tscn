@@ -1,0 +1,73 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://src/interactables/breaker.gd" id="1_breaker"]
+[ext_resource type="Script" path="res://src/interactables/interactable.gd" id="2_interactable"]
+[ext_resource type="Material" path="res://data/materials/halls/prop_metal.tres" id="3_metal"]
+[ext_resource type="Material" path="res://data/materials/halls/prop_black.tres" id="4_black"]
+[ext_resource type="Material" path="res://data/materials/halls/fixture_emissive.tres" id="5_emissive"]
+
+[sub_resource type="BoxMesh" id="Mesh_box"]
+size = Vector3(0.4, 0.6, 0.15)
+
+[sub_resource type="BoxMesh" id="Mesh_slot"]
+size = Vector3(0.06, 0.32, 0.01)
+
+[sub_resource type="BoxMesh" id="Mesh_lever"]
+size = Vector3(0.035, 0.24, 0.035)
+
+[sub_resource type="BoxMesh" id="Mesh_grip"]
+size = Vector3(0.11, 0.04, 0.04)
+
+[sub_resource type="BoxMesh" id="Mesh_lamp"]
+size = Vector3(0.04, 0.04, 0.02)
+
+[sub_resource type="BoxShape3D" id="Shape_box"]
+size = Vector3(0.5, 0.7, 0.3)
+
+[node name="Breaker" type="Node3D"]
+script = ExtResource("1_breaker")
+
+[node name="Box" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, -0.075)
+mesh = SubResource("Mesh_box")
+material_override = ExtResource("3_metal")
+
+[node name="Slot" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.38, -0.153)
+mesh = SubResource("Mesh_slot")
+material_override = ExtResource("4_black")
+
+[node name="Pivot" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.38, -0.17)
+
+[node name="Lever" type="MeshInstance3D" parent="Pivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+mesh = SubResource("Mesh_lever")
+material_override = ExtResource("4_black")
+
+[node name="Grip" type="MeshInstance3D" parent="Pivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.24, 0)
+mesh = SubResource("Mesh_grip")
+material_override = ExtResource("4_black")
+
+[node name="Lamp" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13, 1.62, -0.155)
+mesh = SubResource("Mesh_lamp")
+material_override = ExtResource("5_emissive")
+
+[node name="Body" type="StaticBody3D" parent="."]
+unique_name_in_owner = true
+collision_layer = 9
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, -0.15)
+shape = SubResource("Shape_box")
+
+[node name="Interactable" type="Node" parent="Body"]
+unique_name_in_owner = true
+script = ExtResource("2_interactable")
+prompt = "FLIP BREAKER"
+hold_time = 0.6
