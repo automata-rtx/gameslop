@@ -1,0 +1,149 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Material" path="res://data/materials/pools/prop_chrome.tres" id="1_r"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
+top_radius = 0.022
+bottom_radius = 0.022
+height = 2.9
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_2"]
+top_radius = 0.022
+bottom_radius = 0.022
+height = 0.44
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_3"]
+top_radius = 0.022
+bottom_radius = 0.022
+height = 0.9
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_4"]
+top_radius = 0.022
+bottom_radius = 0.022
+height = 2.9
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_5"]
+top_radius = 0.022
+bottom_radius = 0.022
+height = 0.44
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_6"]
+top_radius = 0.022
+bottom_radius = 0.022
+height = 0.9
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_7"]
+top_radius = 0.018
+bottom_radius = 0.018
+height = 0.5
+radial_segments = 6
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_8"]
+top_radius = 0.018
+bottom_radius = 0.018
+height = 0.5
+radial_segments = 6
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_9"]
+top_radius = 0.018
+bottom_radius = 0.018
+height = 0.5
+radial_segments = 6
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_10"]
+top_radius = 0.018
+bottom_radius = 0.018
+height = 0.5
+radial_segments = 6
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_11"]
+top_radius = 0.018
+bottom_radius = 0.018
+height = 0.5
+radial_segments = 6
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_12"]
+top_radius = 0.018
+bottom_radius = 0.018
+height = 0.5
+radial_segments = 6
+rings = 1
+
+[node name="Ladder" type="Node3D"]
+
+[node name="RailL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, -0.55, -0.1)
+mesh = SubResource("CylinderMesh_1")
+material_override = ExtResource("1_r")
+
+[node name="TopL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -0.25, 0.9, 0.12)
+mesh = SubResource("CylinderMesh_2")
+material_override = ExtResource("1_r")
+
+[node name="DownL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0.45, 0.34)
+mesh = SubResource("CylinderMesh_3")
+material_override = ExtResource("1_r")
+
+[node name="RailR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, -0.55, -0.1)
+mesh = SubResource("CylinderMesh_4")
+material_override = ExtResource("1_r")
+
+[node name="TopR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.25, 0.9, 0.12)
+mesh = SubResource("CylinderMesh_5")
+material_override = ExtResource("1_r")
+
+[node name="DownR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.45, 0.34)
+mesh = SubResource("CylinderMesh_6")
+material_override = ExtResource("1_r")
+
+[node name="Rung1" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, -1.75, -0.1)
+mesh = SubResource("CylinderMesh_7")
+material_override = ExtResource("1_r")
+
+[node name="Rung2" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, -1.45, -0.1)
+mesh = SubResource("CylinderMesh_8")
+material_override = ExtResource("1_r")
+
+[node name="Rung3" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, -1.15, -0.1)
+mesh = SubResource("CylinderMesh_9")
+material_override = ExtResource("1_r")
+
+[node name="Rung4" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, -0.85, -0.1)
+mesh = SubResource("CylinderMesh_10")
+material_override = ExtResource("1_r")
+
+[node name="Rung5" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, -0.55, -0.1)
+mesh = SubResource("CylinderMesh_11")
+material_override = ExtResource("1_r")
+
+[node name="Rung6" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, -0.25, -0.1)
+mesh = SubResource("CylinderMesh_12")
+material_override = ExtResource("1_r")

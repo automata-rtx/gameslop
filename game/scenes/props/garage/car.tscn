@@ -1,0 +1,92 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Material" path="res://data/materials/garage/car_body_0.tres" id="1_r"]
+[ext_resource type="Material" path="res://data/materials/garage/car_glass.tres" id="2_r"]
+[ext_resource type="Material" path="res://data/materials/garage/car_tyre.tres" id="3_r"]
+[ext_resource type="Script" path="res://src/levelgen/props/garage_car.gd" id="4_r"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(1.8, 0.76, 4.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(1.62, 0.54, 2.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(1.64, 0.42, 2)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_4"]
+top_radius = 0.33
+bottom_radius = 0.33
+height = 0.22
+radial_segments = 14
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_5"]
+top_radius = 0.33
+bottom_radius = 0.33
+height = 0.22
+radial_segments = 14
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_6"]
+top_radius = 0.33
+bottom_radius = 0.33
+height = 0.22
+radial_segments = 14
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_7"]
+top_radius = 0.33
+bottom_radius = 0.33
+height = 0.22
+radial_segments = 14
+rings = 1
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
+size = Vector3(1.8, 1.3, 4.2)
+
+[node name="Car" type="Node3D"]
+script = ExtResource("4_r")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.78, 0)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("1_r")
+
+[node name="Cabin" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.43, 0.15)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("1_r")
+
+[node name="Glass" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.43, 0.15)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2_r")
+
+[node name="WheelLF" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, -0.82, 0.33, -1.35)
+mesh = SubResource("CylinderMesh_4")
+material_override = ExtResource("3_r")
+
+[node name="WheelLB" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, -0.82, 0.33, 1.35)
+mesh = SubResource("CylinderMesh_5")
+material_override = ExtResource("3_r")
+
+[node name="WheelRF" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0.82, 0.33, -1.35)
+mesh = SubResource("CylinderMesh_6")
+material_override = ExtResource("3_r")
+
+[node name="WheelRB" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0.82, 0.33, 1.35)
+mesh = SubResource("CylinderMesh_7")
+material_override = ExtResource("3_r")
+
+[node name="Collider" type="StaticBody3D" parent="."]
+
+[node name="Shape1" type="CollisionShape3D" parent="Collider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
+shape = SubResource("BoxShape3D_8")

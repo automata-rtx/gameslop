@@ -28,9 +28,10 @@ func acc(chunk: Vector2i, cls: int, soft: int) -> Dictionary:
 
 ## A grid of quads: corner(u, v) for u in us, v in vs; normal n. Winding is fixed so the
 ## front face is towards n (Godot culls clockwise-from-front back faces). `blue` (optional,
-## Callable(Vector3) -> float) sets the colour's B per vertex.
+## Callable(Vector3) -> float) sets the colour's B per vertex. `nav` false leaves the patch
+## out of the navigation source (ceilings; deep water's floor, 07 §8).
 func patch(a: Dictionary, us: PackedFloat32Array, vs: PackedFloat32Array, corner: Callable,
-		n: Vector3, col: Color, blue: Callable = Callable()) -> void:
+		n: Vector3, col: Color, blue: Callable = Callable(), nav: bool = true) -> void:
 	var v: PackedVector3Array = a[&"v"]
 	var nn: PackedVector3Array = a[&"n"]
 	var cc: PackedColorArray = a[&"c"]
@@ -64,6 +65,8 @@ func patch(a: Dictionary, us: PackedFloat32Array, vs: PackedFloat32Array, corner
 			else:
 				idx.append_array([i00, i10, i01, i10, i11, i01])
 	triangle_count += (vs.size() - 1) * (nu - 1) * 2
+	if not nav:
+		return
 	# Navigation gets one coarse quad per patch.
 	var p11: Vector3 = corner.call(us[nu - 1], vs[vs.size() - 1])
 	var pu: Vector3 = corner.call(us[nu - 1], vs[0])

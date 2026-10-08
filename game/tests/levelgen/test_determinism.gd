@@ -48,3 +48,34 @@ func test_worker_thread_matches_main_thread() -> void:
 
 func _generate_on_worker() -> void:
 	_thread_hash = LevelGenerator.generate(&"halls", 1, 31337).hash_hex()
+
+
+## M2.1: Pools and Garage are byte-deterministic too, on the main thread and a worker.
+func test_pools_and_garage_same_seed_is_byte_identical() -> void:
+	for stratum: StringName in [&"pools", &"garage"]:
+		for s in [1, 2, 77, -5]:
+			var a := LevelGenerator.generate(stratum, 2, s)
+			var b := LevelGenerator.generate(stratum, 2, s)
+			assert_eq(a.to_bytes(), b.to_bytes(), "%s seed %d bytes" % [stratum, s])
+			assert_eq(a.to_ascii(), b.to_ascii(), "%s seed %d ascii" % [stratum, s])
+		var c := LevelGenerator.generate(stratum, 2, 1)
+		var d := LevelGenerator.generate(stratum, 2, 2)
+		assert_ne(c.hash_hex(), d.hash_hex(), "%s: seeds differ" % stratum)
+
+
+var _pools_hash: String = ""
+var _garage_hash: String = ""
+
+
+func test_pools_and_garage_worker_matches_main() -> void:
+	var p := LevelGenerator.generate(&"pools", 3, 4242).hash_hex()
+	var g := LevelGenerator.generate(&"garage", 3, 4242).hash_hex()
+	var task := WorkerThreadPool.add_task(_generate_strata_on_worker)
+	WorkerThreadPool.wait_for_task_completion(task)
+	assert_eq(_pools_hash, p)
+	assert_eq(_garage_hash, g)
+
+
+func _generate_strata_on_worker() -> void:
+	_pools_hash = LevelGenerator.generate(&"pools", 3, 4242).hash_hex()
+	_garage_hash = LevelGenerator.generate(&"garage", 3, 4242).hash_hex()
