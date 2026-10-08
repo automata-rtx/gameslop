@@ -56,9 +56,9 @@ func test_pending_rows_are_the_unbuilt_features_only() -> void:
 	for r in _results:
 		if r[&"status"] == FeedbackRows.PENDING:
 			ids.append(r[&"id"])
-	for id in [&"null_radius", &"null_core", &"threshold"]:
+	for id in [&"threshold"]:
 		assert_contains(ids, id)
-	assert_eq(ids.size(), 3)
+	assert_eq(ids.size(), 1)
 
 
 ## The sparse rows stay as sparse as the table: they are held to their own count, not lowered.

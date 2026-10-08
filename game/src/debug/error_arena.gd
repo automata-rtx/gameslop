@@ -4,7 +4,8 @@ extends Node3D
 ## a light toggle, an aggression slider and the state log. Used to tune errors and to
 ## capture their signature frames (02 §13).
 ##   Keys: 1 spawn Static, 2 spawn Still, 3 spawn Echo, 4 spawn Flicker (in the lit group
-##   nearest ahead of the player), L fixtures on/off, K remove every error,
+##   nearest ahead of the player), 5 spawn Null awake (its Pursuit; at the level's Null spawn
+##   cell when >= 20 m away), L fixtures on/off, K remove every error,
 ##   H hint every error away at once (10 §2 Relief: hint(pos, true)).
 ##   F (the player's own flashlight) toggles the beam.
 ## The log shows the errors' script time per physics frame (ErrorTiming.MONITOR, also in the
@@ -14,7 +15,9 @@ extends Node3D
 ##                      and quit. With `--stratum pools` the arena is a Pools level and the
 ##                      shots are echo_4m_pools only; with `--stratum offices` they are
 ##                      Flicker's: flicker_stutter_a/_b (a stuttering group), flicker_lunge_flash,
-##                      flicker_lunge_dark, flicker_attached_on/_off (the stuttering beam).
+##                      flicker_lunge_dark, flicker_attached_on/_off (the stuttering beam);
+##                      with `--stratum substrate` (a depth-6 level) they are Null's: null_20m,
+##                      null_8m (the unrender), null_core (ArenaNullShots).
 ##   -- --stratum <id>  the arena's stratum (default halls).
 ## Errors spawn the Director's way: an `error_spawns` marker >= 20 m away and outside the
 ## camera frustum (08 §2), else the farthest walkable cell.
@@ -55,7 +58,8 @@ func _arg(key: String) -> String:
 
 
 func _build() -> void:
-	data = LevelGenerator.generate(_stratum, 1, ARENA_SEED)
+	# The Substrate exists only at depth 6 (Null's radius and Cycle read the level's depth).
+	data = LevelGenerator.generate(_stratum, 6 if _stratum == Tuning.STRATUM_SUBSTRATE else 1, ARENA_SEED)
 	level = (load(LEVEL_SCENE) as PackedScene).instantiate() as Level
 	add_child(level)
 	level.begin(data)
@@ -77,7 +81,7 @@ func spawn(id: StringName, at: Vector3 = Vector3.INF) -> ErrorBase:
 	e.setup(player, level, Seeds.derive(data.level_seed, ErrorBase.seed_label(id, _spawned)))
 	_spawned += 1
 	level.add_child(e)
-	var pos := at if at != Vector3.INF else _spawn_point()
+	var pos := at if at != Vector3.INF else _spawn_point(id)
 	if e is ErrorStill:
 		(e as ErrorStill).place_at(pos)
 	elif e is ErrorEcho:
@@ -94,7 +98,9 @@ func spawn(id: StringName, at: Vector3 = Vector3.INF) -> ErrorBase:
 	return e
 
 
-func _spawn_point() -> Vector3:
+func _spawn_point(id: StringName = &"") -> Vector3:
+	if id == &"null" and DirectorSpawn.null_cell_ok(data, player.global_position, []):
+		return data.grid.world_of(data.null_spawn_cell)
 	var cam := player.rig.camera
 	var best := player.global_position
 	var best_d := -1.0
@@ -153,6 +159,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			spawn(&"echo").wake()
 		KEY_4:
 			spawn(&"flicker").wake()
+		KEY_5:
+			spawn(&"null").wake()
 		KEY_L:
 			set_lights(not _lights_on)
 		KEY_K:
@@ -171,7 +179,7 @@ func _build_ui() -> void:
 	box.position = Vector2(16, 120)
 	layer.add_child(box)
 	for spec: Array in [["SPAWN STATIC [1]", &"static"], ["SPAWN STILL [2]", &"still"],
-			["SPAWN ECHO [3]", &"echo"], ["SPAWN FLICKER [4]", &"flicker"]]:
+			["SPAWN ECHO [3]", &"echo"], ["SPAWN FLICKER [4]", &"flicker"], ["SPAWN NULL [5]", &"null"]]:
 		var b := Button.new()
 		b.text = spec[0]
 		b.focus_mode = Control.FOCUS_NONE
@@ -223,9 +231,9 @@ func _refresh_log() -> void:
 	if _log == null:
 		return
 	var lines: PackedStringArray = ["AGGRESSION %.2f" % aggression,
-		"ERRORS %.3f MS (STATIC %.3f, STILL %.3f, ECHO %.3f, FLICKER %.3f)" % [ErrorTiming.errors_ms(),
+		"ERRORS %.3f MS (STATIC %.3f, STILL %.3f, ECHO %.3f, FLICKER %.3f, NULL %.3f)" % [ErrorTiming.errors_ms(),
 			ErrorTiming.error_ms(&"static"), ErrorTiming.error_ms(&"still"), ErrorTiming.error_ms(&"echo"),
-			ErrorTiming.error_ms(&"flicker")]]
+			ErrorTiming.error_ms(&"flicker"), ErrorTiming.error_ms(&"null")]]
 	for e in errors:
 		if is_instance_valid(e):
 			lines.append_array(e.log_lines)
@@ -269,6 +277,10 @@ func _capture_all(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(abs_dir)
 	if _stratum == &"offices":
 		await ArenaFlickerShots.capture(self, abs_dir)
+		print("error_arena: shots in ", abs_dir)
+		return
+	if _stratum == Tuning.STRATUM_SUBSTRATE:
+		await ArenaNullShots.capture(self, abs_dir)
 		print("error_arena: shots in ", abs_dir)
 		return
 	if _stratum != &"halls":

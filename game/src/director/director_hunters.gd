@@ -73,7 +73,7 @@ func _grid() -> LevelGrid:
 # --- spawning (10 §4) -------------------------------------------------------------------------
 
 ## Spawns every spawnable roster id Dormant at a distinct fair cell. Ids without a scene yet
-## are recorded in `director.skipped` (TODO(M2.5, M2.6): Flicker, Null).
+## are recorded in `director.skipped` (none since M2.6).
 func spawn_roster(roster: Array[StringName]) -> void:
 	var d := director
 	var ids: Array[StringName] = []
@@ -273,7 +273,7 @@ func act(a: StringName) -> void:
 						st.hint(_grid().world_of(c))
 
 
-## 10 §2 Pursuit entry (after the Substrate's Calm): Null wakes (guarded calls until M2.6).
+## 10 §2 Pursuit entry (after the Substrate's Calm): Null wakes through `ErrorNull.pursue()`.
 func wake_null() -> int:
 	var n := 0
 	for h in _hunters():

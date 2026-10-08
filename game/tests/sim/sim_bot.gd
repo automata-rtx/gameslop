@@ -163,6 +163,8 @@ var _chased_since: Dictionary = {}
 ## it is fetching.
 var _decisions: Array = []
 var items := SimBotItems.new()
+## The Null counter and its numbers (M2.6).
+var nul := SimBotNull.new()
 var _pickup: ItemPickup = null
 var _echo_still: float = 0.0
 ## The light went off for Flicker (back on when clear); where the bot leaves a lit area to.
@@ -201,10 +203,13 @@ func play(run_seed: int) -> Dictionary:
 	result[&"nav_wait_s"] = snappedf(await _wait_navigation(), 0.1)
 	_plan_profile()
 	items.bot = self
+	nul.bot = self
 	var on_item := func(kind: StringName) -> void: _decide("item:%s" % kind)
 	var on_noclip := func(_k: StringName, _a: Vector3, _b: Vector3) -> void: _decide("noclip")
 	EventBus.item_used.connect(on_item)
 	run.player.noclip_committed.connect(on_noclip)
+	var cause: Array[String] = [""]
+	run.player.dissolved.connect(func(c: StringName) -> void: cause[0] = String(c))
 	var max_i := 0.0
 	var outcome := &"timeout"
 	while _t < max_seconds:
@@ -212,6 +217,7 @@ func play(run_seed: int) -> Dictionary:
 		var dt := tree.root.get_physics_process_delta_time() * Engine.time_scale
 		_t += dt
 		_watch_errors()
+		nul.tick(_t, dt)
 		max_i = maxf(max_i, director.intensity)
 		_watch_peaks()
 		if run.phase == Run.PHASE_DISSOLVING or run.phase == Run.PHASE_ENDED:
@@ -243,6 +249,8 @@ func play(run_seed: int) -> Dictionary:
 	if is_instance_valid(run.player) and run.player.noclip_committed.is_connected(on_noclip):
 		run.player.noclip_committed.disconnect(on_noclip)
 	_scare_results(result)
+	nul.results(result)
+	result[&"cause"] = cause[0]
 	result[&"outcome"] = outcome
 	result[&"time_s"] = snappedf(_t, 0.1)
 	result[&"contacts"] = director.contacts
@@ -540,6 +548,15 @@ func _think(dt: float) -> void:
 	if items.busy():
 		_halt()
 		return
+	if profile != PROFILE_DIRECT and nul.pursuing():
+		# Null's counter (08 §7): straight for the Threshold, never stopping, sprinting
+		# inside its radius; _plan_path routes around it when the maze allows.
+		_targets.clear()
+		if _cranking:
+			_cranking = false
+			Input.action_release(&"crank")
+		_follow(_goal_now(), dt, nul.near(SimBotNull.PRESS))
+		return
 	if profile != PROFILE_DIRECT and _flicker_counter(dt):
 		return
 	match profile:
@@ -762,14 +779,15 @@ func _follow(goal: Vector3, dt: float, sprint: bool, look: Vector3 = Vector3.ZER
 	_sidestep_left -= dt
 	if goal != _goal or (_repath_left <= 0.0 and not in_doorway and _sidestep_left <= 0.0) or _waypoints.is_empty():
 		_goal = goal
-		_repath_left = REPATH_INTERVAL
+		_repath_left = SimBotNull.REPATH if profile != PROFILE_DIRECT and nul.pursuing() else REPATH_INTERVAL
 		_plan_path(goal)
 	while not _waypoints.is_empty() and DirectorSpawn.flat_dist(p.global_position, _waypoints[0]) \
 			< (TIGHT_DIST if _tight[0] else ARRIVE_DIST):
 		_prev_wp = _waypoints[0]
 		_waypoints.remove_at(0)
 		_tight.remove_at(0)
-	if not _waypoints.is_empty() and _field_cells.has(grid.cell_of(_waypoints[0])) and not _in_static():
+	if not _waypoints.is_empty() and _field_cells.has(grid.cell_of(_waypoints[0])) and not _in_static() \
+			and not nul.near(SimBotNull.PRESS):
 		_field_wait += dt
 		_halt()
 		return
@@ -816,7 +834,11 @@ func _plan_path(goal: Vector3) -> void:
 		# Static's counter is to go around (08 §3): take a detour when one exists, else
 		# wait outside the field for it to drift (_follow).
 		var fields := _static_cells()
-		var around := _path_avoiding(prev, grid.cell_of(goal), fields)
+		var both := fields.duplicate()
+		both.merge(nul.cells(grid))
+		var around := _path_avoiding(prev, grid.cell_of(goal), both)
+		if around.is_empty() and both.size() != fields.size():
+			around = _path_avoiding(prev, grid.cell_of(goal), fields)
 		if not around.is_empty():
 			cells = around
 		else:

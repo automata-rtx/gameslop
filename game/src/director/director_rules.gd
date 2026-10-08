@@ -81,7 +81,8 @@ static func roster(depth: int, stratum: StringName, first_descent: bool, met: Ar
 		# 05 §10: from the second Descent on, a dormant Still or Echo at 0.2.
 		out.append(MET_HUNTER_CHOICES[rng.randi_range(0, MET_HUNTER_CHOICES.size() - 1)])
 	var native := native_for(stratum, met, rng)
-	if spec.has(&"native") and native != &"":
+	# Null is never a native slot: it comes only from the depth-6 row (05 §3).
+	if spec.has(&"native") and native != &"" and native != &"null":
 		out.append(native)
 	if spec.has(&"met_hunter"):
 		out.append(met_hunter(native, met, rng))
@@ -120,7 +121,7 @@ static func met_hunter(native: StringName, met: Array, rng: RandomNumberGenerato
 	return pool[rng.randi_range(0, pool.size() - 1)]
 
 
-## An id is spawned when it has a scene (ErrorBase.SCENES); Null arrives with M2.6.
+## An id is spawned when it has a scene (ErrorBase.SCENES); since M2.6 all five have one.
 static func spawnable(id: StringName) -> bool:
 	return ErrorBase.SCENES.has(id)
 

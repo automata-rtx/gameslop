@@ -172,6 +172,35 @@ func echo_4m(b: FeedbackBench) -> void:
 	free_error(e)
 
 
+## 11 §3 Null radius: a Dormant Null 8 m ahead is woken (its Pursuit) with the player inside
+## its 12 m radius: the world unrenders around it, the grid tone rises, the 0.004 m jitter.
+func null_radius(b: FeedbackBench) -> void:
+	await b.pose_sightline()
+	var e := spawn_error(b, &"null", ahead(b, 8.0)) as ErrorNull
+	await b.arm()
+	b.anchor()
+	e.pursue()
+	await b.ticks(12)
+	free_error(e)
+
+
+## 11 §3 Null core: an awake Null 9 m ahead is placed on the player (the placement stands
+## in for its walk): black with the halo, everything muted but the grid tone, the 0.01 m
+## jitter, and the drain of 12 per second on the Coherence readout.
+func null_core(b: FeedbackBench) -> void:
+	await b.pose_sightline()
+	b.set_coherence(90.0)
+	var p := b.player()
+	var e := spawn_error(b, &"null", ahead(b, 9.0)) as ErrorNull
+	e.pursue()
+	await b.ticks(12)
+	await b.arm()
+	b.anchor()
+	e.global_position = p.global_position
+	await b.ticks(20)
+	free_error(e)
+
+
 ## 11 §3 Flicker lunge: the player stands under a lit fixture group with Flicker in it; at
 ## charge 1 the group flashes white 2 frames then goes dark 1.5 s, the World bus falls
 ## silent, and the contact lands (trauma, Coherence).

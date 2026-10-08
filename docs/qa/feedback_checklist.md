@@ -44,8 +44,8 @@ $GODOT_BIN --headless --path game res://scenes/debug/feedback_bench.tscn -- --au
 | Still observed 2 s | 11 §3 | x | x | - | x* | ok 3/2 | I still.ticks; S play.still_tick; R Crank.charge |
 | Flicker lunge | 11 §3 | x | x | x | x | ok 4/3 | I fixtures.flash; S play.flicker_lunge; M cam.offset; R Coherence.value |
 | Echo at 4 m | 11 §3 | x | x | - | no | GAP: Echo's footsteps emit EventBus.audio_cue ([footsteps, {dir}, late]) but no HUD subscribes until the captions task (M2.12) | I echo.presence; S play.echo_breath |
-| Null radius | 11 §3 | pending | pending | pending | - | pending: Null lands with M2.6 |  |
-| Null core | 11 §3 | pending | pending | pending | pending | pending: Null lands with M2.6 |  |
+| Null radius | 11 §3 | x | x | x | - | ok 3/3 | I cr.null_radius; S gen.null_tone; M rig.jitter |
+| Null core | 11 §3 | x | x | x | x | ok 4/3 | I cr.null_core; S gen.null_core; M rig.jitter; R Coherence.value |
 | Exit seen | 11 §3 | x | x | - | x | ok 3/3 | I exit.lamp; S play.exit_latch; R Depth.status |
 | Breaker thrown by player | 11 §3 | x | x | x | x | ok 4/3 | I x.lever; S play.breaker_lever; M cam.offset; R Prompt.raw_text |
 | Exit unlocked | 11 §3 | x | x | - | x | ok 3/3 | I exit.lamp; S play.exit_latch; R Depth.status |
@@ -64,5 +64,5 @@ $GODOT_BIN --headless --path game res://scenes/debug/feedback_bench.tscn -- --au
 - **Gaps (pinned in `feedback_rows.gd`, the test fails when one closes so the row is promoted):** Unlock earned has no sound (`ui_unlock` is never played); Still within 8 m has no `[silence]` caption on screen (the HUD does not subscribe to `audio_cue` yet, M2.12).
 - **Late or missing channels on rows that still pass:** Leave hide spot lifts the view mask at the end of the 0.6 s slide, not at its start; Enter exit shows `DESCENDING` at the end of the 0.6 s tween; Arrival (proper) plays the door sound about 1 s before `level_entered` and the depth label; Polaroid's count and Coherence arrive at 1.2 s by design; Interact press's 0.2 degree nod lands a few ticks late; Arrival (drop)'s trauma is sometimes absorbed by the noise filter after a long fall (it fired in earlier runs).
 - **Contract nits:** Crouch / Stand list two channels (Sound, Motion), below 11 §1's three, and are not in the CHANGELOG exceptions; Interact hold lists the prompt underline (Image) and the fill bar (Readout), which are one widget, so both channels read it. The walk step's dust stir is a TODO(M2); its Image channel today is the held flashlight and item bob.
-- **Pending:** Flare, Radio, Echo, Null radius and core, Threshold crossed.
+- **Pending:** Flare, Radio, Echo, Threshold crossed. (Null radius and core filled by the M2.6 bench run, 2026-10-08.)
 - Rows run in one Descent: the level rows first, then the drop (Noclip commit floor, Arrival drop), then Enter exit, Landing, Arrival proper, and the Dissolve last.

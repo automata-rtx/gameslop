@@ -114,6 +114,10 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 					in_band.append(c)
 			if not in_band.is_empty():
 				cell = in_band[rng.randi_range(0, in_band.size() - 1)]
+		if id == &"null" and null_cell_ok(data, player_pos, used):
+			# 07 §5.6: Null's own point, 55% along the critical path, >= 20 m from the player.
+			# It draws nothing while Dormant, so the view cone does not apply (07 wins, 00 §8).
+			cell = data.null_spawn_cell
 		if cell == LevelData.NO_CELL:
 			cell = _pick_one(data, id, native, markers, off_path, used, spawn_room, rng)
 		if cell == LevelData.NO_CELL and not fallback_done:
@@ -129,6 +133,15 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 		if cell != LevelData.NO_CELL:
 			used.append(cell)
 	return out
+
+
+## 07 §5.6: LevelData.null_spawn_cell exists, is walkable, unused and >= 20 m (XZ) from
+## the player.
+static func null_cell_ok(data: LevelData, player_pos: Vector3, used: Array[Vector2i]) -> bool:
+	var c := data.null_spawn_cell
+	if c == LevelData.NO_CELL or used.has(c) or not data.grid.in_bounds(c) or not data.grid.is_walkable(c):
+		return false
+	return flat_dist(data.grid.world_of(c), player_pos) >= Tuning.NULL_SPAWN_MIN_DIST
 
 
 ## One cell for `id` from `cells` (not `used`): the native hunter prefers 35% to 65% of

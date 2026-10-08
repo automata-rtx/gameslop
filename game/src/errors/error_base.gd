@@ -26,6 +26,7 @@ const SCENES: Dictionary = {
 	&"still": "res://scenes/errors/still.tscn",
 	&"echo": "res://scenes/errors/echo.tscn",
 	&"flicker": "res://scenes/errors/flicker.tscn",
+	&"null": "res://scenes/errors/null.tscn",
 }
 
 @export var error_id: StringName = &""
