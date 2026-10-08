@@ -82,6 +82,8 @@ const LINGER_DEAD_ENDS := 3
 const LINGER_MAX_S := 360.0
 const ECHO_STILL_MAX := 15.0
 const SCARE_CONTACT_WINDOW := 5.0
+const SIDESTEP := 1.0
+const SIDESTEP_HOLD := 3.0
 const FLICKER_DARK_DIST := 12.0
 const FLICKER_CLEAR_DIST := 18.0
 const SPRINT_BURST_EVERY := 25.0
@@ -166,6 +168,8 @@ var _echo_still: float = 0.0
 ## The light went off for Flicker (back on when clear); where the bot leaves a lit area to.
 var _dark_for_flicker: bool = false
 var _flicker_goal: Vector3 = Vector3.INF
+## Seconds the inserted step-around waypoints are kept (no periodic repath meanwhile).
+var _sidestep_left: float = 0.0
 
 
 ## Plays `run_seed` at `depth` (first Descent off, so depth 1 carries a hunter).
@@ -755,7 +759,8 @@ func _follow(goal: Vector3, dt: float, sprint: bool, look: Vector3 = Vector3.ZER
 	_repath_left -= dt
 	# No periodic repath inside a doorway: the cell under the body flips at the edge.
 	var in_doorway := not _tight.is_empty() and _tight[0]
-	if goal != _goal or (_repath_left <= 0.0 and not in_doorway) or _waypoints.is_empty():
+	_sidestep_left -= dt
+	if goal != _goal or (_repath_left <= 0.0 and not in_doorway and _sidestep_left <= 0.0) or _waypoints.is_empty():
 		_goal = goal
 		_repath_left = REPATH_INTERVAL
 		_plan_path(goal)
@@ -967,8 +972,23 @@ func _check_stuck(dt: float) -> void:
 		_open_doors_in_reach()
 		_stuck_events += 1
 		_stuck_time += STUCK_WINDOW
-		_clear_path()
-		if _stuck_events % 2 == 1:
+		if not _waypoints.is_empty() and not _tight[0]:
+			# On open floor something the grid does not hold (a pillar, a car's corner) is in
+			# the way: step around it, alternating sides (M2.7).
+			var to := _waypoints[0] - p.global_position
+			var dir := Vector3(to.x, 0.0, to.z).normalized()
+			var side := dir.cross(Vector3.UP) * _wiggle_side * SIDESTEP
+			_wiggle_side = -_wiggle_side
+			_waypoints.insert(0, p.global_position + side + dir * SIDESTEP * 1.3)
+			_tight.insert(0, false)
+			_waypoints.insert(0, p.global_position + side - dir * 0.2)
+			_tight.insert(0, false)
+			_sidestep_left = SIDESTEP_HOLD
+		else:
+			_clear_path()
+		if _sidestep_left > 0.0:
+			pass
+		elif _stuck_events % 2 == 1:
 			_backoff_left = BACKOFF_TIME
 		else:
 			_wiggle_left = WIGGLE_TIME
