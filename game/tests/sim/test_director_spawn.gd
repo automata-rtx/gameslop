@@ -33,6 +33,10 @@ func test_spawn_fairness_over_many_halls_seeds() -> void:
 			assert_eq(cells.size(), roster.size())
 			var walk := g.distance_field(cell)
 			var spawn_room := DirectorSpawn._spawn_room_cells(data)
+			var fair := DirectorSpawn._fallback_cells(g, pos, eye, fwd, half, walk)
+			for p in data.placements_of(LevelData.P_ERROR_SPAWN):
+				if DirectorSpawn.spawn_ok(g, p[&"cell"], pos, eye, fwd, half, walk) and not fair.has(p[&"cell"]):
+					fair.append(p[&"cell"])
 			var seen: Dictionary = {}
 			for i in cells.size():
 				var c := cells[i]
@@ -40,6 +44,13 @@ func test_spawn_fairness_over_many_halls_seeds() -> void:
 					missing += 1
 					continue
 				picked += 1
+				var before: Array[Vector2i] = cells.slice(0, i)
+				if roster[i] == &"static" and DirectorSpawn._eligible(fair, before, &"static", spawn_room).is_empty():
+					# No fair cell left: Static's last resort, the farthest legal cell (M1.13).
+					assert_eq(c, DirectorSpawn.farthest_cell(g, before, pos, eye, fwd, half, walk),
+						"seed %d pose %d: Static at the farthest legal cell" % [s, pose])
+					seen[c] = true
+					continue
 				var p := g.world_of(c)
 				var probe := p + Vector3.UP * Tuning.DIRECTOR_SPAWN_EYE_HEIGHT
 				var ctx := "seed %d pose %d %s at %s" % [s, pose, roster[i], c]
@@ -131,3 +142,131 @@ func test_static_cut_test() -> void:
 	assert_ne(off, LevelData.NO_CELL, "an off-path cell on the loop")
 	if off != LevelData.NO_CELL:
 		assert_eq(off.y, 5)
+
+
+func _spawn_pose(data: LevelData) -> Array:
+	var pos := data.grid.world_of(data.spawn_cell)
+	return [pos, pos + Vector3.UP * Tuning.PLAYER_CAMERA_HEIGHT, _forward(LevelData.yaw_facing(data.spawn_dir))]
+
+
+## M1.13 ruling: every depth-2 level of a run (its stratum from the run seed, generated as
+## the run does) spawns a hunter (an unbuilt native becomes Still) and a Static, from the
+## player's arrival pose.
+func test_every_depth_2_level_has_a_hunter_and_a_static() -> void:
+	var half := DirectorSpawn.half_fov_h(FOV, ASPECT)
+	for s in range(1, 21):
+		var stratum: StringName = GameState.strata_order_for(s)[1]
+		var build := stratum if LevelGenerator.supports(stratum) else Tuning.STRATUM_DEPTH1
+		var data := LevelGenerator.generate(build, 2, s)
+		var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_DIRECTOR))
+		var design := DirectorRules.roster(2, stratum, false, [], rng)
+		var native := DirectorRules.native_for(stratum, [], rng)
+		var sub := DirectorRules.substitute_unbuilt_native(design, native)
+		var ids: Array[StringName] = []
+		for id: StringName in sub[&"roster"]:
+			if DirectorRules.spawnable(id):
+				ids.append(id)
+		var pose := _spawn_pose(data)
+		var cells := DirectorSpawn.pick_cells(data, ids, sub[&"native"], pose[0], pose[1], pose[2], half, rng)
+		var hunter := false
+		var static_ok := false
+		for i in ids.size():
+			if cells[i] == LevelData.NO_CELL:
+				continue
+			hunter = hunter or DirectorRules.is_hunter(ids[i])
+			static_ok = static_ok or ids[i] == &"static"
+		assert_true(hunter, "seed %d (%s): a hunter spawns (%s)" % [s, stratum, ids])
+		assert_true(static_ok, "seed %d (%s): a Static spawns" % [s, stratum])
+
+
+## M1.13 ruling: with no fair cell left, Static takes the farthest legal cell (≥ 20 m and out
+## of view when one exists), else the farthest cell; it always spawns.
+func test_static_always_spawns_at_the_farthest_legal_cell() -> void:
+	var data := LevelGenerator.generate(&"halls", 1, 11)
+	var g := data.grid
+	var pose := _spawn_pose(data)
+	var half := DirectorSpawn.half_fov_h(FOV, ASPECT)
+	var walk := g.distance_field(data.spawn_cell)
+	var none: Array[Vector2i] = []
+	var c := DirectorSpawn.farthest_cell(g, none, pose[0], pose[1], pose[2], half, walk)
+	assert_ne(c, LevelData.NO_CELL)
+	assert_true(DirectorSpawn.spawn_ok(g, c, pose[0], pose[1], pose[2], half, walk), "a fair cell when one exists")
+	var best := -1
+	for i in g.cell_count():
+		var o := g.cell_at(i)
+		if DirectorSpawn.spawn_ok(g, o, pose[0], pose[1], pose[2], half, walk):
+			best = maxi(best, walk[g.idx(o)])
+	assert_eq(walk[g.idx(c)], best, "the farthest walking among the legal cells")
+	# Every legal cell used: still a cell (the farthest of the rest), never NO_CELL.
+	var used: Array[Vector2i] = []
+	for i in g.cell_count():
+		var o := g.cell_at(i)
+		if DirectorSpawn.spawn_ok(g, o, pose[0], pose[1], pose[2], half, walk):
+			used.append(o)
+	var last := DirectorSpawn.farthest_cell(g, used, pose[0], pose[1], pose[2], half, walk)
+	assert_ne(last, LevelData.NO_CELL, "Static always spawns")
+	assert_false(used.has(last))
+	# Through pick_cells: a roster of more Statics than fair cells still places every one.
+	var tiny := LevelGrid.new(Vector2i(4, 1))
+	for x in 4:
+		tiny.set_kind(Vector2i(x, 0), LevelGrid.FLOOR)
+	for x in 3:
+		tiny.set_wall(Vector2i(x, 0), LevelGrid.E, LevelGrid.NONE)
+	tiny.finalize_walls()
+	var td := LevelData.new()
+	td.grid = tiny
+	td.spawn_cell = Vector2i(0, 0)
+	var roster: Array[StringName] = [&"static", &"still"]
+	var p0 := tiny.world_of(Vector2i(0, 0))
+	var picked := DirectorSpawn.pick_cells(td, roster, &"still", p0, p0 + Vector3.UP * 1.6, Vector3.FORWARD, half, make_rng(1))
+	assert_eq(picked[0], Vector2i(3, 0), "no fair cell on an 8 m strip: Static at the farthest cell")
+	assert_eq(picked[1], LevelData.NO_CELL, "a hunter is never forced (the rule is Static's)")
+
+
+## M1.13 ruling (05 §10): on the first Descent the first Static spawns between the breaker
+## and the exit, within 6 m of that stretch of the critical path, still at a fair cell.
+func test_first_descent_static_between_breaker_and_exit() -> void:
+	var half := DirectorSpawn.half_fov_h(FOV, ASPECT)
+	var placed := 0
+	var levels := 0
+	var fair_levels := 0
+	for s in range(1, 13):
+		var data := LevelGenerator.generate(&"halls", 1, s, true)
+		var band := DirectorSpawn.breaker_exit_band(data)
+		if data.breaker_cell == LevelData.NO_CELL:
+			continue
+		levels += 1
+		assert_false(band.is_empty(), "seed %d: a band between the breaker and the exit" % s)
+		var g := data.grid
+		var bi := roundi(DirectorSpawn.path_fraction(data.critical_path, data.breaker_cell) * (data.critical_path.size() - 1))
+		var before: Array[Vector2i] = data.critical_path.slice(0, maxi(bi - 3, 0))
+		for c: Vector2i in band:
+			assert_false(g.has_flag(c, LevelGrid.F_EXIT_ROOM) or g.has_flag(c, LevelGrid.F_SPAWN_ROOM), "no room cell in the band")
+		for c: Vector2i in before:
+			if g.has_flag(c, LevelGrid.F_SPAWN_ROOM):
+				continue
+			var near_after := false
+			for i in range(bi, data.critical_path.size()):
+				if not g.has_flag(data.critical_path[i], LevelGrid.F_EXIT_ROOM):
+					near_after = near_after or Vector2(data.critical_path[i] - c).length() * Tuning.GRID_CELL_SIZE <= Tuning.DIRECTOR_FD_STATIC_PATH_BAND
+			assert_eq(band.has(c), near_after, "seed %d: path cell %s before the breaker is in the band only near the stretch" % [s, c])
+		var pose := _spawn_pose(data)
+		var roster: Array[StringName] = [&"static"]
+		var c := DirectorSpawn.pick_cells(data, roster, &"", pose[0], pose[1], pose[2], half, make_rng(s), band)[0]
+		assert_ne(c, LevelData.NO_CELL, "seed %d: Static spawns" % s)
+		var walk := g.distance_field(data.spawn_cell)
+		var spawn_room := DirectorSpawn._spawn_room_cells(data)
+		var fair_in_band := false
+		for b: Vector2i in band:
+			fair_in_band = fair_in_band or (DirectorSpawn.spawn_ok(g, b, pose[0], pose[1], pose[2], half, walk)
+				and not DirectorSpawn._near_any(b, spawn_room, Tuning.STATIC_SPAWN_MIN_FROM_SPAWN_ROOM))
+		if not fair_in_band:
+			print("  # seed %d: no fair cell between the breaker and the exit" % s)
+			continue
+		fair_levels += 1
+		if band.has(c):
+			placed += 1
+			assert_true(DirectorSpawn.spawn_ok(g, c, pose[0], pose[1], pose[2], half, walk), "seed %d: still a fair cell" % s)
+	assert_gt(levels, 8, "first-Descent levels have a breaker")
+	assert_gt(fair_levels, levels - 3, "most first-Descent levels have a fair cell there")
+	assert_eq(placed, fair_levels, "the first Static sits between the breaker and the exit whenever a fair cell is there (%d of %d)" % [placed, fair_levels])

@@ -5,22 +5,24 @@ extends RefCounted
 ## 10 Hz) and the one-off events; it answers with a phase and a queue of `actions` the
 ## Director carries out (wake, hint, retreat). Depth 6 runs Calm then Pursuit (10 §2).
 ##
-## Readings (M1.8, cp-04 review): the decay (−0.01/s, −0.03/s in Relief) applies only on
-## ticks with no other input (the time input, a near or chasing hunter, any event), so a
-## quiet player's time input accumulates; the time input runs in Build and Peak only (Calm
-## is "before the calm window", Relief is space and decays); intensity ≥ 0.8 in Build
-## leaves Build for Peak and asks for the nearest hunter to be woken and hinted to 12 m
-## (only when the level has a hunter); while that Peak has no chaser the woken hunter is
-## re-hinted to 12 m every 20 s (Peak pressure); a contact in Build or Peak ends it
-## (Relief 40 s); a hunter's evasion ends Peak; a Static release is not an evasion here.
+## Readings (M1.8, cp-04 review, M1.13 rulings): the decay (−0.01/s, −0.03/s in Relief)
+## applies only on ticks with no other input (the time input, a near or chasing hunter, any
+## event), so a quiet player's time input accumulates; the time input runs in Build and
+## Peak only (Calm is "before the calm window"); Relief is space: entering it clamps
+## intensity to ≤ 0.5, and neither the time input nor the nearest-hunter input runs there.
+## Peak begins only when a hunter chases; intensity ≥ 0.8 in Build asks (once per Build,
+## re-armed when intensity falls below 0.8) for the nearest hunter to be woken and hinted
+## to 12 m, and the phase stays Build (only when the level has a hunter); a contact in
+## Build or Peak ends it (Relief 40 s); a hunter's evasion ends Peak; a Static release is
+## not an evasion here.
 
 ## Actions the Director drains after each step.
 const ACT_WAKE_ONE := &"wake_one"              # Build entry: wake one dormant hunter
-const ACT_WAKE_NEAREST := &"wake_nearest"      # intensity ≥ 0.8: wake + hint to 12 m
+const ACT_WAKE_NEAREST := &"wake_nearest"      # intensity ≥ 0.8 in Build: wake + hint to 12 m
 const ACT_HINT_TOWARD := &"hint_toward"        # Build: 15 to 30 m from the player, every 20 s
-const ACT_HINT_AWAY := &"hint_away"            # Relief: hunters ≥ 25 m, Static off the path
+const ACT_HINT_AWAY := &"hint_away"            # Relief, every 20 s: hunters ≥ 25 m, Static off the path
+const ACT_HINT_AWAY_NOW := &"hint_away_now"    # Relief entry: every hunter away at once
 const ACT_RETREAT_CHASERS := &"retreat_chasers"  # Peak cap: retreat(20)
-const ACT_HINT_PEAK := &"hint_peak"            # Peak without a chaser: the woken hunter to 12 m
 const ACT_WAKE_NULL := &"wake_null"            # Pursuit entry (Null is M2.6)
 const ACT_HINT_STATIC_ACROSS := &"hint_static_across"  # Pursuit, every 60 s
 
@@ -55,8 +57,8 @@ var _hold_until: float = -1.0
 var _hold_value: float = 1.0
 ## Any input (event or step source) since the last step: no decay on that tick.
 var _had_input: bool = false
-## Peak entered by the 0.8 wake (no chase yet): re-hint the woken hunter (Peak pressure).
-var _peak_pressure: bool = false
+## The 0.8 wake fired in this Build (re-armed below 0.8 and at each Build entry).
+var _woke: bool = false
 
 
 ## `arrival`: &"start", &"proper" or &"drop" (14 §4). `depth6`: the Pursuit schedule.
@@ -166,7 +168,8 @@ func step(dt: float, nearest_hunter_d: float = INF, chasing: int = 0, hunters: i
 	if time_input_applies():
 		add(Tuning.INTENSITY_TIME_PER_S * dt)
 		input = true
-	if not is_inf(nearest_hunter_d):
+	# Relief is space: a near hunter does not raise intensity there (M1.13 ruling).
+	if not is_inf(nearest_hunter_d) and nearest_hunter_input_applies():
 		var near := clampf((Tuning.INTENSITY_NEAREST_HUNTER_RANGE - nearest_hunter_d) / Tuning.INTENSITY_NEAREST_HUNTER_RANGE, 0.0, 1.0)
 		if near > 0.0:
 			add(near * Tuning.INTENSITY_NEAREST_HUNTER_PER_S * dt)
@@ -183,9 +186,14 @@ func step(dt: float, nearest_hunter_d: float = INF, chasing: int = 0, hunters: i
 
 
 ## 10 §2 "time on level after the calm window": Build, Peak and Pursuit. Relief is space
-## (its row decays at −0.03/s), so the time input rests there (cp-04 reading).
+## (its row decays at −0.03/s), so the time input rests there (cp-04 reading, M1.13 ruling).
 func time_input_applies() -> bool:
 	return phase != CALM and phase != RELIEF
+
+
+## The nearest-hunter row: every phase but Relief (M1.13 ruling).
+func nearest_hunter_input_applies() -> bool:
+	return phase != RELIEF
 
 
 func _advance(dt: float, chasing: int, hunters: int) -> void:
@@ -194,32 +202,25 @@ func _advance(dt: float, chasing: int, hunters: int) -> void:
 			if phase_time >= calm_length - EPS:
 				_enter(PURSUIT if pursuit else BUILD)
 		BUILD:
+			# Peak begins only when a hunter chases (M1.13 ruling): a chase is on.
 			if chasing > 0:
 				_enter(PEAK)
-			elif intensity >= Tuning.DIRECTOR_WAKE_INTENSITY and hunters > 0:
+				return
+			if intensity < Tuning.DIRECTOR_WAKE_INTENSITY:
+				_woke = false
+			elif not _woke and hunters > 0:
+				# The 0.8 wake: the nearest hunter woken and hinted to 12 m; still Build.
+				_woke = true
 				actions.append(ACT_WAKE_NEAREST)
-				_enter(PEAK)
-				_peak_pressure = true
+			_hint_left -= dt
+			if _hint_left <= EPS:
 				_hint_left = Tuning.DIRECTOR_HINT_INTERVAL
-			else:
-				_hint_left -= dt
-				if _hint_left <= EPS:
-					_hint_left = Tuning.DIRECTOR_HINT_INTERVAL
-					actions.append(ACT_HINT_TOWARD)
+				actions.append(ACT_HINT_TOWARD)
 		PEAK:
 			if phase_time >= Tuning.DIRECTOR_PEAK_MAX_TIME - EPS:
 				# 10 §2: a chase that does not resolve is exhausting, not scary.
 				actions.append(ACT_RETREAT_CHASERS)
 				_enter(RELIEF)
-			elif chasing > 0:
-				_peak_pressure = false
-			elif _peak_pressure:
-				# Peak pressure (cp-04 reading): no chase yet, so the woken hunter is
-				# hinted again to a cell 12 m from the player, every 20 s.
-				_hint_left -= dt
-				if _hint_left <= EPS:
-					_hint_left = Tuning.DIRECTOR_HINT_INTERVAL
-					actions.append(ACT_HINT_PEAK)
 		RELIEF:
 			if phase_time >= relief_length - EPS:
 				_enter(BUILD)
@@ -238,17 +239,19 @@ func _advance(dt: float, chasing: int, hunters: int) -> void:
 func _enter(to: StringName, relief_time: float = -1.0) -> void:
 	phase = to
 	phase_time = 0.0
-	_peak_pressure = false
 	history.append(to)
 	match to:
 		BUILD:
+			_woke = false
 			actions.append(ACT_WAKE_ONE)
 			actions.append(ACT_HINT_TOWARD)
 			_hint_left = Tuning.DIRECTOR_HINT_INTERVAL
 		RELIEF:
 			relief_length = relief_time if relief_time >= 0.0 else \
 				_rng.randf_range(Tuning.DIRECTOR_RELIEF_MIN_TIME, Tuning.DIRECTOR_RELIEF_MAX_TIME)
-			actions.append(ACT_HINT_AWAY)
+			# Relief is space (M1.13 ruling): intensity at most 0.5, every hunter away now.
+			intensity = minf(intensity, Tuning.DIRECTOR_RELIEF_INTENSITY_CAP)
+			actions.append(ACT_HINT_AWAY_NOW)
 			_hint_left = Tuning.DIRECTOR_HINT_INTERVAL
 		PURSUIT:
 			actions.append(ACT_WAKE_NULL)

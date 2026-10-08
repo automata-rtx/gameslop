@@ -205,16 +205,24 @@ func test_first_descent_keeps_hunters_dormant_and_static_off_path() -> void:
 	_advance(0.2)
 	assert_true(h.is_dormant(), "nor does intensity 0.8")
 	assert_eq(_d.phase, DirectorPacing.BUILD, "no Peak without a hunter it may wake")
+	_level.data.first_run = true
 	var f := _d.hunters.bound_statics_off_path()
-	assert_true(f.is_valid(), "a side-loop filter for Static")
+	_level.data.first_run = was
+	assert_true(f.is_valid(), "a wander filter for Static")
 	var g := _level.data.grid
-	for c in _level.data.critical_path:
-		assert_false(bool(f.call(c)), "critical path cell %s is outside the loop" % c)
-		assert_false(bool(f.call(g.world_of(c))), "also as a world position")
+	var band := DirectorSpawn.breaker_exit_band(_level.data)
 	var inside := 0
 	for i in g.cell_count():
-		inside += 1 if bool(f.call(g.cell_at(i))) else 0
-	assert_true(inside >= 3, "the loop has room to drift (%d cells)" % inside)
+		var c := g.cell_at(i)
+		inside += 1 if bool(f.call(c)) else 0
+		if not band.is_empty():
+			assert_eq(bool(f.call(c)), band.has(c), "the filter is the breaker-to-exit band at %s" % c)
+			assert_eq(bool(f.call(g.world_of(c))), band.has(c), "also as a world position")
+	if band.is_empty():
+		# No breaker on this level: the side loop off the critical path (R8).
+		for c in _level.data.critical_path:
+			assert_false(bool(f.call(c)), "critical path cell %s is outside the loop" % c)
+	assert_true(inside >= 3, "room to drift (%d cells)" % inside)
 
 
 ## 10 §2 crank row: the Flashlight's crank tick counts, a 12 m mech noise alone does not.
@@ -228,20 +236,45 @@ func test_crank_counts_from_the_flashlight_tick() -> void:
 	assert_approx(_d.intensity, i0 + Tuning.INTENSITY_NOISE_CRANK, 0.0001, "+0.10 per crank tick")
 
 
-## cp-04 review (Peak pressure): the 0.8 wake enters Peak and, while no chase starts, the
-## woken hunter is hinted again to a cell 12 m from the player every 20 s.
-func test_peak_without_a_chase_rehints_the_woken_hunter() -> void:
+## M1.13 ruling: the 0.8 wake hints the nearest hunter to a cell 12 m out and stays in
+## Build; only a chase begins Peak. There is no Peak re-hint.
+func test_wake_at_0_8_stays_in_build_and_a_chase_begins_peak() -> void:
 	_begin()
 	var h := _hunter()
 	_into_build()
+	h.clear_hint()
 	_d.pacing.intensity = 0.85
 	_advance(0.1)
-	assert_eq(_d.phase, DirectorPacing.PEAK)
-	assert_eq(_d.hunters.peak_hunter, h, "the woken hunter is tracked")
-	h.clear_hint()
-	_advance(Tuning.DIRECTOR_HINT_INTERVAL + 0.05)
-	assert_eq(_d.phase, DirectorPacing.PEAK)
-	assert_true(h.has_hint(), "hinted again after 20 s")
+	assert_eq(_d.phase, DirectorPacing.BUILD, "the 0.8 wake does not begin Peak")
+	assert_false(h.is_dormant())
+	assert_true(h.has_hint(), "the woken hunter is hinted")
 	var d := DirectorSpawn.flat_dist(h._hint, _p.global_position)
 	assert_true(absf(d - Tuning.DIRECTOR_WAKE_HINT_DIST) <= Tuning.DIRECTOR_HINT_DIST_TOLERANCE + 0.01,
 		"to a cell 12 m out, not the player (%.1f m)" % d)
+	h.transition_to(Tuning.ERROR_STATE_CHASE, "test")
+	_advance(0.1)
+	assert_eq(_d.phase, DirectorPacing.PEAK, "a chase begins Peak")
+
+
+## M1.13 ruling: Relief clamps intensity to 0.5 and hints every awake hunter away at once
+## (25 to 40 m), not 20 s later.
+func test_relief_entry_hints_hunters_away_at_once() -> void:
+	_begin()
+	var h := _hunter()
+	_into_build()
+	h.transition_to(Tuning.ERROR_STATE_CHASE, "test")
+	_advance(0.1)
+	assert_eq(_d.phase, DirectorPacing.PEAK)
+	h.transition_to(Tuning.ERROR_STATE_SEARCH, "test")
+	h.clear_hint()
+	_d.pacing.intensity = 0.95
+	_d.pacing.on_evasion(true)
+	_advance(0.1)
+	assert_eq(_d.phase, DirectorPacing.RELIEF)
+	assert_true(_d.intensity <= Tuning.DIRECTOR_RELIEF_INTENSITY_CAP + 0.0001, "intensity ≤ 0.5 (%.2f)" % _d.intensity)
+	var has_now := h.get_method_argument_count(&"hint") >= 2
+	assert_true(has_now or h.has_hint(), "hinted on the Relief tick")
+	if h.has_hint():
+		var d := DirectorSpawn.flat_dist(h._hint, _p.global_position)
+		assert_true(d >= Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST - 0.01 and d <= Tuning.DIRECTOR_HINT_AWAY_MAX + 0.01,
+			"25 to 40 m from the player (%.1f m)" % d)

@@ -65,9 +65,13 @@ static func path_fraction(path: Array[Vector2i], c: Vector2i) -> float:
 ## Cells for each id of `roster` (NO_CELL when nothing fair exists), distinct, from the
 ## level's error_spawn placements first and any fair walkable cell second. The native
 ## hunter prefers 35% to 65% of the critical path; the others prefer side branches; Static
-## is never within 20 m of the spawn room.
+## is never within 20 m of the spawn room. Static always spawns (M1.13 ruling): with no
+## fair cell it takes the farthest legal one (`farthest_cell`). `band` (cell -> true, the
+## first Descent's breaker-to-exit stretch, `breaker_exit_band`) is where the first Static
+## goes when a fair cell lies in it (05 §10, M1.13 ruling).
 static func pick_cells(data: LevelData, roster: Array[StringName], native: StringName, player_pos: Vector3,
-		eye: Vector3, forward: Vector3, half_fov: float, rng: RandomNumberGenerator) -> Array[Vector2i]:
+		eye: Vector3, forward: Vector3, half_fov: float, rng: RandomNumberGenerator,
+		band: Dictionary = {}) -> Array[Vector2i]:
 	var grid := data.grid
 	var walk := grid.distance_field(grid.cell_of(player_pos))
 	var markers: Array[Vector2i] = []
@@ -81,20 +85,32 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 	var fallback_done := false
 	var spawn_room := _spawn_room_cells(data)
 	var out: Array[Vector2i] = []
+	var band_done := band.is_empty()
 	for id in roster:
+		if id == &"static" and not band_done:
+			# The first Static on the first Descent: a fair cell between the breaker and the exit.
+			band_done = true
+			if not fallback_done:
+				fallback_done = true
+				fallback = _fallback_cells(grid, player_pos, eye, forward, half_fov, walk)
+			var both: Array[Vector2i] = markers.duplicate()
+			both.append_array(fallback)
+			var in_band: Array[Vector2i] = []
+			for c in _eligible(both, out, id, spawn_room):
+				if band.has(c) and not in_band.has(c):
+					in_band.append(c)
+			if not in_band.is_empty():
+				out.append(in_band[rng.randi_range(0, in_band.size() - 1)])
+				continue
 		var pool := _eligible(markers, out, id, spawn_room)
 		if pool.is_empty():
 			if not fallback_done:
 				fallback_done = true
-				for i in grid.cell_count():
-					var c := grid.cell_at(i)
-					if grid.has_flag(c, LevelGrid.F_SPAWN_ROOM) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
-						continue
-					if spawn_ok(grid, c, player_pos, eye, forward, half_fov, walk):
-						fallback.append(c)
+				fallback = _fallback_cells(grid, player_pos, eye, forward, half_fov, walk)
 			pool = _eligible(fallback, out, id, spawn_room)
 		if pool.is_empty():
-			out.append(LevelData.NO_CELL)
+			out.append(farthest_cell(grid, out, player_pos, eye, forward, half_fov, walk) if id == &"static" \
+				else LevelData.NO_CELL)
 			continue
 		var preferred: Array[Vector2i] = []
 		for c in pool:
@@ -107,6 +123,45 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 		var from := preferred if not preferred.is_empty() else pool
 		out.append(from[rng.randi_range(0, from.size() - 1)])
 	return out
+
+
+## Every fair walkable cell outside the spawn and exit rooms.
+static func _fallback_cells(grid: LevelGrid, player_pos: Vector3, eye: Vector3, forward: Vector3, half_fov: float,
+		walk: PackedInt32Array) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for i in grid.cell_count():
+		var c := grid.cell_at(i)
+		if grid.has_flag(c, LevelGrid.F_SPAWN_ROOM) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+			continue
+		if spawn_ok(grid, c, player_pos, eye, forward, half_fov, walk):
+			out.append(c)
+	return out
+
+
+## Static's last resort (M1.13 ruling): the walkable cell farthest (walking) from the player
+## that is still ≥ 20 m away and out of view (`spawn_ok`), else the farthest reachable one,
+## else the farthest walkable one; never a cell in `used`. NO_CELL only on an empty grid.
+static func farthest_cell(grid: LevelGrid, used: Array[Vector2i], player_pos: Vector3, eye: Vector3,
+		forward: Vector3, half_fov: float, walk: PackedInt32Array) -> Vector2i:
+	var order: Array[Vector2i] = []
+	for i in grid.cell_count():
+		var c := grid.cell_at(i)
+		if grid.is_walkable(c) and not used.has(c):
+			order.append(c)
+	if order.is_empty():
+		return LevelData.NO_CELL
+	order.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var wa := walk[grid.idx(a)]
+		var wb := walk[grid.idx(b)]
+		if wa != wb:
+			return wa > wb
+		return flat_dist(grid.world_of(a), player_pos) > flat_dist(grid.world_of(b), player_pos))
+	for c in order:
+		if walk[grid.idx(c)] < 0:
+			break
+		if spawn_ok(grid, c, player_pos, eye, forward, half_fov, walk):
+			return c
+	return order[0]
 
 
 static func _eligible(cells: Array[Vector2i], used: Array[Vector2i], id: StringName, spawn_room: Array[Vector3]) -> Array[Vector2i]:
@@ -138,6 +193,34 @@ static func _near_any(c: Vector2i, points: Array[Vector3], dist: float) -> bool:
 		if flat_dist(p, q) < dist:
 			return true
 	return false
+
+
+# --- 05 §10 first Descent: the first Static between the breaker and the exit -----------------
+
+## Walkable cells within `near` m (straight line) of the critical path's stretch from the
+## breaker (its nearest path cell) to the exit, outside the spawn and exit rooms. Empty
+## without a breaker or a path. Cell -> true.
+static func breaker_exit_band(data: LevelData, near: float = Tuning.DIRECTOR_FD_STATIC_PATH_BAND) -> Dictionary:
+	var out: Dictionary = {}
+	var path := data.critical_path
+	var grid := data.grid
+	if grid == null or path.size() < 2 or data.breaker_cell == LevelData.NO_CELL:
+		return out
+	var from := roundi(path_fraction(path, data.breaker_cell) * float(path.size() - 1))
+	var stretch: Array[Vector2i] = []
+	for i in range(from, path.size()):
+		if not grid.has_flag(path[i], LevelGrid.F_EXIT_ROOM):
+			stretch.append(path[i])
+	var r := near / CS
+	for i in grid.cell_count():
+		var c := grid.cell_at(i)
+		if not grid.is_walkable(c) or grid.has_flag(c, LevelGrid.F_SPAWN_ROOM) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+			continue
+		for p in stretch:
+			if Vector2(p - c).length() <= r:
+				out[c] = true
+				break
+	return out
 
 
 # --- hints --------------------------------------------------------------------------------

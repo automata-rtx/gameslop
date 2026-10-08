@@ -113,3 +113,23 @@ func test_scares_gating() -> void:
 	assert_false(s.request(Scares.STATIC_SWELL, 100.0), "M1: a no-op")
 	s.last_any = 90.0
 	assert_true(s.available(Tuning.DIRECTOR_PHASE_BUILD, 0.9, 100.0).is_empty(), "one per 30 s")
+
+
+## M1.13 ruling (TEMPORARY until M2.4/M2.5): an unbuilt native is replaced by Still; a built
+## one, the design roster and non-hunter natives are left alone.
+func test_unbuilt_native_is_substituted_by_still() -> void:
+	var pools := _roster(2, &"pools")
+	var sub := DirectorRules.substitute_unbuilt_native(pools, &"echo")
+	var want: Array[StringName] = [&"static", &"echo" if DirectorRules.spawnable(&"echo") else &"still"]
+	assert_eq(sub[&"roster"], want, "Pools depth 2 spawns a hunter")
+	assert_eq(sub[&"native"], want[1], "the native slot follows the substitute")
+	assert_eq(pools, [&"static", &"echo"] as Array[StringName], "the design roster is untouched")
+	var offices := DirectorRules.substitute_unbuilt_native(_roster(3, &"offices"), &"flicker")
+	assert_eq((offices[&"roster"] as Array).count(&"still") + (offices[&"roster"] as Array).count(&"flicker"), 1)
+	assert_true((offices[&"roster"] as Array).has(&"still") or DirectorRules.spawnable(&"flicker"))
+	var garage := DirectorRules.substitute_unbuilt_native(_roster(2, &"garage"), &"still")
+	assert_eq(garage[&"roster"], [&"static", &"still"] as Array[StringName], "a built native stays")
+	var halls := DirectorRules.substitute_unbuilt_native(_roster(1, &"halls", true), &"")
+	assert_eq(halls[&"roster"], [&"static"] as Array[StringName], "no native slot, nothing added")
+	var substrate := DirectorRules.substitute_unbuilt_native(_roster(6, &"substrate"), &"null")
+	assert_false((substrate[&"roster"] as Array).has(&"still"), "Null is not Echo or Flicker: never substituted")

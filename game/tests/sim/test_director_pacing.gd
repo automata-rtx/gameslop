@@ -116,16 +116,33 @@ func test_peak_cap_retreats_chasers_after_45_s() -> void:
 	assert_true(acts.has(DirectorPacing.ACT_RETREAT_CHASERS), "the chaser retreats")
 
 
-func test_wake_at_intensity_0_8_only_with_hunters() -> void:
+## M1.13 ruling: the 0.8 wake stays in Build (once per Build, re-armed below 0.8); only a
+## chase begins Peak.
+func test_wake_at_intensity_0_8_stays_in_build() -> void:
 	var p := DirectorPacing.new(4)
 	p._enter(DirectorPacing.BUILD)
 	p.take_actions()
 	p.intensity = 0.85
 	p.step(DT, INF, 0, 0)
 	assert_eq(p.phase, DirectorPacing.BUILD, "no hunter on the level: stays in Build")
+	assert_false(p.take_actions().has(DirectorPacing.ACT_WAKE_NEAREST), "and wakes nothing")
 	p.step(DT, INF, 0, 1)
-	assert_eq(p.phase, DirectorPacing.PEAK)
+	assert_eq(p.phase, DirectorPacing.BUILD, "the 0.8 wake does not begin Peak")
 	assert_true(p.take_actions().has(DirectorPacing.ACT_WAKE_NEAREST))
+	var again := 0
+	for i in 100:
+		p.step(DT, INF, 0, 1)
+		again += p.take_actions().count(DirectorPacing.ACT_WAKE_NEAREST)
+	assert_eq(again, 0, "once while intensity stays at or above 0.8")
+	p.on_note()
+	p.on_note()
+	p.step(DT, INF, 0, 1)
+	p.take_actions()
+	p.intensity = 0.85
+	p.step(DT, INF, 0, 1)
+	assert_true(p.take_actions().has(DirectorPacing.ACT_WAKE_NEAREST), "re-armed after falling below 0.8")
+	p.step(DT, 12.0, 1, 1)
+	assert_eq(p.phase, DirectorPacing.PEAK, "a chase begins Peak")
 
 
 func test_build_hints_every_20_s_and_relief_hints_away() -> void:
@@ -142,7 +159,12 @@ func test_build_hints_every_20_s_and_relief_hints_away() -> void:
 	p.on_contact()
 	assert_eq(p.phase, DirectorPacing.RELIEF, "a contact in Build ends it")
 	assert_approx(p.relief_length, Tuning.DIRECTOR_RELIEF_AFTER_CONTACT_TIME, 0.001)
-	assert_true(p.take_actions().has(DirectorPacing.ACT_HINT_AWAY))
+	assert_true(p.take_actions().has(DirectorPacing.ACT_HINT_AWAY_NOW), "hunters away at Relief entry")
+	var later := 0
+	for i in roundi((Tuning.DIRECTOR_HINT_INTERVAL + 0.5) / DT):
+		p.step(DT, INF, 0, 1)
+		later += p.take_actions().count(DirectorPacing.ACT_HINT_AWAY)
+	assert_eq(later, 1, "and again every 20 s")
 
 
 func test_intensity_inputs_and_clamps() -> void:
@@ -218,59 +240,72 @@ func test_depth_6_pursuit_has_no_relief() -> void:
 	assert_false(p.history.has(DirectorPacing.RELIEF))
 
 
-## cp-04 review: a quiet player (no noise, no hunter near) still sees the sawtooth rise:
-## Calm 30 s, Build, then the time input alone reaches 0.8 within 0.8 / 0.010 = 80 s of
-## Build, which wakes the nearest hunter and enters Peak; with no chase the woken hunter is
-## re-hinted to 12 m every 20 s (Peak pressure) until the 45 s cap gives Relief.
-func test_quiet_player_rises_into_build_and_peak() -> void:
+## cp-04 review, M1.13 ruling: a quiet player (no noise, no hunter near) still sees the
+## intensity rise: Calm 30 s, Build, then the time input alone reaches 0.8 within
+## 0.8 / 0.010 = 80 s of Build, which wakes the nearest hunter once; with no chase the
+## phase stays Build (no Peak without a chase, no Peak re-hint).
+func test_quiet_player_rises_to_the_wake_but_peak_needs_a_chase() -> void:
 	var p := DirectorPacing.new(9)
 	var build_at := -1.0
-	var peak_at := -1.0
-	var relief_at := -1.0
+	var wake_at := -1.0
 	var wake := 0
-	var peak_hints := 0
-	while p.level_time < 400.0 and relief_at < 0.0:
+	while p.level_time < 400.0:
 		p.step(DT, INF, 0, 1)
 		for a in p.take_actions():
-			wake += 1 if a == DirectorPacing.ACT_WAKE_NEAREST else 0
-			peak_hints += 1 if a == DirectorPacing.ACT_HINT_PEAK else 0
+			if a == DirectorPacing.ACT_WAKE_NEAREST:
+				wake += 1
+				wake_at = p.level_time if wake_at < 0.0 else wake_at
 		if p.phase == DirectorPacing.BUILD and build_at < 0.0:
 			build_at = p.level_time
-		if p.phase == DirectorPacing.PEAK and peak_at < 0.0:
-			peak_at = p.level_time
-		if p.phase == DirectorPacing.RELIEF and relief_at < 0.0:
-			relief_at = p.level_time
 	var to_wake := Tuning.DIRECTOR_WAKE_INTENSITY / Tuning.INTENSITY_TIME_PER_S
 	assert_approx(build_at, Tuning.DIRECTOR_CALM_TIME, 0.11, "Build after the 30 s Calm")
-	assert_true(peak_at > 0.0 and peak_at <= Tuning.DIRECTOR_CALM_TIME + to_wake + 0.21,
-		"Peak by %.0f s from the time input alone (at %.1f s)" % [Tuning.DIRECTOR_CALM_TIME + to_wake, peak_at])
-	assert_eq(wake, 1, "the 0.8 wake")
-	assert_eq(peak_hints, 2, "Peak pressure: 12 m hints at 20 and 40 s of a Peak without a chase")
-	assert_approx(relief_at - peak_at, Tuning.DIRECTOR_PEAK_MAX_TIME, 0.11, "the 45 s cap ends it")
+	assert_true(wake_at > 0.0 and wake_at <= Tuning.DIRECTOR_CALM_TIME + to_wake + 0.21,
+		"the 0.8 wake by %.0f s from the time input alone (at %.1f s)" % [Tuning.DIRECTOR_CALM_TIME + to_wake, wake_at])
+	assert_eq(wake, 1, "one 0.8 wake")
+	assert_eq(p.phase, DirectorPacing.BUILD, "no chase, no Peak")
+	assert_false(p.history.has(DirectorPacing.PEAK))
 
 
-func test_peak_pressure_stops_once_a_chase_starts() -> void:
+## M1.13 ruling: Relief clamps intensity to ≤ 0.5 on entry and stops the time and
+## nearest-hunter inputs; it hints every hunter away at once.
+func test_relief_clamps_and_stops_time_and_nearest_inputs() -> void:
 	var p := DirectorPacing.new(10)
 	p._enter(DirectorPacing.BUILD)
-	p.intensity = 0.85
-	p.step(DT, INF, 0, 1)
+	p.step(DT, 10.0, 1, 1)
 	assert_eq(p.phase, DirectorPacing.PEAK)
+	p.intensity = 1.0
 	p.take_actions()
-	var hints := 0
-	for i in roundi(30.0 / DT):
-		p.step(DT, 10.0, 1 if i > 50 else 0, 1)
-		hints += p.take_actions().count(DirectorPacing.ACT_HINT_PEAK)
-	assert_eq(hints, 0, "a chase began within 20 s: no Peak hint")
-	# A Peak entered by a chase never pushes hints.
+	p.on_evasion(true)
+	assert_eq(p.phase, DirectorPacing.RELIEF)
+	assert_approx(p.intensity, Tuning.DIRECTOR_RELIEF_INTENSITY_CAP, 0.0001, "1.0 − 0.30, clamped to 0.5")
+	assert_true(p.take_actions().has(DirectorPacing.ACT_HINT_AWAY_NOW), "every hunter away at once")
+	# A hunter 2 m away and the clock: neither raises intensity in Relief; it decays (the
+	# first tick carries the evasion event, so it does not decay).
+	for i in 11:
+		p.step(DT, 2.0, 0, 1)
+	assert_approx(p.intensity, Tuning.DIRECTOR_RELIEF_INTENSITY_CAP - 0.03, 0.0001, "−0.03/s, no time or near input")
+	# A contact from low intensity is not raised by the clamp.
 	var q := DirectorPacing.new(11)
 	q._enter(DirectorPacing.BUILD)
-	q.step(DT, 10.0, 1, 1)
-	assert_eq(q.phase, DirectorPacing.PEAK)
-	var qh := 0
-	for i in roundi(40.0 / DT):
-		q.step(DT, 10.0, 0, 1)
-		qh += q.take_actions().count(DirectorPacing.ACT_HINT_PEAK)
-	assert_eq(qh, 0)
+	q.intensity = 0.3
+	q.on_contact()
+	assert_eq(q.phase, DirectorPacing.RELIEF)
+	assert_approx(q.intensity, 0.0, 0.0001, "0.3 − 0.40 clamps at 0, not raised")
+	# The Peak cap's Relief clamps too.
+	var r := DirectorPacing.new(12)
+	r._enter(DirectorPacing.BUILD)
+	r.step(DT, 10.0, 1, 1)
+	r.intensity = 1.0
+	while r.phase == DirectorPacing.PEAK:
+		r.step(DT, 10.0, 1, 1)
+	assert_eq(r.phase, DirectorPacing.RELIEF)
+	assert_true(r.intensity <= Tuning.DIRECTOR_RELIEF_INTENSITY_CAP + 0.0001, "Peak cap Relief ≤ 0.5")
+	# Build still has the nearest-hunter input.
+	var b := DirectorPacing.new(13)
+	b._enter(DirectorPacing.BUILD)
+	b.intensity = 0.2
+	b.step(DT, 0.0, 0, 1)
+	assert_approx(b.intensity, 0.2 + (Tuning.INTENSITY_TIME_PER_S + Tuning.INTENSITY_NEAREST_HUNTER_PER_S) * DT, 0.0001)
 
 
 ## cp-04 review: a Static release is weather letting go, not an evasion (no −0.30, Peak holds).

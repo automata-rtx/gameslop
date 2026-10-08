@@ -81,4 +81,5 @@ func test_contact_ends_the_peak() -> void:
 	assert_true(a.try_contact(Tuning.STILL_CONTACT_COST))
 	assert_eq(_d.phase, DirectorPacing.RELIEF, "the bite ends the peak")
 	assert_approx(_d.pacing.relief_length, Tuning.DIRECTOR_RELIEF_AFTER_CONTACT_TIME, 0.001)
-	assert_approx(_d.intensity, before + Tuning.INTENSITY_CONTACT, 0.0001, "−0.40")
+	assert_approx(_d.intensity, minf(before + Tuning.INTENSITY_CONTACT, Tuning.DIRECTOR_RELIEF_INTENSITY_CAP), 0.0001,
+		"−0.40, then Relief's 0.5 clamp")
