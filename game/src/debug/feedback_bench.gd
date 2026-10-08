@@ -46,6 +46,11 @@ var _anchor_usec: int = 0
 var _host: Node
 var _prev_host: Node
 var _prev_meta: MetaState
+## Settings the bench pins while it runs (restored on teardown): captions on, so the R
+## column of caption rows reads the HUD (12 §6 default is Off); hints off, so first-run
+## guidance never lands inside another row's window (04 §9).
+const PINNED_SETTINGS: Dictionary = {&"captions": true, &"hints": false}
+var _prev_settings: Dictionary = {}
 var _prev_transition: Object
 var _label: RichTextLabel
 var _selected: int = 0
@@ -105,6 +110,9 @@ func _process(_delta: float) -> void:
 ## Starts the Descent and waits for depth 1 to stand under the player.
 func start() -> void:
 	_prev_meta = GameState.meta
+	for key: StringName in PINNED_SETTINGS:
+		_prev_settings[key] = SettingsManager.get_value(key)
+		SettingsManager.set_value(key, PINNED_SETTINGS[key])
 	GameState.meta = MetaState.new()
 	GameState.meta.first_descent_done = false
 	_prev_transition = SceneRouter.transition
@@ -136,6 +144,9 @@ func _teardown() -> void:
 	if _prev_meta != null:
 		GameState.meta = _prev_meta
 		_prev_meta = null
+	for key: StringName in _prev_settings:
+		SettingsManager.set_value(key, _prev_settings[key])
+	_prev_settings.clear()
 	if SceneRouter.get_host() == _host:
 		SceneRouter.set_host(_prev_host)
 	SceneRouter.transition = _prev_transition

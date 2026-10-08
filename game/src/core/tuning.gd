@@ -1424,6 +1424,12 @@ const NOTE_MAX_WORDS := 70                          # hard limit (01 §6)
 const CAPTION_NEAR_DIST := 6.0                      # m: "near" under, none 6 to 20, "far" over
 const CAPTION_FAR_DIST := 20.0
 const CAPTION_SECTORS := 8                          # listener-relative angle sectors
+# M2.12 build-task constants (04 §8, §10 give no lifetime or stack): the caption stack
+const CAPTION_TIME := 4.0                           # s on screen (the notification hold, 04 §6)
+const CAPTION_MAX_STACK := 3                        # lines; a fourth pushes the oldest out
+const CAPTION_GAP := 4                              # px between stacked lines (half a grid unit)
+const CAPTION_PROMPT_CLEARANCE := 40                # px: the stack's bottom sits this far above the prompt centre (11 §6)
+const ARCHIVE_NEW_BLINK_S := 0.5                    # one 2 Hz blink of an unread note cell (13 §5)
 
 # 04 §9 first-run guidance
 const HINT_SHOW_TIME := 6.0                         # s or until performed

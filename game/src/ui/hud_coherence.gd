@@ -131,9 +131,17 @@ func _segment_life(kind: int) -> float:
 func _render_numeral() -> void:
 	# Never 000 while any Coherence is left: zero is the dissolve (noclip review).
 	_numeral.text = str(maxi(ceili(shown - 0.0001), 1 if shown > 0.0 else 0)).pad_zeros(Tuning.HUD_COHERENCE_PAD)
+	if is_danger():
+		_numeral.text = UiTokens.danger_mark(_numeral.text)
 	var c := UiTokens.UI_DANGER if is_danger() else UiTokens.UI_FG
 	_numeral.add_theme_color_override(&"font_color", c)
 	_label.add_theme_color_override(&"font_color", UiTokens.UI_DANGER if is_danger() else UiTokens.UI_DIM)
+
+
+## Repaints after a 12 §6 token change (colour-blind accent).
+func repaint() -> void:
+	_render_numeral()
+	queue_redraw()
 
 
 func _bar_top() -> float:
@@ -153,7 +161,7 @@ func _draw() -> void:
 	for s in segments:
 		var t := float(s["t"])
 		if int(s["kind"]) == GAIN:
-			_draw_range(float(s["from"]), minf(float(s["to"]), value), y, UiTokens.BAR_FILL, UiTokens.UI_ACCENT)
+			_draw_range(float(s["from"]), minf(float(s["to"]), value), y, UiTokens.BAR_FILL, UiTokens.accent())
 			continue
 		var from := maxf(float(s["from"]), value)
 		var to := float(s["to"])

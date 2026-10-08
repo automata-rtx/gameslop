@@ -100,14 +100,12 @@ static func all() -> Array[Dictionary]:
 			&"expect": {&"I": ["cr.static", "cr.coherence", "post."], &"S": ["loop.static_hum", "loop.static_band"],
 			&"R": ["Coherence"]}}))
 	rows.append(_row(&"still_within_8m", "Still within 8 m", "11 §3", "SR", {&"window": 48,
-			&"expect": {&"S": ["duck.Ambience"], &"R": ["Caption"]}}, GAP,
-			"AudioManager emits EventBus.audio_cue ([silence]) but no HUD subscribes until the captions task (M2.12)"))
+			&"expect": {&"S": ["duck.Ambience"], &"R": ["Caption"]}}))
 	rows.append(_row(&"still_observed", "Still observed 2 s", "11 §3", "IS",
 			{&"expect": {&"I": ["still."], &"S": ["play.still_tick"]}}))
 	rows.append(_row(&"flicker_lunge", "Flicker lunge", "11 §3", "ISMR", {}, PENDING, "Flicker lands with M2.5"))
 	rows.append(_row(&"echo_4m", "Echo at 4 m", "11 §3", "ISR",
-			{&"expect": {&"I": ["echo."], &"S": ["play.echo_breath"], &"R": ["Caption"]}}, GAP,
-			"Echo's footsteps emit EventBus.audio_cue ([footsteps, {dir}, late]) but no HUD subscribes until the captions task (M2.12)"))
+			{&"expect": {&"I": ["echo."], &"S": ["play.echo_breath"], &"R": ["Caption"]}}))
 	rows.append(_row(&"null_radius", "Null radius", "11 §3", "ISM", {}, PENDING, "Null lands with M2.6"))
 	rows.append(_row(&"null_core", "Null core", "11 §3", "ISMR", {}, PENDING, "Null lands with M2.6"))
 	rows.append(_row(&"exit_seen", "Exit seen", "11 §3", "ISR",

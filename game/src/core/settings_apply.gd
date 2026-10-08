@@ -4,7 +4,8 @@ extends RefCounted
 ## SettingsManager only; static so the pieces are testable on their own. Consumers that own a
 ## behaviour (camera FOV, look, buses, HUD modes, the renderer's caps and texture detail)
 ## listen to SettingsManager.changed themselves; this file covers what has no owner node:
-## the window, the root viewport, the WorldEnvironments, the light pools and particles.
+## the window, the root viewport, the WorldEnvironments, the light pools and particles, and
+## the theme tokens of 12 §6 (colour-blind accent, text size; UiAccessibility).
 
 ## Display keys that change the window (12 §2).
 const WINDOW_KEYS: Array[StringName] = [&"window_mode", &"resolution"]
@@ -105,6 +106,16 @@ static func ui_scale(win: Window, scale: float) -> void:
 
 static func content_scale(window_height: float, scale: float) -> float:
 	return maxf(0.1, window_height / float(Tuning.SETTINGS_UI_REFERENCE_HEIGHT) * scale)
+
+
+## 12 §6 Colour-blind safe accent: the theme's accent entries and UiTokens.accent() (live).
+static func colorblind(on: bool) -> void:
+	UiAccessibility.apply_colorblind(on)
+
+
+## 12 §6 Text size: the note and caption text types of the theme (live).
+static func text_size(v: float) -> void:
+	UiAccessibility.apply_text_size(v)
 
 
 ## 12 §5 Raw mouse input: accumulated input off.

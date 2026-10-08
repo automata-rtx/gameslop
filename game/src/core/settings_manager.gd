@@ -336,6 +336,8 @@ func apply_all() -> void:
 	SettingsApply.ui_scale(get_tree().root, float(_values[&"ui_scale"]))
 	SettingsApply.raw_mouse(bool(_values[&"raw_mouse"]))
 	SettingsApply.output_device(String(_values[&"audio_output_device"]))
+	SettingsApply.colorblind(bool(_values[&"colorblind_accent"]))
+	SettingsApply.text_size(float(_values[&"text_size"]))
 	_apply_graphics()
 	_apply_mute()
 
@@ -360,6 +362,10 @@ func _apply(key: StringName) -> void:
 			SettingsApply.output_device(String(_values[key]))
 		&"mute_unfocused":
 			_apply_mute()
+		&"colorblind_accent":
+			SettingsApply.colorblind(bool(_values[key]))
+		&"text_size":
+			SettingsApply.text_size(float(_values[key]))
 		_:
 			if key in SettingsApply.GRAPHICS_KEYS:
 				_apply_graphics()
