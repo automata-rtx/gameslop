@@ -29,6 +29,10 @@ var spine_z: int = 0
 var _corridor: Dictionary = {}
 ## Selected hall rects and their pre-rolled basin parameters, before they become rooms.
 var _plans: Array[Dictionary] = []
+## Pump rooms the grammar wanted (validator rule 8 counts their hide spots against it).
+var _pump_target: int = 0
+## Door edge -> the pump rect it was found for (_pump_door).
+var _pump_rects: Dictionary = {}
 
 
 func layout() -> void:
@@ -50,6 +54,7 @@ func layout() -> void:
 	grid.finalize_walls()
 	for k in halls.size():
 		basins.dig(halls[k], _plans[k], halls[k] == exit_room)
+	_pump_target = pump_count
 	_insert_pumps(pump_count)
 	grid.finalize_walls()
 	grid.refresh_ledges()
@@ -73,8 +78,6 @@ func _carve_line(from: Vector2i, dir: int, length: int) -> void:
 ## its side, running to the grid edge. Vector2i(x, side) with side -1 north, +1 south.
 func _branches(n: int) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
-	if simplest:
-		return out
 	var want := rng_layout.randi_range(Tuning.POOLS_BRANCHES_MIN, Tuning.POOLS_BRANCHES_MAX)
 	var lo := Tuning.POOLS_SPAWN_ROOM_SIZE.x + Tuning.POOLS_HALL_MIN_SIDE
 	var xs: Array[int] = []
@@ -298,24 +301,59 @@ func _trim_corridors() -> void:
 			changed = true
 
 
-## Pump rooms (07 §5.2): 2x2 with a DOOR, cut into void beside a corridor.
+## Pump rooms (07 §5.2): 2x2 with a DOOR, cut into void beside a corridor (the door opens
+## onto it) or, failing that, beside a hall's floor ring (the door opens into the hall).
 func _insert_pumps(count: int) -> void:
+	var sz := Tuning.POOLS_PUMP_ROOM_SIZE
 	for k in count:
-		var halo := RoomOps.room_halo(grid)
-		var sz := Tuning.POOLS_PUMP_ROOM_SIZE
-		var options: Array[Rect2i] = []
+		_pump_rects.clear()
+		var by_corridor: Array[Vector3i] = []
+		var by_hall: Array[Vector3i] = []
 		for z in range(0, grid.size.y - sz.y + 1):
 			for x in range(0, grid.size.x - sz.x + 1):
 				var rect := Rect2i(x, z, sz.x, sz.y)
-				if not RoomOps.rect_free(grid, rect, halo, false):
+				var door := _pump_door(rect)
+				if door.x < 0:
 					continue
-				if not _corridor_sides(rect).is_empty():
-					options.append(rect)
-		if options.is_empty():
+				var o := Vector2i(door.x, door.y) + LevelGrid.DIRS[door.z]
+				(by_corridor if grid.kind(o) == LevelGrid.FLOOR else by_hall).append(door)
+		var pool := by_corridor if not by_corridor.is_empty() else by_hall
+		if pool.is_empty():
 			return
-		var room := RoomOps.insert_room(grid, options[rng_layout.randi_range(0, options.size() - 1)], PUMP)
-		if room != null:
-			pumps.append(room)
+		var pick := pool[rng_layout.randi_range(0, pool.size() - 1)]
+		var at := Vector2i(pick.x, pick.y)
+		var rect := _pump_rect_of(pick)
+		var room := RoomOps.add_room(grid, rect, PUMP)
+		grid.set_wall(at, pick.z, LevelGrid.DOOR)
+		room.doors.append(pick)
+		pumps.append(room)
+
+
+## The door edge of a free 2x2 void rect beside a corridor or a hall's level floor (in that
+## order), as Vector3i(x, z, dir) on the room side; (-1, -1, -1) when the rect is not free.
+## The rect position is encoded in the edge's cell and recovered by _pump_rect_of.
+func _pump_door(rect: Rect2i) -> Vector3i:
+	for c in RoomData.new(rect).cells():
+		if grid.kind(c) != LevelGrid.VOID or grid.room_id[grid.idx(c)] >= 0:
+			return Vector3i(-1, -1, -1)
+	var best := Vector3i(-1, -1, -1)
+	for e in RoomData.new(rect).perimeter_edges():
+		var o := Vector2i(e.x, e.y) + LevelGrid.DIRS[e.z]
+		if not grid.in_bounds(o) or grid.room_id[grid.idx(o)] == spawn_room.id:
+			continue
+		if grid.kind(o) == LevelGrid.FLOOR and _corridor.has(grid.idx(o)):
+			_pump_rects[e] = rect
+			return e
+		var r := grid.room_of(o)
+		if best.x < 0 and grid.kind(o) == LevelGrid.ROOM and r != null and r.kind != PUMP and is_zero_approx(grid.floor_y(o)):
+			best = e
+	if best.x >= 0:
+		_pump_rects[best] = rect
+	return best
+
+
+func _pump_rect_of(door: Vector3i) -> Rect2i:
+	return _pump_rects[door]
 
 
 func decorate() -> void:
@@ -362,7 +400,7 @@ func _place_breaker(room: RoomData) -> void:
 ## facing the door (the player watches through the door's window). A marker until the hide
 ## spot interactable exists (M2.8).
 func _place_hide_spots() -> void:
-	data.expected_hide_spots = pumps.size()
+	data.expected_hide_spots = _pump_target
 	for room in pumps:
 		var door := Vector2i(room.doors[0].x, room.doors[0].y) if not room.doors.is_empty() else room.rect.position
 		var best := room.rect.position
@@ -399,6 +437,10 @@ func _place_fixtures() -> void:
 			data.add_placement(LevelData.P_FIXTURE, c, Vector3(0.0, height - grid.floor_y(c), 0.0), 0.0,
 				{&"group": group, &"fixture": &"panel"})
 	FixtureOps.corridor_fixtures(self, Tuning.POOLS_FIXTURE_SPACING_CORRIDOR_CELLS, Tuning.HALLS_GROUP_MAX_FIXTURES, height, &"panel")
+
+
+func release() -> void:
+	basins = null
 
 
 func gen_group(cells: Array[Vector2i]) -> int:

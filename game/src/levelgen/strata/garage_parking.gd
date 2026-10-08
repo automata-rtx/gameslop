@@ -20,9 +20,17 @@ var blocked: Dictionary = {}
 var cars: int = 0
 
 
+## Cell index -> true for the cells either side of a soft wall (kept clear).
+var _soft_cells: Dictionary = {}
+
+
 func _init(generator: GarageGenerator) -> void:
 	gen = generator
 	grid = generator.grid
+	for e in gen.data.soft_walls:
+		var a := Vector2i(e.x, e.y)
+		_soft_cells[grid.idx(a)] = true
+		_soft_cells[grid.idx(a + LevelGrid.DIRS[e.z])] = true
 
 
 ## Bay cells: Vector3i(x, z, wall dir) for deck cells against a strip or the deck's
@@ -100,7 +108,7 @@ func park() -> void:
 
 ## No other car or barrier within one cell (07 §5.3: min spacing 1 cell).
 func _clear_around(c: Vector2i) -> bool:
-	if gen.occupied.has(grid.idx(c)) or grid.kind(c) != LevelGrid.FLOOR:
+	if gen.occupied.has(grid.idx(c)) or grid.kind(c) != LevelGrid.FLOOR or _soft_cells.has(grid.idx(c)):
 		return false
 	for z in range(c.y - 1, c.y + 2):
 		for x in range(c.x - 1, c.x + 2):
@@ -260,11 +268,15 @@ func place_fixtures() -> void:
 	var height := float(Tuning.STRATUM_CEILING_HEIGHT[&"garage"])
 	for room in grid.room_list:
 		FixtureOps.room_fixtures(gen, room, height, &"sodium_lamp")
+	# Two lamps down each ramp's 8 m tunnel (cells 1 and 3 of 4), one group per ramp.
 	for run: Array in gen.ramps:
-		var c: Vector2i = run[run.size() / 2]
-		var group := _group([c])
-		gen.data.add_placement(LevelData.P_FIXTURE, c, Vector3(0.0, height, 0.0), 0.0,
-			{&"group": group, &"fixture": &"sodium_lamp"})
+		var lit: Array[Vector2i] = []
+		for k in range(1, run.size(), 2):
+			lit.append(run[k])
+		var group := _group(lit)
+		for c in lit:
+			gen.data.add_placement(LevelData.P_FIXTURE, c, Vector3(0.0, height, 0.0), 0.0,
+				{&"group": group, &"fixture": &"sodium_lamp"})
 
 
 ## Open cells walked straight from `c` in `d` (up to 12).

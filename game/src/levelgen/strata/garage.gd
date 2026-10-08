@@ -71,9 +71,8 @@ func layout() -> void:
 	grid.finalize_walls()
 	# Pillars first: a strip never takes a pillar's place on the lattice (the lamps hang there).
 	_pillars()
-	if not simplest:
-		for k in 2:
-			_strips(k)
+	for k in 2:
+		_strips(k)
 	grid.refresh_ledges()
 	MazeOps.mark_dead_ends(grid)
 
@@ -183,7 +182,7 @@ func _ramps(a: int, band: int) -> void:
 ## perimeter or band edge, between two rows (or columns) of deck cells.
 func _strips(k: int) -> void:
 	var r := deck_uv[k]
-	var count := rng_layout.randi_range(Tuning.GARAGE_STRIPS_MIN, Tuning.GARAGE_STRIPS_MAX)
+	var count := Tuning.GARAGE_STRIPS_MIN if simplest else rng_layout.randi_range(Tuning.GARAGE_STRIPS_MIN, Tuning.GARAGE_STRIPS_MAX)
 	var tries := count * 8
 	var made := 0
 	while made < count and tries > 0:
@@ -284,10 +283,11 @@ func decorate() -> void:
 	if breaker_room != null:
 		flag_room(breaker_room, LevelGrid.F_LOCK_ROOM)
 		_place_breaker()
-	parking = GarageParking.new(self)
-	parking.park()
 	var soft := Tuning.GARAGE_SOFT_WALLS + (Tuning.CYCLE2_EXTRA_SOFT_WALLS if data.cycle > 1 else 0)
 	PopulateOps.soft_walls(self, soft, false, LevelGrid.F_EXIT_ROOM | LevelGrid.F_SPAWN_ROOM | LevelGrid.F_LOCK_ROOM)
+	# Cars park after the soft walls, never in front of one (a shortcut nobody can reach).
+	parking = GarageParking.new(self)
+	parking.park()
 	_place_keycard()
 	PopulateOps.lock_pickups(self)
 	PopulateOps.notes(self)
@@ -297,6 +297,10 @@ func decorate() -> void:
 	PopulateOps.items(self, pool)
 	parking.place_fixtures()
 	PopulateOps.error_spawns(self)
+
+
+func release() -> void:
+	parking = null
 
 
 func _place_breaker() -> void:
