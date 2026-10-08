@@ -92,3 +92,43 @@ func test_no_prop_collider_on_a_walkable_cross() -> void:
 func test_hide_spots_let_the_player_out_on_free_floor() -> void:
 	for stratum: StringName in _problems:
 		assert_eq(_problems[stratum][&"hide_exits"].size(), 0, "%s: %s" % [stratum, _problems[stratum][&"hide_exits"]])
+
+
+## The audit sees a prop: a box on a cell's centre fails the centre, lane and cross checks;
+## the same box flush on the wall band (0.4 to 0.9 m off the centre) passes them.
+func test_audit_catches_a_prop_in_the_cross() -> void:
+	var data := LevelData.new()
+	var g := LevelGrid.new(Vector2i(3, 3))
+	for i in g.cell_count():
+		g.cells[i] = LevelGrid.FLOOR
+	for i in g.cell_count():
+		for d: int in [LevelGrid.E, LevelGrid.S]:
+			if g.in_bounds(g.cell_at(i) + LevelGrid.DIRS[d]):
+				g.set_wall(g.cell_at(i), d, LevelGrid.NONE)
+	data.grid = g
+	var root := Node3D.new()
+	add_child(root)
+	var body := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.0, 1.2, 0.5)
+	cs.shape = box
+	body.add_child(cs)
+	root.add_child(body)
+	body.position = g.world_of(Vector2i(1, 1)) + Vector3(0.0, 0.6, 0.0)
+	await await_physics_frames(2)
+	var space := root.get_world_3d().direct_space_state
+	assert_gt(PropClearance.centres(space, g).size(), 0, "centre caught")
+	assert_gt(PropClearance.lanes(space, data).size(), 0, "lanes caught")
+	assert_gt(PropClearance.crosses(root, data).size(), 0, "cross caught")
+	body.position = g.world_of(Vector2i(1, 1)) + Vector3(0.0, 0.6, 0.65)
+	await await_physics_frames(2)
+	# The south lane of (1, 1) runs through z 0..1 at |x| <= 0.4: still in it.
+	assert_gt(PropClearance.crosses(root, data).size(), 0, "a lane is part of the cross")
+	g.set_wall(Vector2i(1, 1), LevelGrid.S, LevelGrid.WALL)
+	body.position = g.world_of(Vector2i(1, 1)) + Vector3(0.0, 0.6, 0.65)
+	await await_physics_frames(2)
+	assert_eq(PropClearance.crosses(root, data).size(), 0, "flush on a wall is clear: %s" % PropClearance.crosses(root, data))
+	assert_eq(PropClearance.centres(space, g).size(), 0)
+	assert_eq(PropClearance.lanes(space, data).size(), 0)
+	root.queue_free()
