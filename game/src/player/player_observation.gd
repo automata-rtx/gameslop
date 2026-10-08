@@ -1,9 +1,10 @@
 class_name PlayerObservation
 extends RefCounted
 ## The observation predicate (06 Interfaces, 08 §4): Player.is_observing(node) is true when
-## the node is in the camera frustum (any of its observe points is: a crouched player
-## looking at a 2.6 m column from 2.5 m sees its centre but not its top), within 30 m and
-## unoccluded (every observe point has a clear world-layer ray from the eye), and lit:
+## ANY of the node's observe points is, on its own, in the camera frustum, within 30 m,
+## unoccluded (a clear world-layer ray from the eye) and lit (2026-10-08: a crouched player
+## sees a 2.6 m column's centre but not its top; a 2.1 m door header hides the top while
+## the centre stands in the doorway). Lit:
 ## the flashlight is on, an observe point lies within 25 deg of the beam axis and within
 ## the beam's range (22 m), or any registered light query reports an observe point lit
 ## (glowstick within 4 m, burning flare within 8 m, a powered fixture's light range).
@@ -35,19 +36,15 @@ static func is_observing(camera: Camera3D, node: Node3D, flashlight_on: bool, be
 	var node_rids := _rids_of(node)
 	var ignore: Array[RID] = exclude.duplicate()
 	ignore.append_array(node_rids)
-	# Cheap tests first: every point within 30 m, any point in the frustum.
-	var any_in_frustum := false
+	# 08 §4 (2026-10-08): observed when ANY observe point is, on its own, within 30 m, in
+	# the frustum, on a clear ray from the eye and lit. A door header that hides the top
+	# while the centre stands clear and lit in the doorway does not free the column.
 	for p in points:
-		if eye.distance_to(p) > Tuning.STILL_OBSERVE_MAX_DIST:
-			return false
-		any_in_frustum = any_in_frustum or camera.is_position_in_frustum(p)
-	if not any_in_frustum:
-		return false
-	for p in points:
-		if not clear_line(space, eye, p, ignore):
-			return false
-	for p in points:
-		if is_lit(p, flashlight_on, beam_origin, beam_axis, light_queries):
+		if eye.distance_to(p) > Tuning.STILL_OBSERVE_MAX_DIST or not camera.is_position_in_frustum(p):
+			continue
+		if not is_lit(p, flashlight_on, beam_origin, beam_axis, light_queries):
+			continue
+		if clear_line(space, eye, p, ignore):
 			return true
 	return false
 

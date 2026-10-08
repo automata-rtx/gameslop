@@ -8,8 +8,9 @@ extends ErrorBase
 ## Blind; hearing only. Wander: a walkable cell within 10 cells along the grid (doors
 ## ignored, it is sound), 0.6 m/s (0.9 by aggression), dwell 5 to 15 s. Search (3 heard
 ## steps within 10 s, or any tear): to last_known_pos at 0.9 to 1.2 m/s, dwell 20 s.
-## Never chases, never contacts. Notice: the field first contains the player; evasion:
-## the field releases the player after at least 2 s inside. Static ignores hiding.
+## Never chases, never contacts. Notice: the field first contains the player, once per
+## engagement (re-armed after 5 s outside or an evasion, 2026-10-08); evasion: the field
+## releases the player after at least 2 s inside. Static ignores hiding.
 ## Scene contract: %Field (Area3D sphere), %Mesh (MeshInstance3D, static_field shader),
 ## %Senses. The root stands on the floor; the field is centred STATIC_CENTRE_HEIGHT up.
 
@@ -28,6 +29,8 @@ var inside: bool = false
 var inside_time: float = 0.0
 ## Coherence drained so far (tests, the arena).
 var drained: float = 0.0
+## Seconds outside the field since the last release (re-arms the notice at 5 s).
+var outside_time: float = 0.0
 
 var _path: Array[Vector3] = []
 var _dwell_left: float = 0.0
@@ -75,7 +78,7 @@ func _apply_radius() -> void:
 
 
 func _exit_tree() -> void:
-	StaticFeed.forget(get_instance_id(), player)
+	StaticFeed.forget(get_instance_id(), live_player())
 	_release_audio()
 
 
@@ -134,6 +137,27 @@ func set_wander_filter(filter: Callable) -> void:
 	_wander_filter = filter
 
 
+## 10 §2 Relief (hint(pos, true)): Wander and Search drift to the hint now (a Search then
+## dwells there). A nudge in progress holds until it arrives; the hint waits for Wander.
+func _retarget_to_hint() -> void:
+	if _nudge:
+		return
+	var dest := _hint
+	_has_hint = false
+	_dwell_left = 0.0
+	_plan_to(dest)
+
+
+## No player (freed): the field lets go without an evasion and feeds nothing.
+func _on_player_gone() -> void:
+	if inside or strength > 0.0:
+		inside = false
+		inside_time = 0.0
+		_engaged = false
+		strength = 0.0
+		StaticFeed.forget(get_instance_id(), null)
+
+
 ## Static has no Satiated: it never contacts. The Director moves it with nudge().
 func retreat(_seconds: float) -> void:
 	pass
@@ -156,7 +180,7 @@ func _enter_state(to: StringName, _from: StringName) -> void:
 		Tuning.ERROR_STATE_DORMANT:
 			_path.clear()
 			_release_field()
-			StaticFeed.forget(get_instance_id(), player)
+			StaticFeed.forget(get_instance_id(), live_player())
 			_stop_audio()
 
 
@@ -244,34 +268,13 @@ func _arrive() -> void:
 		_dwell_left = rng.randf_range(Tuning.STATIC_DWELL_MIN, Tuning.STATIC_DWELL_MAX)
 
 
-## A hint, or a seeded walkable cell within 10 cells (grid walking distance) that passes
-## the wander filter; with none in reach, the nearest cell (walking) that passes it.
+## A hint, or a seeded walkable cell within 10 cells that passes the wander filter
+## (StaticPaths.wander_target).
 func _wander_target() -> Vector3:
 	if _has_hint:
 		_has_hint = false
 		return _hint
-	if grid == null:
-		var a := rng.randf() * TAU
-		var r := rng.randf() * Tuning.STATIC_WANDER_CELLS * Tuning.GRID_CELL_SIZE
-		return global_position + Vector3(cos(a) * r, 0.0, sin(a) * r)
-	var from := grid.cell_of(global_position)
-	var dist := grid.distance_field(from)
-	var pool: Array[Vector2i] = []
-	var nearest := -1
-	for i in dist.size():
-		if dist[i] <= 0 or not _wander_ok(grid.cell_at(i)):
-			continue
-		if dist[i] <= Tuning.STATIC_WANDER_CELLS:
-			pool.append(grid.cell_at(i))
-		elif nearest == -1 or dist[i] < dist[nearest]:
-			nearest = i
-	if pool.is_empty():
-		return grid.world_of(grid.cell_at(nearest)) if nearest != -1 else global_position
-	return grid.world_of(pool[rng.randi_range(0, pool.size() - 1)])
-
-
-func _wander_ok(c: Vector2i) -> bool:
-	return not _wander_filter.is_valid() or bool(_wander_filter.call(c))
+	return StaticPaths.wander_target(grid, global_position, rng, _wander_filter)
 
 
 ## The cell path (LevelGrid BFS over walkable cells, doors open: it is sound) to `dest`;
@@ -308,7 +311,7 @@ func _blocked_by_flare(next: Vector3) -> bool:
 # --- the field -----------------------------------------------------------------------------------
 
 func _field(delta: float) -> void:
-	if player == null or not player.is_inside_tree():
+	if not has_player():
 		_release_field()
 		return
 	var s := field_strength_at(player.eye_position())
@@ -316,6 +319,7 @@ func _field(delta: float) -> void:
 	inside = s > 0.0
 	strength = s
 	if inside:
+		outside_time = 0.0
 		inside_time += delta
 		var loss := Tuning.STATIC_DRAIN_PER_S * s * delta
 		drained += loss
@@ -324,6 +328,11 @@ func _field(delta: float) -> void:
 			_notice()
 	elif was:
 		_on_release()
+	elif _engaged:
+		# 08 §2 (2026-10-08): one notice per engagement; 5 s outside ends it.
+		outside_time += delta
+		if outside_time >= Tuning.STATIC_NOTICE_REARM_TIME:
+			_engaged = false
 	_set_strength(s)
 	if _band != null:
 		_band.set_volume(lerpf(Tuning.STATIC_BAND_OUTSIDE_DB, Tuning.STATIC_BAND_INSIDE_DB, s))
@@ -331,11 +340,11 @@ func _field(delta: float) -> void:
 
 func _on_release() -> void:
 	# 08 §2: an evasion when the field lets go after at least 2 s inside.
+	# A short visit keeps the engagement: re-entering within 5 s is not a new notice.
 	if inside_time >= Tuning.STATIC_MIN_EVADE_TIME:
 		_evade()
-	else:
-		_engaged = false
 	inside_time = 0.0
+	outside_time = 0.0
 
 
 func _release_field() -> void:
@@ -349,7 +358,7 @@ func _release_field() -> void:
 ## Feeds the renderer, the static bed and the camera jitter (StaticFeed: the strongest
 ## field over every Static, pushed by the nearest).
 func _set_strength(s: float) -> void:
-	StaticFeed.report(get_instance_id(), s, distance_to_player(), player)
+	StaticFeed.report(get_instance_id(), s, distance_to_player(), live_player())
 
 
 static func strongest_field() -> float:

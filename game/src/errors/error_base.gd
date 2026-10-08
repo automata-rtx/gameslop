@@ -147,9 +147,13 @@ func set_aggression(a: float) -> void:
 
 
 ## A suggested destination, used only in Wander, Search and the Satiated retreat.
-func hint(destination: Vector3) -> void:
+## `immediate` (10 §2 Relief, 2026-10-08): in Wander or Search the error re-targets to it
+## at once instead of when its current leg ends. In any other state it is only stored.
+func hint(destination: Vector3, immediate: bool = false) -> void:
 	_hint = destination
 	_has_hint = true
+	if immediate and (state == Tuning.ERROR_STATE_WANDER or state == Tuning.ERROR_STATE_SEARCH):
+		_retarget_to_hint()
 
 
 func clear_hint() -> void:
@@ -197,9 +201,24 @@ func start_search(pos: Vector3) -> void:
 
 
 func distance_to_player() -> float:
-	if player == null or not player.is_inside_tree() or not is_inside_tree():
+	if not has_player() or not is_inside_tree():
 		return INF
 	return body_position().distance_to(player.global_position)
+
+
+## True while the player is a live node in the tree. A freed player is forgotten here
+## (the run or a tour may free it while the level lives on): nothing ticks against it.
+func has_player() -> bool:
+	if player != null and not is_instance_valid(player):
+		player = null
+	return player != null and player.is_inside_tree()
+
+
+## The player when it is alive (in or out of the tree), else null.
+func live_player() -> Player:
+	if player != null and not is_instance_valid(player):
+		player = null
+	return player
 
 
 func is_dormant() -> bool:
@@ -277,7 +296,7 @@ func _evade() -> void:
 ## The 08 §2 contact test, called each physics frame by an error that contacts: within
 ## `radius` (XZ, one floor) for 2 consecutive physics frames and not hidden.
 func contact_step(radius: float, cost: float) -> bool:
-	if player == null or not player.is_inside_tree() or player.is_hidden():
+	if not has_player() or player.is_hidden():
 		_contact_frames = 0
 		return false
 	var a := body_position()
@@ -293,7 +312,7 @@ func contact_step(radius: float, cost: float) -> bool:
 ## Contact through the gates: contact_request (Director), then Player.contact (which
 ## applies cost, stun, push and asks its own contact_gate). On success: Satiated 20 s.
 func try_contact(cost: float) -> bool:
-	if player == null:
+	if not has_player():
 		return false
 	if contact_request.is_valid() and not bool(contact_request.call(self)):
 		return false
@@ -316,6 +335,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _process_error(delta: float) -> void:
+	if live_player() == null or (level != null and not is_instance_valid(level)):
+		# No player to hunt (freed) or the level is gone: nothing ticks (R9 item 16).
+		_on_player_gone()
+		return
 	if state == Tuning.ERROR_STATE_DORMANT:
 		# Dormant errors run only a 1 s timer.
 		_dormant_acc += delta
@@ -327,7 +350,7 @@ func _process_error(delta: float) -> void:
 	_sense_acc += delta
 	var far := distance_to_player() > Tuning.ERROR_FAR_DIST
 	if not far or _sense_acc >= Tuning.ERROR_FAR_SENSE_INTERVAL:
-		senses.tick(_sense_acc, player)
+		senses.tick(_sense_acc, player if has_player() else null)
 		_sense_acc = 0.0
 	_tick(delta)
 	_prox_acc += delta
@@ -345,41 +368,18 @@ func debug_info() -> Dictionary:
 
 # --- virtuals -------------------------------------------------------------------------------
 
-func _configure() -> void:
-	pass
-
-
-func _on_seeded() -> void:
-	pass
-
-
-func _on_aggression() -> void:
-	pass
-
-
-func _set_body_active(_on: bool) -> void:
-	pass
-
-
-func _dormant_tick() -> void:
-	pass
-
-
-func _enter_state(_to: StringName, _from: StringName) -> void:
-	pass
-
-
-func _exit_state(_from: StringName, _to: StringName) -> void:
-	pass
-
-
-func _tick(_delta: float) -> void:
-	pass
-
-
-func _on_heard(_pos: Vector3, _radius: float, _kind: StringName) -> void:
-	pass
-
-
-func _on_contact() -> void:
-	pass
+## Overridden by each error (one line each; see the subclasses).
+func _configure() -> void: pass
+func _on_seeded() -> void: pass
+func _on_aggression() -> void: pass
+func _set_body_active(_on: bool) -> void: pass
+func _dormant_tick() -> void: pass
+func _enter_state(_to: StringName, _from: StringName) -> void: pass
+func _exit_state(_from: StringName, _to: StringName) -> void: pass
+func _tick(_delta: float) -> void: pass
+func _on_heard(_pos: Vector3, _radius: float, _kind: StringName) -> void: pass
+func _on_contact() -> void: pass
+## Called each physics frame while there is no live player (or the level was freed).
+func _on_player_gone() -> void: pass
+## A hint marked immediate arrived in Wander or Search: re-target to `_hint` now.
+func _retarget_to_hint() -> void: pass

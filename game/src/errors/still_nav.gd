@@ -22,7 +22,7 @@ static func random_point_near(s: ErrorStill, centre: Vector3, radius: float) -> 
 ## 08 §2: retreat to a hinted point >= 20 m away; without one, the farthest of a few
 ## seeded candidates 20 to 30 m from the player.
 static func retreat_point(s: ErrorStill) -> Vector3:
-	var from := s.player.global_position if s.player != null else s.body_position()
+	var from := s.player.global_position if s.has_player() else s.body_position()
 	if s.has_hint() and s._hint.distance_to(from) >= Tuning.ERROR_SATIATED_RETREAT_DIST:
 		s.clear_hint()
 		return snap(s, s._hint)
@@ -82,7 +82,7 @@ static func skip_destination(s: ErrorStill) -> Vector3:
 
 
 static func in_player_frustum(s: ErrorStill, p: Vector3) -> bool:
-	if s.player == null or s.player.rig == null:
+	if not s.has_player() or s.player.rig == null:
 		return false
 	var cam := s.player.rig.camera
 	return cam.is_position_in_frustum(p + Vector3.UP * ErrorStill.COLUMN_CENTRE) \
