@@ -30,6 +30,8 @@ const CLASS_NAMES: Array[StringName] = [&"floor", &"ceiling", &"wall", &"partiti
 ## Body keys for collision. Wall bodies are split by wall type so the body itself carries
 ## a single `wall_kind` meta (noise wall counting reads it from the collider).
 const BODY_FLOOR := &"floor"
+## Solid blocks filling void cells next to walkable space (meta `void`, no `wall_kind`).
+const BODY_VOID := &"void"
 
 var grid: LevelGrid
 var height: float = 3.0
@@ -45,6 +47,14 @@ var boxes: Array[Dictionary] = []
 ## Triangle soup for the navigation bake: floors (walkable) and wall faces (obstacles).
 var nav_faces: PackedVector3Array = PackedVector3Array()
 var triangle_count: int = 0
+## Problems found while planning (also pushed as errors), e.g. an unsupported stratum.
+var errors: PackedStringArray = PackedStringArray()
+
+## Strata whose grids the plan models faithfully. TODO(M2.1): per-cell floor heights
+## (Substrate offsets, Garage decks, ramps), RAMP/BASIN/RACK cells and water are not built
+## yet; every floor is at y = 0 and every non-walkable cell is a solid block. M2.1 extends
+## _classify/_emit_horizontal and BuildCollision.boxes, then adds its stratum here.
+const SUPPORTED_STRATA: Array[StringName] = [&"halls"]
 
 # Fine grid.
 var _fw: int = 0
@@ -58,8 +68,7 @@ var _zb: Array[PackedFloat32Array] = []
 var _yb: PackedFloat32Array = PackedFloat32Array()
 var _door_h: float = 2.1
 var _part_h: float = 1.5
-# Accumulators keyed by "cx,cz,cls[,soft]".
-var _acc: Dictionary = {}
+var _mesh: BuildMesh = BuildMesh.new()
 # Edge key (Vector3i, E/S form) -> index in LevelData.soft_walls.
 var _soft_index: Dictionary = {}
 
@@ -73,11 +82,18 @@ static func make(level: LevelData, ceiling_height: float) -> BuildPlan:
 	p._door_h = Tuning.LEVELBUILD_DOOR_HEIGHT
 	p._part_h = Tuning.GRID_PARTITION_HEIGHT
 	p.chunks = Vector2i(ceili(level.grid.size.x / float(p.chunk_cells)), ceili(level.grid.size.y / float(p.chunk_cells)))
+	if not SUPPORTED_STRATA.has(level.stratum):
+		# TODO(M2.1): heights and special cells. Built anyway (flat), but loudly.
+		p.errors.append("BuildPlan: stratum '%s' needs per-cell heights and special cells (M2.1); built flat" % level.stratum)
+		push_error(p.errors[p.errors.size() - 1])
 	p._classify(level.soft_walls)
 	p._lattice()
 	p._emit_horizontal()
 	p._emit_vertical()
-	p._finish_meshes()
+	p._mesh.finish()
+	p.meshes = p._mesh.meshes
+	p.nav_faces = p._mesh.nav_faces
+	p.triangle_count = p._mesh.triangle_count
 	p.boxes = BuildCollision.boxes(p.grid, p.height, p.chunk_cells, p._part_h, p._door_h, p._soft_index)
 	return p
 
@@ -225,68 +241,34 @@ func _cell_of(i: int, j: int) -> Vector2i:
 
 func _acc_for(i: int, j: int, cls: int, soft: int) -> Dictionary:
 	var c := _cell_of(i, j)
-	var ch := Vector2i(c.x / chunk_cells, c.y / chunk_cells)
-	var key := "s%d" % soft if soft >= 0 else "%d,%d,%d" % [ch.x, ch.y, cls]
-	if not _acc.has(key):
-		_acc[key] = {
-			&"key": key, &"chunk": ch, &"cls": cls, &"soft": soft,
-			&"v": PackedVector3Array(), &"n": PackedVector3Array(), &"c": PackedColorArray(),
-			&"uv": PackedVector2Array(), &"i": PackedInt32Array(),
-		}
-	return _acc[key]
+	return _mesh.acc(Vector2i(c.x / chunk_cells, c.y / chunk_cells), cls, soft)
 
 
-## Per-cell variation (07 §8): R = a hash of the cell in 0..1, G = the UNFINISHED flag.
+## Per-cell variation (07 §8): R = a hash of the cell in 0..1, G = the UNFINISHED flag,
+## A = 1 on corridor cells (B, the floor's distance to a wall, is set per vertex).
 func _vcolor(i: int, j: int) -> Color:
 	var c := _cell_of(i, j)
 	var h := absf(sin(c.x * 12.9898 + c.y * 78.233) * 43758.5453)
 	var r := h - floorf(h)
 	var g := 1.0 if grid.has_flag(c, LevelGrid.F_UNFINISHED) else 0.0
-	return Color(r, g, 0.0, 1.0)
+	return Color(r, g, 0.0, 1.0 if grid.kind(c) == LevelGrid.FLOOR else 0.0)
 
 
-## A grid of quads: corner(u, v) for u in us, v in vs; normal n. Winding is fixed so the
-## front face is towards n (Godot culls clockwise-from-front back faces).
-func _patch(acc: Dictionary, us: PackedFloat32Array, vs: PackedFloat32Array, corner: Callable,
-		n: Vector3, col: Color) -> void:
-	var v: PackedVector3Array = acc[&"v"]
-	var nn: PackedVector3Array = acc[&"n"]
-	var cc: PackedColorArray = acc[&"c"]
-	var uv: PackedVector2Array = acc[&"uv"]
-	var idx: PackedInt32Array = acc[&"i"]
-	var base := v.size()
-	var nu := us.size()
-	for b in vs.size():
-		for a in nu:
-			var p: Vector3 = corner.call(us[a], vs[b])
-			v.append(p)
-			nn.append(n)
-			cc.append(col)
-			uv.append(Vector2(us[a], vs[b]))
-	# Decide the winding once from the patch's own axes.
-	var p00: Vector3 = corner.call(us[0], vs[0])
-	var p10: Vector3 = corner.call(us[1], vs[0])
-	var p01: Vector3 = corner.call(us[0], vs[1])
-	var flip := (p10 - p00).cross(p01 - p00).dot(n) > 0.0
-	for b in vs.size() - 1:
-		for a in nu - 1:
-			var i00 := base + b * nu + a
-			var i10 := i00 + 1
-			var i01 := i00 + nu
-			var i11 := i01 + 1
-			if flip:
-				idx.append_array([i00, i01, i10, i10, i01, i11])
-			else:
-				idx.append_array([i00, i10, i01, i10, i11, i01])
-	triangle_count += (vs.size() - 1) * (nu - 1) * 2
-	# Navigation gets one coarse quad per patch.
-	var p11: Vector3 = corner.call(us[nu - 1], vs[vs.size() - 1])
-	var pu: Vector3 = corner.call(us[nu - 1], vs[0])
-	var pv: Vector3 = corner.call(us[0], vs[vs.size() - 1])
-	if flip:
-		nav_faces.append_array([p00, pv, pu, pu, pv, p11])
-	else:
-		nav_faces.append_array([p00, pu, pv, pu, p11, pv])
+## Distance from floor point p (inside element (i, j)) to the nearest element solid at floor
+## level, clamped to LEVELBUILD_WALL_DIST_MAX (< a cell, so the 3 x 3 neighbourhood is enough).
+func _wall_dist(p: Vector3, i: int, j: int) -> float:
+	var best := Tuning.LEVELBUILD_WALL_DIST_MAX
+	for nj in range(maxi(j - 1, 0), mini(j + 2, _fh)):
+		for ni in range(maxi(i - 1, 0), mini(i + 2, _fw)):
+			var k: int = _kind[_fi(ni, nj)]
+			if k != Elem.FULL and k != Elem.PART:
+				continue
+			var xs := _xb[ni]
+			var zs := _zb[nj]
+			var dx := maxf(maxf(xs[0] - p.x, p.x - xs[xs.size() - 1]), 0.0)
+			var dz := maxf(maxf(zs[0] - p.z, p.z - zs[zs.size() - 1]), 0.0)
+			best = minf(best, sqrt(dx * dx + dz * dz))
+	return best / Tuning.LEVELBUILD_WALL_DIST_MAX
 
 
 ## Y breaks within [lo, hi].
@@ -306,7 +288,7 @@ func _emit_horizontal() -> void:
 			var xs := _xb[i]
 			var zs := _zb[j]
 			if k == Elem.OPEN or k == Elem.DOOR:
-				_flat(_acc_for(i, j, C_FLOOR, -1), xs, zs, 0.0, Vector3.UP, col)
+				_flat(_acc_for(i, j, C_FLOOR, -1), xs, zs, 0.0, Vector3.UP, col, _wall_dist.bind(i, j))
 			if k == Elem.OPEN or k == Elem.PART:
 				_flat(_acc_for(i, j, C_CEILING, -1), xs, zs, height, Vector3.DOWN, col)
 			if k == Elem.PART:
@@ -315,8 +297,9 @@ func _emit_horizontal() -> void:
 				_flat(_acc_for(i, j, C_WALL, -1), xs, zs, _door_h, Vector3.DOWN, col)
 
 
-func _flat(acc: Dictionary, xs: PackedFloat32Array, zs: PackedFloat32Array, y: float, n: Vector3, col: Color) -> void:
-	_patch(acc, xs, zs, func(u: float, w: float) -> Vector3: return Vector3(u, y, w), n, col)
+func _flat(acc: Dictionary, xs: PackedFloat32Array, zs: PackedFloat32Array, y: float, n: Vector3, col: Color,
+		blue: Callable = Callable()) -> void:
+	_mesh.patch(acc, xs, zs, func(u: float, w: float) -> Vector3: return Vector3(u, y, w), n, col, blue)
 
 
 func _emit_vertical() -> void:
@@ -369,32 +352,11 @@ func _face_side(i: int, j: int, f: int, k: int, other: int, oi: int, oj: int, al
 		if along_x:
 			var x := _xb[i][_xb[i].size() - 1] if sign > 0.0 else _xb[i][0]
 			var n := Vector3(sign, 0.0, 0.0)
-			_patch(acc, _zb[j], ys, func(u: float, y: float) -> Vector3: return Vector3(x, y, u), n, col)
+			_mesh.patch(acc, _zb[j], ys, func(u: float, y: float) -> Vector3: return Vector3(x, y, u), n, col)
 		else:
 			var z := _zb[j][_zb[j].size() - 1] if sign > 0.0 else _zb[j][0]
 			var n := Vector3(0.0, 0.0, sign)
-			_patch(acc, _xb[i], ys, func(u: float, y: float) -> Vector3: return Vector3(u, y, z), n, col)
-
-
-func _finish_meshes() -> void:
-	var keys := _acc.keys()
-	keys.sort()
-	for key in keys:
-		var a: Dictionary = _acc[key]
-		var arrays := []
-		arrays.resize(Mesh.ARRAY_MAX)
-		arrays[Mesh.ARRAY_VERTEX] = a[&"v"]
-		arrays[Mesh.ARRAY_NORMAL] = a[&"n"]
-		arrays[Mesh.ARRAY_COLOR] = a[&"c"]
-		arrays[Mesh.ARRAY_TEX_UV] = a[&"uv"]
-		arrays[Mesh.ARRAY_INDEX] = a[&"i"]
-		var verts: PackedVector3Array = a[&"v"]
-		var box := AABB(verts[0], Vector3.ZERO)
-		for p in verts:
-			box = box.expand(p)
-		meshes.append({&"key": a[&"key"], &"chunk": a[&"chunk"], &"cls": a[&"cls"], &"soft": a[&"soft"],
-			&"arrays": arrays, &"aabb": box})
-	_acc.clear()
+			_mesh.patch(acc, _xb[i], ys, func(u: float, y: float) -> Vector3: return Vector3(u, y, z), n, col)
 
 
 ## Solid-element count by kind (tests and debugging).

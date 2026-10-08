@@ -17,8 +17,10 @@ const SURFACE_WATER := &"water"
 
 ## Metres a follow-up ray starts inside the wall it just counted.
 const WALL_STEP_IN := 0.02
-## Meta a wall collider carries (any value, e.g. &"interior", &"perimeter", &"soft").
+## Meta a wall collider carries (the wall type name, e.g. &"WALL", &"SOFT", &"DOOR").
 const WALL_META := &"wall_kind"
+## A `wall_kind` that is not a wall: props, lockers, an open door leaf (06 Interfaces).
+const KIND_PROP := &"PROP"
 ## Non-wall colliders a wall count may step over before it gives up.
 const MAX_SKIPPED := 4
 
@@ -99,8 +101,8 @@ static func can_hear(space: PhysicsDirectSpaceState3D, pos: Vector3, listener: V
 
 ## Walls on the straight line `from` -> `to`, up to NOISE_WALL_RAYCASTS of them. Only
 ## colliders the level builder marks as walls count: a collider with the `wall_kind`
-## meta (any value; 06 Interfaces). Floors, props, doors' frames and error bodies on the
-## world layer are stepped over without counting, at most MAX_SKIPPED of them.
+## meta other than PROP (06 Interfaces). Floors, props, open door leaves, void blocks and
+## error bodies on the world layer are stepped over without counting, at most MAX_SKIPPED.
 static func count_walls(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3, exclude: Array[RID] = []) -> int:
 	if space == null:
 		return 0
@@ -127,6 +129,7 @@ static func count_walls(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vec
 
 
 ## A wall collider for noise attenuation: carries the `wall_kind` meta (set by the level
-## builder on wall and partition bodies; 06 Interfaces).
+## builder on wall and partition bodies; 06 Interfaces), except PROP (props, lockers, an open
+## door leaf: noise must match what the player can read; CHANGELOG 2026-10-08).
 static func is_wall(collider: Object) -> bool:
-	return collider != null and collider.has_meta(WALL_META)
+	return collider != null and collider.has_meta(WALL_META) and collider.get_meta(WALL_META) != KIND_PROP

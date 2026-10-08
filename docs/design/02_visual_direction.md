@@ -79,7 +79,8 @@ All generated level geometry and props use a single `ShaderMaterial` (`world_sur
 - **Soft walls** (`09`): a uniform `soft = 1.0` on the thin wall segments the generator marks passable. The shader adds a faint moving interference band (0.5 Hz, amplitude 0.03 in albedo) and, when the player's crosshair is within 2 m and aimed at it, a stronger 1 px grid preview at `u = 0.3`. Players learn to read soft walls by that shimmer. No HUD marker.
 - **Placeholder checker** (`pattern_mode 5`): magenta `#FF00FF` and black 1 m checker, unlit, used only in the Substrate on surfaces the generator marks "unfinished". It ignores the Substrate's `u_floor` (it must read magenta); Null still unrenders it.
 
-Props that must react differently (monitors, LEDs, water) get their own small shaders listed in §8, all of which still read `g_coherence` for jitter and desaturation consistency.
+Props that must react differently (monitors, LEDs, water, the fixtures' ceiling glow) get their own small shaders listed in §8, all of which still read `g_coherence` for jitter and desaturation consistency.
+- **Noclip commit lines** (M3.2): within the 3 m commit radius the grid lines are 2.5 px wide and 3× as bright (`WORLD_COMMIT_LINE_PX`, `WORLD_COMMIT_LINE_GAIN`), and geometry there does not take the commit jitter, so "world lines within 3 m" (11 §2) reads through TAA and the commit pulse.
 
 ## 6. Lighting rules
 
@@ -97,10 +98,10 @@ Props that must react differently (monitors, LEDs, water) get their own small sh
 Hex values are the canonical palette. Agents set these in `StratumData` resources; the shader derives everything else.
 
 ### Halls
-- **Walls:** wallpaper `#C9A227`, secondary `#B8921F` in 0.6 m vertical stripes (pattern 2, the secondary pushed ×1.6 from the primary), printed: small diamonds on a 0.15 m half-drop lattice and pinstripes at the stripe edges (`print_amount` 0.14), roughness 0.85, noise normal strength 0.25.
-- **Floor:** carpet `#8B7A3A` (pattern 3: carpet noise, scale 4, and a loop pile of 90 loops per metre that fades to its mean below ~2.5 px per loop), roughness 1.0.
+- **Walls:** wallpaper `#C9A227`, secondary `#B8921F` in 0.6 m vertical stripes (pattern 2, the secondary pushed ×1.6 from the primary, easing back to the palette pair between 3 m and 10 m so far walls read as one tone with the print), printed: small diamonds on a 0.15 m half-drop lattice and pinstripes at the stripe edges (`print_amount` 0.14), roughness 0.85, noise normal strength 0.25, ±4% tint per cell. A baseboard band below 0.1 m (45% darker, roughness 0.45, a lit 1 cm lip) and a 5 cm shadow line under the ceiling (35%).
+- **Floor:** carpet `#8B7A3A` (pattern 3: carpet noise, scale 4, and a loop pile of 90 loops per metre that fades to its mean below ~2.5 px per loop), roughness 1.0, ±4% tint per cell. Wear lanes along corridor centre lines (paler, flattened pile where the floor is more than 0.55 m from a wall; `wear` 0.5) and a darker seam within 0.25 m of a wall (30%), from the builder's vertex colour (07 §8).
 - **Ceiling:** drop tiles `#E8E2CF` (pattern 6: 0.6 m panels, thin seams), roughness 0.9.
-- **Fixture:** 1.2 m × 0.3 m recessed tube every 4 m, emission `#FFF2C4` × 8, light colour `#FFEFC2`, energy 1.4, range 7, decay 2 (inverse square), hung 0.7 m below the tube.
+- **Fixture:** 1.2 m × 0.3 m recessed tube every 4 m, emission `#FFF2C4` × 8, light colour `#FFEFC2`, energy 1.4, range 7, decay 2 (inverse square), hung 0.7 m below the tube. A soft additive glow on the ceiling tile around each lit tube (`fixture_glow.gdshader`, energy 1.0). The one fixture in six that buzzes (03) has a slightly greener tube and light (× `#E6FFDB`) at 85% energy, steady.
 - **Fog:** `#B49A3C`, density 0.02. **Ambient:** `#6E5A1E` 0.08. **Exposure:** 1.0.
 - **Props:** none in corridors; rooms get 0 to 2 of: vending machine, payphone, chair, wall clock (`09`).
 

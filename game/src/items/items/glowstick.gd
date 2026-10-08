@@ -5,7 +5,10 @@ extends RigidBody3D
 ## dims over the last 20 s, then goes. Landing from a throw is an `impact` noise (6 m, the Echo
 ## lure); a dropped stick is set down silently. Lit area counts for observing Still (08 §4);
 ## Flicker cannot use it (it is not a fixture). Layer 8 (`thrown`), collides with the world only.
-## The lit predicate and Flicker read the group: `Glowstick.is_lit(tree, pos)`.
+## The lit predicate and Flicker read the group: `Glowstick.is_lit(tree, pos)`. In a level, the
+## light counts only where it has a clear grid sight line (SightOps), and the light node is
+## hidden while the stick is out of grid view of the player's camera: an unshadowed 4 m light
+## would otherwise shine through 0.2 m walls (CHANGELOG 2026-10-08). The tube still glows.
 
 const GROUP_LIGHT := &"chemical_light"
 const LAYER_THROWN := 8
@@ -13,6 +16,8 @@ const SOUND_LAND := &"glowstick_land"
 const SOUND_FIZZ := &"glowstick_fizz"
 ## Light below this energy no longer counts as lit.
 const LIT_MIN_ENERGY := 0.05
+## Seconds between grid-view checks of the light against the camera.
+const VIEW_CHECK_S := Tuning.LIGHT_POOL_REEVAL_INTERVAL
 
 ## Seconds burned.
 var age: float = 0.0
@@ -21,8 +26,9 @@ var quiet: bool = false
 var light: OmniLight3D
 var landed: bool = false
 
-var _tube_mat: StandardMaterial3D
+var _tube_mat: ShaderMaterial
 var _bounce_mat: PhysicsMaterial
+var _view_left: float = 0.0
 
 
 func _init() -> void:
@@ -49,7 +55,9 @@ func _init() -> void:
 	model.rotation = Vector3.ZERO
 	model.name = "Model"
 	add_child(model)
-	_tube_mat = (model.get_node("Tube") as MeshInstance3D).material_override as StandardMaterial3D
+	_tube_mat = ((model.get_node("Tube") as MeshInstance3D).material_override as ShaderMaterial).duplicate()
+	(model.get_node("Tube") as MeshInstance3D).material_override = _tube_mat
+	ItemModels.set_held(model, false)
 	light = OmniLight3D.new()
 	light.name = "Light"
 	light.light_color = ItemModels.GLOW
@@ -68,6 +76,17 @@ func _ready() -> void:
 
 func _physics_process(dt: float) -> void:
 	tick(dt)
+	_view_left -= dt
+	if _view_left <= 0.0 and is_inside_tree():
+		_view_left = VIEW_CHECK_S
+		var cam := get_viewport().get_camera_3d()
+		update_view(Level.grid_in(get_tree()), cam.global_position if cam != null else global_position)
+
+
+## Shows the light only while the stick is in grid view of `eye` (or of a cell one step
+## from it). No grid: always shown. Public so tests drive it.
+func update_view(grid: LevelGrid, eye: Vector3) -> void:
+	light.visible = grid == null or SightOps.clear_near(grid, eye, global_position)
 
 
 ## Burn `dt` seconds. Public so tests step time.
@@ -75,6 +94,7 @@ func tick(dt: float) -> void:
 	age += dt
 	if age >= Tuning.GLOWSTICK_LIFETIME:
 		light.visible = false
+		light.light_energy = 0.0
 		queue_free()
 		return
 	_apply_life()
@@ -95,7 +115,7 @@ func life() -> float:
 func _apply_life() -> void:
 	var f := life()
 	light.light_energy = Tuning.GLOWSTICK_LIGHT_ENERGY * f
-	_tube_mat.emission_energy_multiplier = 2.5 * f
+	_tube_mat.set_shader_parameter(&"emission_strength", ItemModels.GLOW_EMISSION * f)
 
 
 ## Throws: at `origin`, with velocity `v`, tumbling end over end along its flight.
@@ -128,12 +148,19 @@ func _on_body_entered(_body: Node) -> void:
 
 
 ## 06 Interfaces / 08 §4: is `pos` inside the light of a burning glowstick (or any chemical
-## light)? The Player's observation asks this through Player.add_light_query.
-static func is_lit(tree: SceneTree, pos: Vector3) -> bool:
+## light) with a clear grid sight line from the light to it? The Player's observation asks
+## this through Player.add_light_query. Visibility of the light node is ignored: it is hidden
+## for rendering when the player cannot see the stick, which says nothing about what it lights.
+## `grid` defaults to the live level's (none: no sight test).
+static func is_lit(tree: SceneTree, pos: Vector3, grid: LevelGrid = null) -> bool:
+	if grid == null:
+		grid = Level.grid_in(tree)
 	for n in tree.get_nodes_in_group(GROUP_LIGHT):
 		var l := n as OmniLight3D
-		if l != null and l.is_visible_in_tree() and l.light_energy > LIT_MIN_ENERGY \
-				and pos.distance_to(l.global_position) <= l.omni_range:
+		if l == null or not l.is_inside_tree() or l.is_queued_for_deletion() or l.light_energy <= LIT_MIN_ENERGY:
+			continue
+		var at := l.global_position
+		if pos.distance_to(at) <= l.omni_range and (grid == null or SightOps.clear(grid, at, pos)):
 			return true
 	return false
 

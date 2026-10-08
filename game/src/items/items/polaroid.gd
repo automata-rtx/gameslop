@@ -4,15 +4,13 @@ extends ItemBase
 ## view, the view narrows 3 degrees, 12 frames converge, then a white flash on the last frame
 ## and +25 Coherence with the gain pulse. Refused while stunned or charging noclip; stun,
 ## noclip charge or losing agency mid-use cancels it and costs nothing.
-## Errors in the flash cone get `on_polaroid(origin: Vector3, dir: Vector3)` if they implement it
-## (09 defines no effect on errors; this is only the hook).
+## No error reacts to the Polaroid (08 §1: one rule, one counter each; CHANGELOG 2026-10-08).
 
 const PULSE_FLASH := &"flash"
 const FOV_KEY := &"polaroid"
 const SOUND_CHARGE := &"polaroid_charge"
 const SOUND_SHUTTER := &"polaroid_shutter"
 const SOURCE := &"polaroid"
-const HOOK := &"on_polaroid"
 const PHOTO_DISTANCE := 0.3
 const FRAME_COUNT := Tuning.POLAROID_FRAMES
 
@@ -38,18 +36,6 @@ static func blocked(p: Player) -> bool:
 		return false
 	return p.is_stunned() or p.state_machine.is_in(PlayerStateMachine.NOCLIP_CHARGE) \
 			or p.is_dissolving() or not p.can_use_item()
-
-
-## True when `target` is inside the flash cone: within `max_dist` and `half_deg` of `dir`.
-static func in_cone(origin: Vector3, dir: Vector3, target: Vector3,
-		half_deg: float = Tuning.POLAROID_CONE_DEG, max_dist: float = Tuning.POLAROID_RANGE) -> bool:
-	var to := target - origin
-	var d := to.length()
-	if d > max_dist:
-		return false
-	if d < 0.001:
-		return true
-	return rad_to_deg(dir.angle_to(to)) <= half_deg
 
 
 func use(slot: ItemSlot) -> bool:
@@ -128,7 +114,6 @@ func _complete() -> void:
 	_note_seen(photo)
 	if p != null:
 		p.rig.fov_hold(0.0, 150.0, FOV_KEY)
-		_flash_errors(p)
 		p.apply_coherence(Tuning.COHERENCE_GAIN_POLAROID, SOURCE)
 	inventory.consume(kind, 1)
 	_put_down()
@@ -148,26 +133,6 @@ func _note_seen(photo: int) -> void:
 	var meta: MetaState = GameState.meta
 	if meta != null and not meta.polaroids_seen.has(photo):
 		meta.polaroids_seen.append(photo)
-
-
-# --- the flash and the errors ----------------------------------------------------------------
-
-func _flash_errors(p: Player) -> void:
-	var cam := p.rig.camera
-	var origin := cam.global_position
-	var dir := -cam.global_transform.basis.z
-	var space := cam.get_world_3d().direct_space_state
-	for e in inventory.get_tree().get_nodes_in_group(&"errors"):
-		if not (e is Node3D) or not e.has_method(HOOK):
-			continue
-		var pos := (e as Node3D).global_position
-		if not in_cone(origin, dir, pos):
-			continue
-		var q := PhysicsRayQueryParameters3D.create(origin, pos, PlayerLayers.WORLD_MASK)
-		q.exclude = [p.get_rid()]
-		if not space.intersect_ray(q).is_empty():
-			continue
-		e.call(HOOK, origin, dir)
 
 
 # --- held visuals ----------------------------------------------------------------------------
@@ -222,9 +187,13 @@ func _put_down() -> void:
 	rest.free()
 
 
-## Draws a part over the world and unshaded (the card held up must not clip into walls).
+## Draws a part over the world and unshaded (the card held up must not clip into walls);
+## `on` false puts the held world-shader material back (02 §5, 09 §3).
 static func _overlay(mi: MeshInstance3D, color: Color, tex: Texture2D, priority: int, on: bool = true) -> void:
 	if mi == null:
+		return
+	if not on:
+		mi.material_override = ItemModels.material(color, 0.7 if color != Color.BLACK else 0.9)
 		return
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color

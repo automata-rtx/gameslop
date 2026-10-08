@@ -11,6 +11,8 @@ signal built
 
 ## 02 §10: dust motes in these strata.
 const DUST_STRATA: Array[StringName] = [&"halls", &"garage", &"offices"]
+## The live level is in this group; `Level.grid_in(tree)` reads its grid.
+const GROUP := &"levels"
 
 @onready var light_pool: LightPool = %LightPool
 @onready var navigation: NavigationRegion3D = %Navigation
@@ -22,6 +24,49 @@ var stratum: StratumData
 var builder: LevelBuilder
 var dust: DustMotes
 var preset: StringName = Tuning.QUALITY_PRESET_DEFAULT
+
+
+func _ready() -> void:
+	add_to_group(GROUP)
+	# 14 §9 F3 overlay: the level adds its light counts.
+	add_to_group(&"debug_info")
+
+
+## The grid of the level in the tree (null outside a level: benches, unit tests).
+static func grid_in(tree: SceneTree) -> LevelGrid:
+	if tree == null:
+		return null
+	for n in tree.get_nodes_in_group(GROUP):
+		var l := n as Level
+		if l != null and l.data != null and not l.is_queued_for_deletion():
+			return l.data.grid
+	return null
+
+
+## F3 overlay lines (DebugOverlay reads the `debug_info` group): every OmniLight3D and
+## SpotLight3D in the scene that is on (pool, glowsticks, items, the flashlight), and the
+## pool's share of them.
+func debug_info() -> Dictionary:
+	var counts := light_counts(get_tree().root)
+	return {
+		&"lights": "OMNI %d   SPOT %d   POOL %d/%d" % [counts.x, counts.y,
+			light_pool.active_light_count() if light_pool != null else 0,
+			light_pool.pool_size if light_pool != null else 0],
+	}
+
+
+## Vector2i(omni, spot): visible lights under `root`.
+static func light_counts(root: Node) -> Vector2i:
+	var out := Vector2i.ZERO
+	for n in root.find_children("*", "Light3D", true, false):
+		var l := n as Light3D
+		if not l.is_visible_in_tree():
+			continue
+		if l is OmniLight3D:
+			out.x += 1
+		elif l is SpotLight3D:
+			out.y += 1
+	return out
 
 
 func begin(level_data: LevelData, quality_preset: StringName = Tuning.QUALITY_PRESET_DEFAULT) -> void:

@@ -12,7 +12,6 @@ extends Node3D
 const GROUP := &"pickups"
 ## 06 §7: the interaction ray accepts layer 4; 14 §7 puts world items on layer 5. Both bits.
 const BODY_LAYERS := PlayerLayers.INTERACTABLE_MASK | (1 << 4)
-const BASE_HEIGHT := 0.3
 const SOUND_PICKUP := &"item_pickup"
 
 @export var kind: StringName = &""
@@ -28,6 +27,9 @@ var picked: bool = false
 @onready var light: OmniLight3D = %Light
 
 var _phase: float = 0.0
+## Bob centre height: the model's lowest point rests ITEM_WORLD_REST_HEIGHT above the floor
+## at the bottom of the bob.
+var _base_height: float = 0.0
 
 
 func _ready() -> void:
@@ -41,8 +43,10 @@ func _ready() -> void:
 	light.omni_range = Tuning.ITEM_WORLD_LIGHT_RANGE
 	light.shadow_enabled = false
 	body.collision_layer = BODY_LAYERS
-	bob.add_child(ItemModels.world(kind))
-	bob.position.y = BASE_HEIGHT
+	var model := ItemModels.world(kind)
+	bob.add_child(model)
+	_base_height = Tuning.ITEM_WORLD_REST_HEIGHT + Tuning.ITEM_WORLD_BOB_AMPLITUDE - model_bottom(model)
+	bob.position.y = _base_height
 	interactable.condition = _can_use
 	interactable.interacted.connect(_on_interacted)
 	_refresh_prompt(null)
@@ -54,7 +58,23 @@ func _process(delta: float) -> void:
 	if picked:
 		return
 	_phase = fposmod(_phase + delta * Tuning.ITEM_WORLD_BOB_HZ, 1.0)
-	bob.position.y = BASE_HEIGHT + sin(_phase * TAU) * Tuning.ITEM_WORLD_BOB_AMPLITUDE
+	bob.position.y = _base_height + sin(_phase * TAU) * Tuning.ITEM_WORLD_BOB_AMPLITUDE
+
+
+## Lowest point of `model` in its parent's space (the mesh AABBs' corners, rotated).
+static func model_bottom(model: Node3D) -> float:
+	var low := INF
+	for n in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var xf := Transform3D.IDENTITY
+		var walk: Node = mi
+		while walk != null and walk != model.get_parent():
+			xf = (walk as Node3D).transform * xf
+			walk = walk.get_parent()
+		var box := mi.mesh.get_aabb()
+		for i in 8:
+			low = minf(low, (xf * box.get_endpoint(i)).y)
+	return 0.0 if low == INF else low
 
 
 ## Assigns the Polaroid photo (PolaroidPainter index) this pickup holds.
@@ -80,7 +100,9 @@ func can_take(inv: Inventory) -> bool:
 		return false
 	if inv.can_accept(kind):
 		return true
-	return not inv.has(kind) and inv.first_free_slot() == -1 and inv.selected_slot() != null
+	# A swap puts the selected stack on the floor, so its kind needs a world scene.
+	return not inv.has(kind) and inv.first_free_slot() == -1 and inv.selected_slot() != null \
+			and inv.can_swap_out()
 
 
 func _can_use(player: Node) -> bool:
@@ -106,6 +128,8 @@ func take(player: Node) -> bool:
 	if inv.can_accept(kind):
 		var accepted := inv.add(kind, count, state)
 		count -= accepted
+		# Only the accepted items' state (Polaroid photos) went to the belt; the rest stays.
+		state = ItemSlot.remaining_state(state, accepted)
 		spent = count <= 0
 	else:
 		var old := inv.swap_in(kind, count, state)

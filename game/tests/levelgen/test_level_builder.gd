@@ -237,11 +237,110 @@ func test_light_pool_power_and_flicker() -> void:
 	assert_true(pool.is_lit(origin - Vector3(0, 1.0, 0)))
 
 
+## R4 #1: a closed leaf is a DOOR wall for noise, an open one a PROP (not a wall); jambs
+## are WALL. R4 #11: the leaf's state is on the grid, so a closed door blocks sight.
 func test_doors_carry_edge_meta() -> void:
-	for d in get_tree().get_nodes_in_group(&"doors"):
-		var leaf := (d as Door).leaf
-		assert_eq(leaf.get_meta(&"wall_kind"), &"DOOR")
+	var doors := get_tree().get_nodes_in_group(&"doors")
+	print("  # doors: %d" % doors.size())
+	for n in doors:
+		var d := n as Door
+		var leaf := d.leaf
 		assert_true(leaf.has_meta(&"cell"))
+		assert_eq(leaf.get_meta(&"wall_type"), LevelGrid.DOOR, "noclip still sees a door")
+		assert_eq(d.jambs.get_meta(&"wall_type"), LevelGrid.WALL)
+		assert_eq(d.jambs.get_meta(&"wall_kind"), &"WALL")
+		assert_true(NoiseModel.is_wall(d.jambs))
+		var c: Vector2i = leaf.get_meta(&"cell")
+		var dir := int(leaf.get_meta(&"dir"))
+		var was_open := d.is_open
+		d.close()
+		assert_eq(leaf.get_meta(&"wall_kind"), &"DOOR")
+		assert_true(NoiseModel.is_wall(leaf), "a closed leaf is a wall")
+		assert_true(_data.grid.is_door_closed(c, dir))
+		d.open()
+		assert_eq(leaf.get_meta(&"wall_kind"), &"PROP")
+		assert_false(NoiseModel.is_wall(leaf), "an open leaf is not")
+		assert_false(_data.grid.is_door_closed(c, dir))
+		if not was_open:
+			d.close()
+
+
+## R4 #10: doors wear the stratum's materials (LevelMaterials), not hard-wired ones.
+func test_doors_use_stratum_materials() -> void:
+	var st := load("res://data/strata/halls.tres") as StratumData
+	for n in get_tree().get_nodes_in_group(&"doors"):
+		var d := n as Door
+		assert_eq((d.get_node("%JambL") as MeshInstance3D).material_override, LevelMaterials.for_class(st, BuildPlan.C_WALL))
+		assert_eq((d.get_node("%LeafMesh") as MeshInstance3D).material_override, LevelMaterials.for_class(st, LevelMaterials.C_DOOR_LEAF))
+
+
+## R4 #1: props are not walls for noise.
+func test_props_are_not_noise_walls() -> void:
+	var props := get_tree().get_nodes_in_group(&"props")
+	for p in props:
+		for b in (p as Node).find_children("*", "StaticBody3D", true, false):
+			assert_eq(b.get_meta(&"wall_kind", &""), &"PROP")
+			assert_false(NoiseModel.is_wall(b))
+
+
+## R4 #2: a void block next to walkable space is solid: a shape cast inside it hits, the
+## hit reads wall_type SOLID, and the block is not a noise wall.
+func test_void_blocks_are_solid() -> void:
+	var g := _data.grid
+	var space := _level.get_world_3d().direct_space_state
+	var checked := 0
+	for i in g.cell_count():
+		var c := g.cell_at(i)
+		if g.is_walkable(c):
+			continue
+		var touches := false
+		for d in LevelGrid.DIRS:
+			touches = touches or g.is_walkable(c + d)
+		if not touches:
+			continue
+		var q := PhysicsShapeQueryParameters3D.new()
+		var sphere := SphereShape3D.new()
+		sphere.radius = 0.3
+		q.shape = sphere
+		q.transform = Transform3D(Basis.IDENTITY, g.world_of(c) + Vector3(0, 1.2, 0))
+		q.collision_mask = 1
+		var hits := space.intersect_shape(q, 4)
+		assert_gt(hits.size(), 0, "a shape inside void %s hits" % c)
+		var solid := false
+		for h in hits:
+			var info := LevelBuilder.shape_info(h["collider"], h["shape"])
+			solid = solid or (info.get(&"wall_type", -1) == LevelGrid.SOLID and bool(info.get(&"void", false)))
+			if bool(info.get(&"void", false)):
+				assert_false(NoiseModel.is_wall(h["collider"]), "void blocks are not counted as walls")
+		assert_true(solid, "void %s reads SOLID" % c)
+		checked += 1
+		if checked >= 40:
+			break
+	assert_gt(checked, 5)
+
+
+## R4 #7: navigation voxels are 0.2 m, so the 0.4 m radius is exactly two cells.
+func test_navigation_cell_size() -> void:
+	assert_approx(Tuning.NAV_CELL_SIZE, 0.2)
+	assert_approx(_level.navigation.navigation_mesh.cell_size, 0.2)
+	assert_approx(fmod(Tuning.NAV_AGENT_RADIUS, Tuning.NAV_CELL_SIZE), 0.0, 0.0001)
+
+
+## R4 #23: the level reports its light counts to the F3 overlay.
+func test_debug_info_counts_lights() -> void:
+	assert_true(_level.is_in_group(&"debug_info"))
+	var info := _level.debug_info()
+	assert_true(String(info[&"lights"]).begins_with("OMNI "))
+	var counts := Level.light_counts(_level)
+	assert_eq(counts.x, _level.light_pool.active_light_count() + _count_pickup_lights(), "pool lights are omnis")
+
+
+func _count_pickup_lights() -> int:
+	var n := 0
+	for l in _level.find_children("*", "OmniLight3D", true, false):
+		if (l as Light3D).is_visible_in_tree() and l.get_parent() != _level.light_pool:
+			n += 1
+	return n
 
 
 ## 07 §3: walkable as soon as the geometry is built: the player stands on the spawn floor
@@ -259,3 +358,26 @@ func test_player_stands_on_spawn() -> void:
 	assert_true(_level.light_pool.target == player.rig.camera)
 	_level.detach_player(player)
 	player.queue_free()
+
+
+## R4 V3: the hashed buzzing fixtures (about one in six) are greener at 85% and steady; every
+## lit fixture has a ceiling glow.
+func test_buzzing_fixtures_and_glow() -> void:
+	var fx := _level.light_pool.fixtures()
+	var buzzing := 0
+	for f in fx:
+		assert_eq(f.buzzing, f.hum_id == _level.light_pool.buzz_id, "buzz look follows the buzz hum")
+		assert_false(f.is_flickering(), "steady")
+		if f.buzzing:
+			buzzing += 1
+			assert_approx(f.energy_scale(), Tuning.LIGHT_FIXTURE_BUZZ_ENERGY)
+			var m := f.tube.material_override as ShaderMaterial
+			var e: Color = m.get_shader_parameter(&"emission")
+			assert_lt(e.r, e.g, "greener")
+		else:
+			assert_approx(f.energy_scale(), 1.0)
+		assert_not_null(f.glow, "ceiling glow")
+		if f.glow != null and f.is_emitting():
+			assert_gt(float(f.glow.get_instance_shader_parameter(&"energy")), 0.0)
+	assert_gt(buzzing, 0)
+	assert_lt(buzzing, fx.size() / 3)

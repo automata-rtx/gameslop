@@ -16,8 +16,10 @@ Deferred work found during production. Each line names the task that should abso
 - M1.11b/M2.14: AudioManager heartbeat should lock to `CoherenceRenderer.heartbeat_phase()` instead of its own timer.
 - M1.2 follow-up / M3.5: `apply_viewport_preset` (game/src/lighting/stratum_environment.gd) needs FSR 2 when render scale < 1.0.
 - M2.11: add a `texture_detail` settings key; CoherenceRenderer.apply_texture_detail is ready.
-- M3.2: noclip commit frame: grid lines are lost under grain spike and jitter; make "lines within 3 m" read.
 - M1.9/M2.10: GameState must subscribe to note_found and record notes into run/meta; add meta.stats.strata_reached (ItemSpawner uses found notes as a proxy for tier 2).
+- M2.1: `BuildPlan` builds Halls only (`SUPPORTED_STRATA`); per-cell floor heights, ramps, basins, racks and water arrive with the other grammars (see `TODO(M2.1)` in `build_plan.gd`).
+- M3.x: void blocks have collision but no rendered inner faces; at full unrender (screen door, u ≥ 0.95) a wall next to one shows the next corridor through the block rather than a filled volume. Normally hidden.
+- M3.x: chalk at nothing uses `ui_hold_tick` pitched down as its dull tick; a dedicated `chalk_tap` recipe would be better (03).
 - M3.2: Static reads as dark smoke (offset pulls in the dark corridor end); 02 §8 wants a faint refraction shimmer. Still column top is rounded like a door arch; consider a flat top.
 - M2.13/M3.2: Landing cabin is dim grey metal; door barely reads; give the cabin its own look (02) and a readable door.
 - Player owner: `Player.look()` refuses mouse look in Landing; 05 §4 wants a free cabin camera.

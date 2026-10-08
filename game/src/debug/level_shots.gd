@@ -1,7 +1,8 @@
 class_name LevelShots
 extends Node
 ## Build verification frames for a built level (02 §13 poses, 14 §9): spawn facing the
-## longest sightline, a corridor midpoint, the exit room, and a soft wall from 1.3 m. Saves PNGs plus manifest.json with
+## longest sightline, a corridor midpoint, the longest corridor from its head (T1 at 12 m),
+## the exit room, and a soft wall from 1.3 m. Saves PNGs plus manifest.json with
 ## the T1 floor luminance at 2..12 m and the T3 numbers (darkest percentile, clipped pixels).
 ## Run with tools/ci/render.sh (CPU Forward+); it says nothing about frame times.
 
@@ -43,6 +44,8 @@ func capture(level: Level, dir: String) -> void:
 		var name: String = pose[&"name"]
 		img.save_png(abs_dir.path_join(name + ".png"))
 		manifest[&"shots"][name] = _measure(img)
+		if pose.has(&"run_m"):
+			manifest[&"shots"][name][&"run_m"] = pose[&"run_m"]
 	var f := FileAccess.open(abs_dir.path_join("manifest.json"), FileAccess.WRITE)
 	f.store_string(JSON.stringify(manifest, "  "))
 	f.close()
@@ -130,6 +133,11 @@ static func poses(data: LevelData) -> Array[Dictionary]:
 	dv = LevelGrid.DIRS[run.z]
 	from = g.world_of(mid) + eye
 	out.append({&"name": "corridor", &"from": from, &"to": from + Vector3(dv.x, 0, dv.y) * 12.0 + Vector3(0, -0.3, 0)})
+	# The longest straight corridor from its head, looking down its length: the one pose
+	# with floor visible out to 12 m, where T1 is measured at its limit (R4 #22).
+	from = g.world_of(Vector2i(run.x, run.y)) + eye - Vector3(dv.x, 0, dv.y) * 0.6
+	out.append({&"name": "corridor_long", &"from": from, &"to": from + Vector3(dv.x, 0, dv.y) * 12.0 + Vector3(0, -0.3, 0),
+		&"run_m": run.w * Tuning.GRID_CELL_SIZE})
 	# Exit room: from the far side of the room, looking at the exit wall.
 	var ev := LevelGrid.DIRS[data.exit_dir]
 	var room := g.room_of(data.exit_cell)

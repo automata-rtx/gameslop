@@ -44,6 +44,27 @@ uniform float line_emission = 1.0;
 uniform float pattern_contrast = 1.0;
 // Stripes: strength of the printed detail (diamond print, pinstripes at the stripe edges).
 uniform float print_amount = 0.0;
+// Stripes: metres over which the stripe contrast falls back to the palette pair (1.0), so far
+// walls read as one tone with the print, not as bars. x = start, y = end; y <= x = off.
+uniform vec2 contrast_fade = vec2(0.0);
+// Level surfaces (07 §8 vertex colour): +- tint per cell from the R hash (0 = off).
+uniform float cell_tint = 0.0;
+// Walls (vertical faces, 02 §7 Halls): a darker, glossier baseboard band below this height
+// (m above the floor; 0 = off), its darkening and roughness.
+uniform float baseboard_height = 0.0;
+uniform float baseboard_darken = 0.4;
+uniform float baseboard_roughness = 0.45;
+// Walls: a thin shadow line under the ceiling at this height (m; 0 = off), its width and depth.
+uniform float ceiling_line_y = 0.0;
+uniform float ceiling_line_width = 0.05;
+uniform float ceiling_line_darken = 0.35;
+// Floors (vertex colour B = metres to the nearest wall, 07 §8): darkening at the wall seam
+// within floor_seam_width metres (0 = off), and carpet wear lanes along corridor centre lines
+// (vertex colour A marks corridors): lighter, flattened pile where B > wear_from.
+uniform float floor_seam = 0.0;
+uniform float floor_seam_width = 0.25;
+uniform float wear = 0.0;
+uniform float wear_from = 0.55;
 
 // Constants mirrored from Tuning (02 §5); a test parses each line against tuning.gd.
 const float GRID_SPACING = 0.5;          // WORLD_GRID_SPACING
@@ -57,6 +78,8 @@ const float CHECKER_SIZE = 1.0;          // WORLD_PLACEHOLDER_CHECKER
 const float CARPET_LOOPS = 90.0;         // WORLD_CARPET_LOOPS_PER_M
 const float PRINT_PERIOD = 0.15;         // WORLD_WALLPAPER_PRINT_PERIOD
 const float PREVIEW_DASH = 8.0;          // WORLD_NOCLIP_INVALID_DASHES_PER_M
+const float COMMIT_LINE_PX = 2.5;        // WORLD_COMMIT_LINE_PX
+const float COMMIT_LINE_GAIN = 3.0;      // WORLD_COMMIT_LINE_GAIN
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
@@ -68,7 +91,10 @@ void vertex() {
 	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	// 02 §5: jitter = 0.012 smoothstep(0.5, 1, 1 - coherence) + 0.04 commit, in object
 	// space before projection; the offset is hashed from the world position (include).
-	VERTEX += coh_jitter(wp, jitter_floor, held);
+	// M3.2: geometry inside the noclip commit radius is drawn as lines; it does not take the
+	// commit's 0.04 m tremble, so the lines the player passes through hold still.
+	float commit_hold = 1.0 - coh_commit_u(wp, CAMERA_POSITION_WORLD);
+	VERTEX += coh_jitter(wp, jitter_floor, held) * commit_hold;
 }
 
 // Dominant-axis planar coordinates: x runs along the surface horizontally, y runs up on walls.
@@ -87,12 +113,13 @@ vec2 plane_uv(vec3 p, vec3 an, vec3 n, out vec3 ta, out vec3 tb) {
 	return p.xy;
 }
 
-// Anti-aliased 1 px lines on a unit grid (fwidth-based, 02 §5). x: the lines of constant
-// g.x (running along g.y); y: the lines of constant g.y.
-vec2 grid_masks(vec2 g) {
+// Anti-aliased lines on a unit grid (fwidth-based, 02 §5): `width_px` pixels wide on screen
+// whatever the distance (1 normally). x: the lines of constant g.x (running along g.y);
+// y: the lines of constant g.y.
+vec2 grid_masks(vec2 g, float width_px) {
 	vec2 fw = max(fwidth(g), vec2(1e-5));
 	vec2 d = abs(fract(g - 0.5) - 0.5) / fw;
-	return 1.0 - clamp(d, 0.0, 1.0);
+	return 1.0 - clamp(d - (width_px - 1.0) * 0.5, 0.0, 1.0);
 }
 
 // Seam lines of physical width `w` metres on a grid of cell size `s` (AA, never thinner than 1 px).
@@ -114,7 +141,7 @@ float aa_band(float d, float w) {
 // Halls carpet (02 §7): a loop pile, ~90 loops per metre in staggered rows. Each loop is a
 // lit crown with a dark gap around it; the yarn tone varies per loop. Faded to its mean
 // once a loop is under ~2.5 px, so it never shimmers under TAA.
-float carpet_pile(vec2 p) {
+float carpet_pile(vec2 p, float flatten) {
 	vec2 lp = p * CARPET_LOOPS;
 	float row = floor(lp.y);
 	lp.x += 0.5 * mod(row, 2.0);
@@ -122,7 +149,7 @@ float carpet_pile(vec2 p) {
 	vec2 f = fract(lp) - 0.5;
 	float crown = 1.0 - smoothstep(0.12, 0.48, length(f * vec2(1.0, 1.35)));
 	float yarn = coh_hash12(cell);
-	float pile = mix(0.7, 1.1, crown) * mix(0.9, 1.08, yarn);
+	float pile = mix(mix(0.7, 1.1, crown) * mix(0.9, 1.08, yarn), 0.97, flatten);
 	float loops_per_px = max(fwidth(lp.x), fwidth(lp.y));
 	return mix(0.93, pile, 1.0 - smoothstep(0.15, 0.32, loops_per_px));
 }
@@ -161,7 +188,11 @@ void fragment() {
 		float x = fract(puv.x / pattern_scale) * pattern_scale;
 		float fw = max(fwidth(puv.x), 1e-5);
 		float s = smoothstep(-fw, fw, x) * (1.0 - smoothstep(pattern_detail - fw, pattern_detail + fw, x));
-		vec3 b2 = max(a + (b - a) * pattern_contrast, vec3(0.0));
+		float contrast = pattern_contrast;
+		if (contrast_fade.y > contrast_fade.x) {
+			contrast = mix(pattern_contrast, 1.0, smoothstep(contrast_fade.x, contrast_fade.y, distance(v_world_pos, CAMERA_POSITION_WORLD)));
+		}
+		vec3 b2 = max(a + (b - a) * contrast, vec3(0.0));
 		base = mix(a, b2, s);
 		if (print_amount > 0.0) {
 			// Pinstripes 6 mm in from each stripe edge, and the diamond print in the wide band.
@@ -175,7 +206,9 @@ void fragment() {
 		float m2 = texture(noise_albedo, puv * pattern_scale * 0.73 + 0.37).r;
 		float tuft = texture(noise_albedo, puv * 9.0 + 0.71).r;
 		float k = m1 * 0.55 + m2 * 0.3 + tuft * 0.15;
-		base = mix(b, a, 0.5) * mix(0.78, 1.18, k) * carpet_pile(puv);
+		// Wear lanes (02 §7 Halls): the corridor's walked middle is flattened and paler.
+		float lane = wear * COLOR.a * smoothstep(wear_from, 0.9, COLOR.b);
+		base = mix(b, a, 0.5) * mix(0.78, 1.18, k) * carpet_pile(puv, lane) * (1.0 + 0.6 * lane);
 	} else if (pattern_mode == 4) {
 		float m1 = texture(noise_albedo, puv * pattern_scale * 0.25).r;
 		float m2 = texture(noise_albedo, puv * pattern_scale * 1.7 + 0.5).r;
@@ -196,6 +229,26 @@ void fragment() {
 		base *= mix(1.0, mix(0.85, 1.1, nz), noise_albedo_amount);
 	}
 	base *= mix(vec3(1.0), COLOR.rgb, vertex_color_weight);
+	base *= 1.0 + (COLOR.r * 2.0 - 1.0) * cell_tint;
+
+	// ---- seams (02 §7 Halls): baseboard and ceiling shadow line on walls, floor seam ----
+	float rough = roughness;
+	bool vertical = an.y < 0.5;
+	if (vertical && baseboard_height > 0.0) {
+		float fw = max(fwidth(v_world_pos.y), 1e-5);
+		float band = 1.0 - smoothstep(baseboard_height - fw, baseboard_height + fw, v_world_pos.y);
+		// A 1 cm lip catches light at the top edge of the board.
+		float lip = aa_band(v_world_pos.y - baseboard_height + 0.006, 0.004);
+		base *= mix(1.0, 1.0 - baseboard_darken, band) * (1.0 + 0.25 * lip);
+		rough = mix(rough, baseboard_roughness, band);
+	}
+	if (vertical && ceiling_line_y > 0.0) {
+		float d = ceiling_line_y - v_world_pos.y;
+		base *= 1.0 - ceiling_line_darken * (1.0 - smoothstep(0.0, ceiling_line_width, d));
+	}
+	if (!vertical && n.y > 0.5 && floor_seam > 0.0) {
+		base *= 1.0 - floor_seam * (1.0 - smoothstep(0.0, floor_seam_width, COLOR.b));
+	}
 
 	// 02 §5 soft walls: a faint moving interference band, 0.5 Hz, amplitude 0.03.
 	float soft_u = 0.0;
@@ -234,7 +287,10 @@ void fragment() {
 	vec3 emit = emission.rgb * emission_strength;
 	float line = 0.0;
 	if (u > 0.0) {
-		vec2 lines = grid_masks(puv / GRID_SPACING);
+		// M3.2 (11 §2 "world lines within 3 m"): during the commit the lines near the player
+		// are wider and brighter so the pass reads through TAA and the commit pulse.
+		float commit_k = coh_commit_u(v_world_pos, cam);
+		vec2 lines = grid_masks(puv / GRID_SPACING, 1.0 + (COMMIT_LINE_PX - 1.0) * commit_k);
 		if (g_noclip_invalid > 0.5 && u_prev > u_other) {
 			// 11 §2 noclip invalid: the preview grid is dashed.
 			lines.x *= step(0.5, fract(puv.y * PREVIEW_DASH));
@@ -251,11 +307,15 @@ void fragment() {
 		SPECULAR = 0.0;
 	} else {
 		ALBEDO = base * (1.0 - line);
-		ROUGHNESS = roughness;
+		ROUGHNESS = rough;
 		METALLIC = metallic;
 		SPECULAR = 0.5 * (1.0 - u);
 	}
-	EMISSION = emit * (1.0 - line) + GRID_COLOR * line * line_emission;
+	float line_boost = 1.0;
+	if (u > 0.0) {
+		line_boost += (COMMIT_LINE_GAIN - 1.0) * coh_commit_u(v_world_pos, cam);
+	}
+	EMISSION = emit * (1.0 - line) + GRID_COLOR * line * line_emission * line_boost;
 
 	// Screen door (02 §5): at u >= 0.95 a fraction 0.6 u of fill cells is discarded, on a
 	// world-anchored lattice so the pattern sticks to the surface; lines always stay.

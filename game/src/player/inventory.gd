@@ -23,13 +23,11 @@ var player: Player = null
 
 var _behaviors: Dictionary = {}
 var _light_query: Callable
-var _held_root: Node3D = null
-var _held_model: Node3D = null
-var _held_kind: StringName = &""
-var _held_tween: Tween = null
+var _hand: HeldHand
 
 
 func _init() -> void:
+	_hand = HeldHand.new(self)
 	_clear_slots()
 
 
@@ -46,8 +44,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if player != null and is_instance_valid(player) and _light_query.is_valid():
 		player.remove_light_query(_light_query)
-	if _held_tween != null:
-		_held_tween.kill()
+	_hand.kill()
 
 
 func _lit_by_chemical_light(pos: Vector3) -> bool:
@@ -131,13 +128,24 @@ func add(kind: StringName, count: int = 1, state: Dictionary = {}) -> int:
 		return 0
 	var in_hand_was_empty := slots[selected] == null
 	s.count += accepted
-	s.merge_state(state)
+	s.merge_state(ItemSlot.accepted_state(state, accepted))
 	slots[i] = s
 	# The first item on an empty belt (or into an empty selected slot) is the one in hand.
 	if in_hand_was_empty:
 		selected = i
 	_changed()
 	return accepted
+
+
+## 09 §1 swap: the stack in slot `index` (default the selected one) can be put back in the
+## world only when its kind has a world scene; otherwise a swap would destroy it.
+func can_swap_out(index: int = -1) -> bool:
+	var i := selected if index < 0 else clampi(index, 0, SLOT_COUNT - 1)
+	var s := slots[i] as ItemSlot
+	if s == null:
+		return false
+	var data := DataRegistry.item(s.kind)
+	return data != null and data.world_scene != null
 
 
 ## Removes up to `count` of `kind`; returns how many were removed.
@@ -165,14 +173,15 @@ func consume(kind: StringName, count: int = 1) -> int:
 
 ## 09 §1 swap: replaces the slot `index` (default the selected one) with `count` of `kind` and
 ## returns the ItemSlot that was there (the caller puts it back in the world). Null when that
-## slot is empty (use add()) or the kind is not a belt item.
+## slot is empty (use add()), the kind is not a belt item, or the old kind cannot lie in the
+## world (no world scene: can_swap_out).
 func swap_in(kind: StringName, count: int, state: Dictionary = {}, index: int = -1) -> ItemSlot:
 	var cap := cap_of(kind)
 	if cap <= 0 or count <= 0:
 		return null
 	var i := selected if index < 0 else clampi(index, 0, SLOT_COUNT - 1)
 	var old := slots[i] as ItemSlot
-	if old == null:
+	if old == null or not can_swap_out(i):
 		return null
 	_cancel_behavior(old.kind)
 	slots[i] = ItemSlot.new(kind, mini(count, cap), state)
@@ -225,7 +234,16 @@ func select(index: int) -> bool:
 	selected = index
 	AudioManager.play_2d(SOUND_SELECT)
 	_changed()
+	_select_feedback()
 	return true
+
+
+## 11 §2 item select, motion channel: the hand bobs one cycle (HeldHand) and the view
+## nods once (CameraRig.nod through the Player's rig; no Player change needed).
+func _select_feedback() -> void:
+	if player != null and player.rig != null:
+		player.rig.nod(Tuning.FEEDBACK_ITEM_SELECT_NOD_DEG)
+	_hand.bob_once()
 
 
 ## Wheel: +1 / -1 around the belt.
@@ -320,74 +338,19 @@ func _changed() -> void:
 	changed.emit(slots, selected)
 
 
-# --- held model (09 §3) --------------------------------------------------------------------
+# --- held model (09 §3): HeldHand -------------------------------------------------------
 
-## The node the held models hang under (camera space); built on first need.
 func held_root() -> Node3D:
-	if _held_root == null and player != null and player.rig != null:
-		_held_root = Node3D.new()
-		_held_root.name = "HeldItems"
-		_held_root.position = HELD_REST
-		player.rig.camera.add_child(_held_root)
-	return _held_root
+	return _hand.ensure_root()
 
 
 func held_model() -> Node3D:
-	return _held_model
+	return _hand.model
 
 
-func _process(_delta: float) -> void:
-	var root := held_root()
-	if root == null:
-		return
-	# The hand shares the flashlight's bob at 60% (09 §3).
-	var bob := -absf(sin(player.rig.bob_phase())) * HELD_BOB * player.rig.bob_amount() * Tuning.ITEM_HELD_BOB_SCALE
-	root.position = HELD_REST + Vector3(0.0, bob, 0.0)
+func _process(delta: float) -> void:
+	_hand.process(delta)
 
 
-## Lowers the model in hand and raises the selected kind's (0.5 s in all, 09 §3).
 func _refresh_held() -> void:
-	var root := held_root()
-	if root == null:
-		return
-	var want := selected_kind()
-	if want == _held_kind and (want == &"" or _held_model != null):
-		return
-	_held_kind = want
-	if _held_tween != null:
-		_held_tween.kill()
-	var half := float(Tuning.ITEM_HELD_TWEEN_MS) / 2000.0
-	var old := _held_model
-	_held_model = null
-	if old != null:
-		var ob := _behavior_of_model(old)
-		if ob != null:
-			ob.on_unequipped()
-	if want != &"":
-		var b := behavior_for(want)
-		_held_model = b.build_held() if b != null else ItemModels.held(want)
-		_held_model.position = Vector3(0.0, -HELD_LOWERED_DROP, 0.0)
-		_held_model.set_meta(&"kind", want)
-		root.add_child(_held_model)
-		if b != null:
-			b.on_equipped(_held_model)
-	if not is_inside_tree():
-		if old != null:
-			old.queue_free()
-		_held_model_settle()
-		return
-	_held_tween = create_tween()
-	if old != null:
-		_held_tween.tween_property(old, "position:y", -HELD_LOWERED_DROP, half).set_ease(Tween.EASE_IN)
-		_held_tween.tween_callback(old.queue_free)
-	if _held_model != null:
-		_held_tween.tween_property(_held_model, "position:y", 0.0, half).set_ease(Tween.EASE_OUT)
-
-
-func _held_model_settle() -> void:
-	if _held_model != null:
-		_held_model.position.y = 0.0
-
-
-func _behavior_of_model(model: Node3D) -> ItemBase:
-	return _behaviors.get(model.get_meta(&"kind", &"")) as ItemBase
+	_hand.refresh()

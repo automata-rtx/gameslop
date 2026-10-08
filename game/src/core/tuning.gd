@@ -606,6 +606,8 @@ const ITEM_WORLD_LIGHT_ENERGY := 0.15
 const ITEM_WORLD_LIGHT_RANGE := 1.0                 # m
 const ITEM_WORLD_BOB_HZ := 0.2
 const ITEM_WORLD_BOB_AMPLITUDE := 0.02              # m
+const ITEM_WORLD_REST_HEIGHT := 0.03                # m, a pickup's lowest point above the floor (R4 constant)
+const ITEM_PLACE_JITTER := 0.35                     # m, +- offset in the cell, from the placement rng (R4 constant)
 const ITEM_HELD_TWEEN_MS := 500                     # lower-in / raise-out
 const ITEM_HELD_BOB_SCALE := 0.6                    # share of the flashlight's bob
 const NOTES_PER_LEVEL := 2                          # depths 1 to 5
@@ -619,11 +621,8 @@ const POLAROID_IMAGE_SIZE := 256                    # px
 const POLAROID_NARROW_DEG := 3.0                    # view narrows 3 deg over 1 s (11)
 const POLAROID_NARROW_TIME := 1.0
 const POLAROID_FRAMES := 12                         # floating frames converging (02 §10)
-# Implementation numbers 09 leaves open (M1.10): the cone an error must stand in for the flash to
-# reach it (Player -> error `on_polaroid(origin, dir)` hook, no effect is defined by 09), and
-# how long the frames take to converge before the flash.
-const POLAROID_CONE_DEG := 35.0                     # half angle around the view axis
-const POLAROID_RANGE := 30.0                        # m, same as the observation range (08 §4)
+# Implementation number 09 leaves open (M1.10): how long the frames take to converge before
+# the flash. (The `on_polaroid` cone numbers went with the hook: no error reacts to the Polaroid.)
 const POLAROID_FRAMES_TIME := 0.4                   # s, ends on the flash
 
 const GLOWSTICK_THROW_DIST := 8.0                   # m at 45 deg
@@ -712,18 +711,19 @@ const LEVELBUILD_CHUNK_CELLS := 8                   # 8x8
 const NAV_AGENT_RADIUS := 0.4                       # m
 const NAV_AGENT_HEIGHT := 1.8                       # m
 const NAV_MAX_CLIMB := 0.3                          # m
-const NAV_CELL_SIZE := 0.25                         # m
+const NAV_CELL_SIZE := 0.2                          # m (agent radius 0.4 is two cells)
 const NAV_CELL_HEIGHT := 0.1                        # m, voxel height (build-task constant: 1.8 m and 0.3 m divide it)
 const NAV_WATER_EXCLUDE_DEPTH := 1.3                # m, deeper water excluded
 const NAV_BAKE_BUDGET := 2.0                        # s, largest level (14 §10)
 const CHUNK_HIDE_DIST := 40.0                       # m
-const CHUNK_VISIBILITY_END := 45.0                  # m, with fade
+const CHUNK_VISIBILITY_END := 45.0                  # m, no fade (fade would alpha-blend level geometry, 02 §5)
 # Build-task constants (07 gives no number; M1.2).
 const LEVELBUILD_MESH_MAX_EDGE := 0.5               # m, level mesh subdivision so vertex jitter trembles (02 §5)
 const LEVELBUILD_DOOR_HEIGHT := 2.1                 # m, door opening; the edge strip is solid above it
 const LEVELBUILD_DOOR_LEAF_WIDTH := 1.0             # m, hinged leaf; jamb panels fill the rest of the 1.8 m strip
 const LEVELBUILD_SLICE_HEADROOM := 0.75             # start no job past 75% of the slice budget
 const LEVELBUILD_SHAPES_PER_JOB := 24               # collision shapes added per build job
+const LEVELBUILD_WALL_DIST_MAX := 1.0               # m, floor vertex colour B: distance to the nearest wall, clamped
 
 # 07 §5.1 Halls
 const HALLS_ROOMS_MIN := 5
@@ -984,6 +984,8 @@ const WORLD_NOCLIP_PREVIEW_U := 0.9                 # charge preview peak, below
                                                     # cancelled charge never shows what is behind a wall
 const WORLD_NOCLIP_PREVIEW_DEPTH := 0.3             # m; surfaces this far off the target plane are outside the disc
 const WORLD_NOCLIP_INVALID_DASHES_PER_M := 8.0      # invalid noclip: the preview grid is dashed (11 §2)
+const WORLD_COMMIT_LINE_PX := 2.5                   # px, grid line width within 3 m during the noclip commit (M3.2 render constant)
+const WORLD_COMMIT_LINE_GAIN := 3.0                 # x line emission there (M3.2 render constant)
 const WORLD_CARPET_LOOPS_PER_M := 90.0              # Halls loop pile (60 to 120 per m reads at 1 to 3 m)
 const WORLD_WALLPAPER_PRINT_PERIOD := 0.15          # m; Halls wallpaper diamond print
 const WORLD_PLACEHOLDER_CHECKER := 1.0              # m checker, magenta #FF00FF and black
@@ -1013,6 +1015,9 @@ const LIGHT_FIXTURE_KIND: Dictionary = {&"halls": &"omni"}   # pooled light per 
 const LIGHT_SPOT_ANGLE := 70.0                      # deg, spot fixtures: a wide downlight (render-task constant)
 const LIGHT_SPOT_ANGLE_ATTENUATION := 1.0
 const LIGHT_FIXTURE_DROP := 0.7                    # m, pooled light hangs below the tube so the ceiling reads lit
+const LIGHT_FIXTURE_BUZZ_ENERGY := 0.85             # the one-in-six buzzing fixtures: tube and light energy (R4 V3)
+const LIGHT_FIXTURE_BUZZ_TINT := Color(0.9, 1.0, 0.86)   # and a slightly greener tube and light (multiplier)
+const LIGHT_FIXTURE_GLOW_ENERGY := 1.0              # ceiling halo around a lit tube (fixture_glow.gdshader; R4 V3)
 const LIGHT_FIXTURE_EMISSION_MIN := 4.0
 const LIGHT_FIXTURE_EMISSION_MAX := 12.0
 const LIGHT_AMBIENT_ENERGY_MIN := 0.08
@@ -1337,6 +1342,9 @@ const FEEDBACK_INTERACT_HOLD_TICK := 0.2            # s per tick
 const FEEDBACK_ITEM_PULSE := 1.15                   # glyph pulse on select (100 ms, 04 §6)
 const FEEDBACK_ITEM_PULSE_MS := 100
 const FEEDBACK_ITEM_USE_BLINK_MS := 100
+const FEEDBACK_ITEM_SELECT_BOB := 0.012             # m, hand bob depth on select, one cycle (11 §2; R4 constant)
+const FEEDBACK_ITEM_SELECT_BOB_MS := 300            # one cycle
+const FEEDBACK_ITEM_SELECT_NOD_DEG := 0.3           # the view nods with it
 const FEEDBACK_THROW_RECOIL_DEG := 2.0
 const FEEDBACK_NOCLIP_FLASHLIGHT_DIM := 0.3         # held flashlight dims 30% while charging
 const FEEDBACK_NOCLIP_SWAY := 0.003                 # m
@@ -1346,6 +1354,7 @@ const FEEDBACK_NOCLIP_COMMIT_TRAUMA := 0.8
 const FEEDBACK_NOCLIP_FALL_PITCH_DEG := 10.0
 const FEEDBACK_NOCLIP_SOUND_GAP_MS := 60
 const FEEDBACK_CHALK_NOD_DEG := 1.0
+const FEEDBACK_CHALK_MISS_NOD_DEG := 0.3            # chalk at nothing: a smaller nod (R4 constant)
 const FEEDBACK_GAIN_FOV_DEG := 2.0                  # +2 then back over 400 ms
 const FEEDBACK_GAIN_FOV_MS := 400
 const FEEDBACK_STATIC_JITTER := 0.002               # m

@@ -124,6 +124,8 @@ func register_fixture(fixture: Fixture) -> void:
 	# 03: about one fixture in six carries the tired-ballast buzz instead of the hum.
 	var h := hash(Vector3i((fixture.global_position * 10.0).round())) if fixture.is_inside_tree() else _fixtures.size()
 	fixture.hum_id = buzz_id if posmod(h, 6) == 0 else hum_id
+	# R4 V3: the buzzing ballast also looks tired: greener, 85% energy, steady.
+	fixture.set_buzzing(posmod(h, 6) == 0)
 
 
 func fixtures() -> Array[Fixture]:
@@ -177,11 +179,16 @@ func power_wave(origin: Vector3) -> float:
 	return last
 
 
-## 06, 08 §4: a point inside the light range of a powered fixture counts as lit.
+## 06, 08 §4: a point inside the light range of a powered fixture counts as lit, when the
+## fixture has a clear grid sight line to it (pooled lights cast no shadows, so without the
+## grid test they would light through 0.2 m walls; CHANGELOG 2026-10-08).
 func is_lit(pos: Vector3) -> bool:
 	var r2 := light_range * light_range
 	for f in _fixtures:
-		if f.powered and anchor_of(f).distance_squared_to(pos) <= r2:
+		if not f.powered:
+			continue
+		var a := anchor_of(f)
+		if a.distance_squared_to(pos) <= r2 and (grid == null or SightOps.clear(grid, a, pos)):
 			return true
 	return false
 
@@ -217,7 +224,7 @@ func _process(delta: float) -> void:
 		if f == null:
 			continue
 		_fade[i] = minf(1.0, _fade[i] + delta / Tuning.LIGHT_POOL_FADE_IN)
-		_lights[i].light_energy = light_energy * f.intensity * _fade[i]
+		_lights[i].light_energy = light_energy * f.intensity * f.energy_scale() * _fade[i]
 
 
 func _origin() -> Vector3:
@@ -262,6 +269,7 @@ func _lend(i: int, fi: int) -> void:
 	_fade[i] = 0.0
 	var l := _lights[i]
 	l.global_position = anchor_of(f)
+	l.light_color = f.light_tint(light_color)
 	l.light_energy = 0.0
 	l.visible = true
 	_set_hum(i, f.hum_id)

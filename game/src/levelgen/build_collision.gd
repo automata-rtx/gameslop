@@ -19,6 +19,8 @@ static func boxes(grid: LevelGrid, height: float, chunk_cells: int, part_h: floa
 				boxes.append({&"body": "%d,%d,floor" % [ch.x, ch.y], &"chunk": ch, &"kind": BuildPlan.BODY_FLOOR,
 					&"size": Vector3(cs, t, cs), &"pos": Vector3(x * cs, fy - t * 0.5, z * cs),
 					&"soft": -1, &"meta": {&"cell": c, &"kind": grid.kind(c)}})
+			elif _touches_walkable(grid, c):
+				_void_box(boxes, height, c, ch)
 			var dirs: Array[int] = [LevelGrid.E, LevelGrid.S]
 			if x == 0:
 				dirs.append(LevelGrid.W)
@@ -27,6 +29,25 @@ static func boxes(grid: LevelGrid, height: float, chunk_cells: int, part_h: floa
 			for d in dirs:
 				_edge_box(boxes, grid, height, part_h, door_h, soft_index, c, d, ch)
 	return boxes
+
+
+static func _touches_walkable(grid: LevelGrid, c: Vector2i) -> bool:
+	for d in LevelGrid.DIRS:
+		if grid.is_walkable(c + d):
+			return true
+	return false
+
+
+## 07 §7 (2026-10-08): a void block is SOLID. Its body is not a noise wall (no `wall_kind`):
+## the walls around it already count, and the block is what lies between them.
+static func _void_box(boxes: Array[Dictionary], height: float, c: Vector2i, ch: Vector2i) -> void:
+	var cs := Tuning.GRID_CELL_SIZE
+	var inner := cs - Tuning.GRID_WALL_THICKNESS
+	boxes.append({&"body": "%d,%d,void" % [ch.x, ch.y], &"chunk": ch, &"kind": BuildPlan.BODY_VOID,
+		&"size": Vector3(inner, height, inner), &"pos": Vector3(c.x * cs, height * 0.5, c.y * cs),
+		&"soft": -1, &"meta": {&"cell": c, &"wall_type": LevelGrid.SOLID,
+			&"wall_kind": Tuning.GRID_WALL_TYPES[LevelGrid.SOLID], &"thickness": inner,
+			&"walkable": false, &"void": true}})
 
 
 ## 07 §8: one box per wall edge (2 x height x 0.2; partitions 1.5 m), carrying 07 §7's
@@ -72,6 +93,4 @@ static func wall_meta(g: LevelGrid, c: Vector2i, d: int) -> Dictionary:
 
 ## Edge key independent of which side names it (E or S form).
 static func edge_key(c: Vector2i, dir: int) -> Vector3i:
-	if dir == LevelGrid.N or dir == LevelGrid.W:
-		return Vector3i(c.x + LevelGrid.DIRS[dir].x, c.y + LevelGrid.DIRS[dir].y, LevelGrid.opposite(dir))
-	return Vector3i(c.x, c.y, dir)
+	return LevelGrid.edge_key(c, dir)

@@ -1,12 +1,27 @@
 class_name SightOps
 extends RefCounted
 ## Line of sight on the grid (pure data, worker-thread safe): a straight XZ segment is
-## clear when every cell edge it crosses is open (NONE or DOOR) between walkable cells.
-## Used by the LightPool to lend lights only to fixtures in view (02 §6), and usable by
-## anything that asks "could the player see that cell" without the scene tree.
+## clear when every cell edge it crosses lets sight through between walkable cells. Sight
+## has its own edge rule, not the walker's: open edges, PARTITION (1.5 m, seen over) and
+## GLASS pass; WALL, SOLID, SOFT and a closed DOOR (runtime state on the grid) block.
+## Used by the LightPool to lend lights only to fixtures in view (02 §6), by every lit
+## predicate (fixtures and chemical lights, 06/08/09), and by anything that asks "could
+## the player see that cell" without the scene tree.
 
 
-## True when the XZ segment from world point a to b crosses no closed edge.
+## True when sight crosses the edge (c, dir) between two walkable cells.
+static func edge_clear(grid: LevelGrid, c: Vector2i, dir: int) -> bool:
+	if not grid.is_walkable(c + LevelGrid.DIRS[dir]):
+		return false
+	match grid.wall(c, dir):
+		LevelGrid.NONE, LevelGrid.PARTITION, LevelGrid.GLASS:
+			return true
+		LevelGrid.DOOR:
+			return not grid.is_door_closed(c, dir)
+	return false
+
+
+## True when the XZ segment from world point a to b crosses no sight-blocking edge.
 static func clear(grid: LevelGrid, a: Vector3, b: Vector3) -> bool:
 	var cs := Tuning.GRID_CELL_SIZE
 	# Cell (x, z) spans [x*cs - cs/2, x*cs + cs/2]; shift so cells start at integers.
@@ -32,7 +47,21 @@ static func clear(grid: LevelGrid, a: Vector3, b: Vector3) -> bool:
 		else:
 			dir = LevelGrid.S if step.y > 0 else LevelGrid.N
 			t_max.y += t_delta.y
-		if not grid.can_step(c, dir):
+		if not edge_clear(grid, c, dir):
 			return false
 		c += LevelGrid.DIRS[dir]
 	return c == end
+
+
+## True when `to` is in sight of the cell of `eye` or of a cell one step from it (so a light
+## shown on that rule does not pop in as the viewer steps round a corner; 02 §6).
+static func clear_near(grid: LevelGrid, eye: Vector3, to: Vector3) -> bool:
+	if clear(grid, eye, to):
+		return true
+	var c := grid.cell_of(eye)
+	if not grid.is_walkable(c):
+		return false
+	for d in 4:
+		if grid.can_step(c, d) and clear(grid, grid.world_of(c + LevelGrid.DIRS[d]), to):
+			return true
+	return false

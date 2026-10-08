@@ -1,9 +1,8 @@
 class_name ItemsErrorStandIn
 extends Node3D
 ## A stand-in for an error in the items bench: a matte column in group `errors` with an
-## `error_id` and the `on_polaroid(origin, dir)` hook, so the Polaroid's cone query has something
-## to find. It carries no behaviour of an error: it only flashes when the hook is called and
-## counts the calls. Bench only.
+## `error_id`, to observe and light. It carries no behaviour of an error (no error reacts to
+## the Polaroid; `flashes` stays 0 and is kept for the bench readout). Bench only.
 
 var error_id: StringName = &"still"
 var flashes: int = 0
@@ -22,11 +21,3 @@ func _ready() -> void:
 	mi.mesh = bm
 	mi.position.y = 1.1
 	add_child(mi)
-
-
-func on_polaroid(_origin: Vector3, _dir: Vector3) -> void:
-	flashes += 1
-	_mat.emission_enabled = true
-	_mat.emission = Color(1.0, 0.1, 0.1)
-	var tw := create_tween()
-	tw.tween_property(_mat, "emission_energy_multiplier", 0.0, 0.5).from(2.0)

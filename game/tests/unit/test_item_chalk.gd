@@ -140,3 +140,35 @@ func test_arrow_texture_is_drawn_not_imported() -> void:
 	assert_gt(img.get_pixel(128, 200).a, 0.3, "the shaft")
 	assert_eq(img.get_pixel(5, 5).a, 0.0, "transparent corners")
 	assert_eq(img.get_pixel(30, 200).a, 0.0, "the shaft is narrow")
+
+
+## R4 #21: chalk at nothing answers on three channels and spends nothing.
+func test_chalk_at_nothing_ticks_jabs_and_nods() -> void:
+	await await_physics_frames(1)
+	var pitch_before := _p.rig._kick_pitch
+	assert_false(_inv.use_selected(), "nothing in reach: nothing stamped")
+	assert_eq(_inv.count_of(&"chalk"), 8)
+	assert_eq(_decals().size(), 0)
+	assert_lt(_p.rig._kick_pitch, pitch_before, "the view nods")
+	assert_true(AudioManager.has_sound(ChalkItem.SOUND_MISS), "the dull tick exists")
+
+
+## R4 #18: a stamp on a door leaf (a moving body) rides on the leaf.
+func test_stamp_on_a_door_leaf_attaches_to_it() -> void:
+	var leaf := AnimatableBody3D.new()
+	leaf.sync_to_physics = false
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.0, 3.0, 0.05)
+	cs.shape = box
+	leaf.add_child(cs)
+	leaf.position = Vector3(0, 1.5, -1.5)
+	_world.add_child(leaf)
+	await await_physics_frames(3)
+	assert_true(_inv.use_selected())
+	assert_eq(_decals().size(), 1)
+	var d := _decals()[0] as ChalkDecal
+	assert_eq(d.get_parent(), leaf, "the arrow is a child of the leaf")
+	var before := d.global_position
+	leaf.rotate_y(0.5)
+	assert_gt(d.global_position.distance_to(before), 0.01, "it swings with the leaf")

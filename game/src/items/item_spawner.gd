@@ -5,7 +5,9 @@ extends RefCounted
 ## one ItemPickup per P_ITEM (the kind the generator chose; a Polaroid gets its photo from the
 ## seeded rng) and one NotePickup per P_NOTE (the note id drawn here, 09 §2: unfound notes of
 ## the allowed tiers first, then found ones at half weight; the first Descent's marked note is H1).
-## Kinds without a world scene yet (Flare, Radio, Fuse land with M2.8) are skipped with a warning.
+## Kinds without a world scene yet (Flare, Radio, Fuse land with M2.8) are skipped with a warning;
+## skipping a fuse is an error (07 §6: Variant B always has exactly one fuse in the level).
+## Each pickup lies at a jittered spot in its cell with a jittered yaw, from the seeded rng.
 
 const NOTE_SCENE := "res://scenes/interactables/note_pickup.tscn"
 const FIRST_DESCENT_NOTE := &"H1"
@@ -44,7 +46,11 @@ static func _spawn_item(level_root: Node, level: LevelData, p: Dictionary,
 	var kind := StringName(p[&"params"].get(&"item", &""))
 	var data := DataRegistry.item(kind)
 	if data == null or data.world_scene == null or not data.belt_item:
-		push_warning("ItemSpawner: no world scene for item '%s'; skipped" % kind)
+		if kind == &"fuse":
+			# 07 §6 Variant B: the level is unwinnable without it (until M2.8 adds the scene).
+			push_error("ItemSpawner: the fuse placement at %s has no world scene; Variant B is unwinnable" % p[&"cell"])
+		else:
+			push_warning("ItemSpawner: no world scene for item '%s'; skipped" % kind)
 		return null
 	var pickup := data.world_scene.instantiate() as ItemPickup
 	pickup.count = data.pickup_count
@@ -52,8 +58,9 @@ static func _spawn_item(level_root: Node, level: LevelData, p: Dictionary,
 		pickup.set_polaroid_image(rng.randi_range(0, Tuning.POLAROID_IMAGE_COUNT - 1))
 	pickup.name = "Item_%s" % kind
 	level_root.add_child(pickup)
-	pickup.position = _floor_position(level, p)
-	pickup.rotation.y = p[&"yaw"]
+	var j := Tuning.ITEM_PLACE_JITTER
+	pickup.position = _floor_position(level, p) + Vector3(rng.randf_range(-j, j), 0.0, rng.randf_range(-j, j))
+	pickup.rotation.y = p[&"yaw"] + rng.randf_range(-PI, PI)
 	return pickup
 
 

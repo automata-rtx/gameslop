@@ -1,8 +1,11 @@
 class_name ItemModels
 extends RefCounted
 ## Held and world models of the items, built from primitives only (09 §3, 02 T8).
-## Every model is a Node3D whose origin is the model's centre. Held models are lit by the
-## scene (the flashlight lights them), except emissive parts and the Polaroid photo.
+## Every model is a Node3D whose origin is the model's centre. Every part uses the world
+## shader (02 §5) so jitter, unrender and the grade reach items like the level: held models
+## carry `held = 1` (no jitter, never unrendered), world models `held = 0`. Exceptions: the
+## Polaroid held up (an unshaded overlay with the painted photo, PolaroidItem) and chalk
+## decals (a Decal, which unrender must not touch, 09 §9).
 
 const WHITE := Color("F2F2F2")
 const GLOW := Color("7CFF4A")
@@ -13,9 +16,18 @@ const POLAROID_H := 0.11
 const POLAROID_PHOTO := 0.07
 const GLOWSTICK_LEN := 0.15
 const CHALK_LEN := 0.06
+## Glowstick tube emission at full life.
+const GLOW_EMISSION := 2.5
+const WORLD_SHADER := preload("res://shaders/world_surface.gdshader")
 
 
 static func held(kind: StringName) -> Node3D:
+	var m := _build(kind)
+	set_held(m, true)
+	return m
+
+
+static func _build(kind: StringName) -> Node3D:
 	match kind:
 		&"polaroid":
 			return _polaroid()
@@ -30,7 +42,8 @@ static func held(kind: StringName) -> Node3D:
 
 ## The model on the floor: the held model, tilted for display.
 static func world(kind: StringName) -> Node3D:
-	var m := held(kind)
+	var m := _build(kind)
+	set_held(m, false)
 	match kind:
 		&"polaroid":
 			m.rotation = Vector3(deg_to_rad(-70.0), deg_to_rad(20.0), 0.0)
@@ -45,15 +58,33 @@ static func world(kind: StringName) -> Node3D:
 	return holder
 
 
-static func _mat(color: Color, rough: float = 0.8, emission: float = 0.0) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = color
-	m.roughness = rough
+## A world-shader material (02 §5): flat albedo, no noise, optional emission of its colour.
+static func material(color: Color, rough: float = 0.8, emission: float = 0.0, is_held: bool = true) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = WORLD_SHADER
+	m.set_shader_parameter(&"albedo", color)
+	m.set_shader_parameter(&"roughness", rough)
+	m.set_shader_parameter(&"noise_albedo_amount", 0.0)
+	m.set_shader_parameter(&"held", 1.0 if is_held else 0.0)
 	if emission > 0.0:
-		m.emission_enabled = true
-		m.emission = color
-		m.emission_energy_multiplier = emission
+		m.set_shader_parameter(&"emission", color)
+		m.set_shader_parameter(&"emission_strength", emission)
 	return m
+
+
+static func _mat(color: Color, rough: float = 0.8, emission: float = 0.0) -> ShaderMaterial:
+	return material(color, rough, emission)
+
+
+## Sets the world shader's `held` on every part of `model` (each model owns its materials).
+static func set_held(model: Node, on: bool) -> void:
+	var parts: Array[Node] = model.find_children("*", "MeshInstance3D", true, false)
+	if model is MeshInstance3D:
+		parts.append(model)
+	for n in parts:
+		var sm := (n as MeshInstance3D).material_override as ShaderMaterial
+		if sm != null:
+			sm.set_shader_parameter(&"held", 1.0 if on else 0.0)
 
 
 static func _mesh(parent: Node3D, mesh: Mesh, mat: Material, pos: Vector3 = Vector3.ZERO,
@@ -109,9 +140,10 @@ static func _glowstick() -> Node3D:
 
 
 ## The emissive tube material (energy 2.5 at full life).
-static func glow_material(life: float) -> StandardMaterial3D:
-	var m := _mat(GLOW, 0.4, 2.5 * life)
-	m.albedo_color = GLOW.darkened(0.25)
+static func glow_material(life: float) -> ShaderMaterial:
+	var m := _mat(GLOW.darkened(0.25), 0.4)
+	m.set_shader_parameter(&"emission", GLOW)
+	m.set_shader_parameter(&"emission_strength", GLOW_EMISSION * life)
 	return m
 
 
