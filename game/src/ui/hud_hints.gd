@@ -174,7 +174,7 @@ func _on_level_entered(d: int, _stratum: StringName, _arrival: StringName) -> vo
 	_sense = {}
 	_sense_t = 0.0
 	# 04 §9: suppressed after the player has reached depth 3 once.
-	if d >= Tuning.HINT_SUPPRESS_DEPTH and GameState.meta != null and not GameState.meta.hints_retired:
+	if persist and d >= Tuning.HINT_SUPPRESS_DEPTH and GameState.meta != null and not GameState.meta.hints_retired:
 		GameState.meta.hints_retired = true
 		_save(true)
 		SettingsManager.set_value(SETTING, false)

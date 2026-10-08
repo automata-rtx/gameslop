@@ -79,9 +79,6 @@ const HUD_BELT_EMPTY := "—"
 const HUD_BELT_SLOT := "{slot} {glyph} ×{count}"
 const HUD_BELT_BURNING := "{seconds}S"                         # a flare burning in the belt: seconds of burn left (M2.12)
 const HUD_BELT_ON := "ON"                                      # the radio switched on (M2.12)
-## 12 §6 colour-blind safe accent: danger text adds `!`, cold text adds `~`.
-const CB_DANGER_SUFFIX := " !"
-const CB_COLD_SUFFIX := " ~"
 const HUD_CRANK_PERCENT := "{percent}%"
 
 # 04 §6, 06 §8  Noclip invalid reasons (one word under the crosshair)

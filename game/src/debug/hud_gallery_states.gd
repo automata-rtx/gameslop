@@ -10,6 +10,7 @@ const STATES: Array[StringName] = [
 	&"full", &"low_coherence", &"coherence_gain", &"noclip_charging", &"noclip_floor_ready",
 	&"invalid", &"stunned", &"prompt_hold", &"notification_typing", &"hidden", &"cranking_low",
 	&"substrate_sealed", &"note_faller", &"note_builder", &"note_stray",
+	&"colorblind", &"captions_stack", &"first_run_hint", &"belt_live",
 ]
 
 
@@ -42,7 +43,13 @@ static func build(parent: Control, state: StringName) -> Hud:
 	UiMotion.manual_clock = true
 	parent.add_child(Backdrop.new())
 	var hud := (load(HUD_SCENE) as PackedScene).instantiate() as Hud
+	# The gallery never touches the player's meta.json or settings; hints only in their state.
 	parent.add_child(hud)
+	hud.hints.persist = false
+	hud.hints.world_sense = func() -> Dictionary: return {}
+	hud.hints.logic.shown.clear()
+	hud.hints.logic.set_enabled(state == &"first_run_hint")
+	UiAccessibility.apply_colorblind(state == &"colorblind" or bool(SettingsManager.get_value(&"colorblind_accent")))
 	var fake := HudFakePlayer.new()
 	hud.add_child(fake)
 	hud.bind_player(fake)
@@ -126,6 +133,33 @@ static func apply(state: StringName, hud: Hud, fake: HudFakePlayer) -> void:
 		&"note_builder":
 			hud.show_note(DataRegistry.note(&"H4"))
 			_step(hud, 5.0)
+		&"captions_stack":
+			fake.prompt_changed.emit(Strings.PROMPT_OPEN_DOOR, 0.0)
+			var l := Transform3D.IDENTITY
+			for c: Array in [[Strings.CAPTION_DOOR_SLAM, Vector3(-30, 0, 5)], [Strings.CAPTION_STATIC, Vector3(4, 0, -2)],
+					[Strings.CAPTION_ECHO_FOOTSTEP, Vector3(0, 0, 4)]]:
+				hud.caption(AudioMix.format_caption(c[0], l, c[1]))
+				_step(hud, 0.3)
+			hud.caption(Strings.CAPTION_STILL_SILENCE)
+			_step(hud, 0.3)
+		&"first_run_hint":
+			hud.hints.logic.shown = [FirstRunHints.MOVE] as Array[StringName]
+			hud.hints.set_charge(40.0)
+			EventBus.level_entered.emit(2, &"pools", &"proper")
+			_step(hud, 0.4)
+		&"belt_live":
+			hud.set_keycard(true)
+			hud.set_items([ItemSlot.new(&"flare", 2, {FlareItem.BURN: 31.2}),
+					ItemSlot.new(&"radio", 1, {RadioItem.ON: true}), ItemSlot.new(&"chalk", 6), null], 0)
+			_step(hud, 0.4)
+		&"colorblind":
+			fake.set_coherence(52.0, &"still")
+			_step(hud, 2.0)
+			fake.set_coherence(18.0, &"still")
+			hud.repaint()
+			fake.noclip_state.emit(0.6, &"wall", true, &"")
+			EventBus.unlock_earned.emit(&"radio")
+			_step(hud, 0.6)
 		&"note_stray":
 			var stray: NoteData = null
 			for n in DataRegistry.notes():

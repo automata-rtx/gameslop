@@ -129,7 +129,7 @@ func _draw_noclip(c: Vector2) -> void:
 		# 12 §6: cold adds a `~` glyph (right of the ring, level with its centre).
 		var font := get_theme_default_font()
 		var fs := UiTokens.FONT_HUD_BODY
-		draw_string(font, c + Vector2(r + UiTokens.GRID, fs * 0.35), Strings.CB_COLD_SUFFIX.strip_edges(),
+		draw_string(font, c + Vector2(r + UiTokens.GRID, fs * 0.35), UiTokens.CB_COLD_GLYPH,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiTokens.UI_COLD)
 
 

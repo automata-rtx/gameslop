@@ -122,6 +122,9 @@ const GLYPHS: Array[StringName] = [
 static var colorblind: bool = false
 ## Text size: multiplies note and caption sizes only (12 §6).
 static var text_size: float = 1.0
+## 12 §6 glyphs (marks, not words, so they live with the tokens rather than in Strings).
+const CB_DANGER_GLYPH := "!"
+const CB_COLD_GLYPH := "~"
 
 
 ## The accent colour now (04 §3 ui_accent, or the 12 §6 colour-blind safe accent).
@@ -143,11 +146,11 @@ static func paint(c: Control, color: Color) -> void:
 
 ## 12 §6: danger adds a `!` glyph, cold a `~` glyph, while the colour-blind accent is on.
 static func danger_mark(text: String) -> String:
-	return text + Strings.CB_DANGER_SUFFIX if colorblind else text
+	return "%s %s" % [text, CB_DANGER_GLYPH] if colorblind else text
 
 
 static func cold_mark(text: String) -> String:
-	return text + Strings.CB_COLD_SUFFIX if colorblind else text
+	return "%s %s" % [text, CB_COLD_GLYPH] if colorblind else text
 
 
 ## A text-size-scaled pixel size (notes and captions).
