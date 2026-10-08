@@ -93,7 +93,9 @@ static func soft_wall_rect(data: LevelData, cam: Camera3D, size: Vector2) -> Arr
 			var p := centre + along * (Tuning.GRID_CELL_SIZE * s) + Vector3(0.0, y, 0.0)
 			if cam.is_position_behind(p):
 				continue
-			var px := cam.unproject_position(p)
+			# In image pixels: the viewport's visible rect differs from the captured image under a
+			# content scale (--resolution 960x540 in a 1920x1080 window).
+			var px := cam.unproject_position(p) * size / cam.get_viewport().get_visible_rect().size
 			lo = lo.min(px)
 			hi = hi.max(px)
 	if lo.x > hi.x:
@@ -236,7 +238,8 @@ func _soft_frames(pose: Dictionary, data: LevelData) -> void:
 	_aim(pose[&"from"], pose[&"to"])
 	CoherenceRenderer.set_coherence(Tuning.COHERENCE_MAX)
 	await _frames(SETTLE_POSE)
-	var rect := soft_wall_rect(data, _camera, get_viewport().get_visible_rect().size)
+	# In the captured image's pixels (ViewportTexture.get_size() can disagree with the image).
+	var rect := soft_wall_rect(data, _camera, Vector2(get_viewport().get_texture().get_image().get_size()))
 	# The CPU renderer runs a few frames per second, so world time is pinned rather than
 	# waited for: the renderer pauses and g_time is set to exactly t0 and t0 + 1 s, each
 	# held long enough for TAA to settle. The grain holds still too, so what differs
