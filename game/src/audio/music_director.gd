@@ -66,6 +66,7 @@ var _change_left: float = 0.0
 var _cut_left: float = 0.0
 var _drop_left: float = 0.0
 var _return_left: float = 0.0
+var _was_cut: bool = false
 var _stop_fade: float = 2.0
 var _lp_hz: float = Tuning.MUSIC_LP_CLOSED_HZ
 var _ending: AudioStreamPlayer
@@ -231,11 +232,12 @@ func is_cut() -> bool:
 ## drive it directly.
 func tick(delta: float) -> void:
 	_clock += delta
-	var was_cut := is_cut()
 	_cut_left = maxf(0.0, _cut_left - delta)
 	_drop_left = maxf(0.0, _drop_left - delta)
-	if was_cut and not is_cut():
+	var cut := is_cut()
+	if _was_cut and not cut:
 		_return_left = RETURN_FADE_S
+	_was_cut = cut
 	_return_left = maxf(0.0, _return_left - delta)
 	_schedule(delta)
 	var bright := mode == MODE_LEVEL and intensity > Tuning.MUSIC_INTENSITY_OPEN

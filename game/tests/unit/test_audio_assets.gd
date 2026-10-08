@@ -26,6 +26,26 @@ const REQUIRED: Array[StringName] = [
 	&"static_hum", &"static_band", &"still_tick", &"still_contact",
 	# M2.4: Echo (its footsteps are the player's own foot_<surface> samples on Errors).
 	&"echo_breath",
+	# M2.14 (03 complete): every stratum's room tone, the World table, every error row, the
+	# Echo reverb steps, the scares (10 §5), the ending and the Threshold, the music stems.
+	&"room_tone_pools", &"room_tone_garage", &"room_tone_offices", &"room_tone_server", &"room_tone_substrate",
+	&"fixture_hum_pools", &"fixture_hum_garage", &"fixture_hum_offices", &"fixture_hum_server",
+	&"fan_loop", &"water_lap", &"drip", &"item_pickup", &"note_pickup", &"polaroid_charge", &"polaroid_shutter",
+	&"glowstick_crack", &"glowstick_fizz", &"flare_ignite", &"flare_burn", &"chalk_mark",
+	&"radio_static", &"radio_ping", &"fuse_insert", &"keycard_accept", &"keycard_reject",
+	&"vending_hum", &"vending_whir", &"payphone_ring", &"payphone_line",
+	&"flicker_stutter", &"flicker_stutter_fast", &"flicker_spark", &"flicker_lunge",
+	&"echo_foot_carpet", &"echo_foot_tile", &"echo_foot_water", &"echo_foot_concrete",
+	&"echo_foot_raised_floor", &"echo_foot_substrate",
+	&"fixture_dropout", &"threshold_open", &"threshold_tone", &"room_tone_ending",
+	&"music_pad_a1", &"music_pad_a2", &"music_pad_a3", &"music_ending",
+]
+## 04 §10 captions emitted from a manifest sound; [silence] and [grid tone] are emitted by
+## AudioManager's feeds (Still's proximity, the Null tone), not by a sample.
+const CAPTIONED_BY_SOUND: Array[String] = [
+	"CAPTION_STATIC", "CAPTION_STILL_TICK", "CAPTION_FLICKER_PRESENT", "CAPTION_FLICKER_JUMP",
+	"CAPTION_FLICKER_LUNGE", "CAPTION_ECHO_FOOTSTEP", "CAPTION_DOOR_SLAM", "CAPTION_PAYPHONE",
+	"CAPTION_BREAKER", "CAPTION_POWER_WAVE", "CAPTION_NOCLIP_COMMIT", "CAPTION_CONTACT",
 ]
 
 var _sounds: Dictionary = {}
@@ -98,3 +118,28 @@ func test_runtime_captions_are_strings() -> void:
 		var rt: Dictionary = (_sounds[id] as Dictionary).get("runtime", {})
 		if rt.has("caption"):
 			assert_contains(consts, String(rt["caption"]), "%s caption" % id)
+
+
+## 03 §6 rule 6 / 04 §10: every caption row has a sound that emits it.
+func test_every_caption_row_has_a_sound() -> void:
+	var used := {}
+	for id: String in _sounds:
+		var rt: Dictionary = (_sounds[id] as Dictionary).get("runtime", {})
+		if rt.has("caption"):
+			used[String(rt["caption"])] = true
+	for key in CAPTIONED_BY_SOUND:
+		assert_true(used.has(key), "%s has no captioned sound" % key)
+	var feeds := FileAccess.get_file_as_string("res://src/audio/audio_feeds.gd")
+	assert_true(feeds.contains("CAPTION_STILL_SILENCE") and feeds.contains("CAPTION_NULL"))
+
+
+## 03 §5: three variations of each pad stem, each 12 s, stereo, with its pitch.
+func test_music_stems() -> void:
+	for id in [&"music_pad_a1", &"music_pad_a2", &"music_pad_a3"]:
+		var e: Dictionary = _sounds.get(String(id), {})
+		assert_eq((e.get("files", []) as Array).size(), 3, String(id))
+		assert_eq(int(e.get("channels", 0)), 2)
+		assert_eq(String(e.get("bus", "")), "Music")
+		assert_approx(float(e["length_s"][0]), Tuning.MUSIC_PAD_LOOP_TIME, 0.001)
+		assert_gt(float((e.get("runtime", {}) as Dictionary).get("note_hz", 0.0)), 0.0)
+
