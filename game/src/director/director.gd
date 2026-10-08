@@ -25,6 +25,13 @@ var stratum: StringName = Tuning.STRATUM_DEPTH1
 var arrival: StringName = Tuning.RUN_ARRIVE_START
 var drops_in_a_row: int = 0
 var first_descent: bool = false
+## 10 Interfaces: read-only views of the pacing model.
+var intensity: float:
+	get:
+		return pacing.intensity
+var phase: StringName:
+	get:
+		return pacing.phase
 var aggression: float = 0.0
 var threat: float = 0.0
 var pacing: DirectorPacing = DirectorPacing.new()
@@ -69,12 +76,6 @@ func now() -> float:
 	return float(time_source.call()) if time_source.is_valid() else _game_time
 
 
-func intensity() -> float:
-	return pacing.intensity
-
-
-func phase() -> StringName:
-	return pacing.phase
 
 
 ## 10 Interfaces: starts the Director for `p_level` (data, grid, placements) with the

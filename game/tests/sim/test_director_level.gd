@@ -96,10 +96,10 @@ func test_calm_30_s_then_build_wakes_a_hunter() -> void:
 	_begin()
 	var h := _hunter()
 	_advance(Tuning.DIRECTOR_CALM_TIME - 0.15)
-	assert_eq(_d.phase(), DirectorPacing.CALM)
+	assert_eq(_d.phase, DirectorPacing.CALM)
 	assert_true(h.is_dormant(), "no hunter wakes during Calm")
 	_advance(0.2)
-	assert_eq(_d.phase(), DirectorPacing.BUILD)
+	assert_eq(_d.phase, DirectorPacing.BUILD)
 	assert_false(h.is_dormant(), "Build wakes a hunter")
 	assert_true(h.has_hint(), "and hints it toward the player's region")
 	assert_true(_phases.has(DirectorPacing.BUILD))
@@ -108,9 +108,9 @@ func test_calm_30_s_then_build_wakes_a_hunter() -> void:
 func test_calm_after_drop_is_15_s() -> void:
 	_begin(Tuning.RUN_ARRIVE_DROP)
 	_advance(Tuning.DIRECTOR_CALM_TIME_AFTER_DROP - 0.15)
-	assert_eq(_d.phase(), DirectorPacing.CALM)
+	assert_eq(_d.phase, DirectorPacing.CALM)
 	_advance(0.2)
-	assert_eq(_d.phase(), DirectorPacing.BUILD)
+	assert_eq(_d.phase, DirectorPacing.BUILD)
 
 
 func test_a_chase_during_calm_is_sent_away() -> void:
@@ -165,4 +165,4 @@ func test_end_releases_the_gate() -> void:
 	_d.end()
 	assert_false(_p.contact_gate.is_valid())
 	_advance(40.0)
-	assert_eq(_d.phase(), DirectorPacing.CALM, "an ended Director no longer runs")
+	assert_eq(_d.phase, DirectorPacing.CALM, "an ended Director no longer runs")
