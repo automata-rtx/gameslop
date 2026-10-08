@@ -29,6 +29,8 @@ const EXIT_RESERVE := 4
 const EXIT_BAND_INSET := Vector2(6.0, 10.0)
 ## Closets stand at least this many cells apart (Chebyshev), so two never share a halo.
 const CLOSET_SPACING := 4
+## Cells to spare over the breaker's distance from the exit (later doors may cut it).
+const BREAKER_MARGIN := 2
 
 var spawn_room: RoomData = null
 var exit_room: RoomData = null
@@ -191,37 +193,53 @@ func _protect_doors() -> void:
 			_protected[grid.idx(Vector2i(e.x, e.y) + LevelGrid.DIRS[e.z])] = true
 
 
-## Breaker room (07 §5.1, 2x2). First Descent: cut across the critical path (05 §10);
-## otherwise anywhere in the far two thirds of the level.
+## Breaker room (07 §5.1, 2x2), at least half the critical path's length from the exit on
+## foot (07 / 05 §10, 2026-10-08). First Descent: cut across the critical path in its first
+## half (05 §10); otherwise in the far two thirds from spawn when it can be.
 func _insert_breaker_room() -> void:
 	var sz := Tuning.HALLS_BREAKER_ROOM_SIZE
 	var dist := grid.distance_field(data.spawn_cell)
+	var de := grid.distance_field(data.exit_cell)
 	var path := PathOps.critical_path(grid, data.spawn_cell, data.exit_cell, false)
-	var on_path: Dictionary = {}
 	var length := path.size() - 1
+	var on_path: Dictionary = {}
 	for k in path.size():
-		if k >= length * 0.25 and k <= length * 0.75:
+		if k >= length * 0.2 and PopulateOps.breaker_far_enough(de, grid.idx(path[k]), length, BREAKER_MARGIN):
 			on_path[path[k]] = true
 	var far := int(PathOps.max_distance(dist) / 3.0)
 	var halo := RoomOps.room_halo(grid)
-	var candidates: Array[Rect2i] = []
+	var best: Array[Rect2i] = []
+	var fair: Array[Rect2i] = []
 	var w := grid.size.x
 	for z in range(1, grid.size.y - sz.y):
 		for x in range(1, w - sz.x):
 			var i := z * w + x
 			var cells: Array[int] = [i, i + 1, i + w, i + w + 1]
-			var want := false
+			var on := false
+			var spawn_far := false
+			var exit_far := true
+			var open := 0
 			for j in cells:
-				if data.first_run:
-					want = want or on_path.has(grid.cell_at(j))
-				else:
-					want = want or dist[j] >= far
+				if not LevelGrid.kind_walkable(grid.cells[j]):
+					continue
+				open += 1
+				on = on or on_path.has(grid.cell_at(j))
+				spawn_far = spawn_far or dist[j] >= far
+				exit_far = exit_far and PopulateOps.breaker_far_enough(de, j, length, BREAKER_MARGIN)
 			var rect := Rect2i(x, z, sz.x, sz.y)
-			if want and RoomOps.rect_free(grid, rect, halo, true):
-				candidates.append(rect)
-	if candidates.is_empty():
+			if open == 0 or not exit_far or not RoomOps.rect_free(grid, rect, halo, true):
+				continue
+			if data.first_run:
+				if on:
+					best.append(rect)
+			elif spawn_far:
+				best.append(rect)
+			else:
+				fair.append(rect)
+	var pool := best if not best.is_empty() else fair
+	if pool.is_empty():
 		return
-	breaker_room = RoomOps.insert_room(grid, candidates[rng_layout.randi_range(0, candidates.size() - 1)], RoomData.BREAKER)
+	breaker_room = RoomOps.insert_room(grid, pool[rng_layout.randi_range(0, pool.size() - 1)], RoomData.BREAKER)
 
 
 ## Closets (07 §5.1): 1x1 rooms with a DOOR, cut into void cells beside corridors.
