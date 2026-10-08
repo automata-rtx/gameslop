@@ -839,6 +839,18 @@
    "expect": {"peak_hz": [25, 95]}
   },
 
+  "echo_breath": {
+   "group": "errors", "dur": 1.4, "variants": 3,
+   "jitter": {"pitch": 0.04, "time": 0.01, "gain_db": 1.0, "dur": 0.08},
+   "norm": {"lufs": -24},
+   "note": "03 Echo: within 4 m, a breathing-length noise swell every 2 s (its only sound besides the player's own footsteps played back). Pink noise, LP 1.2 kHz with a soft 600 Hz body, a slow rise and a long fall; no voice, no pitch.",
+   "layers": [
+    {"src": "noise", "color": "pink", "peak_db": 0, "env": {"type": "adsr", "a": 0.55, "d": 0.25, "s": 0.6, "r": 0.55}, "chain": [{"fx": "lp", "f": 1200, "q": 0.6}, {"fx": "peak", "f": 600, "q": 1.0, "gain_db": 4}]},
+    {"src": "noise", "color": "brown", "peak_db": -8, "env": {"type": "adsr", "a": 0.6, "d": 0.2, "s": 0.5, "r": 0.5}, "chain": [{"fx": "lp", "f": 300, "q": 0.7}]}
+   ],
+   "fx": [{"fx": "hp", "f": 80, "track": false}]
+  },
+
   "item_pickup": {
    "group": "player", "dur": 0.14, "variants": 3, "lead": 0.002,
    "jitter": {"pitch": 0.03, "gain_db": 0.7},

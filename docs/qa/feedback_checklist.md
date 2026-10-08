@@ -43,7 +43,7 @@ $GODOT_BIN --headless --path game res://scenes/debug/feedback_bench.tscn -- --au
 | Still within 8 m | 11 §3 | - | x | - | no | GAP: AudioManager emits EventBus.audio_cue ([silence]) but no HUD subscribes until the captions task (M2.12) | S duck.Ambience |
 | Still observed 2 s | 11 §3 | x | x | - | x* | ok 3/2 | I still.ticks; S play.still_tick; R Crank.charge |
 | Flicker lunge | 11 §3 | pending | pending | pending | pending | pending: Flicker lands with M2.5 |  |
-| Echo at 4 m | 11 §3 | pending | pending | - | pending | pending: Echo lands with M2.4 |  |
+| Echo at 4 m | 11 §3 | x | x | - | no | GAP: Echo's footsteps emit EventBus.audio_cue ([footsteps, {dir}, late]) but no HUD subscribes until the captions task (M2.12) | I echo.presence; S play.echo_breath |
 | Null radius | 11 §3 | pending | pending | pending | - | pending: Null lands with M2.6 |  |
 | Null core | 11 §3 | pending | pending | pending | pending | pending: Null lands with M2.6 |  |
 | Exit seen | 11 §3 | x | x | - | x | ok 3/3 | I exit.lamp; S play.exit_latch; R Depth.status |

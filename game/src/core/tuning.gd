@@ -488,6 +488,18 @@ const ECHO_BREATH_SWELL_INTERVAL := 2.0             # s, within 4 m (03)
 const ECHO_LURE_IMPACT_RADIUS := 6.0                # m, thrown glowstick/flare landing
 const ECHO_LURE_RADIO_RADIUS := 10.0                # m per s while on
 const ECHO_CORNER_GAIN := 0.05                      # about 5% per corner trimmed
+# Build-task constants (M2.4; 08 §6 gives no number).
+const ECHO_WANDER_SPEED := PLAYER_CROUCH_SPEED      # m/s: Wander walks at the player's slowest pace
+const ECHO_SEARCH_SPEED := PLAYER_WALK_SPEED        # m/s: Search, a lure and the Satiated walk-back
+const ECHO_WANDER_RADIUS := 14.0                    # m: an unhinted Wander leg ends within this
+const ECHO_TRAIL_CAPACITY := 64                     # heard steps kept (the player's trail keeps 64)
+const ECHO_RESOLVE_LOOKBACK := 8                    # player trail entries searched to match a heard step
+const ECHO_DIRECT_SLACK := 1.04                     # a nav path within 4% of the straight line is "direct" (trimmed)
+const ECHO_DIRECT_CANDIDATES := 8                   # trail entries tried for a direct cut per repath
+const ECHO_ENTRY_ARRIVE_DIST := 0.35                # m (XZ): a trail entry counts as reached
+const ECHO_SEARCH_CANDIDATES := 12                  # seeded tries per Search inspection point
+const ECHO_SHIMMER_FADE := 0.4                      # m beyond 4 m over which the shimmer fades out
+const ECHO_OWN_TRAIL_CAPACITY := 64                 # own steps kept for the Satiated walk-back
 
 # 08 §7  Null
 const NULL_UNRENDER_RADIUS := 12.0                  # m

@@ -102,6 +102,8 @@ func spawn_error(b: FeedbackBench, id: StringName, pos: Vector3) -> ErrorBase:
 	b.run.level.content.add_child(e)
 	if e is ErrorStill:
 		(e as ErrorStill).place_at(pos)
+	elif e is ErrorEcho:
+		(e as ErrorEcho).place_at(pos)
 	else:
 		e.global_position = pos
 	e.set_navigation_ready(true)
