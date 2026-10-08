@@ -44,3 +44,13 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Known issues:** Garage is too dark near the camera (tour T3 fails on Garage poses); Garage sim runs sometimes get the bot stuck; an intermittent worker-thread crash in sim children under heavy load (being root-caused); see `docs/qa/open_items.md`. Not verified without a GPU: frame times, mouse feel, audio by ear, the shortened Still column under door headers.
 - **Builds:** not attached (no GitHub release access in this session). Build from the tag with `tools/ci/export.sh` (needs `tools/godot/fetch.sh --templates`); outputs `build/NOCLIP-1.0.0-{windows,linux}.zip` with checksums.
 - **Tester (optional, 10 minutes):** `docs/qa/human_check_cp-06.md`.
+
+## cp-07-pools-garage — 2026-10-08 (commit 1dd067d)
+- **Works:** Pools (drained, shallow and full basins, steps, ladders, lane ropes, water volumes with wading, caustics and a real water shader) and Garage (split-level decks joined by ramps, pillars, parked cars with under-car hide spots, sodium lamps), each with materials, props and audio; 1,000 seeds each validate. Also on this commit: Echo, Flare/Radio/Fuse/Keycard, vending, payphone, every hide spot, the engine audio-race guard, and the cp-06 loop. `tools/ci/checkpoint.sh` green (977 tests with budgets enforced, validator, exports, Linux smoke).
+- **Stubbed:** Flicker (Still stands in), locks other than Open/Powered, scares, Substrate, Null, captions, music.
+- **Known issues:** Pools exit is a plain slab (fixed at cp-09); see `docs/qa/open_items.md`.
+- **Tester:** optional. A Descent reaches Pools or Garage at depth 2.
+
+## cp-08-offices-server — 2026-10-08 (commit 1dd067d, same as cp-07)
+- **Works:** Offices (ring corridor, cubicle partitions you can see over, glass meeting room, dark fixture groups until the breaker, desks with under-desk hide spots, monitors) and Server (staggered rack aisles lit by LEDs, cages, a floor hatch exit, rack noclip through the whole rack); 1,000 seeds each validate. Dark strata are measured with the flashlight on (CHANGELOG).
+- **Stubbed / known issues / tester:** as cp-07 (both strata merged before the cp-07 look pass, so they share the commit).
