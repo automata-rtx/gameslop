@@ -134,7 +134,10 @@ func record_notice(id: StringName) -> void:
 func record_evasion(id: StringName) -> void:
 	if run == null:
 		return
-	run.evasions += 1
+	# 05 §5 ruling (CHANGELOG 2026-10-08): Static evasions feed the Archive and codex only;
+	# stepping in and out of a field must not farm score.
+	if id != &"static":
+		run.evasions += 1
 	run.evasions_by[id] = int(run.evasions_by.get(id, 0)) + 1
 	if id == ERROR_FLICKER and int(run.evasions_by[id]) >= Tuning.UNLOCK_LIGHTBEARER_FLICKER_EVASIONS:
 		if _earn(&"lightbearer"):

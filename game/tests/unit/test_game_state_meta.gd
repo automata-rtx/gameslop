@@ -408,3 +408,13 @@ func test_summary_shows_score_best_and_unlocks() -> void:
 	assert_eq(RunSummary.format_score(1234567), "1,234,567")
 	assert_eq(RunSummary.format_score(999), "999")
 	assert_eq(RunSummary.format_score(0), "0")
+
+
+func test_static_evasions_do_not_score() -> void:
+	GameState.start_run(Tuning.MODE_DESCENT, &"faller", 4242)
+	GameState.record_evasion(&"static")
+	GameState.record_evasion(&"static")
+	GameState.record_evasion(&"still")
+	assert_eq(GameState.run.evasions, 1, "only hunters count toward score")
+	assert_eq(int(GameState.run.evasions_by[&"static"]), 2, "Static still feeds the Archive")
+	GameState.end_run(&"abandoned")
