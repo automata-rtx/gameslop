@@ -1044,6 +1044,22 @@
     2.0
    ]
   },
+  "echo_breath": {
+   "group": "errors",
+   "bus": "Errors",
+   "loop": false,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/errors/echo_breath_v01.wav",
+    "res://assets/audio/errors/echo_breath_v02.wav",
+    "res://assets/audio/errors/echo_breath_v03.wav"
+   ],
+   "length_s": [
+    1.332958,
+    1.415375,
+    1.45925
+   ]
+  },
   "item_pickup": {
    "group": "player",
    "bus": "Player",

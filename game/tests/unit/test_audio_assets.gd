@@ -24,6 +24,8 @@ const REQUIRED: Array[StringName] = [
 	&"door_open", &"door_close", &"door_slam", &"breaker_lever",
 	&"exit_open", &"exit_latch", &"exit_tone",
 	&"static_hum", &"static_band", &"still_tick", &"still_contact",
+	# M2.4: Echo (its footsteps are the player's own foot_<surface> samples on Errors).
+	&"echo_breath",
 ]
 
 var _sounds: Dictionary = {}

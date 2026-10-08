@@ -145,6 +145,21 @@ func still_observed(b: FeedbackBench) -> void:
 	free_error(s)
 
 
+## 11 §3 Echo at 4 m: an awake Echo steps inside 4 m of the player (placed, so the frame is
+## exact): the shimmer appears and the breath swell plays at once.
+func echo_4m(b: FeedbackBench) -> void:
+	await b.pose_sightline()
+	var e := spawn_error(b, &"echo", ahead(b, 7.0)) as ErrorEcho
+	e.senses.hearing_mult = 0.0
+	e.wake()
+	await b.ticks(3)
+	await b.arm()
+	b.anchor()
+	e.place_at(ahead(b, 3.5))
+	await b.ticks(8)
+	free_error(e)
+
+
 # --- the exit and the breaker ----------------------------------------------------------------------
 
 func exit_seen(b: FeedbackBench) -> void:

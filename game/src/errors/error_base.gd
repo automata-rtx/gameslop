@@ -26,6 +26,7 @@ const GROUP := &"errors"
 const SCENES: Dictionary = {
 	&"static": "res://scenes/errors/static.tscn",
 	&"still": "res://scenes/errors/still.tscn",
+	&"echo": "res://scenes/errors/echo.tscn",
 }
 
 @export var error_id: StringName = &""
