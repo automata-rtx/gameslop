@@ -2,8 +2,8 @@ class_name GarageParking
 extends RefCounted
 ## The Garage grammar's bays, cars, barriers and lamps (07 §5.3). Bays are deck cells
 ## against a strip or a perimeter wall. Cars (two bay cells along the wall, 4.2 m) fill
-## about 35% of the bays, a cell apart, each a hide spot host (under_car, a marker until
-## M2.8); barriers stand at 10% of the bay-row ends. Nothing parks where it would cut the
+## about 35% of the bays, a cell apart, each a hide spot host (under_car, the HideSpot scene
+## of M2.8); barriers stand at 10% of the bay-row ends. Nothing parks where it would cut the
 ## deck in two: every car and barrier keeps all walkable cells reachable around it.
 ## Lamps: a sodium cage lamp on one face of every pillar (the face looking down the longest
 ## open run), grouped by 4x4-cell quadrants; one in each core room and on each ramp.

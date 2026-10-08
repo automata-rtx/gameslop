@@ -64,8 +64,10 @@ static func all() -> Array[Dictionary]:
 			{&"expect": {&"I": ["hand.", "scene.children", "level.content"], &"S": ["play.glowstick_crack"], &"R": ["Belt"]}}))
 	rows.append(_row(&"chalk_stamp", "Chalk stamp", "11 §2", "ISMR",
 			{&"expect": {&"I": ["decals", "hand."], &"S": ["play.chalk_mark"], &"R": ["Belt"]}}))
-	rows.append(_row(&"item_flare", "Item use: Flare", "11 §2", "ISMR", {}, PENDING, "Flare lands with M2.8"))
-	rows.append(_row(&"item_radio", "Item use: Radio", "11 §2", "ISMR", {}, PENDING, "Radio lands with M2.8"))
+	rows.append(_row(&"item_flare", "Item use: Flare", "11 §2", "ISMR",
+			{&"expect": {&"I": ["hand.", "scene.children"], &"S": ["play.flare_ignite"], &"R": ["Belt"]}}))
+	rows.append(_row(&"item_radio", "Item use: Radio", "11 §2", "ISMR",
+			{&"expect": {&"I": ["hand."], &"S": ["play.flashlight_toggle"], &"R": ["Belt"]}}))
 	# --- 11 §2 interaction and noclip -----------------------------------------------------
 	rows.append(_row(&"interact_press", "Interact press", "11 §2", "ISMR",
 			{&"expect": {&"I": ["x.door"], &"S": ["play.door_"], &"R": ["Prompt"]}}))
