@@ -25,3 +25,4 @@ Deferred work found during production. Each line names the task that should abso
 - Player owner: `Player.look()` refuses mouse look in Landing; 05 §4 wants a free cabin camera.
 - HUD owner: needs a dim keyless prompt (`FUSE MISSING` for Variant B breaker without a fuse); clear the exit line while in the cabin.
 - M2.1: depths 2+ generate as Halls until the other grammars exist (HUD shows HALLS, summary names the planned stratum).
+- M2.2: decide rack noclip (07 §7 says racks are WALL on all four faces, but a rack cell is not walkable so the query says NO SPACE). Proposal: a rack face passes through the whole rack to the far walkable cell.
