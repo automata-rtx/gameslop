@@ -42,3 +42,4 @@ Deferred work found during production. Each line names the task that should abso
 - M1.12: `tools/ci/test.sh --filter X` now skips files with no matching test, so a slow `before_all` no longer runs for them.
 - M3.2: Still's drawn column (0.5 × 2.6 m) is taller than its body (0.4 × 1.8 m), so a Still frozen in a doorway shows its top inside the 2.1 m header. Consider freezing only outside doorways or shortening the column in doorways.
 - M3.5: error budget: Still 0.15–0.18 ms + Static 0.07 ms headless; depth 4+ with two hunters will likely exceed 0.3 ms. Profile and budget.
+- Errors owner: Static records a notice on every field entry (31–277 per run in sims); 08 §3 notice for Static should fire once per encounter (e.g. not again until evasion). Also verify the hide path end to end (the cautious bot never reached a locker).
