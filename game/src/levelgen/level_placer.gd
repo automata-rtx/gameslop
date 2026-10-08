@@ -138,8 +138,9 @@ func _fixture(p: Dictionary, parent: Node3D) -> Node3D:
 	f.light_profile = Fixture.profile_for(params.get(&"fixture", &""))
 	var t := _xform(p)
 	# T2: tubes run along the corridor; rooms keep one orientation. Wall-mounted fixtures
-	# (params.dir) keep their placement's yaw.
-	if level.grid.kind(c) == LevelGrid.FLOOR and not params.has(&"dir"):
+	# (params.dir) and the Substrate's standing studio lights keep their placement's yaw.
+	if level.grid.kind(c) == LevelGrid.FLOOR and not params.has(&"dir") \
+			and params.get(&"fixture", &"") != SubstrateGenerator.STUDIO_LIGHT:
 		var along_x := level.grid.can_step(c, LevelGrid.E) or level.grid.can_step(c, LevelGrid.W)
 		var along_z := level.grid.can_step(c, LevelGrid.N) or level.grid.can_step(c, LevelGrid.S)
 		if along_x and not along_z:

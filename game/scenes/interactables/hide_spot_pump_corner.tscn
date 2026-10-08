@@ -7,14 +7,14 @@
 [ext_resource type="Material" path="res://data/materials/pools/prop_white.tres" id="5_white"]
 
 [sub_resource type="CylinderMesh" id="Mesh_pump"]
-top_radius = 0.38
-bottom_radius = 0.38
+top_radius = 0.25
+bottom_radius = 0.25
 height = 1.0
 radial_segments = 20
 rings = 1
 
 [sub_resource type="BoxMesh" id="Mesh_motor"]
-size = Vector3(0.5, 0.7, 0.6)
+size = Vector3(0.5, 0.7, 0.5)
 
 [sub_resource type="CylinderMesh" id="Mesh_pipe"]
 top_radius = 0.07
@@ -28,10 +28,10 @@ size = Vector3(0.24, 0.04, 0.04)
 
 [sub_resource type="CylinderShape3D" id="Shape_pump"]
 height = 1.0
-radius = 0.38
+radius = 0.25
 
 [sub_resource type="BoxShape3D" id="Shape_motor"]
-size = Vector3(0.5, 0.7, 0.6)
+size = Vector3(0.5, 0.7, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_gap"]
 size = Vector3(0.9, 1.4, 0.5)
@@ -53,30 +53,30 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
 collision_mask = 0
 
 [node name="PumpMesh" type="MeshInstance3D" parent="Pump"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 0.5, 0.58)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 0.5, 0.65)
 mesh = SubResource("Mesh_pump")
 material_override = ExtResource("3_chrome")
 
 [node name="PumpShape" type="CollisionShape3D" parent="Pump"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 0.5, 0.58)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 0.5, 0.65)
 shape = SubResource("Shape_pump")
 
 [node name="MotorMesh" type="MeshInstance3D" parent="Pump"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, 0.35, 0.62)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.64, 0.35, 0.65)
 mesh = SubResource("Mesh_motor")
 material_override = ExtResource("4_red")
 
 [node name="MotorShape" type="CollisionShape3D" parent="Pump"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, 0.35, 0.62)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.64, 0.35, 0.65)
 shape = SubResource("Shape_motor")
 
 [node name="PipeMesh" type="MeshInstance3D" parent="Pump"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 1.5, 0.58)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 1.5, 0.65)
 mesh = SubResource("Mesh_pipe")
 material_override = ExtResource("5_white")
 
 [node name="ValveMesh" type="MeshInstance3D" parent="Pump"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 1.1, 0.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 1.1, 0.38)
 mesh = SubResource("Mesh_valve")
 material_override = ExtResource("4_red")
 

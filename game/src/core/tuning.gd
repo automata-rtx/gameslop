@@ -791,6 +791,10 @@ const GRID_CYCLE2_EXTRA := 2                        # +2 to each dimension
 const STRATUM_CEILING_HEIGHT: Dictionary = {
 	&"halls": 3.0, &"pools": 6.0, &"garage": 3.2, &"offices": 3.0, &"server": 3.5, &"substrate": 3.0,
 }   # m (garage: per deck)
+## R13: a prop on a walkable cell keeps this far from the cell's centre and from the centre
+## line to each open edge (the cell's cross, PropClearance), else its cell is F_BLOCKED.
+## Equal to NAV_AGENT_RADIUS: the player's 0.35 m capsule with 5 cm to spare.
+const LEVEL_PROP_CLEARANCE := 0.4                   # m
 const GRID_WALL_TYPES: Array[StringName] = [&"NONE", &"WALL", &"SOLID", &"SOFT", &"PARTITION", &"DOOR", &"GLASS"]
 
 # 07 §3 pipeline timing
@@ -887,6 +891,7 @@ const GARAGE_BARRIER_FRACTION := 0.10               # of bay ends
 const GARAGE_QUADRANT_CELLS := 4                    # fixture groups are 4x4-cell quadrants
 const GARAGE_SPAWN_LOBBY_SIZE := Vector2i(3, 3)
 const GARAGE_SOFT_WALLS := 3
+const GARAGE_RAMP_HEAD_CLEAR_CELLS := 3              # R13: no car or barrier this many cells beyond a ramp's end (its column and the two beside)
 # Build-task constants (07 §5.3 gives no number; M2.1). Split-level decks: deck 1 beside
 # deck 0, GARAGE_DECK_RISE higher, the ramps crossing a band of ramp-length cells between.
 const GARAGE_DECK_RISE := 3.2                       # m, deck 1 floor (07 §2: "Garage deck 1 at +3.2")

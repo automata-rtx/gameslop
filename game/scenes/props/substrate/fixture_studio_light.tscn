@@ -25,7 +25,7 @@ size = Vector3(0.7, 0.03, 0.03)
 
 [sub_resource type="CylinderShape3D" id="Base"]
 height = 2.10
-radius = 0.3
+radius = 0.12
 
 [node name="FixtureStudioLight" type="Node3D"]
 script = ExtResource("1_s")

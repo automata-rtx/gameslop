@@ -220,7 +220,7 @@ func _strips(k: int) -> void:
 func _connected() -> bool:
 	var dist := grid.distance_field(data.spawn_cell)
 	for i in grid.cell_count():
-		if LevelGrid.kind_walkable(grid.cells[i]) and dist[i] < 0:
+		if grid.is_walkable_i(i) and dist[i] < 0:
 			return false
 	return true
 
@@ -291,6 +291,9 @@ func decorate() -> void:
 	# Cars park after the soft walls, never in front of one (a shortcut nobody can reach).
 	parking = GarageParking.new(self)
 	parking.park()
+	# R13: cars and barriers block their cells; later placements measure around them (the
+	# critical path never holds one, so it stands).
+	spawn_dist = grid.distance_field(data.spawn_cell)
 	_place_keycard()
 	PopulateOps.lock_pickups(self)
 	PopulateOps.notes(self)

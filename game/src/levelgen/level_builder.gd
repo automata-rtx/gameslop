@@ -191,7 +191,7 @@ func _queue_jobs() -> void:
 	for i in g.cell_count():
 		var c := g.cell_at(i)
 		for d: int in [LevelGrid.E, LevelGrid.S]:
-			if g.wall(c, d) == LevelGrid.DOOR and (g.is_walkable(c) or g.is_walkable(c + LevelGrid.DIRS[d])):
+			if g.wall(c, d) == LevelGrid.DOOR and (LevelGrid.kind_walkable(g.kind(c)) or LevelGrid.kind_walkable(g.kind(c + LevelGrid.DIRS[d]))):
 				_job(_placer.door.bind(c, d, _containers[&"doors"]), &"door")
 	_job(_finish_geometry, &"finish")
 	_job(_start_bake, &"bake")

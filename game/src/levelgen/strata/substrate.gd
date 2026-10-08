@@ -14,10 +14,13 @@ extends StratumGenerator
 
 const STUDIO_LIGHT := &"studio_light"
 const THRESHOLD_DOOR := &"threshold_door"
-## The studio light's rig stands this far in from the corner of its cell (m), its head at
-## STUDIO_LIGHT_HEAD (m) above the floor (the lent light hangs there: drop 0).
+## The studio light's pole stands this far from its cell's centre on both axes (m), in the
+## corner away from the room's middle, its head at STUDIO_LIGHT_HEAD (m) above the floor (the
+## lent light hangs there: drop 0). R13: the pole's 0.12 m collider then keeps the cell's
+## cross clear (LEVEL_PROP_CLEARANCE 0.4 + 0.12, 2 cm to spare), and the tripod's feet (0.42 m) stay
+## off the walls with one leg pointing into the corner.
 const STUDIO_LIGHT_HEAD := 2.1
-const STUDIO_LIGHT_CORNER := 0.45
+const STUDIO_LIGHT_CORNER := 0.54
 ## Weights of the studio light draw: rooms and finished cells (02 §7 "marking the finished
 ## pockets").
 const LIGHT_WEIGHT_ROOM := 2.0
@@ -223,8 +226,16 @@ func _studio_light(c: Vector2i) -> void:
 		toward = Vector2(room.rect.position) + Vector2(room.rect.size - Vector2i.ONE) * 0.5 - Vector2(c)
 	if toward.length() < 0.01:
 		toward = Vector2(LevelGrid.DIRS[_open_dir(c)])
-	var corner := -toward.sign() * STUDIO_LIGHT_CORNER
-	var yaw := atan2(-toward.x, -toward.y)
+	# Always a true corner (R13): an axis the middle does not decide goes to its closed side.
+	var sx := -signf(toward.x)
+	var sz := -signf(toward.y)
+	if sx == 0.0:
+		sx = -1.0 if grid.wall(c, LevelGrid.W) != LevelGrid.NONE and grid.wall(c, LevelGrid.E) == LevelGrid.NONE else 1.0
+	if sz == 0.0:
+		sz = -1.0 if grid.wall(c, LevelGrid.N) != LevelGrid.NONE and grid.wall(c, LevelGrid.S) == LevelGrid.NONE else 1.0
+	var corner := Vector2(sx, sz) * STUDIO_LIGHT_CORNER
+	# The rig faces the cell's middle (its -Z), the back leg into the corner.
+	var yaw := atan2(corner.x, corner.y)
 	var group := grid.groups.size()
 	grid.groups[group] = [c] as Array[Vector2i]
 	data.add_placement(LevelData.P_FIXTURE, c, Vector3(corner.x, STUDIO_LIGHT_HEAD, corner.y), yaw,

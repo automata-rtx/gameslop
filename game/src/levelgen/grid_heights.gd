@@ -27,12 +27,13 @@ static func set_ramp(grid: LevelGrid, run: Array[Vector2i], uphill: int, y_low: 
 static func refresh_ledges(grid: LevelGrid) -> void:
 	grid.ledges.fill(0)
 	for i in grid.cell_count():
-		if not grid._walkable_i(i):
+		# Floors, not props: a blocked cell (R13) keeps its ledges.
+		if not LevelGrid.kind_walkable(grid.cells[i]):
 			continue
 		var c := grid.cell_at(i)
 		for d: int in [LevelGrid.E, LevelGrid.S]:
 			var o := c + LevelGrid.DIRS[d]
-			if not grid.in_bounds(o) or not grid._walkable_i(grid.idx(o)):
+			if not grid.in_bounds(o) or not LevelGrid.kind_walkable(grid.cells[grid.idx(o)]):
 				continue
 			if absf(grid.edge_floor_y(c, d) - grid.edge_floor_y(o, LevelGrid.opposite(d))) > Tuning.NAV_MAX_CLIMB:
 				grid.ledges[i] |= 1 << d

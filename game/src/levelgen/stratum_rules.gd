@@ -190,7 +190,7 @@ static func substrate(level: LevelData, ds: PackedInt32Array, f: PackedStringArr
 		var c := grid.cell_at(i)
 		if spawn != null and spawn.has_cell(c) and grid.has_flag(c, LevelGrid.F_UNFINISHED):
 			f.append("r10: the spawn room is unfinished at %s" % c)
-		if not LevelGrid.kind_walkable(grid.cells[i]):
+		if not grid.is_walkable_i(i):
 			continue
 		for d in 4:
 			var o := c + LevelGrid.DIRS[d]

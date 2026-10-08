@@ -60,7 +60,7 @@ static func soft_wall_candidates(grid: LevelGrid, fields: Array[PackedInt32Array
 	var out: Array[Vector3i] = []
 	var min_cells := int(ceil(min_saving_m / Tuning.GRID_CELL_SIZE)) + 1
 	for i in grid.cell_count():
-		if not LevelGrid.kind_walkable(grid.cells[i]) or fields[0][i] < 0:
+		if not grid.is_walkable_i(i) or fields[0][i] < 0:
 			continue
 		var c := grid.cell_at(i)
 		if (grid.flags[i] & exclude_flags) != 0:
@@ -85,7 +85,7 @@ static func soft_wall_candidates(grid: LevelGrid, fields: Array[PackedInt32Array
 static func interior_walls(grid: LevelGrid, exclude_flags: int) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
 	for i in grid.cell_count():
-		if not LevelGrid.kind_walkable(grid.cells[i]) or (grid.flags[i] & exclude_flags) != 0:
+		if not grid.is_walkable_i(i) or (grid.flags[i] & exclude_flags) != 0:
 			continue
 		var c := grid.cell_at(i)
 		for d: int in [LevelGrid.E, LevelGrid.S]:

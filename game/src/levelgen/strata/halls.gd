@@ -9,7 +9,8 @@ extends StratumGenerator
 const PROPS: Array[StringName] = [&"vending", &"payphone", &"chair", &"wall_clock"]
 ## Wall-standing props sit this far off the wall plane (m).
 const PROP_INSET := 0.35
-const LOCKER_INSET := 0.3
+## R13: the locker's back on the wall plane (0.5 deep), its door 0.4 m from the centre.
+const LOCKER_INSET := 0.25
 const BREAKER_INSET := 0.05
 ## Thinning lands this fraction below the walkable target, at random, so levels vary in size.
 const WALKABLE_JITTER := 0.08
