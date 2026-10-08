@@ -17,6 +17,10 @@ for attempt in 1 2 3; do
   if "$GODOT_BIN" --headless --path "$ROOT/game" --import >/dev/null 2>&1; then break; fi
   echo "test.sh: import pass $attempt failed, retrying" >&2
 done
+# Each checkout (main or an agent worktree) gets its own user:// so concurrent gates never
+# share settings, saves or sim files (Godot's user dir lives under XDG_DATA_HOME on Linux).
+export XDG_DATA_HOME="${NOCLIP_TEST_DATA_HOME:-$ROOT/build/test_data}"
+mkdir -p "$XDG_DATA_HOME"
 LOG="$(mktemp)"
 set +e
 "$GODOT_BIN" --headless --path "$ROOT/game" --script tests/run_tests.gd -- "$@" 2>&1 | tee "$LOG"
