@@ -51,7 +51,10 @@ var refused: int = 0
 var encounters: int = 0
 var retreated_chases: int = 0
 var telemetry := DirectorTelemetry.new()
+## 10 §5: the gating (Scares) and the world events (ScareEvents), rebuilt by begin().
 var scares := Scares.new()
+var scare_events := ScareEvents.new()
+var inputs := DirectorInputs.new()
 var rng: RandomNumberGenerator = Seeds.rng(0)
 var hunters := DirectorHunters.new()
 
@@ -63,10 +66,10 @@ var _aggr_left: float = 0.0
 var _check_left: float = 0.0
 var _static_left: float = 0.0
 var _telemetry_left: float = 0.0
-var _los_check_at: float = -1.0
-var _los_chasers: Array[ErrorBase] = []
-var _exit: Node
-var _flashlight: Node
+var _scare_left: float = 0.0
+var _nearest: float = INF
+## The scare kind that ran since the last telemetry row (its `scare` column).
+var _scare_mark: StringName = &""
 
 
 func _init() -> void:
@@ -97,10 +100,16 @@ func begin(p_level: Level, p_player: Player, p_arrival: StringName = Tuning.RUN_
 	rng = Seeds.rng(Seeds.derive(data.level_seed if data != null else 0, Tuning.SEED_LABEL_DIRECTOR))
 	pacing = DirectorPacing.new(rng.randi(), arrival, DirectorRules.cycle_depth(depth) == 6)
 	hunters.director = self
+	inputs.director = self
+	var level_seed := data.level_seed if data != null else 0
+	scares = Scares.new(Seeds.derive(level_seed, Tuning.SEED_LABEL_SCARES))
+	scare_events = ScareEvents.new()
+	scare_events.bind(self, scares)
+	_scare_left = Tuning.DIRECTOR_SCARE_CHECK_INTERVAL
 	_active = true
 	_begin_time = now()
 	_last_tick = _begin_time
-	_connect()
+	inputs.connect_all()
 	if player != null:
 		player.contact_gate = try_contact
 	if data != null:
@@ -127,7 +136,9 @@ func end() -> void:
 	if not _active:
 		return
 	_active = false
-	_disconnect()
+	inputs.disconnect_all()
+	scare_events.stop_ongoing()
+	DirectorTelemetry.dump_debug(self)
 	if player != null and is_instance_valid(player) and player.contact_gate == Callable(self, &"try_contact"):
 		player.contact_gate = Callable()
 
@@ -174,10 +185,13 @@ func spawn_error(id: StringName, spawn_point: Vector3) -> ErrorBase:
 	return hunters.spawn(id, spawn_point)
 
 
-## 10 Interfaces: asks for a scare now. M1: gated, then a no-op (Scares).
+## 10 Interfaces: asks for a scare now (10 §5 gating: Build, intensity, intervals, no hunter
+## near). Returns true when one ran. The Director also asks every 5 s of Build by itself.
 func request_scare() -> bool:
-	var kinds := scares.available(pacing.phase, pacing.intensity, now() - _begin_time)
-	return not kinds.is_empty() and scares.request(kinds[0], now() - _begin_time)
+	var k := scares.try_any(pacing.phase, pacing.intensity, pacing.level_time, _nearest)
+	if k != &"":
+		_scare_mark = k
+	return k != &""
 
 
 # --- time --------------------------------------------------------------------------------------
@@ -206,8 +220,17 @@ func _tick(dt: float) -> void:
 	pacing.step(dt, s.nearest, s.chasing, s.hunters if wake_allowed() else 0)
 	for a in pacing.take_actions():
 		hunters.act(a)
+	_nearest = s.nearest
 	if pacing.phase != before:
 		EventBus.director_phase.emit(pacing.phase)
+		if pacing.phase != DirectorPacing.BUILD:
+			scare_events.stop_ongoing()  # no scare plays on into Peak or Relief (10 §5)
+	scare_events.tick(now())
+	if pacing.phase == DirectorPacing.BUILD:
+		_scare_left -= dt
+		if _scare_left <= 0.0:
+			_scare_left = Tuning.DIRECTOR_SCARE_CHECK_INTERVAL
+			request_scare()
 	_check_left -= dt
 	if _check_left <= 0.0:
 		_check_left = Tuning.DIRECTOR_CALM_CHECK_INTERVAL
@@ -221,7 +244,7 @@ func _tick(dt: float) -> void:
 	if _aggr_left <= 0.0:
 		_aggr_left = Tuning.DIRECTOR_AGGRESSION_UPDATE_INTERVAL
 		_apply_aggression(false)
-	_noclip_los_check()
+	inputs.noclip_los_check()
 	var prev := threat
 	threat = DirectorRules.smooth_threat(threat, s.threat, dt)
 	if absf(threat - prev) > 0.0005 or (threat == 0.0 and prev != 0.0):
@@ -231,7 +254,8 @@ func _tick(dt: float) -> void:
 	if _telemetry_left <= 0.0:
 		_telemetry_left = Tuning.DIRECTOR_TELEMETRY_INTERVAL
 		telemetry.record(pacing.level_time, pacing.intensity, pacing.phase, aggression, threat, s.nearest,
-			player.coherence if player != null and is_instance_valid(player) else 0.0, s.chasing)
+			player.coherence if player != null and is_instance_valid(player) else 0.0, s.chasing, _scare_mark)
+		_scare_mark = &""
 
 
 ## 05 §10: the first Descent's depth 1 has no active hunter; one placed there anyway (a
@@ -248,109 +272,6 @@ func _apply_aggression(force: bool) -> void:
 	aggression = a
 	for e in hunters.live():
 		e.set_aggression(DirectorRules.error_aggression(aggression, depth, e.error_id))
-
-
-# --- inputs (10 Interfaces: listens to) ---------------------------------------------------------
-
-func _connect() -> void:
-	EventBus.noise_emitted.connect(_on_noise)
-	EventBus.note_found.connect(_on_note)
-	EventBus.breaker_thrown.connect(_on_breaker)
-	EventBus.exit_status_changed.connect(_on_exit_status)
-	if player != null:
-		player.coherence_changed.connect(_on_coherence)
-		if player.has_signal(&"noclip_committed"):
-			player.noclip_committed.connect(_on_noclip_committed)
-		# 10 §2 crank row (per 0.5 s): the Flashlight's own tick, not a radius match.
-		_flashlight = player.get(&"flashlight") as Node
-		if _flashlight != null and _flashlight.has_signal(&"crank_tick"):
-			_flashlight.connect(&"crank_tick", _on_crank_tick)
-	_exit = null
-	if level != null:
-		for n in get_tree().get_nodes_in_group(&"exits") if is_inside_tree() else []:
-			if level.is_ancestor_of(n) and n.has_signal(&"seen"):
-				_exit = n
-				n.connect(&"seen", _on_exit_seen)
-				break
-
-
-func _disconnect() -> void:
-	for pair: Array in [[EventBus.noise_emitted, _on_noise], [EventBus.note_found, _on_note],
-			[EventBus.breaker_thrown, _on_breaker], [EventBus.exit_status_changed, _on_exit_status]]:
-		var sig: Signal = pair[0]
-		if sig.is_connected(pair[1]):
-			sig.disconnect(pair[1])
-	if player != null and is_instance_valid(player):
-		if player.coherence_changed.is_connected(_on_coherence):
-			player.coherence_changed.disconnect(_on_coherence)
-		if player.noclip_committed.is_connected(_on_noclip_committed):
-			player.noclip_committed.disconnect(_on_noclip_committed)
-	if _flashlight != null and is_instance_valid(_flashlight) and _flashlight.is_connected(&"crank_tick", _on_crank_tick):
-		_flashlight.disconnect(&"crank_tick", _on_crank_tick)
-	_flashlight = null
-	if _exit != null and is_instance_valid(_exit) and _exit.is_connected(&"seen", _on_exit_seen):
-		_exit.disconnect(&"seen", _on_exit_seen)
-	_exit = null
-
-
-## Only the player's own sprint steps count here; the crank (the Flashlight's
-## `crank_tick`), the breaker and the noclip commit arrive by their own signals.
-func _on_noise(pos: Vector3, _radius: float, kind: StringName) -> void:
-	if player == null or not is_instance_valid(player) or not player.is_inside_tree():
-		return
-	if pos.distance_to(player.global_position) > Tuning.DIRECTOR_PLAYER_NOISE_DIST:
-		return
-	if kind == Tuning.NOISE_KIND_STEP and player.state_machine.is_in(PlayerStateMachine.SPRINT):
-		pacing.on_sprint_step()
-
-
-## One crank noise tick (every 0.5 s while the wheel turns): +0.10.
-func _on_crank_tick() -> void:
-	pacing.on_crank()
-
-
-func _on_note(_id: StringName) -> void:
-	pacing.on_note()
-
-
-func _on_breaker(_pos: Vector3) -> void:
-	pacing.on_breaker()
-
-
-func _on_coherence(value: float, _delta: float, _source: StringName) -> void:
-	pacing.on_coherence(value)
-
-
-func _on_exit_seen() -> void:
-	pacing.on_exit_seen()
-
-
-## Without an Exit node (benches), the first status announcement stands in for "seen".
-func _on_exit_status(_status: StringName, _timer: float) -> void:
-	if _exit == null:
-		pacing.on_exit_seen()
-
-
-func _on_noclip_committed(target: StringName, _from: Vector3, _to: Vector3) -> void:
-	pacing.on_noclip_commit()
-	if target == NoclipQuery.TARGET_FLOOR:
-		return
-	_los_chasers = hunters.chasers()
-	if not _los_chasers.is_empty():
-		_los_check_at = now() + Tuning.DIRECTOR_NOCLIP_LOS_CHECK_DELAY
-
-
-## 06 §8, 10 §2: a wall pass that broke every chaser's sight lowers intensity.
-func _noclip_los_check() -> void:
-	if _los_check_at < 0.0 or now() < _los_check_at:
-		return
-	_los_check_at = -1.0
-	for e in _los_chasers:
-		if is_instance_valid(e) and e.senses != null and e.senses.sees_player:
-			_los_chasers.clear()
-			return
-	_los_chasers.clear()
-	pacing.on_noclip_broke_los()
 
 
 ## Error signals, connected by DirectorHunters.spawn.
@@ -389,4 +310,5 @@ func debug_info() -> Dictionary:
 		"aggression": "%.2f" % aggression,
 		"threat": "%.2f   contacts %d (refused %d)  chases %d (sent away %d)" % [threat, contacts, refused,
 			encounters, retreated_chases],
+		"scares": "%d (last %s)" % [scares.count(), String(scares.fired.back()[&"kind"]) if not scares.fired.is_empty() else "-"],
 	}

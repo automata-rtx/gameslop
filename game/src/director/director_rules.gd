@@ -145,6 +145,51 @@ static func max_chasers(depth: int) -> int:
 	return int(Tuning.DIRECTOR_MAX_CHASERS.get(cycle_depth(depth), 1))
 
 
+## 10 §4 depth 6 "Null plus 1": the cap for hunters other than Null. Null never counts
+## against it (it is the Pursuit) and is never sent away by it.
+static func max_other_chasers(depth: int) -> int:
+	var cap := max_chasers(depth)
+	return maxi(cap - 1, 1) if cycle_depth(depth) == 6 else cap
+
+
+## 10 §4, §7 rule 6: given the chasing hunters' ids nearest first, the indices of those over
+## the cap (the farthest), which the Director retreats. Null is never among them.
+static func chasers_over_cap(ids: Array[StringName], depth: int) -> Array[int]:
+	var out: Array[int] = []
+	var kept := 0
+	for i in ids.size():
+		if ids[i] == &"null":
+			continue
+		kept += 1
+		if kept > max_other_chasers(depth):
+			out.append(i)
+	return out
+
+
+## True when the chasers (ids) fill the cap, so the free hunters are hinted away.
+static func chaser_cap_reached(ids: Array[StringName], depth: int) -> bool:
+	return ids.filter(func(id: StringName) -> bool: return id != &"null").size() >= max_other_chasers(depth)
+
+
+## The Director wakes every hunter but Null by its phases; Null wakes only when the
+## Substrate's Calm ends (10 §2, §7 rule 9).
+static func phase_wakes(id: StringName) -> bool:
+	return is_hunter(id) and id != &"null"
+
+
+## 05 §3, 10 §4 awake arrivals: the indices (into the spawned hunters' ids, spawn order) of
+## the one or two that start in Search after drops. Null never does (§7 rule 9).
+static func awake_arrival_indices(ids: Array[StringName], drops_in_a_row: int) -> Array[int]:
+	var out: Array[int] = []
+	var want := awake_hunters(drops_in_a_row)
+	for i in ids.size():
+		if out.size() >= want:
+			break
+		if phase_wakes(ids[i]):
+			out.append(i)
+	return out
+
+
 ## 05 §3: hunters starting in Search after one drop, or two and more.
 static func awake_hunters(drops_in_a_row: int) -> int:
 	if drops_in_a_row <= 0:
@@ -181,3 +226,32 @@ static func threat_target(hunter_max: float, inside_static: bool, null_d: float)
 static func smooth_threat(current: float, target: float, dt: float) -> float:
 	var tau := Tuning.THREAT_SMOOTH_UP_TIME if target > current else Tuning.THREAT_SMOOTH_DOWN_TIME
 	return current + (target - current) * (1.0 - exp(-dt / tau))
+
+
+# --- 10 §2 Pursuit, §7 rule 9 -----------------------------------------------------------------
+
+## A critical-path cell to hint Static across during the Substrate's Pursuit: never in the
+## Threshold pocket (the exit room) nor within the Static clearance (6 m, more than a field's
+## 5 m radius) of it, so a field hinted there cannot cover the pocket. NO_CELL when the path
+## has no such cell.
+static func pursuit_static_cell(grid: LevelGrid, path: Array[Vector2i], rng: RandomNumberGenerator) -> Vector2i:
+	var pocket: Array[Vector3] = []
+	for i in grid.cell_count():
+		var c := grid.cell_at(i)
+		if grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+			pocket.append(grid.world_of(c))
+	var pool: Array[Vector2i] = []
+	for c in path:
+		if grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+			continue
+		var w := grid.world_of(c)
+		var near := false
+		for q in pocket:
+			if DirectorSpawn.flat_dist(w, q) < Tuning.DIRECTOR_STATIC_OFF_PATH_CLEARANCE:
+				near = true
+				break
+		if not near:
+			pool.append(c)
+	if pool.is_empty():
+		return LevelData.NO_CELL
+	return pool[rng.randi_range(0, pool.size() - 1)]

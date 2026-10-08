@@ -608,6 +608,12 @@ const SCARE_FIXTURE_DROPOUT_MIN_DIST := 12.0        # m
 const SCARE_FIXTURE_DROPOUT_INTERVAL := 40.0
 const SCARE_PRE_ECHO_MIN_DIST := 25.0               # m, Echo dormant or wandering
 const SCARE_PRE_ECHO_INTERVAL := 50.0
+# M2.7 build-task constants (10 §5 gives no number)
+const SCARE_HUNTER_CLEAR_DIST := 15.0               # m: no scare while an awake hunter is nearer (THREAT_RANGE; pillar 3)
+const DIRECTOR_SCARE_CHECK_INTERVAL := 5.0          # s between the Director's scare attempts in Build
+const SCARE_DOOR_SLAM_MAX_DIST := 40.0              # m: the slammed door is the nearest fair one within this
+const SCARE_FIXTURE_DROPOUT_MAX_DIST := 40.0        # m: within the ballast tink's audible range (03 max_distance)
+const SEED_LABEL_SCARES := "director:scares"        # Scares rng (which available kind is tried first)
 # 10 §6 outputs
 const THREAT_RANGE := 15.0                          # m: clamp((15 - d)/15, 0, 1)
 const THREAT_CHASE_MULT := 1.0

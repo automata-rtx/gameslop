@@ -21,6 +21,9 @@ var _cut_time: Dictionary = {}
 var _counts: Dictionary = {}
 ## Hunters with no fair cell at level entry, retried once per second (`spawn_pending`).
 var pending: Array[StringName] = []
+## Hunters that arrived in Search after a drop (05 §3), and chasers sent away by the cap.
+var awake: Array[ErrorBase] = []
+var cap_retreats: int = 0
 
 
 func live() -> Array[ErrorBase]:
@@ -67,7 +70,7 @@ func _grid() -> LevelGrid:
 # --- spawning (10 §4) -------------------------------------------------------------------------
 
 ## Spawns every spawnable roster id Dormant at a distinct fair cell. Ids without a scene yet
-## are recorded in `director.skipped` (TODO(M2): Echo M2.4, Flicker M2.5, Null M2.6).
+## are recorded in `director.skipped` (TODO(M2.5, M2.6): Flicker, Null).
 func spawn_roster(roster: Array[StringName]) -> void:
 	var d := director
 	var ids: Array[StringName] = []
@@ -114,7 +117,7 @@ func spawn_pending() -> void:
 			continue
 		var e := spawn(pending[i], _grid().world_of(cells[i]))
 		if e != null and director.pacing.phase != DirectorPacing.CALM and director.wake_allowed():
-			e.wake()
+			_wake(e)
 	pending = left
 
 
@@ -144,15 +147,18 @@ func spawn(id: StringName, pos: Vector3) -> ErrorBase:
 	return e
 
 
-## 05 §3, 10 §4: after drops, one or two hunters start in Search at a cell 30 m from the
-## player (never the player's position).
+## 05 §3, 10 §4: after drops, one or two hunters (never Null, §7 rule 9) start in Search at
+## a cell 30 m from the player (never the player's position); pending ones arrive Dormant.
 func awake_arrivals(count: int) -> void:
-	if count <= 0 or not _player_ok() or _grid() == null:
+	if count <= 0 or not _player_ok() or _grid() == null or not director.wake_allowed():
 		return
-	var done := 0
-	for e in _hunters():
-		if done >= count:
-			break
+	var hs := _hunters()
+	var ids: Array[StringName] = []
+	for h in hs:
+		ids.append(h.error_id)
+	var picks := DirectorRules.awake_arrival_indices(ids, 2 if count >= 2 else 1)
+	for i in picks.slice(0, count):
+		var e := hs[i]
 		var c := DirectorSpawn.cell_at_distance(_grid(), director.player.global_position, Tuning.AWAKE_SEARCH_DIST, director.rng)
 		if c == LevelData.NO_CELL:
 			continue
@@ -164,7 +170,7 @@ func awake_arrivals(count: int) -> void:
 			director.level.navigation_ready.connect(func(ok: bool) -> void:
 				if ok and is_instance_valid(err):
 					err.start_search(p), CONNECT_ONE_SHOT)
-		done += 1
+		awake.append(e)
 
 
 # --- the survey (10 §2 inputs, §6 threat) -------------------------------------------------------
@@ -203,7 +209,7 @@ func act(a: StringName) -> void:
 			# 05 §10 keeps the first Descent's depth 1 free of active hunters.
 			var h := _nearest(true) if director.wake_allowed() else null
 			if h != null:
-				h.wake()
+				_wake(h)
 		DirectorPacing.ACT_WAKE_NEAREST:
 			if not director.wake_allowed():
 				return
@@ -211,7 +217,7 @@ func act(a: StringName) -> void:
 			if h == null:
 				h = _nearest(false)
 			if h != null:
-				h.wake()
+				_wake(h)
 				_hint_wake_ring(h)
 		DirectorPacing.ACT_HINT_TOWARD:
 			for h in _free_hunters():
@@ -233,13 +239,34 @@ func act(a: StringName) -> void:
 			for h in chasers():
 				h.retreat(Tuning.DIRECTOR_PEAK_RETREAT_TIME)
 		DirectorPacing.ACT_WAKE_NULL:
-			pass  # TODO(M2.6): Null wakes after the Substrate's Calm (10 §2, §7 rule 9).
+			wake_null()
 		DirectorPacing.ACT_HINT_STATIC_ACROSS:
 			if _grid() != null:
+				# §7 rule 9: never into the Threshold pocket (the exit room and 6 m around it).
 				for st in _statics():
-					var c := DirectorSpawn.critical_cell(_grid(), director.data.critical_path, director.rng)
+					var c := DirectorRules.pursuit_static_cell(_grid(), director.data.critical_path, director.rng)
 					if c != LevelData.NO_CELL:
 						st.hint(_grid().world_of(c))
+
+
+## 10 §2 Pursuit entry (after the Substrate's Calm): Null wakes (guarded calls until M2.6).
+func wake_null() -> int:
+	var n := 0
+	for h in _hunters():
+		if h.error_id != &"null":
+			continue
+		if h.has_method(&"pursue"):
+			h.call(&"pursue")
+		elif h.has_method(&"wake"):
+			h.wake()
+		n += 1
+	return n
+
+
+## The phases wake every hunter but Null (DirectorRules.phase_wakes).
+func _wake(h: ErrorBase) -> void:
+	if DirectorRules.phase_wakes(h.error_id):
+		h.wake()
 
 
 ## Awake hunters that take hints: not chasing, not satiated (Wander and Search, 08 §2).
@@ -256,7 +283,7 @@ func _nearest(dormant: bool) -> ErrorBase:
 	var best: ErrorBase = null
 	var best_d := INF
 	for h in _hunters():
-		if h.is_dormant() != dormant or DirectorRules.is_chasing_state(h.state):
+		if h.is_dormant() != dormant or DirectorRules.is_chasing_state(h.state) or not DirectorRules.phase_wakes(h.error_id):
 			continue
 		var dist := h.distance_to_player()
 		if best == null or dist < best_d:
@@ -329,8 +356,8 @@ func bound_statics_off_path() -> Callable:
 	return first
 
 
-## Once per second: Calm keeps awake hunters ≥ 30 m (rule 2); chaser caps (rule 6): over the
-## cap the farthest chasers retreat 5 s, at the cap the others are hinted away.
+## Once per second: Calm keeps awake hunters ≥ 30 m (rule 2); chaser caps (rule 6, Null
+## exempt): over the cap the farthest chasers retreat 5 s, at it the others are hinted away.
 func enforce_caps(_s: Survey) -> void:
 	var d := director
 	if d.pacing.phase == DirectorPacing.CALM:
@@ -338,14 +365,18 @@ func enforce_caps(_s: Survey) -> void:
 			if h.distance_to_player() < Tuning.DIRECTOR_CALM_HUNTER_MIN_DIST:
 				_hint_ring(h, Tuning.DIRECTOR_CALM_HUNTER_MIN_DIST, Tuning.DIRECTOR_HINT_AWAY_MAX)
 	var ch := chasers()
-	var cap := DirectorRules.max_chasers(d.depth)
-	if ch.size() < cap:
-		return
 	ch.sort_custom(func(a: ErrorBase, b: ErrorBase) -> bool: return a.distance_to_player() < b.distance_to_player())
-	for i in range(cap, ch.size()):
+	var ids: Array[StringName] = []
+	for h in ch:
+		ids.append(h.error_id)
+	if not DirectorRules.chaser_cap_reached(ids, d.depth):
+		return
+	for i in DirectorRules.chasers_over_cap(ids, d.depth):
 		ch[i].retreat(Tuning.DIRECTOR_CONTACT_REFUSED_RETREAT)
+		cap_retreats += 1
 	for h in _free_hunters():
-		_hint_ring(h, Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST, Tuning.DIRECTOR_HINT_AWAY_MAX)
+		if DirectorRules.phase_wakes(h.error_id):
+			_hint_ring(h, Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST, Tuning.DIRECTOR_HINT_AWAY_MAX)
 
 
 ## 08 §3, 10 §7 rule 4: every 5 s, does a Static field cut the only route from the player
