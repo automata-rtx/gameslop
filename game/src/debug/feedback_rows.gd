@@ -70,7 +70,7 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"interact_press", "Interact press", "11 §2", "ISMR",
 			{&"expect": {&"I": ["x.door"], &"S": ["play.door_"], &"R": ["Prompt"]}}))
 	rows.append(_row(&"interact_hold", "Interact hold", "11 §2", "ISR", {&"window": 30,
-			&"lookback": {&"I": 20, &"R": 20}, &"expect": {&"I": ["ui.underline"], &"S": ["play.ui_hold_tick"],
+			&"lookback": {&"I": 20, &"S": 2, &"R": 20}, &"expect": {&"I": ["ui.underline"], &"S": ["play.ui_hold_tick"],
 			&"R": ["Prompt"]}}))
 	rows.append(_row(&"noclip_charge", "Noclip charge", "11 §2", "ISMR",
 			{&"expect": {&"I": ["cr.noclip", "light."], &"S": ["loop.noclip_charge"], &"R": ["Crosshair"]}}))
