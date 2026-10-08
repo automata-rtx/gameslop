@@ -40,3 +40,5 @@ Deferred work found during production. Each line names the task that should abso
 - M1.12 contract nits for the design owner: `Crouch / stand` lists only Sound and Motion (two channels, below the three of 11 §1; not in the CHANGELOG exceptions); `Interact hold` lists the prompt underline as Image and the fill bar as Readout, which are one widget, so the bench counts it on both.
 - M1.12 / TODO(M2) in `player_locomotion.gd`: the walk step's dust stir (11 §2 Image, Halls/Garage/Offices) is not implemented; the step's Image channel today is the held flashlight and item bob.
 - M1.12: `tools/ci/test.sh --filter X` now skips files with no matching test, so a slow `before_all` no longer runs for them.
+- M3.2: Still's drawn column (0.5 × 2.6 m) is taller than its body (0.4 × 1.8 m), so a Still frozen in a doorway shows its top inside the 2.1 m header. Consider freezing only outside doorways or shortening the column in doorways.
+- M3.5: error budget: Still 0.15–0.18 ms + Static 0.07 ms headless; depth 4+ with two hunters will likely exceed 0.3 ms. Profile and budget.
