@@ -24,6 +24,11 @@ func _run_sims() -> Array:
 		"--depths", "1", "--stop-after-relief", "--max-seconds", str(MAX_SECONDS), "--json", json])
 	var out: Array = []
 	var code := OS.execute(OS.get_executable_path(), args, out, true)
+	if code != 0:
+		# Keep the child's last lines so an intermittent crash explains itself in the gate log.
+		var lines := "\n".join(out).split("\n")
+		for i in range(maxi(0, lines.size() - 60), lines.size()):
+			print("  | " + lines[i])
 	assert_eq(code, 0, "the sim engine exits cleanly")
 	for chunk: String in out:
 		for line in chunk.split("\n"):
