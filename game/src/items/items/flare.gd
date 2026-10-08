@@ -151,8 +151,10 @@ static func flame_material(size: float) -> ParticleProcessMaterial:
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
 	pm.emission_sphere_radius = 0.008 * size
 	var grad := Gradient.new()
-	grad.set_color(0, Color(1.0, 0.62, 0.24, 0.55))
-	grad.add_point(0.35, Color(1.0, 0.3, 0.1, 0.4))
+	# Close to the eye the same particles pile up past the glow threshold: fewer photons.
+	var k := 1.0 if size >= 1.0 else 0.4
+	grad.set_color(0, Color(1.0, 0.62, 0.24, 0.55 * k))
+	grad.add_point(0.35, Color(1.0, 0.3, 0.1, 0.4 * k))
 	grad.set_color(grad.get_point_count() - 1, Color(0.35, 0.04, 0.02, 0.0))
 	var gt := GradientTexture1D.new()
 	gt.gradient = grad
