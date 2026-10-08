@@ -11,6 +11,8 @@ var _level: Level
 var _p: Player
 var _d: Director
 var _clock: FakeClock
+## A run another suite left active would name the stratum and the met hunters; set aside.
+var _saved_run: RunState
 
 
 func before_all() -> void:
@@ -33,6 +35,8 @@ func after_all() -> void:
 
 
 func before_each() -> void:
+	_saved_run = GameState.run
+	GameState.run = null
 	_level.attach_player(_p, _p.rig.camera)
 	_clock = fake_clock(0.0)
 	_d = Director.new()
@@ -41,6 +45,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	GameState.run = _saved_run
 	_d.queue_free()
 	for e in get_tree().get_nodes_in_group(ErrorBase.GROUP):
 		e.queue_free()
