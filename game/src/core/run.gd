@@ -26,6 +26,7 @@ const PHASE_ENDED := &"ended"
 const LEVEL_SCENE := "res://scenes/level.tscn"
 const LANDING_SCENE := "res://scenes/landing.tscn"
 const SUMMARY_SCENE := "res://scenes/summary.tscn"
+const ENDING_SCENE := "res://scenes/ending.tscn"
 const DROP_SIGNAL := &"floor_drop_committed"
 const LANDING_SOURCE := &"landing"
 const EXIT_FOV_KEY := &"exit"
@@ -363,14 +364,15 @@ func _on_breaker_thrown(pos: Vector3) -> void:
 	player.rig.add_trauma(Tuning.FEEDBACK_BREAKER_TRAUMA)
 
 
-## 01 §8 the win (M2.3 path; M2.15 replaces the summary jump with the ending scene): the run
-## ends with cause `threshold`.
+## 01 §8 the win: the door has opened outward (threshold_open); the run ends with cause
+## `threshold` (Endless and Cycle 2 earned and saved, 13 §3), the screen cuts to white with the
+## single low tone (11 §3, Reduce flashing fades it), and the ending scene takes the white up
+## without the glitch transition (14 §5: ending.tscn, then the summary).
 func _cross_threshold() -> void:
 	_set_phase(PHASE_ENDED)
+	Ending.cut_to_white(self)
 	GameState.end_run(GameState.WIN_CAUSE)
-	if capture_mouse and DisplayServer.get_name() != "headless":
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	SceneRouter.change_to(SUMMARY_SCENE)
+	SceneRouter.change_to(ENDING_SCENE, false)
 
 
 # --- dissolve (06 §9, 11 §3) ---------------------------------------------------------------------
