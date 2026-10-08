@@ -25,9 +25,11 @@ CONTROLS (defaults; every action can be rebound in Settings)
 
 SETTINGS AND SAVE FILES
   settings.cfg and meta.json live in the game's user folder:
-  Windows: %APPDATA%\Godot\app_userdata\NOCLIP\
-  Linux:   ~/.local/share/godot/app_userdata/NOCLIP/
-           ($XDG_DATA_HOME/godot/app_userdata/NOCLIP/ when XDG_DATA_HOME is set)
+  Windows: %APPDATA%\NOCLIP\
+  Linux:   ~/.local/share/NOCLIP/
+           ($XDG_DATA_HOME/NOCLIP/ when XDG_DATA_HOME is set)
+  meta.json is the Archive: unlocks, notes, statistics and Daily results.
+  If it cannot be read, it is kept as meta.json.bad and a fresh one starts.
   Delete the folder to start over.
 
 MADE BY AN AI

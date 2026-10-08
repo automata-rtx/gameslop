@@ -25,9 +25,9 @@ fail() { echo "smoke.sh: FAIL: $*" >&2; exit 1; }
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-# A fresh user:// (Godot puts it under $XDG_DATA_HOME/godot/app_userdata/<name>).
+# A fresh user:// (custom user dir: Godot puts it under $XDG_DATA_HOME/<custom_user_dir_name>).
 export XDG_DATA_HOME="$WORK/data"
-USER_DIR="$XDG_DATA_HOME/godot/app_userdata/NOCLIP"
+USER_DIR="$XDG_DATA_HOME/NOCLIP"
 BAD='^(SCRIPT ERROR|Parse Error|ERROR: Failed to load|ERROR: Cannot open file|ERROR: Resource file not found|ERROR: No loader found|ERROR: Failed loading resource|ERROR: Can.t load)'
 
 run() {  # $1 = label, $2 = timeout s, rest = the command (the binary and its args)
