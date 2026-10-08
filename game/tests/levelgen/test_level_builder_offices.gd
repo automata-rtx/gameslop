@@ -89,9 +89,10 @@ func test_dark_groups_start_unpowered() -> void:
 ## Desks are props and their hide spots markers until M2.8.
 func test_desks_and_hide_spot_markers() -> void:
 	var level: Level = _levels[&"offices"]
+	# M2.8 turned hide-spot markers into HideSpot scenes; every desk carries an under-desk spot.
 	var markers := 0
-	for m in level.get_tree().get_nodes_in_group(LevelPlacer.group_of(LevelData.P_HIDE_SPOT)):
-		if level.is_ancestor_of(m):
+	for m in level.get_tree().get_nodes_in_group(&"hide_spots"):
+		if level.is_ancestor_of(m) and (m as HideSpot) != null and (m as HideSpot).kind == &"under_desk":
 			markers += 1
 	var desks := 0
 	for n in level.get_tree().get_nodes_in_group(&"props"):
