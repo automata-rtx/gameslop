@@ -209,7 +209,7 @@ func test_strata_atmosphere_matches_look_sheets() -> void:
 		&"server": "0d1b2a", &"substrate": "000000",
 	}
 	var ambient := {
-		&"halls": "6e5a1e", &"pools": "1f4a47", &"garage": "2a221a", &"offices": "3a4048",
+		&"halls": "6e5a1e", &"pools": "1f4a47", &"garage": "6a5032", &"offices": "3a4048",
 		&"server": "0c1220", &"substrate": "101010",
 	}
 	var exposure := {&"halls": 1.0, &"pools": 1.05, &"garage": 0.95, &"offices": 1.0, &"server": 1.1, &"substrate": 1.0}

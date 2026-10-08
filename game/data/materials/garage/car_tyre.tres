@@ -8,7 +8,7 @@
 shader = ExtResource("1_world")
 shader_parameter/noise_albedo = ExtResource("2_albedo")
 shader_parameter/noise_normal = ExtResource("3_normal")
-shader_parameter/albedo = Color(0.082353, 0.082353, 0.082353, 1)
+shader_parameter/albedo = Color(0.121569, 0.117647, 0.113725, 1)
 shader_parameter/pattern_mode = 0
 shader_parameter/roughness = 0.9
 shader_parameter/metallic = 0.0
