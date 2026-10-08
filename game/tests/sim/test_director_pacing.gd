@@ -184,8 +184,14 @@ func test_relief_decays_faster() -> void:
 	for i in 10:
 		a.step(DT)
 		b.step(DT)
-	assert_approx(a.intensity, 0.5, 0.0001, "Build: +0.01 time and −0.01 decay")
-	assert_approx(b.intensity, 0.48, 0.0001, "Relief: +0.01 time and −0.03 decay")
+	assert_approx(a.intensity, 0.51, 0.0001, "Build: the time input, no decay on a tick with input")
+	assert_approx(b.intensity, 0.47, 0.0001, "Relief: no time input, −0.03 decay")
+	# Calm has no time input: a quiet tick decays at −0.01/s.
+	var c := DirectorPacing.new(7)
+	c.intensity = 0.5
+	for i in 10:
+		c.step(DT)
+	assert_approx(c.intensity, 0.49, 0.0001, "Calm: −0.01 decay")
 
 
 func test_depth_6_pursuit_has_no_relief() -> void:
@@ -210,3 +216,84 @@ func test_depth_6_pursuit_has_no_relief() -> void:
 	assert_eq(null_wake, 1)
 	assert_eq(statics, 5, "Static across the path at entry, then every 60 s")
 	assert_false(p.history.has(DirectorPacing.RELIEF))
+
+
+## cp-04 review: a quiet player (no noise, no hunter near) still sees the sawtooth rise:
+## Calm 30 s, Build, then the time input alone reaches 0.8 within 0.8 / 0.010 = 80 s of
+## Build, which wakes the nearest hunter and enters Peak; with no chase the woken hunter is
+## re-hinted to 12 m every 20 s (Peak pressure) until the 45 s cap gives Relief.
+func test_quiet_player_rises_into_build_and_peak() -> void:
+	var p := DirectorPacing.new(9)
+	var build_at := -1.0
+	var peak_at := -1.0
+	var relief_at := -1.0
+	var wake := 0
+	var peak_hints := 0
+	while p.level_time < 400.0 and relief_at < 0.0:
+		p.step(DT, INF, 0, 1)
+		for a in p.take_actions():
+			wake += 1 if a == DirectorPacing.ACT_WAKE_NEAREST else 0
+			peak_hints += 1 if a == DirectorPacing.ACT_HINT_PEAK else 0
+		if p.phase == DirectorPacing.BUILD and build_at < 0.0:
+			build_at = p.level_time
+		if p.phase == DirectorPacing.PEAK and peak_at < 0.0:
+			peak_at = p.level_time
+		if p.phase == DirectorPacing.RELIEF and relief_at < 0.0:
+			relief_at = p.level_time
+	var to_wake := Tuning.DIRECTOR_WAKE_INTENSITY / Tuning.INTENSITY_TIME_PER_S
+	assert_approx(build_at, Tuning.DIRECTOR_CALM_TIME, 0.11, "Build after the 30 s Calm")
+	assert_true(peak_at > 0.0 and peak_at <= Tuning.DIRECTOR_CALM_TIME + to_wake + 0.21,
+		"Peak by %.0f s from the time input alone (at %.1f s)" % [Tuning.DIRECTOR_CALM_TIME + to_wake, peak_at])
+	assert_eq(wake, 1, "the 0.8 wake")
+	assert_eq(peak_hints, 2, "Peak pressure: 12 m hints at 20 and 40 s of a Peak without a chase")
+	assert_approx(relief_at - peak_at, Tuning.DIRECTOR_PEAK_MAX_TIME, 0.11, "the 45 s cap ends it")
+
+
+func test_peak_pressure_stops_once_a_chase_starts() -> void:
+	var p := DirectorPacing.new(10)
+	p._enter(DirectorPacing.BUILD)
+	p.intensity = 0.85
+	p.step(DT, INF, 0, 1)
+	assert_eq(p.phase, DirectorPacing.PEAK)
+	p.take_actions()
+	var hints := 0
+	for i in roundi(30.0 / DT):
+		p.step(DT, 10.0, 1 if i > 50 else 0, 1)
+		hints += p.take_actions().count(DirectorPacing.ACT_HINT_PEAK)
+	assert_eq(hints, 0, "a chase began within 20 s: no Peak hint")
+	# A Peak entered by a chase never pushes hints.
+	var q := DirectorPacing.new(11)
+	q._enter(DirectorPacing.BUILD)
+	q.step(DT, 10.0, 1, 1)
+	assert_eq(q.phase, DirectorPacing.PEAK)
+	var qh := 0
+	for i in roundi(40.0 / DT):
+		q.step(DT, 10.0, 0, 1)
+		qh += q.take_actions().count(DirectorPacing.ACT_HINT_PEAK)
+	assert_eq(qh, 0)
+
+
+## cp-04 review: a Static release is weather letting go, not an evasion (no −0.30, Peak holds).
+func test_static_release_is_not_an_evasion() -> void:
+	var p := DirectorPacing.new(12)
+	p._enter(DirectorPacing.BUILD)
+	p.step(DT, 10.0, 1, 1)
+	assert_eq(p.phase, DirectorPacing.PEAK)
+	p.intensity = 0.7
+	p.on_evasion(false)
+	assert_approx(p.intensity, 0.7, 0.0001, "Static release: intensity unchanged")
+	assert_eq(p.phase, DirectorPacing.PEAK, "and the Peak holds")
+	p.on_evasion(true)
+	assert_approx(p.intensity, 0.4, 0.0001, "a hunter's evasion: −0.30")
+	assert_eq(p.phase, DirectorPacing.RELIEF)
+
+
+## The decay only runs on ticks without input: an event on a Calm tick skips that tick's decay.
+func test_events_suppress_the_tick_decay() -> void:
+	var p := DirectorPacing.new(13)
+	p.intensity = 0.5
+	p.on_note()
+	p.step(DT)
+	assert_approx(p.intensity, 0.4, 0.0001, "−0.10 note and no decay on that tick")
+	p.step(DT)
+	assert_approx(p.intensity, 0.399, 0.0001, "the next quiet tick decays")
