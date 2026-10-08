@@ -161,8 +161,8 @@ func _tick(delta: float) -> void:
 		unobserved_time += delta
 		_skip_cooldown = maxf(_skip_cooldown - delta, 0.0)
 		_move(delta)
-	if state != Tuning.ERROR_STATE_SATIATED:
-		contact_step(Tuning.STILL_CONTACT_RADIUS, Tuning.STILL_CONTACT_COST)
+	# Contact only from Chase (can_contact, R12): a Wander or Search walk is not one.
+	contact_step(Tuning.STILL_CONTACT_RADIUS, Tuning.STILL_CONTACT_COST)
 
 
 func _think(delta: float) -> void:
@@ -344,10 +344,13 @@ func _search_step(_delta: float) -> void:
 		var cur: Dictionary = _inspect.pop_front() if not _inspect.is_empty() else {}
 		var spot: Variant = cur.get("spot")
 		if spot != null and is_instance_valid(spot) and has_player() and (spot as HideSpot).occupant == player:
-			# 08 §4: checking the player's spot is a contact. A refused one is answered by
-			# the Director (retreat); never undo that by carrying on the search.
-			if try_contact(Tuning.STILL_CONTACT_COST) or state != Tuning.ERROR_STATE_SEARCH:
-				return
+			# 08 §4: checking the player's spot is a contact, from the Chase finding them starts
+			# (R12): a chase the Director sends away (Calm, Relief) never lands; a refusal is
+			# answered by the Director (retreat), never by carrying on the search.
+			_chase("found in hide spot")
+			if state == Tuning.ERROR_STATE_CHASE:
+				try_contact(Tuning.STILL_CONTACT_COST)
+			return
 		if _inspect.is_empty():
 			_give_up()
 			return

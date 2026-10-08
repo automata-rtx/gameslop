@@ -27,6 +27,14 @@ func _still(pos: Vector3, aggression: float = 0.25) -> ErrorStill:
 	return s
 
 
+## Awake and already chasing (a contact comes only from Chase, R12).
+func _chasing(s: ErrorStill) -> ErrorStill:
+	s.wake()
+	s.senses.last_known_pos = _p.global_position
+	s.transition_to(Tuning.ERROR_STATE_CHASE, "test")
+	return s
+
+
 func test_never_moves_while_observed() -> void:
 	# Lit by the flashlight, in frustum, 6 m ahead; hinted onto the player and aggressive.
 	_p.flashlight.set_on(true)
@@ -122,7 +130,7 @@ func test_contact_only_through_the_gate() -> void:
 		return false
 	var hits := [0]
 	s.contacted_player.connect(func(_c: float) -> void: hits[0] += 1)
-	s.wake()
+	_chasing(s)
 	await await_physics_frames(20)
 	assert_gt(asked[0], 0, "the gate was asked")
 	assert_eq(hits[0], 0)
@@ -137,7 +145,7 @@ func test_contact_only_through_the_gate() -> void:
 func test_player_contact_gate_also_refuses() -> void:
 	var s := _still(Vector3(0, 0, 0.8))
 	_p.contact_gate = func(_e: Node3D) -> bool: return false
-	s.wake()
+	_chasing(s)
 	await await_physics_frames(20)
 	assert_approx(_p.coherence, Tuning.COHERENCE_MAX, 0.0001)
 	assert_ne(s.state, Tuning.ERROR_STATE_SATIATED)
@@ -146,7 +154,7 @@ func test_player_contact_gate_also_refuses() -> void:
 func test_no_contact_with_a_hidden_player_by_proximity() -> void:
 	var s := _still(Vector3(0, 0, 0.8))
 	_p.hiding.spot = HideSpot.new()  # stands in for an occupied spot
-	s.wake()
+	_chasing(s)
 	await await_physics_frames(20)
 	_p.hiding.spot.free()
 	_p.hiding.spot = null
@@ -255,7 +263,7 @@ func test_fixture_navigation_map_is_ready() -> void:
 ## game time pass), so the frame timing of the first path no longer decides the result.
 func test_satiated_retreats_away() -> void:
 	var s := _still(Vector3(0, 0, 0.8))
-	s.wake()
+	_chasing(s)
 	await await_physics_frames(10)
 	assert_eq(s.state, Tuning.ERROR_STATE_SATIATED)
 	assert_gt(ErrorFixture.flat(s._target, _p.global_position), Tuning.ERROR_SATIATED_RETREAT_DIST - 1.0,
