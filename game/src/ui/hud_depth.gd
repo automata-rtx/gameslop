@@ -72,8 +72,22 @@ func set_depth(d: int, s: StringName) -> void:
 	_prefix.text = parts[0].strip_edges()
 	_numeral.text = str(d).pad_zeros(Tuning.HUD_DEPTH_STRATUM_PAD)
 	_suffix.text = (parts[1] if parts.size() > 1 else "").replace("{stratum}", name_text).strip_edges()
-	_numeral.add_theme_color_override(&"font_color", UiTokens.UI_COLD if s == SUBSTRATE else UiTokens.UI_ACCENT)
+	_paint_numeral()
 	depth_shutter.reshutter()
+
+
+## Repaints after a 12 §6 token change (colour-blind accent): no shutter, no sound.
+func repaint() -> void:
+	if depth > 0:
+		_paint_numeral()
+
+
+## Accent numeral; the Substrate's is cold and, with the colour-blind accent, marked `~`.
+func _paint_numeral() -> void:
+	_numeral.text = str(depth).pad_zeros(Tuning.HUD_DEPTH_STRATUM_PAD)
+	if stratum == SUBSTRATE:
+		_numeral.text = UiTokens.cold_mark(_numeral.text)
+	UiTokens.paint(_numeral, UiTokens.UI_COLD if stratum == SUBSTRATE else UiTokens.accent())
 
 
 ## 04 Interfaces set_exit_status(status, timer). Returns the previous status.

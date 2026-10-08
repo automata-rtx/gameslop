@@ -173,10 +173,10 @@ func refresh() -> void:
 	var v: Variant = current_value()
 	var col := UiTokens.UI_FG if enabled else UiTokens.UI_DIM
 	if flash > 0.0:
-		col = UiTokens.UI_ACCENT
+		col = UiTokens.accent()
 	if value_label != null:
 		value_label.text = override_text if not override_text.is_empty() else value_text(id, v)
-		value_label.add_theme_color_override(&"font_color", col)
+		UiTokens.paint(value_label, col)
 	if slider != null:
 		_syncing = true
 		var sv := float(v) if v is int or v is float else slider.min_value

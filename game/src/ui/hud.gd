@@ -344,7 +344,7 @@ func _on_note_found(id: StringName) -> void:
 ## 11 §3 Unlock earned: the unlock chime and the notification in ui_accent.
 func _on_unlock_earned(id: StringName) -> void:
 	AudioManager.play_2d(&"ui_unlock")
-	notify(unlock_message(id), UiTokens.UI_ACCENT)
+	notify(unlock_message(id), UiTokens.accent())
 
 
 func _on_threat_changed(threat: float) -> void:

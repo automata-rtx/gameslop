@@ -101,7 +101,7 @@ func label_color() -> Color:
 	if not enabled:
 		return UiTokens.UI_DIM
 	if selected or flash > 0.0:
-		return UiTokens.UI_ACCENT
+		return UiTokens.accent()
 	return UiTokens.UI_FG
 
 
@@ -109,4 +109,4 @@ func refresh() -> void:
 	if label == null:
 		return
 	label.text = (Strings.MENU_SELECTED_PREFIX if selected else "  ") + text
-	label.add_theme_color_override(&"font_color", label_color())
+	UiTokens.paint(label, label_color())

@@ -94,6 +94,6 @@ func refresh() -> void:
 			cap.text = slot_text(id, i)
 		var col := UiTokens.UI_FG
 		if flash > 0.0 or on:
-			col = UiTokens.UI_ACCENT
-		cap.add_theme_color_override(&"font_color", col)
-		_boxes[i].border_color = UiTokens.UI_ACCENT if on else UiTokens.UI_DIM
+			col = UiTokens.accent()
+		UiTokens.paint(cap, col)
+		_boxes[i].border_color = UiTokens.accent() if on else UiTokens.UI_DIM

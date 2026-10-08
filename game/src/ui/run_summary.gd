@@ -34,7 +34,7 @@ func _ready() -> void:
 	col.add_theme_constant_override(&"separation", UiTokens.GRID)
 	add_child(col)
 	var win := GameState.last_cause() == WIN_CAUSE
-	_add_line(col, top_line(), &"AccentLabel" if win else &"DangerLabel")
+	_add_line(col, top_line() if win else UiTokens.danger_mark(top_line()), &"AccentLabel" if win else &"DangerLabel")
 	_add_line(col, cause_explanation(GameState.last_cause()), &"DimLabel")
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = UiTokens.GRID * 3

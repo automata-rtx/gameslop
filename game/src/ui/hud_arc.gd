@@ -125,6 +125,12 @@ func _draw_noclip(c: Vector2) -> void:
 	if e > 0.0:
 		draw_arc(c, r + ECHO_OFFSET, top, top + e * TAU, POINTS, UiTokens.UI_COLD, TRACK_W)
 	_draw_glyph(c, glyph, UiTokens.UI_COLD)
+	if UiTokens.colorblind:
+		# 12 §6: cold adds a `~` glyph (right of the ring, level with its centre).
+		var font := get_theme_default_font()
+		var fs := UiTokens.FONT_HUD_BODY
+		draw_string(font, c + Vector2(r + UiTokens.GRID, fs * 0.35), Strings.CB_COLD_SUFFIX.strip_edges(),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiTokens.UI_COLD)
 
 
 func _draw_glyph(c: Vector2, glyph: Texture2D, tint: Color) -> void:

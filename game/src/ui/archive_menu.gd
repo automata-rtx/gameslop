@@ -206,8 +206,8 @@ func _refresh_grid() -> void:
 		cells[i].text = (Strings.MENU_SELECTED_PREFIX if on else "  ") + (cell_text(id) if id != &"" else "")
 		var col := UiTokens.UI_FG if is_found(id) else UiTokens.UI_DIM
 		if on:
-			col = UiTokens.UI_ACCENT
-		cells[i].add_theme_color_override(&"font_color", col)
+			col = UiTokens.accent()
+		UiTokens.paint(cells[i], col)
 	if sheet == null:
 		return
 	var id := cursor_note() if grid_focus else &""

@@ -99,7 +99,7 @@ func _refresh() -> void:
 	for i in _rows.size():
 		var row := _rows[i]
 		var picked := i == chosen_index
-		var col := UiTokens.UI_ACCENT if picked else (UiTokens.UI_DIM if chosen_index >= 0 else UiTokens.UI_FG)
+		var col := UiTokens.accent() if picked else (UiTokens.UI_DIM if chosen_index >= 0 else UiTokens.UI_FG)
 		row.modulate = col
 		_names[i].text = (Strings.MENU_SELECTED_PREFIX if picked else "") + \
 				String(Strings.ITEM_NAMES.get(kinds[i], String(kinds[i]).to_upper()))

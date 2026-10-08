@@ -91,12 +91,12 @@ class Slot extends HBoxContainer:
 	func _colour() -> void:
 		var c := UiTokens.UI_DIM if is_empty() else UiTokens.UI_FG
 		if blink_t < UiMotion.BLINK_S:
-			c = UiTokens.UI_ACCENT
+			c = UiTokens.accent()
 		count_label.add_theme_color_override(&"font_color", c)
 
 	func _draw() -> void:
 		if selected:
-			draw_rect(Rect2(0.0, size.y - UNDERLINE_INSET, size.x, UiTokens.LINE), UiTokens.UI_ACCENT)
+			draw_rect(Rect2(0.0, size.y - UNDERLINE_INSET, size.x, UiTokens.LINE), UiTokens.accent())
 
 
 func _init() -> void:

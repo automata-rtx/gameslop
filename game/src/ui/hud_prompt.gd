@@ -33,7 +33,7 @@ class HoldBar extends Control:
 	func _draw() -> void:
 		draw_rect(Rect2(0, size.y - UiTokens.LINE, size.x, UiTokens.LINE), UiTokens.UI_DIM)
 		if fraction > 0.0:
-			draw_rect(Rect2(0, size.y - UiTokens.BAR_TRACK, roundf(size.x * fraction), UiTokens.BAR_TRACK), UiTokens.UI_ACCENT)
+			draw_rect(Rect2(0, size.y - UiTokens.BAR_TRACK, roundf(size.x * fraction), UiTokens.BAR_TRACK), UiTokens.accent())
 
 
 func _init() -> void:

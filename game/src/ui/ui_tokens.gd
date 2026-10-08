@@ -116,6 +116,45 @@ const GLYPHS: Array[StringName] = [
 ]
 
 
+# --- 12 §6 accessibility (live; SettingsApply sets these) -----------------------------------
+## Colour-blind safe accent on: accent() is UI_ACCENT_CB, accent labels carry a 1 px ui_fg
+## outline, danger text adds `!` and cold text adds `~`.
+static var colorblind: bool = false
+## Text size: multiplies note and caption sizes only (12 §6).
+static var text_size: float = 1.0
+
+
+## The accent colour now (04 §3 ui_accent, or the 12 §6 colour-blind safe accent).
+static func accent() -> Color:
+	return UI_ACCENT_CB if colorblind else UI_ACCENT
+
+
+## Sets a label's font colour; with the colour-blind accent on, an accent-coloured label
+## also gets the 1 px ui_fg outline (12 §6), and any other colour loses it.
+static func paint(c: Control, color: Color) -> void:
+	c.add_theme_color_override(&"font_color", color)
+	if colorblind and color.is_equal_approx(UI_ACCENT_CB):
+		c.add_theme_constant_override(&"outline_size", LINE)
+		c.add_theme_color_override(&"font_outline_color", UI_FG)
+	else:
+		c.remove_theme_constant_override(&"outline_size")
+		c.remove_theme_color_override(&"font_outline_color")
+
+
+## 12 §6: danger adds a `!` glyph, cold a `~` glyph, while the colour-blind accent is on.
+static func danger_mark(text: String) -> String:
+	return text + Strings.CB_DANGER_SUFFIX if colorblind else text
+
+
+static func cold_mark(text: String) -> String:
+	return text + Strings.CB_COLD_SUFFIX if colorblind else text
+
+
+## A text-size-scaled pixel size (notes and captions).
+static func text_px(base: int) -> int:
+	return maxi(1, roundi(base * text_size))
+
+
 static func glyph_path(glyph: StringName) -> String:
 	return "%s/%s.svg" % [GLYPH_DIR, glyph]
 
