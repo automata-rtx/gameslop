@@ -27,6 +27,12 @@ func hold(key: StringName, bus: StringName, db: float) -> void:
 	_ducks.append({&"key": key, &"bus": bus, &"db": db, &"until": INF, &"mute": false})
 
 
+## A held total mute (Null's core): like silence(), it lifts the rule-3 floor.
+func hold_mute(key: StringName, bus: StringName) -> void:
+	release(key)
+	_ducks.append({&"key": key, &"bus": bus, &"db": Tuning.AUDIO_SLIDER_MUTE_DB, &"until": INF, &"mute": true})
+
+
 func release(key: StringName) -> void:
 	_ducks = _ducks.filter(func(d: Dictionary) -> bool: return d[&"key"] != key)
 
