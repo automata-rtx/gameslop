@@ -5,7 +5,7 @@
 [resource]
 shader = ExtResource("1_s")
 shader_parameter/tint = Color(0.38, 0.62, 0.92, 0.42)
-shader_parameter/rail_bottom = 0
-shader_parameter/rail_transom = 0
-shader_parameter/frost_alpha = 0
+shader_parameter/rail_bottom = 0.0
+shader_parameter/rail_transom = 0.0
+shader_parameter/frost_alpha = 0.0
 shader_parameter/fresnel_alpha = 0.3

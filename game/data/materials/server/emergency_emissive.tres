@@ -11,5 +11,5 @@ shader_parameter/noise_normal = ExtResource("3_normal")
 shader_parameter/albedo = Color(0.06, 0.02, 0.02, 1)
 shader_parameter/roughness = 0.5
 shader_parameter/emission = Color(1, 0.231373, 0.231373, 1)
-shader_parameter/emission_strength = 6
-shader_parameter/noise_albedo_amount = 0
+shader_parameter/emission_strength = 6.0
+shader_parameter/noise_albedo_amount = 0.0

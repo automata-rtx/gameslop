@@ -5,22 +5,22 @@
 [ext_resource type="Script" path="res://src/levelgen/props/merged_prop.gd" id="3_r"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_1"]
-size = Vector3(1.4, 0.03, 0.7)
+size = Vector3(1.4, 0.03, 0.6)
 
 [sub_resource type="BoxMesh" id="BoxMesh_2"]
-size = Vector3(0.025, 0.71, 0.66)
+size = Vector3(0.025, 0.71, 0.56)
 
 [sub_resource type="BoxMesh" id="BoxMesh_3"]
-size = Vector3(0.025, 0.71, 0.66)
+size = Vector3(0.025, 0.71, 0.56)
 
 [sub_resource type="BoxMesh" id="BoxMesh_4"]
 size = Vector3(1.32, 0.4, 0.02)
 
 [sub_resource type="BoxMesh" id="BoxMesh_5"]
-size = Vector3(0.5, 0.02, 0.4)
+size = Vector3(0.5, 0.02, 0.36)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_6"]
-size = Vector3(1.4, 0.75, 0.7)
+size = Vector3(1.4, 0.75, 0.6)
 
 [node name="Desk" type="Node3D"]
 script = ExtResource("3_r")
@@ -41,12 +41,12 @@ mesh = SubResource("BoxMesh_3")
 material_override = ExtResource("2_r")
 
 [node name="Modesty" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.25)
 mesh = SubResource("BoxMesh_4")
 material_override = ExtResource("2_r")
 
 [node name="Tray" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.66, 0.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.66, 0.08)
 mesh = SubResource("BoxMesh_5")
 material_override = ExtResource("2_r")
 

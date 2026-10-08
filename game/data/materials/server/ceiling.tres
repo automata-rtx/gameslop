@@ -14,5 +14,5 @@ shader_parameter/pattern_mode = 6
 shader_parameter/pattern_scale = 0.6
 shader_parameter/pattern_detail = 0.01
 shader_parameter/roughness = 0.7
-shader_parameter/metallic = 0
+shader_parameter/metallic = 0.0
 shader_parameter/noise_albedo_amount = 0.08

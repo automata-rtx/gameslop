@@ -118,7 +118,7 @@ static func make(level: LevelData, ceiling_height: float) -> BuildPlan:
 	for k in level.soft_walls.size():
 		var e := level.soft_walls[k]
 		p._soft_index[LevelGrid.edge_key(Vector2i(e.x, e.y), e.z)] = k
-	p._lattice()
+	BuildLattice.make(p)
 	p._classify()
 	var faces := BuildFaces.new(p)
 	faces.emit_horizontal()
@@ -339,6 +339,7 @@ func _classify_post(i: int, j: int) -> void:
 	var bot := C_FLOOR
 	var basin := true
 	var nav := false
+	var special := -1
 	for d in LevelGrid.DIRS:
 		var g := _fi(i + d.x, j + d.y)
 		if _open[g] == 0 or _door[g] == 1 or _axis[g] >= 0:
@@ -349,7 +350,10 @@ func _classify_post(i: int, j: int) -> void:
 		hi = minf(hi, _hi[g].x)
 		basin = basin and _bot[g] == C_BASIN
 		if _cls[g] == C_PARTITION or _cls[g] == C_RACK:
-			_cls[_fi(i, j)] = _cls[g]
+			special = _cls[g]
+	# An open post below a partition or a rack wears its class (a closed post is wall).
+	if special >= 0:
+		_cls[_fi(i, j)] = special
 	# The post feeds navigation when a strip at its floor height does.
 	for d in LevelGrid.DIRS:
 		var g := _fi(i + d.x, j + d.y)
@@ -361,60 +365,6 @@ func _classify_post(i: int, j: int) -> void:
 
 # ---------------------------------------------------------------- lattice
 
-## Breaks of fine column i (or row): its two bounds plus subdivisions of at most 0.5 m.
-func _breaks(i: int) -> PackedFloat32Array:
-	var half_t := Tuning.GRID_WALL_THICKNESS * 0.5
-	var cs := Tuning.GRID_CELL_SIZE
-	var lo: float
-	var hi: float
-	if i % 2 == 0:
-		var line := (i / 2) * cs - cs * 0.5
-		lo = line - half_t
-		hi = line + half_t
-	else:
-		var c := ((i - 1) / 2) * cs
-		lo = c - cs * 0.5 + half_t
-		hi = c + cs * 0.5 - half_t
-	var n := maxi(1, ceili((hi - lo) / Tuning.LEVELBUILD_MESH_MAX_EDGE - 0.0001))
-	var out := PackedFloat32Array()
-	for k in n + 1:
-		out.append(lo + (hi - lo) * k / n if k < n else hi)
-	return out
-
-
-## Y breaks: every 0.5 m, and every floor, ceiling, door top and partition top in the level.
-func _lattice() -> void:
-	for i in grid.size.x * 2 + 1:
-		_xb.append(_breaks(i))
-	for j in grid.size.y * 2 + 1:
-		_zb.append(_breaks(j))
-	var marks: Dictionary = {}
-	for i in grid.cell_count():
-		if grid.ramp_dir[i] > 0:
-			continue
-		var y := grid.floor_heights[i]
-		for v: float in [y, y + _door_h, y + _part_h, ceiling_at(grid.cell_at(i), y)]:
-			marks[roundi(v * 1000.0)] = v
-		if grid.cells[i] == LevelGrid.RACK:
-			marks[roundi((y + rack_height) * 1000.0)] = y + rack_height
-	var lo := 0.0
-	var hi := height
-	for k: int in marks:
-		lo = minf(lo, marks[k])
-		hi = maxf(hi, marks[k])
-	var step := Tuning.LEVELBUILD_MESH_MAX_EDGE
-	for k in range(ceili(lo / step - 0.0001), floori(hi / step + 0.0001) + 1):
-		marks[roundi(k * step * 1000.0)] = k * step
-	var keys := marks.keys()
-	keys.sort()
-	for k: int in keys:
-		_yb.append(marks[k])
-
-
-## Y breaks within [lo, hi].
+## Y breaks within [lo, hi] (BuildLattice).
 func ys(lo: float, hi: float) -> PackedFloat32Array:
-	var out := PackedFloat32Array()
-	for y in _yb:
-		if y >= lo - 0.0001 and y <= hi + 0.0001:
-			out.append(y)
-	return out
+	return BuildLattice.ys(self, lo, hi)

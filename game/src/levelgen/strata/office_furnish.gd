@@ -8,13 +8,14 @@ extends RefCounted
 ## 40% of the fixture groups dark (60% in Cycle 2) so the floor has unlit regions until the
 ## breaker is thrown.
 
-## Desk footprint (m): 1.4 wide along its wall, 0.7 deep, 0.74 high (prefab desk.tscn).
-const DESK_DEPTH := 0.7
+## Desk footprint (m): 1.4 wide along its wall, 0.6 deep, 0.74 high (prefab desk.tscn): a
+## cubicle cell keeps a lane wide enough for the 0.4 m navigation agent beside it.
+const DESK_DEPTH := 0.6
 const DESK_HEIGHT := 0.74
 ## The monitor stands this far off the desk's wall.
 const MONITOR_INSET := 0.2
 const LOCKER_INSET := 0.3
-const CHAIR_INSET := 0.45
+const CHAIR_INSET := 0.3
 const COOLER_INSET := 0.25
 const CABINET_INSET := 0.3
 ## Filing cabinets per small office: 0 to this many.
