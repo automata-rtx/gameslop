@@ -22,6 +22,7 @@ var capture_mouse: bool = true
 var data: LevelData
 var level: Level
 var player: Player
+var director: Director
 var generate_ms: float = 0.0
 
 
@@ -72,6 +73,10 @@ func _run() -> void:
 	await level.geometry_ready
 	if shots_dir.is_empty():
 		_spawn_player()
+		# M1.8: errors and pacing on direct launches too (the run does the same per level).
+		director = Director.new()
+		level.add_child(director)
+		director.begin(level, player, Tuning.RUN_ARRIVE_START)
 	geometry_ready.emit()
 	if not shots_dir.is_empty():
 		if not level.is_ready():

@@ -210,7 +210,11 @@ func _begin_director(lvl: Level, kind: StringName) -> void:
 			if lvl.is_ancestor_of(n):
 				d = n
 				break
-	if d == null or not d.has_method(&"begin"):
+	if d == null:
+		# M1.8: the Director is per level (14 §3); the run gives each level its own.
+		d = Director.new()
+		lvl.add_child(d)
+	if not d.has_method(&"begin"):
 		return
 	var args: Array = [lvl, player, kind]
 	d.callv(&"begin", args.slice(0, d.get_method_argument_count(&"begin")))
