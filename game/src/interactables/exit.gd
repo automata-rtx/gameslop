@@ -90,6 +90,15 @@ func open() -> void:
 	powered = true
 	_set_status(Tuning.EXIT_STATUS_OPEN)
 	_apply_open(DOOR_OPEN_TIME, true)
+	# A player already standing in the volume when the doors open walks in (no new entry event).
+	_take_overlapping.call_deferred()
+
+
+func _take_overlapping() -> void:
+	if not is_inside_tree() or not trigger.monitoring:
+		return
+	for b in trigger.get_overlapping_bodies():
+		_on_body_entered(b)
 
 
 ## 07 §6 seal(): closes the exit (Cycled's sealed phase; M2.9 adds its timer).

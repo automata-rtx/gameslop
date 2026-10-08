@@ -113,16 +113,28 @@ func test_rebindable_list_matches_input_map() -> void:
 	assert_eq(b.size(), BINDINGS.size())
 
 
-func test_main_scene_boots_to_title_placeholder() -> void:
+func test_main_scene_boots_to_title() -> void:
 	var prev_host := SceneRouter.get_host()
+	var prev_transition: Object = SceneRouter.transition
 	var main := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	add_child(main)
 	var content := main.get_node(^"%Content")
 	assert_eq(SceneRouter.get_host(), content, "main registers %Content as the router host")
-	var label := content.find_child("Wordmark", true, false) as Label
+	assert_true(SceneRouter.transition is GlitchTransition, "main installs the glitch transition")
+	# M1.9: main routes to the title by default.
+	var end := Time.get_ticks_msec() + 10000
+	while not (SceneRouter.current_scene() is Title) and Time.get_ticks_msec() < end:
+		await get_tree().process_frame
+	assert_true(SceneRouter.current_scene() is Title, "title routed")
+	var label: Label = null
+	for n in content.find_children("*", "Label", true, false):
+		if (n as Label).theme_type_variation == &"Wordmark":
+			label = n
 	assert_not_null(label)
 	if label != null:
 		assert_eq(label.text, "NOCLIP")
 	assert_eq(main.process_mode, Node.PROCESS_MODE_INHERIT, "main stays pausable")
 	main.free()
+	assert_null(SceneRouter.transition, "main removes its transition on exit")
+	SceneRouter.transition = prev_transition
 	SceneRouter.set_host(prev_host)

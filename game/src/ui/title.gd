@@ -23,8 +23,6 @@ func _ready() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-	col.position = Vector2(UiTokens.SAFE_MARGIN * 6, 0)
 	col.add_theme_constant_override(&"separation", UiTokens.GRID * 2)
 	add_child(col)
 	var mark := Label.new()
@@ -44,9 +42,8 @@ func _ready() -> void:
 	menu.add_item(ITEM_QUIT, Strings.MENU_QUIT)
 	menu.activated.connect(choose)
 	col.add_child(menu)
-	col.position.y = -col.get_combined_minimum_size().y * 0.5
-	col.anchor_top = 0.5
-	col.anchor_bottom = 0.5
+	col.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE)
+	col.position.x = UiTokens.SAFE_MARGIN * 6
 
 
 ## `v1.0.0 · MADE BY AN AI · SEED OF THE DAY 20261008` (UTC date, 13 §4).

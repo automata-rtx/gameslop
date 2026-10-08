@@ -149,3 +149,4 @@ Daily Descent always uses Faller.
 - `GameState` counters, called down by the run scene: `record_notice(id: StringName)`, `record_evasion(id: StringName)`, `record_spend(kind: StringName, amount: float)`, `record_wall_pass()`, `record_drop()`.
 - `GameState.start_run` starts at the loadout's `start_depth` (`LoadoutData`, via `DataRegistry`). `compute_score` reads the time bonus from `Clock.run_seconds()`.
 - `MetaState.stats.depth_reached_counts` (`13` §2) and `MetaState.depth_reached(depth)` back unlock #7 (reach depth 4 twice).
+- M1.9: `GameState.strata_order_for(run_seed) -> Array[StringName]` (static, 05 §2), `GameState.stratum_for(depth)`, `GameState.record_note(id)` (connected to `EventBus.note_found`; once per run, also the Archive). `start_run` applies the loadout's `start_coherence` to `RunState.coherence` and fills `strata_order`; the run applies `start_items` to the belt.

@@ -302,7 +302,8 @@ func _transition(p: StringName) -> void:
 
 # --- drop (05 §4) ------------------------------------------------------------------------------
 
-## The noclip floor commit (06 §8). Public so tests and benches can drive it.
+## The noclip floor commit (06 §8): Player.floor_drop_committed() (no args); the player is
+## already falling in Dropping for 1.2 s. Public so tests and benches can drive it.
 func commit_drop() -> void:
 	if phase != PHASE_PLAYING:
 		return
@@ -312,7 +313,7 @@ func commit_drop() -> void:
 	if not player.state_machine.is_in(PlayerStateMachine.DROPPING):
 		player.state_machine.transition_to(PlayerStateMachine.DROPPING)
 	GameState.run.coherence = player.coherence
-	GameState.record_drop()
+	# The noclip commit already counted the drop (GameState.record_drop); the run descends.
 	GameState.descend(false)
 	_begin_generation()
 	await get_tree().process_frame

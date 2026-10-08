@@ -136,10 +136,15 @@ func test_descent_depth_1_to_2_then_dissolve_to_summary_and_title() -> void:
 func test_drop_arrives_on_a_valid_cell() -> void:
 	var run := await _start_run(12, false)
 	assert_eq(run.phase, Run.PHASE_PLAYING)
-	run.commit_drop()
+	var owner_node: Object = run.player if run.player.has_signal(Run.DROP_SIGNAL) else run.player.noclip_targeting
+	if owner_node != null and owner_node.has_signal(Run.DROP_SIGNAL):
+		assert_true(owner_node.is_connected(Run.DROP_SIGNAL, run.commit_drop), "floor_drop_committed connected")
+		owner_node.emit_signal(Run.DROP_SIGNAL)
+	else:
+		run.commit_drop()
 	assert_eq(run.phase, Run.PHASE_DROPPING)
 	assert_eq(GameState.run.depth, 2)
-	assert_eq(GameState.run.drops_total, 1)
+	assert_eq(GameState.run.drops_total, 0, "the noclip commit counts drops, not the run")
 	assert_eq(GameState.run.drops_in_a_row, 1)
 	assert_true(await _until(func() -> bool: return run.phase == Run.PHASE_PLAYING), "arrived after the drop")
 	assert_eq(run.arrival, Tuning.RUN_ARRIVE_DROP)

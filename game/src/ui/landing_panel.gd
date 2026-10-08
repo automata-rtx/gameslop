@@ -8,9 +8,9 @@ extends Control
 
 signal chosen(kind: StringName)
 
-const SIZE := Vector2i(640, 360)
+const SIZE := Vector2i(480, 270)
 const SLOT_ACTIONS: Array[StringName] = [&"item_1", &"item_2"]
-const PAD := 32
+const PAD := 24
 
 var kinds: Array[StringName] = []
 var chosen_index: int = -1
