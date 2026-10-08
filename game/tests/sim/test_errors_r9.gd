@@ -41,6 +41,10 @@ func test_still_wander_retargets_at_once_on_an_immediate_hint() -> void:
 	var s := _still(Vector3(0, 0, -20))
 	var a := Vector3(12, 0, -20)
 	var b := Vector3(-12, 0, -20)
+	# A fresh navigation map can answer the zero vector for its first queries (see
+	# ErrorFixture.make_world): let the server settle before the first snap.
+	await await_physics_frames(5)
+	NavigationServer3D.map_force_update(s.agent.get_navigation_map())
 	s.hint(a)
 	s.wake()
 	await _seconds(0.5)
