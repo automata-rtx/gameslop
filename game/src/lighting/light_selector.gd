@@ -26,9 +26,31 @@ func _init(level_grid: LevelGrid = null) -> void:
 func add(pos: Vector3) -> int:
 	_pos.append(pos)
 	var c := grid.cell_of(pos) if grid != null else Vector2i(-1, -1)
+	if grid != null and grid.in_bounds(c) and not grid.is_walkable(c):
+		c = _walkable_near(pos, c)
 	_cell.append(grid.idx(c) if grid != null and grid.in_bounds(c) else -1)
 	_sight.clear()
 	return _pos.size() - 1
+
+
+## M2.1: a fixture whose cell nobody walks in (a lamp on a Garage pillar, a panel over deep
+## water) is ranked by the walkable cell nearest to it, within 3 cells.
+func _walkable_near(pos: Vector3, c: Vector2i) -> Vector2i:
+	for r in range(1, 4):
+		var best := Vector2i(-1, -1)
+		var best_d := INF
+		for z in range(c.y - r, c.y + r + 1):
+			for x in range(c.x - r, c.x + r + 1):
+				var o := Vector2i(x, z)
+				if maxi(absi(x - c.x), absi(z - c.y)) != r or not grid.is_walkable(o):
+					continue
+				var d := grid.world_of(o).distance_squared_to(pos)
+				if d < best_d:
+					best_d = d
+					best = o
+		if best.x >= 0:
+			return best
+	return c
 
 
 func count() -> int:

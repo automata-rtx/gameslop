@@ -231,7 +231,8 @@ func _barriers(all: Array[Vector3i], bay_of: Dictionary, rng: RandomNumberGenera
 		made += 1
 
 
-## 07 §5.3 lamps: one per pillar on its face down the longest open run; quadrant groups.
+## 07 §5.3 pillars (the mesh in each pillar cell) and lamps: one per pillar on its face
+## down the longest open run; quadrant groups.
 func place_fixtures() -> void:
 	var quadrants: Dictionary = {}
 	var q := Tuning.GARAGE_QUADRANT_CELLS
@@ -240,6 +241,7 @@ func place_fixtures() -> void:
 		var c := grid.cell_at(i)
 		if not grid.is_pillar(c):
 			continue
+		gen.data.add_placement(LevelData.P_PROP, c, Vector3.ZERO, 0.0, {&"prop": &"pillar", &"dir": -1})
 		var best := -1
 		var best_run := -1
 		for d in 4:

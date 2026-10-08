@@ -20,7 +20,7 @@ signal navigation_baked(ok: bool)
 signal built
 
 ## Floor `surface` meta per stratum (06 §6 noise by surface).
-const FLOOR_SURFACE: Dictionary = {&"halls": &"carpet"}
+const FLOOR_SURFACE: Dictionary = {&"halls": &"carpet", &"pools": &"tile", &"garage": &"concrete"}
 
 var level: LevelData
 var stratum: StratumData
@@ -67,7 +67,7 @@ func build(level_data: LevelData, parent: Node3D) -> Signal:
 	_parent = parent
 	stratum = load("res://data/strata/%s.tres" % level.stratum) as StratumData
 	var h := float(Tuning.STRATUM_CEILING_HEIGHT.get(level.stratum, stratum.height))
-	for n in [&"geometry", &"bodies", &"soft_walls", &"furniture", &"fixtures", &"doors", &"markers"]:
+	for n in [&"geometry", &"bodies", &"soft_walls", &"furniture", &"fixtures", &"doors", &"water", &"markers"]:
 		var c := Node3D.new()
 		c.name = String(n).to_pascal_case()
 		parent.add_child(c)
@@ -258,6 +258,9 @@ func _body(b: Dictionary) -> StaticBody3D:
 		body.set_meta(&"floor", true)
 	elif kind == BuildPlan.BODY_VOID:
 		body.set_meta(&"void", true)
+	elif kind == BuildPlan.BODY_RAIL:
+		# Deep water's invisible edge: solid for movement, not a noise wall (no wall_kind).
+		body.set_meta(&"rail", true)
 	else:
 		body.set_meta(&"wall_kind", kind)
 	body.set_meta(&"shape_meta", {})
@@ -283,13 +286,21 @@ func _attach_body(body: StaticBody3D, soft: int) -> void:
 func _add_shapes(list: Array) -> void:
 	for b: Dictionary in list:
 		var body := _body(b)
-		var size: Vector3 = b[&"size"]
-		if not _shapes.has(size):
-			var s := BoxShape3D.new()
-			s.size = size
-			_shapes[size] = s
+		var shape: Shape3D
+		if b.has(&"points"):
+			# A ramp or step cell: a sloped wedge (07 §8 ConvexPolygonShape3D per ramp cell).
+			var cs := ConvexPolygonShape3D.new()
+			cs.points = b[&"points"]
+			shape = cs
+		else:
+			var size: Vector3 = b[&"size"]
+			if not _shapes.has(size):
+				var s := BoxShape3D.new()
+				s.size = size
+				_shapes[size] = s
+			shape = _shapes[size]
 		var owner_id := body.create_shape_owner(body)
-		body.shape_owner_add_shape(owner_id, _shapes[size])
+		body.shape_owner_add_shape(owner_id, shape)
 		body.shape_owner_set_transform(owner_id, Transform3D(Basis.IDENTITY, b[&"pos"]))
 		(body.get_meta(&"shape_meta") as Dictionary)[owner_id] = b[&"meta"]
 
@@ -374,7 +385,10 @@ func _apply_bake(nm: NavigationMesh) -> void:
 	if not navigation_ok:
 		push_error("LevelBuilder: navigation bake produced no polygons; errors stay dormant")
 	if is_instance_valid(nav_region):
-		nav_region.navigation_mesh = nm
+		# The region takes a copy made on the main thread: the mesh the async bake filled can
+		# reach the region before the baker's own change notice, and the region then stays
+		# empty (seen on Pools levels, M2.1).
+		nav_region.navigation_mesh = nm.duplicate() as NavigationMesh
 	is_built = true
 	set_process(false)
 	navigation_baked.emit(navigation_ok)
