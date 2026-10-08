@@ -40,6 +40,25 @@ func test_plan_has_the_three_poses_the_t1_pose_and_a_noclip_wall() -> void:
 		assert_approx((view[&"normal"] as Vector3).dot(ahead.normalized()), -1.0, 0.001, "facing the camera")
 
 
+## R11 #9: the tour frames a soft wall (02 §5) when the level has one, from inside the 2 m
+## preview range, facing it.
+func test_plan_frames_a_soft_wall() -> void:
+	var data := LevelGenerator.generate(&"halls", 1, ScreenshotTour.SEED)
+	var soft: Dictionary = ScreenshotTour.plan(data)[&"soft"]
+	if data.soft_walls.is_empty():
+		assert_true(soft.is_empty())
+		return
+	assert_eq(soft[&"name"], "soft_wall")
+	var e := data.soft_walls[0]
+	var dv := LevelGrid.DIRS[e.z]
+	var wall := data.grid.world_of(Vector2i(e.x, e.y)) + Vector3(dv.x, 0.0, dv.y) * (Tuning.GRID_CELL_SIZE * 0.5)
+	var from: Vector3 = soft[&"from"]
+	var flat := Vector2(wall.x - from.x, wall.z - from.z)
+	assert_lt(flat.length(), Tuning.WORLD_SOFT_PREVIEW_DIST, "inside the preview range")
+	var look: Vector3 = (soft[&"to"] as Vector3) - from
+	assert_gt(Vector2(look.x, look.z).normalized().dot(flat.normalized()), 0.99, "facing the wall")
+
+
 func test_plan_is_deterministic() -> void:
 	var a := ScreenshotTour.plan(LevelGenerator.generate(&"halls", 1, ScreenshotTour.SEED))
 	var b := ScreenshotTour.plan(LevelGenerator.generate(&"halls", 1, ScreenshotTour.SEED))

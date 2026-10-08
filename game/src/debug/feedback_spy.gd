@@ -38,6 +38,7 @@ var _script_vars: Dictionary = {}
 ## The HUD prompt's hold bar: 11 §2 lists "underline fills on the prompt" as Image and "fill
 ## bar" as Readout for Interact hold; it is one widget, so it counts on both channels.
 var _underline: Dictionary = {}
+var _last_charge: float = 0.0
 
 
 func clear_history() -> void:
@@ -112,6 +113,10 @@ func _image(tree: SceneTree) -> Dictionary:
 	var cr := CoherenceRenderer
 	d["cr.coherence"] = cr.coherence01
 	d["cr.noclip_charge"] = cr.noclip_charge
+	# The preview's direction (11 §2 noclip cancel: "preview collapses"): the charge value
+	# moves every frame while charging, so the turn from growing to collapsing is its own key.
+	d["cr.noclip_preview"] = signf(snappedf(cr.noclip_charge - _last_charge, 0.0001))
+	_last_charge = cr.noclip_charge
 	d["cr.noclip_commit"] = cr.noclip_commit
 	d["cr.noclip_invalid"] = cr.noclip_invalid
 	d["cr.noclip_target"] = cr.noclip_target

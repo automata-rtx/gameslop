@@ -159,3 +159,32 @@ func test_latency_is_late_only_by_all_three_measures() -> void:
 	assert_true(FeedbackBench.within({&"ticks": 7, &"frames": 9, &"ms": 30.0}), "many fast frames, 30 ms")
 	assert_true(FeedbackBench.within({&"ticks": 2, &"frames": 40, &"ms": 400.0}), "a stalled machine, 2 ticks")
 	assert_false(FeedbackBench.within({&"ticks": 8, &"frames": 8, &"ms": 120.0}))
+
+
+## R11 #5/#11: gap and sparse rows look only at their listed channels; a lookback needs an
+## expected-key list (and then credits only those keys).
+func test_strict_rows_and_lookback_need_expected_keys() -> void:
+	var gap := FeedbackRows.find(&"still_within_8m")
+	assert_true(FeedbackBench.is_strict(gap))
+	assert_false(FeedbackBench.watches(gap, &"I"))
+	assert_true(FeedbackBench.watches(gap, &"S"))
+	var full := FeedbackRows.find(&"interact_press")
+	assert_false(FeedbackBench.is_strict(full))
+	assert_true(FeedbackBench.watches(full, &"M"), "a full row still reports unlisted channels")
+	for r in FeedbackRows.all():
+		for ch: StringName in (r[&"lookback"] as Dictionary):
+			assert_false(((r[&"expect"] as Dictionary).get(ch, []) as Array).is_empty(),
+					"%s has a lookback on %s without expected keys" % [r[&"id"], ch])
+			assert_eq(FeedbackBench.lookback_ticks(r, ch), int(r[&"lookback"][ch]))
+	var bare := {&"expect": {}, &"lookback": {&"I": 10}}
+	assert_eq(FeedbackBench.lookback_ticks(bare, &"I"), 0, "no expected keys, no lookback")
+
+
+func test_unlisted_channels_are_never_credited() -> void:
+	var bench := FeedbackBench.new()
+	var row := FeedbackRows.find(&"exit_seen")
+	var c := {&"ticks": 1, &"frames": 1, &"ms": 10.0, &"key": "k", &"keys": 1}
+	var res := bench._result_for(row, {&"I": c, &"S": c, &"M": c})
+	assert_eq(res[&"fired"], 2, "exit_seen lists I S R: M is not credited")
+	assert_eq(res[&"missing"], ["R"])
+	bench.free()
