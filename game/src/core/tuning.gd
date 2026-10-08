@@ -864,6 +864,11 @@ const OFFICES_DARK_GROUP_FRACTION := 0.40           # groups start unpowered
 const OFFICES_FIXTURE_SPACING_CELLS := 2
 const OFFICES_GROUP_MAX_FIXTURES := 6               # corridor segments
 const OFFICES_SOFT_WALLS := 4
+# Build-task constants (07 §5.4 gives no number; M2.2).
+const OFFICES_SPAWN_ROOM_SIZE := Vector2i(3, 3)     # elevator lobby in the band, the cabin beyond the perimeter
+const OFFICES_EXIT_ROOM_SIZE := Vector2i(3, 3)      # the exit lobby, the elevator in the perimeter wall
+const OFFICES_LOCKERS := 2                          # lockers in the closets (as Halls)
+const OFFICES_CHAIR_CORRIDOR_CELLS := 8             # one corridor chair per this many corridor cells
 
 # 07 §5.5 Server
 const SERVER_ROW_LENGTH_MIN := 6                    # cells
@@ -881,6 +886,21 @@ const SERVER_SPAWN_ROOM_SIZE := Vector2i(3, 3)
 const SERVER_EXIT_ROOM_SIZE := Vector2i(3, 3)
 const SERVER_RACK_DEPTH := 1.0                      # m
 const SERVER_SOFT_WALLS := 0
+# Build-task constants (07 §5.5 / 02 §7 give no number; M2.2).
+const SERVER_RING_INSET := 3                        # perimeter corridor inset (the band holds the stairwell landing)
+const SERVER_BREAKER_ROOM_SIZE := Vector2i(2, 2)    # as Offices
+const SERVER_RACK_HEIGHT := 2.0                     # m (02 §7 racks 0.6 x 2.0 x 1.0: two back to back fill a cell)
+const SERVER_RACK_UNIT_WIDTH := 0.6                 # m, one rack front; three per cell side (rack_leds.gdshader)
+const SERVER_LED_SPACING_CELLS := 2                 # rack LED aggregate light every 2 aisle cells (02 §7 "per 4 racks", in aggregate)
+const SERVER_LED_LIGHT_COLOR := Color(0.184, 0.357, 1.0)   # #2F5BFF (02 §7)
+const SERVER_LED_LIGHT_ENERGY := 0.35
+const SERVER_LED_LIGHT_RANGE := 4.0                 # m
+const SERVER_LED_HEIGHT := 1.2                      # m, the aggregate light on the rack face
+const SERVER_EMERGENCY_HEIGHT := 2.4                # m, emergency box on the ring's outer wall
+const SERVER_EXIT_LIGHT_COLOR := Color(0.92, 0.95, 1.0)    # the exit clearing's one white light (07 §5.5)
+const SERVER_EXIT_LIGHT_ENERGY := 1.2
+const SERVER_EXIT_LIGHT_RANGE := 7.0                # m
+const SERVER_CABLE_TRAY_HEIGHT := 2.9               # m, trays along aisle ceilings (visual)
 
 # 07 §5.6 Substrate
 const SUBSTRATE_VOID_CLUSTER_FRACTION := 0.20       # of corridor cells removed
@@ -938,6 +958,10 @@ const VALIDATE_POOLS_PATH_MIN := 40.0               # m at depth 2 (28 cells), s
 const VALIDATE_POOLS_PATH_MAX := 140.0
 const VALIDATE_GARAGE_PATH_MIN := 40.0              # m at depth 2, scaling by size (M2.1; 07 gives none)
 const VALIDATE_GARAGE_PATH_MAX := 140.0
+const VALIDATE_OFFICES_PATH_MIN := 40.0             # m at depth 3 (32 cells), scaling by size (M2.2; 07 gives none)
+const VALIDATE_OFFICES_PATH_MAX := 140.0
+const VALIDATE_SERVER_PATH_MIN := 40.0              # m at depth 4 (34 cells), scaling by size (M2.2; 07 gives none)
+const VALIDATE_SERVER_PATH_MAX := 140.0
 
 # 07 §9 Cycle 2 corruption (generator side)
 const CYCLE2_BRAID_MULT := 0.5

@@ -117,3 +117,33 @@ static func _place_segment(gen: StratumGenerator, ordered: Array[Vector3i], spac
 			gen.data.add_placement(LevelData.P_FIXTURE, c, Vector3(0.0, height, 0.0), 0.0,
 				{&"group": group, &"fixture": fixture})
 		k += group_max
+
+
+## T2 (02 §2): fixtures on the level's `spacing`-cell lattice inside a room (Offices open
+## offices: troffers every 2 cells), one group for the room. A room the lattice misses gets
+## the room_fixtures layout.
+static func lattice_fixtures(gen: StratumGenerator, room: RoomData, spacing: int, height: float, fixture: StringName) -> void:
+	var cells: Array[Vector2i] = []
+	for c in room.cells():
+		if posmod(c.x, spacing) == 0 and posmod(c.y, spacing) == 0:
+			cells.append(c)
+	if cells.is_empty():
+		room_fixtures(gen, room, height, fixture)
+		return
+	var group := _new_group(gen, cells)
+	room.fixture_group = group
+	for c in cells:
+		gen.data.add_placement(LevelData.P_FIXTURE, c, Vector3(0.0, height, 0.0), 0.0,
+			{&"group": group, &"fixture": fixture})
+
+
+## One fixture at the room's centre (Offices small offices), its own group.
+static func single_fixture(gen: StratumGenerator, room: RoomData, height: float, fixture: StringName) -> void:
+	var r := room.rect
+	var p := Vector2(r.position) + Vector2(r.size - Vector2i.ONE) * 0.5
+	var c := Vector2i(floori(p.x), floori(p.y))
+	var off := (p - Vector2(c)) * Tuning.GRID_CELL_SIZE
+	var group := _new_group(gen, [c] as Array[Vector2i])
+	room.fixture_group = group
+	gen.data.add_placement(LevelData.P_FIXTURE, c, Vector3(off.x, height, off.y), 0.0,
+		{&"group": group, &"fixture": fixture})
