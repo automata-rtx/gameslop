@@ -187,6 +187,9 @@ func _image(tree: SceneTree) -> Dictionary:
 		if is_instance_valid(e) and e is ErrorStill:
 			d["still.ticks"] = (e as ErrorStill).ticks
 			d["still.line"] = (e as ErrorStill).tick_left > 0.0
+		elif is_instance_valid(e) and e is ErrorEcho:
+			d["echo.presence"] = snappedf((e as ErrorEcho).presence, 0.01)
+			d["echo.shimmer"] = (e as ErrorEcho).shimmer.visible
 	return d
 
 

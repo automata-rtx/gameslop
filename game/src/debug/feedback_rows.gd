@@ -103,7 +103,9 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"still_observed", "Still observed 2 s", "11 §3", "IS",
 			{&"expect": {&"I": ["still."], &"S": ["play.still_tick"]}}))
 	rows.append(_row(&"flicker_lunge", "Flicker lunge", "11 §3", "ISMR", {}, PENDING, "Flicker lands with M2.5"))
-	rows.append(_row(&"echo_4m", "Echo at 4 m", "11 §3", "ISR", {}, PENDING, "Echo lands with M2.4"))
+	rows.append(_row(&"echo_4m", "Echo at 4 m", "11 §3", "ISR",
+			{&"expect": {&"I": ["echo."], &"S": ["play.echo_breath"], &"R": ["Caption"]}}, GAP,
+			"Echo's footsteps emit EventBus.audio_cue ([footsteps, {dir}, late]) but no HUD subscribes until the captions task (M2.12)"))
 	rows.append(_row(&"null_radius", "Null radius", "11 §3", "ISM", {}, PENDING, "Null lands with M2.6"))
 	rows.append(_row(&"null_core", "Null core", "11 §3", "ISMR", {}, PENDING, "Null lands with M2.6"))
 	rows.append(_row(&"exit_seen", "Exit seen", "11 §3", "ISR",
