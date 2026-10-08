@@ -51,6 +51,7 @@ func show_caption(text: String) -> void:
 			# moment, so the reader sees the sound happened again (04 §10, 11 R channel).
 			e.t = 0.0
 			_stack.move_child(e.shutter, -1)
+			_stack.queue_redraw()  # already last: moving is a no-op, the refresh still draws
 			e.label.modulate = Color(1.6, 1.6, 1.6)
 			create_tween().tween_property(e.label, ^"modulate", Color.WHITE, Tuning.CAPTION_REPEAT_PULSE_S)
 			_layout.call_deferred()
