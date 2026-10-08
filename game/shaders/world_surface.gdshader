@@ -40,6 +40,8 @@ uniform float u_floor = 0.0;
 uniform float jitter_floor = 0.0;
 // 02 §7 Substrate: grid lines emit x1.5.
 uniform float line_emission = 1.0;
+// 02 §7 Cycle 2: faces of cells the generator flagged UNFINISHED (vertex colour G) take this u.
+uniform float unfinished_u = 0.0;
 // Stripes: the secondary colour pushed this far from the primary (1 = the palette pair).
 uniform float pattern_contrast = 1.0;
 // Stripes: strength of the printed detail (diamond print, pinstripes at the stripe edges).
@@ -326,6 +328,7 @@ void fragment() {
 	// ---- unrender term u (02 §5) ----
 	// The placeholder checker is exempt from the Substrate floor: it must read magenta.
 	float u_other = pattern_mode == 5 ? 0.0 : u_floor;
+	u_other = max(u_other, unfinished_u * step(0.5, COLOR.g));
 	u_other = max(u_other, coh_null_u(v_world_pos));
 	u_other = max(u_other, coh_commit_u(v_world_pos, cam));
 	u_other = max(u_other, soft_u);

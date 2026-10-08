@@ -1,0 +1,83 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://src/lighting/fixture.gd" id="1_s"]
+[ext_resource type="Material" path="res://data/materials/substrate/studio_housing.tres" id="2_s"]
+[ext_resource type="Material" path="res://data/materials/substrate/studio_emissive.tres" id="3_s"]
+
+[sub_resource type="BoxMesh" id="Head"]
+size = Vector3(0.62, 0.46, 0.22)
+
+[sub_resource type="BoxMesh" id="Face"]
+size = Vector3(0.56, 0.4, 0.012)
+
+[sub_resource type="CylinderMesh" id="Pole"]
+top_radius = 0.018
+bottom_radius = 0.022
+height = 1.820
+radial_segments = 8
+rings = 1
+
+[sub_resource type="BoxMesh" id="Leg"]
+size = Vector3(0.022, 0.587, 0.022)
+
+[sub_resource type="BoxMesh" id="Yoke"]
+size = Vector3(0.7, 0.03, 0.03)
+
+[sub_resource type="CylinderShape3D" id="Base"]
+height = 2.10
+radius = 0.3
+
+[node name="FixtureStudioLight" type="Node3D"]
+script = ExtResource("1_s")
+
+[node name="Head" type="Node3D" parent="."]
+transform = Transform3D(1.00000, 0.00000, 0.00000, 0.00000, 0.95106, 0.30902, 0.00000, -0.30902, 0.95106, 0.0000, 0.0000, 0.0000)
+
+[node name="Box" type="MeshInstance3D" parent="Head"]
+mesh = SubResource("Head")
+material_override = ExtResource("2_s")
+
+[node name="Tube" type="MeshInstance3D" parent="Head"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.112)
+mesh = SubResource("Face")
+material_override = ExtResource("3_s")
+cast_shadow = 0
+
+[node name="Yoke" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.26, 0)
+mesh = SubResource("Yoke")
+material_override = ExtResource("2_s")
+cast_shadow = 0
+
+[node name="Pole" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.180, 0)
+mesh = SubResource("Pole")
+material_override = ExtResource("2_s")
+
+[node name="Leg0" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.00000, 0.00000, 0.00000, 0.00000, -0.69854, -0.71557, -0.00000, 0.71557, -0.69854, 0.0000, -1.8850, 0.2100)
+mesh = SubResource("Leg")
+material_override = ExtResource("2_s")
+cast_shadow = 0
+
+[node name="Leg1" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.74806, -0.61971, 0.23744, -0.66364, -0.69854, 0.26764, 0.00000, -0.35779, -0.93380, -0.1819, -1.8850, -0.1050)
+mesh = SubResource("Leg")
+material_override = ExtResource("2_s")
+cast_shadow = 0
+
+[node name="Leg2" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.74806, 0.61971, -0.23744, 0.66364, -0.69854, 0.26764, -0.00000, -0.35779, -0.93380, 0.1819, -1.8850, -0.1050)
+mesh = SubResource("Leg")
+material_override = ExtResource("2_s")
+cast_shadow = 0
+
+[node name="Body" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+metadata/wall_kind = &"PROP"
+
+[node name="Shape" type="CollisionShape3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.050, 0)
+shape = SubResource("Base")

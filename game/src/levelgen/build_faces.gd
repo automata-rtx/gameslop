@@ -70,9 +70,9 @@ func emit_horizontal() -> void:
 				return lerpf(v.x, v.y, t)
 			var n_up := _slope_normal(axis, lo, sx if axis == 0 else sz, 1.0)
 			var n_dn := _slope_normal(axis, hi, sx if axis == 0 else sz, -1.0)
-			p._mesh.patch(acc_for(i, j, p._bot[f], -1), xs, zs, func(u: float, w: float) -> Vector3: return Vector3(u, at.call(u, w, lo), w),
+			p._mesh.patch(acc_for(i, j, p.face_class(p._bot[f], col), -1), xs, zs, func(u: float, w: float) -> Vector3: return Vector3(u, at.call(u, w, lo), w),
 				n_up, col, _wall_dist.bind(i, j) if p._bot[f] == BuildPlan.C_FLOOR else Callable(), p._nav[f] == 1)
-			p._mesh.patch(acc_for(i, j, p._top[f], -1), xs, zs, func(u: float, w: float) -> Vector3: return Vector3(u, at.call(u, w, hi), w),
+			p._mesh.patch(acc_for(i, j, p.face_class(p._top[f], col), -1), xs, zs, func(u: float, w: float) -> Vector3: return Vector3(u, at.call(u, w, hi), w),
 				n_dn, col, Callable(), false)
 
 
@@ -145,6 +145,7 @@ func _face_side(i: int, j: int, f: int, g: int, oi: int, oj: int, along_x: bool,
 	if cls == BuildPlan.C_RACK:
 		# M2.2: B = 1 on rack fronts (faces across the rows) for rack_leds.gdshader.
 		col.b = 1.0 if along_x != p.rows_along_x else 0.0
+	cls = p.face_class(cls, col)
 	var acc := acc_for(i, j, cls, p._soft[f] if p._open[f] == 0 else -1)
 	var plane := (p._xb[i][p._xb[i].size() - 1] if sign > 0.0 else p._xb[i][0]) if along_x else (p._zb[j][p._zb[j].size() - 1] if sign > 0.0 else p._zb[j][0])
 	var us := p._zb[j] if along_x else p._xb[i]

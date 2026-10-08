@@ -7,6 +7,8 @@ const SPAWN := &"spawn"
 const EXIT := &"exit"
 const BREAKER := &"breaker"
 const CLOSET := &"closet"
+## The Substrate's Threshold pocket (07 §5.6): the exit room, 3x3, lit, the door standing alone.
+const POCKET := &"pocket"
 
 var id: int = -1
 var rect: Rect2i = Rect2i()

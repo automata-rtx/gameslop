@@ -1,0 +1,151 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://src/interactables/threshold_door.gd" id="1_t"]
+[ext_resource type="Material" path="res://data/materials/substrate/threshold_leaf.tres" id="2_t"]
+[ext_resource type="Material" path="res://data/materials/substrate/threshold_frame.tres" id="3_t"]
+[ext_resource type="Material" path="res://data/materials/substrate/threshold_brass.tres" id="4_t"]
+[ext_resource type="Material" path="res://data/materials/substrate/threshold_daylight.tres" id="5_t"]
+
+[sub_resource type="BoxMesh" id="Leaf"]
+size = Vector3(0.94, 2.03, 0.045)
+
+[sub_resource type="BoxMesh" id="Panel"]
+size = Vector3(0.3, 0.7, 0.012)
+
+[sub_resource type="BoxMesh" id="Post"]
+size = Vector3(0.08, 2.14, 0.12)
+
+[sub_resource type="BoxMesh" id="Header"]
+size = Vector3(1.12, 0.08, 0.12)
+
+[sub_resource type="BoxMesh" id="Lever"]
+size = Vector3(0.12, 0.022, 0.03)
+
+[sub_resource type="BoxMesh" id="Rose"]
+size = Vector3(0.05, 0.05, 0.012)
+
+[sub_resource type="BoxMesh" id="Strip"]
+size = Vector3(0.94, 0.02, 0.05)
+
+[sub_resource type="BoxShape3D" id="PostShape"]
+size = Vector3(0.08, 2.14, 0.12)
+
+[sub_resource type="BoxShape3D" id="HeaderShape"]
+size = Vector3(1.12, 0.08, 0.12)
+
+[sub_resource type="BoxShape3D" id="Walk"]
+size = Vector3(0.9, 1.8, 0.5)
+
+[node name="ThresholdDoor" type="Node3D"]
+script = ExtResource("1_t")
+exit_kind = &"threshold_door"
+sound_open = &"threshold_open"
+leaf_motion = &"hinge"
+hinge_open_deg = Vector3(0, -100, 0)
+lamp_on = 0.0
+interior_on = 0.0
+button_on = 0.0
+light_on = 0.5
+entry_offset = Vector3(0, 0, 0.6)
+
+[node name="PostL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 1.07, 0)
+mesh = SubResource("Post")
+material_override = ExtResource("3_t")
+
+[node name="PostR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.52, 1.07, 0)
+mesh = SubResource("Post")
+material_override = ExtResource("3_t")
+
+[node name="Header" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+mesh = SubResource("Header")
+material_override = ExtResource("3_t")
+
+[node name="Daylight" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+mesh = SubResource("Strip")
+material_override = ExtResource("5_t")
+cast_shadow = 0
+
+[node name="Leaf" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.47, 0, 0)
+
+[node name="Plate" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.47, 1.035, 0)
+mesh = SubResource("Leaf")
+material_override = ExtResource("2_t")
+
+[node name="PanelTopF" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.47, 1.58, -0.026)
+mesh = SubResource("Panel")
+material_override = ExtResource("2_t")
+
+[node name="PanelLowF" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.47, 0.52, -0.026)
+mesh = SubResource("Panel")
+material_override = ExtResource("2_t")
+
+[node name="RoseF" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.84, 1.0, -0.028)
+mesh = SubResource("Rose")
+material_override = ExtResource("4_t")
+
+[node name="LeverF" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.79, 1.0, -0.05)
+mesh = SubResource("Lever")
+material_override = ExtResource("4_t")
+
+[node name="RoseB" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.84, 1.0, 0.028)
+mesh = SubResource("Rose")
+material_override = ExtResource("4_t")
+
+[node name="LeverB" type="MeshInstance3D" parent="Leaf"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.79, 1.0, 0.05)
+mesh = SubResource("Lever")
+material_override = ExtResource("4_t")
+
+[node name="FrameBody" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+metadata/wall_kind = &"PROP"
+
+[node name="PostL" type="CollisionShape3D" parent="FrameBody"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 1.07, 0)
+shape = SubResource("PostShape")
+
+[node name="PostR" type="CollisionShape3D" parent="FrameBody"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.52, 1.07, 0)
+shape = SubResource("PostShape")
+
+[node name="Header" type="CollisionShape3D" parent="FrameBody"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+shape = SubResource("HeaderShape")
+
+[node name="Light" type="OmniLight3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.25)
+visible = false
+light_color = Color(1, 0.968627, 0.878431, 1)
+light_energy = 0.0
+omni_range = 2.0
+omni_attenuation = 2.0
+shadow_enabled = false
+
+[node name="SightPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, -0.1)
+
+[node name="Trigger" type="Area3D" parent="."]
+unique_name_in_owner = true
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="Shape" type="CollisionShape3D" parent="Trigger"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("Walk")

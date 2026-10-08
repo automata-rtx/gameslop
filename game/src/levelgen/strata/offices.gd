@@ -26,6 +26,9 @@ var open_rooms: Array[RoomData] = []
 var small_rooms: Array[RoomData] = []
 var closets: Array[RoomData] = []
 var furnish: OfficeFurnish = null
+## M2.3: the Substrate runs this layout (Cycle 2) and unfinishes it; it grows the target by
+## the cells the unfinish step removes.
+var walkable_scale: float = 1.0
 
 
 func layout() -> void:
@@ -40,7 +43,7 @@ func layout() -> void:
 	data.exit_cell = side_middle(exit_room, far)
 	var rooms := OfficeRooms.new(self)
 	var reserve := Tuning.OFFICES_BREAKER_ROOM_SIZE.x * Tuning.OFFICES_BREAKER_ROOM_SIZE.y + Tuning.OFFICES_CLOSETS_MAX
-	var target := int(walkable_target(data.depth) * (1.0 - rng_layout.randf() * WALKABLE_JITTER)) - reserve
+	var target := int(walkable_target(data.depth) * walkable_scale * (1.0 - rng_layout.randf() * WALKABLE_JITTER)) - reserve
 	var sections := rooms.cross_corridors()
 	rooms.interior(sections, target)
 	rooms.band_pieces()

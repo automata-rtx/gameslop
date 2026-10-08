@@ -74,6 +74,8 @@ func begin(level_data: LevelData, quality_preset: StringName = Tuning.QUALITY_PR
 	preset = quality_preset
 	stratum = load("res://data/strata/%s.tres" % data.stratum) as StratumData
 	world_environment.environment = StratumEnvironment.build(stratum, preset)
+	if data.cycle > 1:
+		apply_cycle2_fog(world_environment.environment)
 	StratumEnvironment.apply_viewport_preset(get_viewport(), preset)
 	light_pool.configure(stratum, preset)
 	if DUST_STRATA.has(data.stratum):
@@ -88,6 +90,14 @@ func begin(level_data: LevelData, quality_preset: StringName = Tuning.QUALITY_PR
 	builder.navigation_baked.connect(func(ok: bool) -> void: navigation_ready.emit(ok))
 	builder.built.connect(func() -> void: built.emit())
 	builder.build(data, content)
+
+
+## 02 §7 Cycle 2: fog density x CYCLE2_FOG_MULT (volumetric and distance fog alike; the
+## Substrate's distance fog to black has no density to raise).
+static func apply_cycle2_fog(env: Environment) -> void:
+	env.volumetric_fog_density *= Tuning.CYCLE2_FOG_MULT
+	if env.fog_mode == Environment.FOG_MODE_EXPONENTIAL:
+		env.fog_density *= Tuning.CYCLE2_FOG_MULT
 
 
 func is_walkable_now() -> bool:

@@ -58,6 +58,17 @@ const MATERIALS: Dictionary = {
 		C_DOOR_LEAF: "res://data/materials/server/door_leaf.tres",
 		C_DOOR_HANDLE: "res://data/materials/server/prop_metal.tres",
 	},
+	# 02 §7 Substrate: lines on black (u floor 0.55), the placeholder checker on UNFINISHED
+	# cells, the boundary of the drawing fully unrendered with the brighter grid.
+	&"substrate": {
+		BuildPlan.C_FLOOR: "res://data/materials/substrate/surface.tres",
+		BuildPlan.C_CEILING: "res://data/materials/substrate/surface.tres",
+		BuildPlan.C_WALL: "res://data/materials/substrate/surface.tres",
+		BuildPlan.C_SOFT: "res://data/materials/substrate/soft_wall.tres",
+		BuildPlan.C_PARTITION: "res://data/materials/substrate/partition.tres",
+		BuildPlan.C_UNFINISHED: "res://data/materials/substrate/checker.tres",
+		BuildPlan.C_EDGE: "res://data/materials/substrate/edge.tres",
+	},
 }
 const WORLD_SHADER := "res://shaders/world_surface.gdshader"
 
@@ -67,6 +78,25 @@ static func paths(stratum: StringName) -> Array:
 
 ## Fallback materials made so far, by "stratum:class" (one shared material per pair).
 static var _made: Dictionary = {}
+## Cycle 2 twins of level materials, by "stratum:class".
+static var _cycle2: Dictionary = {}
+
+
+## The material of class `cls` for a level of `cycle` (M2.3): Cycle 1 is for_class; from
+## Cycle 2 (02 §7) a shared twin with the vertex jitter floor (CYCLE2_JITTER_FLOOR) and
+## UNFINISHED cells (vertex colour G) at u = CYCLE2_SURFACE_UNRENDER_U. The Substrate keeps
+## its own look (its checker and unrender are already there).
+static func for_level(stratum: StratumData, cls: int, cycle: int) -> Material:
+	var mat := for_class(stratum, cls)
+	if cycle <= 1 or stratum.id == Tuning.STRATUM_SUBSTRATE or not (mat is ShaderMaterial):
+		return mat
+	var key := "%s:%d" % [stratum.id, cls]
+	if not _cycle2.has(key):
+		var twin := (mat as ShaderMaterial).duplicate() as ShaderMaterial
+		twin.set_shader_parameter(&"jitter_floor", Tuning.CYCLE2_JITTER_FLOOR)
+		twin.set_shader_parameter(&"unfinished_u", Tuning.CYCLE2_SURFACE_UNRENDER_U)
+		_cycle2[key] = twin
+	return _cycle2[key]
 
 
 static func for_class(stratum: StratumData, cls: int) -> Material:

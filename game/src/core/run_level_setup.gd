@@ -8,8 +8,8 @@ extends RefCounted
 
 ## 07 §5, 09 §7: one exit prefab per placement `exit_kind` (M2.9). Halls and Offices ride the
 ## elevator, Pools leave by the drain hatch, Garage by the stairwell door, Server by the floor
-## hatch. `threshold_door` (Substrate) is M2.15's prefab: until that scene exists the hook falls
-## back to DEFAULT_EXIT_SCENE (exit_scene_for).
+## hatch, the Substrate by the Threshold (M2.3: `threshold_door`, which ends a Descent,
+## `ends_descent`; the ending scene is M2.15's).
 const EXIT_SCENES: Dictionary = {
 	&"elevator": "res://scenes/exits/elevator.tscn",
 	&"drain_hatch": "res://scenes/exits/drain_hatch.tscn",
@@ -62,6 +62,12 @@ static func prepare(level: Level, data: LevelData) -> Dictionary:
 static func exit_scene_for(kind: StringName) -> String:
 	var path: String = EXIT_SCENES.get(kind, DEFAULT_EXIT_SCENE)
 	return path if ResourceLoader.exists(path) else DEFAULT_EXIT_SCENE
+
+
+## 01 §8, 05 §8: walking through the Threshold ends a Descent (cause `threshold`, the win);
+## in Endless it is a proper exit into Cycle 2.
+static func ends_descent(exit_kind: StringName, mode: StringName) -> bool:
+	return exit_kind == SubstrateGenerator.THRESHOLD_DOOR and mode != Tuning.MODE_ENDLESS
 
 
 static func _swap(marker: Node3D, node: Node3D) -> void:

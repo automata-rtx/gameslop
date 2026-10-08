@@ -24,7 +24,8 @@ var buzzing: bool = false
 ## M2.2: this fixture's own light where it differs from the stratum's (Server: the rack
 ## LEDs' blue aggregate and the exit clearing's white light beside the red emergency
 ## boxes). Keys, all optional: color, energy, range, drop, shadow (false: never shadowed),
-## buzz (false: never the buzzing kind). Empty: the pool's stratum light. Set before the
+## buzz (false: never the buzzing kind), hum (false: carries no hum loop, M2.3). Empty: the
+## pool's stratum light. Set before the
 ## pool registers the fixture (LevelPlacer).
 var light_profile: Dictionary = {}
 
@@ -84,6 +85,10 @@ static func profile_for(kind: StringName) -> Dictionary:
 				&"range": Tuning.SERVER_EXIT_LIGHT_RANGE, &"buzz": false}
 		&"emergency_box":
 			return {&"drop": Tuning.SERVER_EMERGENCY_LIGHT_DROP, &"buzz": false}
+		&"studio_light":
+			# 02 §7 Substrate (M2.3): white, energy 0.6, range 15 m, no shadows, lit at the head.
+			return {&"color": Color.WHITE, &"energy": Tuning.SUBSTRATE_STUDIO_LIGHT_ENERGY,
+				&"range": Tuning.SUBSTRATE_STUDIO_LIGHT_RANGE, &"drop": 0.0, &"shadow": false, &"buzz": false, &"hum": false}
 	return {}
 
 
