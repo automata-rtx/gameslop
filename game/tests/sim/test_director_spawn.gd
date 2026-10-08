@@ -228,7 +228,7 @@ func test_static_always_spawns_at_the_farthest_legal_cell() -> void:
 	var p0 := tiny.world_of(Vector2i(0, 0))
 	var picked := DirectorSpawn.pick_cells(td, roster, &"still", p0, p0 + Vector3.UP * 1.6, Vector3.FORWARD, half, make_rng(1))
 	assert_eq(picked[0], Vector2i(3, 0), "no fair cell on an 8 m strip: Static at the farthest cell")
-	assert_eq(picked[1], LevelData.NO_CELL, "a hunter is never forced (the rule is Static's)")
+	assert_eq(picked[1], LevelData.NO_CELL, "a hunter is never put on an unfair cell")
 
 
 ## M1.13 ruling (05 §10): on the first Descent the first Static spawns between the breaker

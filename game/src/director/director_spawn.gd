@@ -65,7 +65,8 @@ static func path_fraction(path: Array[Vector2i], c: Vector2i) -> float:
 ## Cells for each id of `roster` (NO_CELL when nothing fair exists), distinct, from the
 ## level's error_spawn placements first and any fair walkable cell second. The native
 ## hunter prefers 35% to 65% of the critical path; the others prefer side branches; Static
-## is never within 20 m of the spawn room. Hunters choose before Statics, and Static always
+## is never within 20 m of the spawn room. Hunters choose before Statics and may take a fair
+## cell in the spawn or exit room when nothing else is fair; Static always
 ## spawns (M1.13 ruling): with no fair cell it takes the farthest legal one (`farthest_cell`). `band` (cell -> true, the
 ## first Descent's breaker-to-exit stretch, `breaker_exit_band`) is where the first Static
 ## goes when a fair cell lies in it (05 §10, M1.13 ruling).
@@ -88,7 +89,7 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 	out.resize(roster.size())
 	out.fill(LevelData.NO_CELL)
 	var used: Array[Vector2i] = []
-	# Hunters choose first: Static always has its last resort, a hunter does not (M1.13).
+	# Hunters choose first: Static always has a last resort (M1.13), a hunter only a fair one.
 	var order: Array[int] = []
 	for pass_hunters: bool in [true, false]:
 		for i in roster.size():
@@ -119,8 +120,10 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 			fallback = _fallback_cells(grid, player_pos, eye, forward, half_fov, walk)
 		if cell == LevelData.NO_CELL:
 			cell = _pick_one(data, id, native, fallback, off_path, used, spawn_room, rng)
-		if cell == LevelData.NO_CELL and id == &"static":
-			cell = farthest_cell(grid, used, player_pos, eye, forward, half_fov, walk)
+		if cell == LevelData.NO_CELL:
+			# Last resort: a hunter only on a fair cell (the spawn and exit rooms allowed);
+			# Static always, at the farthest cell when nothing fair is left (M1.13).
+			cell = farthest_cell(grid, used, player_pos, eye, forward, half_fov, walk, id != &"static")
 		out[i] = cell
 		if cell != LevelData.NO_CELL:
 			used.append(cell)
@@ -161,9 +164,10 @@ static func _fallback_cells(grid: LevelGrid, player_pos: Vector3, eye: Vector3, 
 
 ## Static's last resort (M1.13 ruling): the walkable cell farthest (walking) from the player
 ## that is still ≥ 20 m away and out of view (`spawn_ok`), else the farthest reachable one,
-## else the farthest walkable one; never a cell in `used`. NO_CELL only on an empty grid.
+## else the farthest walkable one; never a cell in `used`. NO_CELL only on an empty grid,
+## or with `fair_only` (a hunter's last resort) when no cell passes `spawn_ok`.
 static func farthest_cell(grid: LevelGrid, used: Array[Vector2i], player_pos: Vector3, eye: Vector3,
-		forward: Vector3, half_fov: float, walk: PackedInt32Array) -> Vector2i:
+		forward: Vector3, half_fov: float, walk: PackedInt32Array, fair_only: bool = false) -> Vector2i:
 	var order: Array[Vector2i] = []
 	for i in grid.cell_count():
 		var c := grid.cell_at(i)
@@ -182,7 +186,7 @@ static func farthest_cell(grid: LevelGrid, used: Array[Vector2i], player_pos: Ve
 			break
 		if spawn_ok(grid, c, player_pos, eye, forward, half_fov, walk):
 			return c
-	return order[0]
+	return LevelData.NO_CELL if fair_only else order[0]
 
 
 static func _eligible(cells: Array[Vector2i], used: Array[Vector2i], id: StringName, spawn_room: Array[Vector3]) -> Array[Vector2i]:
