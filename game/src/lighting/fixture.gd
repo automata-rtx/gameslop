@@ -35,6 +35,13 @@ var _lit_material: Material
 var _flickering: bool = false
 var _flick_on: bool = true
 var _flick_left: float = 0.0
+## 08 §5: Flicker's stutter rate (8 Hz resident, rising to 20 Hz as its charge builds).
+var _flick_hz: float = Tuning.FLICKER_STUTTER_MIN_HZ
+## Flicker's lunge (08 §5, 02 §8): the 2-frame white flash, then dark for 1.5 s. Neither
+## changes `powered` (observation and habitat read power, 08 §4).
+var _flash_frame: int = -1
+var _flash_usec: int = -1
+var _dark: bool = false
 var _rng: RandomNumberGenerator
 var _wave: Tween
 
@@ -42,6 +49,8 @@ var _wave: Tween
 static var _dark_materials: Dictionary = {}
 ## Buzzing twins (greener, 85% emission) of lit materials.
 static var _buzz_materials: Dictionary = {}
+## White twins (the lunge flash) of lit materials.
+static var _white_materials: Dictionary = {}
 
 
 func _ready() -> void:
@@ -87,9 +96,16 @@ static func profile_for(kind: StringName) -> Dictionary:
 	return {}
 
 
-## True when the fixture currently emits (powered, and not in a flicker-off instant).
+## True when the fixture currently emits (powered, and not in a flicker-off instant or
+## Flicker's post-lunge dark).
 func is_emitting() -> bool:
-	return powered and (not _flickering or _flick_on)
+	return powered and not _dark and (not _flickering or _flick_on)
+
+
+## Lit for Flicker's habitat and lit area (08 §5): powered and not in its post-lunge dark.
+## Flicker's stutter does not change it (the off instants are presentation).
+func is_lit() -> bool:
+	return powered and not _dark
 
 
 func set_powered(on: bool) -> void:
@@ -122,7 +138,8 @@ func power_on_wave(delay: float) -> void:
 	_wave.tween_property(self, ^"intensity", 1.0, Tuning.LIGHT_BREAKER_SETTLE_MS / 1000.0)
 
 
-## 02 §6: fixtures flicker only while Flicker is present in their group (08).
+## 02 §6: fixtures flicker only while Flicker is present in their group (08). Nothing
+## else calls this: a flicker always means Flicker.
 func set_flicker(on: bool) -> void:
 	if _flickering == on:
 		return
@@ -133,9 +150,9 @@ func set_flicker(on: bool) -> void:
 		_rng.seed = hash(Vector3i(global_position.round()))
 	_flick_on = true
 	_flick_left = 0.0
-	set_process(on)
 	if not on:
 		intensity = 1.0 if powered else 0.0
+	_update_process()
 	_apply_visual()
 
 
@@ -143,24 +160,101 @@ func is_flickering() -> bool:
 	return _flickering
 
 
+## 08 §5: the stutter rate in Hz, clamped to 8..20 (Flicker raises it with its charge).
+func set_flicker_rate(hz: float) -> void:
+	_flick_hz = clampf(hz, Tuning.FLICKER_STUTTER_MIN_HZ, Tuning.FLICKER_STUTTER_MAX_HZ)
+
+
+func flicker_rate() -> float:
+	return _flick_hz
+
+
+## 02 §8 lunge: a white flash for 2 frames (with reduce flashing: a 200 ms soft fade to 60%
+## white, 12 §6). Then call set_lunge_dark(true).
+func lunge_flash() -> void:
+	if not powered:
+		return
+	_flash_frame = Engine.get_process_frames()
+	_flash_usec = Time.get_ticks_usec()
+	_update_process()
+	_apply_visual()
+
+
+func is_flashing() -> bool:
+	return flash_amount() > 0.0
+
+
+## 0..1 of the lunge flash this frame (CoherencePost's 2-frame rule and its reduced fade).
+func flash_amount() -> float:
+	if _flash_frame < 0:
+		return 0.0
+	var reduce := CoherenceRenderer.reduce_flashing if is_instance_valid(CoherenceRenderer) else false
+	return CoherencePost.flash_amount(Engine.get_process_frames() - _flash_frame,
+		(Time.get_ticks_usec() - _flash_usec) / 1000000.0, reduce)
+
+
+## 08 §5: after the lunge the group is dark (and silent) for 1.5 s; power is unchanged.
+func set_lunge_dark(on: bool) -> void:
+	if _dark == on:
+		return
+	_dark = on
+	if on:
+		_flash_frame = -1
+	intensity = 0.0 if on else (1.0 if powered else 0.0)
+	_update_process()
+	_apply_visual()
+
+
+func is_lunge_dark() -> bool:
+	return _dark
+
+
+func _update_process() -> void:
+	set_process(_flickering or _flash_frame >= 0)
+
+
 func _process(delta: float) -> void:
+	if _flash_frame >= 0:
+		var a := flash_amount()
+		if a <= 0.0 and Engine.get_process_frames() - _flash_frame >= Tuning.FLICKER_LUNGE_FLASH_FRAMES:
+			_flash_frame = -1
+			intensity = 0.0 if _dark else (1.0 if powered else 0.0)
+			_update_process()
+		else:
+			intensity = lerpf(1.0, Tuning.LIGHT_FLICKER_FLASH_INTENSITY, a)
+		_apply_visual()
+		return
+	if not _flickering or _dark:
+		return
 	_flick_left -= delta
 	if _flick_left > 0.0:
 		return
-	# 02 §8: random on/off at 8 to 20 Hz.
+	# 02 §8: random on/off at 8 to 20 Hz, around Flicker's current rate (08 §5).
 	_flick_on = not _flick_on
-	_flick_left = 1.0 / _rng.randf_range(Tuning.LIGHT_FLICKER_VISUAL_MIN_HZ, Tuning.LIGHT_FLICKER_VISUAL_MAX_HZ)
-	intensity = 1.0 if (_flick_on and powered) else 0.0
+	_flick_left = 1.0 / _rng.randf_range(_flick_hz, minf(_flick_hz * Tuning.LIGHT_FLICKER_RATE_SPREAD, Tuning.FLICKER_STUTTER_MAX_HZ))
+	intensity = (1.0 if _flick_on else 1.0 - flicker_depth()) if powered else 0.0
 	_apply_visual()
+
+
+## 12 §6 Flicker intensity (0.3..1): how deep an off instant goes (1: fully dark).
+static func flicker_depth() -> float:
+	if not is_instance_valid(SettingsManager):
+		return 1.0
+	var v: Variant = SettingsManager.get_value(&"flicker_intensity")
+	return clampf(float(v), Tuning.SETTINGS_FLICKER_INTENSITY_MIN, 1.0) if v != null else 1.0
 
 
 func _apply_visual() -> void:
 	if tube == null or _lit_material == null:
 		return
 	var lit := buzz_twin(_lit_material) if buzzing else _lit_material
-	tube.material_override = lit if is_emitting() else dark_twin(_lit_material)
+	if _flash_frame >= 0 and powered:
+		lit = white_twin(_lit_material)
+	# A shallow off instant (12 §6 Flicker intensity below 0.5) keeps the tube lit, dimmer.
+	var emitting := is_lit() and (not _flickering or _flick_on or flicker_depth() < 0.5)
+	tube.material_override = lit if emitting else dark_twin(_lit_material)
 	if glow != null:
-		var e := Tuning.LIGHT_FIXTURE_GLOW_ENERGY * energy_scale() * clampf(intensity, 0.0, 1.3) if is_emitting() else 0.0
+		var e := Tuning.LIGHT_FIXTURE_GLOW_ENERGY * energy_scale() * clampf(intensity, 0.0, Tuning.LIGHT_FLICKER_FLASH_INTENSITY) if emitting else 0.0
 		glow.set_instance_shader_parameter(&"energy", e)
 		glow.visible = e > 0.0
 
@@ -179,6 +273,23 @@ static func buzz_twin(lit: Material) -> Material:
 		st.emission = st.emission * Tuning.LIGHT_FIXTURE_BUZZ_TINT
 		st.emission_energy_multiplier *= Tuning.LIGHT_FIXTURE_BUZZ_ENERGY
 	_buzz_materials[lit] = m
+	return m
+
+
+## The same material at white, bright emission (the lunge flash, 02 §8).
+static func white_twin(lit: Material) -> Material:
+	if _white_materials.has(lit):
+		return _white_materials[lit]
+	var m := lit.duplicate() as Material
+	if m is ShaderMaterial:
+		var sm := m as ShaderMaterial
+		sm.set_shader_parameter(&"emission", Color.WHITE)
+		sm.set_shader_parameter(&"emission_strength", float(sm.get_shader_parameter(&"emission_strength")) * Tuning.LIGHT_FLICKER_FLASH_INTENSITY)
+	elif m is StandardMaterial3D:
+		var st := m as StandardMaterial3D
+		st.emission = Color.WHITE
+		st.emission_energy_multiplier *= Tuning.LIGHT_FLICKER_FLASH_INTENSITY
+	_white_materials[lit] = m
 	return m
 
 

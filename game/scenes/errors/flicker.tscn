@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/errors/error_flicker.gd" id="1_flicker"]
+[ext_resource type="Script" path="res://src/errors/senses.gd" id="2_senses"]
+
+[node name="Flicker" type="Node3D"]
+script = ExtResource("1_flicker")
+error_id = &"flicker"
+
+[node name="Senses" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_senses")
+hearing_mult = 0.8
+sight_range = 0.0
