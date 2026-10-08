@@ -93,9 +93,20 @@ static func top_line() -> String:
 	if cause == WIN_CAUSE:
 		return Strings.SUMMARY_WIN_LINE.replace("{depth}", "%02d" % depth)
 	var cause_text := String(Strings.CAUSE_LINES.get(cause, Strings.CAUSE_DISSOLVED_BY.replace("{error}", String(cause).to_upper())))
-	var stratum := GameState.stratum_for(depth) if run != null else Tuning.STRATUM_DEPTH1
+	var stratum := generated_stratum()
 	return Strings.SUMMARY_TOP_LINE.replace("{cause}", cause_text).replace("{depth}", "%02d" % depth) \
 			.replace("{stratum}", String(Strings.STRATUM_NAMES.get(stratum, String(stratum).to_upper())))
+
+
+## 04 §7 (CHANGELOG 2026-10-08): the stratum the last level was generated as, as the HUD
+## named it; the planned one only when no level was entered.
+static func generated_stratum() -> StringName:
+	var run := GameState.run
+	if run == null:
+		return Tuning.STRATUM_DEPTH1
+	if run.stratum != &"":
+		return run.stratum
+	return GameState.stratum_for(run.depth)
 
 
 static func cause_explanation(cause: StringName) -> String:

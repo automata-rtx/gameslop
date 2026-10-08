@@ -9,6 +9,10 @@ var mode: StringName = &"descent"
 var loadout: StringName = &"faller"
 var depth: int = 1
 var strata_order: Array[StringName] = []
+## The stratum the current level was generated as (LevelData.stratum), set by the run on
+## arrival; empty before the first level. It differs from strata_order while a stratum has no
+## grammar yet (it generates as Halls); the HUD and the summary name this one (04 §6, §7).
+var stratum: StringName = &""
 var coherence: float = Tuning.COHERENCE_MAX  # loadout start applies in start_run (05 §7)
 ## Array[ItemSlot] once 09's ItemSlot exists (M1.10).
 var items: Array = []

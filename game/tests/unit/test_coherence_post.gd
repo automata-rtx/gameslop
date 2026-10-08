@@ -71,7 +71,7 @@ func test_noclip_commit_holds_through_hitstop_and_pass_then_decays() -> void:
 	assert_approx(CoherencePost.commit_envelope(0.63), 0.0, 0.0, "fully decayed 300 ms after the pass")
 	assert_approx(CoherencePost.commit_envelope(INF), 0.0)
 	var p := _compute(1.0, {&"noclip_commit": 0.1})
-	assert_approx(p[&"ca"], 0.05, 0.0001, "commit pulse CA 0.05")
+	assert_approx(p[&"ca"], Tuning.POST_PULSE_NOCLIP_CA, 0.0001, "commit pulse CA (02 §4)")
 	assert_approx(p[&"scan"], 1.0, 0.0001, "commit pulse scanline 1.0")
 	assert_gt(p[&"grain"], 0.18, "grain spike on commit (11 §2)")
 
@@ -144,9 +144,9 @@ func test_static_raises_grain_and_ca() -> void:
 	assert_approx(half[&"grain"], lerpf(0.02, 0.6, 0.5), 0.0001, "scaled by the field falloff")
 	var none := CoherencePost.compute(1.0, 0.0, 0.0, {}, {}, 0.0, false, false, 0.0)
 	assert_approx(none[&"grain"], 0.02, 0.0001)
-	# A commit inside Static keeps its larger CA (Static never lowers a value).
+	# A commit inside Static takes the larger of the two CAs (Static never lowers a value).
 	var both := CoherencePost.compute(1.0, 0.0, 0.0, {&"noclip_commit": 0.0}, {}, 0.0, false, false, 1.0)
-	assert_approx(both[&"ca"], 0.05, 0.0001)
+	assert_approx(both[&"ca"], maxf(Tuning.POST_PULSE_NOCLIP_CA, Tuning.POST_STATIC_CA), 0.0001)
 	var capped := CoherencePost.compute(1.0, 0.0, 0.0, {}, {}, 0.0, true, false, 1.0)
 	assert_approx(capped[&"grain"], 0.06, 0.0001, "reduce visual noise still caps")
 	assert_approx(capped[&"ca"], 0.004, 0.0001)

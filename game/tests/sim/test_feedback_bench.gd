@@ -63,9 +63,10 @@ func test_pending_rows_are_the_unbuilt_features_only() -> void:
 
 ## The sparse rows stay as sparse as the table: they are held to their own count, not lowered.
 func test_sparse_rows_keep_their_own_minimum() -> void:
-	for id in [&"crouch", &"stand", &"still_observed", &"unlock_earned", &"still_within_8m"]:
+	for id in [&"still_observed", &"unlock_earned", &"still_within_8m"]:
 		assert_eq(int(_row(id)[&"min"]), 2, String(id))
 	assert_eq(int(_row(&"walk_step")[&"min"]), 3)
+	assert_eq(int(_row(&"crouch")[&"min"]), 3, "R11: crouch / stand gained the held-light dip")
 
 
 ## Feedback that lies is forbidden (11 §6): a row that fires the sound it names, not just
@@ -77,3 +78,16 @@ func test_rows_fire_their_own_sound() -> void:
 		assert_false(s.is_empty(), "%s has a sound" % id)
 		if not s.is_empty():
 			assert_true(String(s[&"key"]).begins_with("play."), "%s: %s" % [id, s[&"key"]])
+
+
+## R11 #5/#11 determinism: only listed channels are credited, and a gap or sparse row never
+## even reports an unlisted one, so a coincidence cannot change a row's result.
+func test_only_listed_channels_are_credited() -> void:
+	for r in _results:
+		if r[&"status"] == FeedbackRows.PENDING:
+			continue
+		assert_true(int(r[&"fired"]) <= String(r[&"listed"]).length(), "%s fired beyond its listed channels" % r[&"id"])
+		for ch: StringName in (r[&"channels"] as Dictionary):
+			if not String(r[&"listed"]).contains(String(ch)):
+				assert_false(FeedbackBench.is_strict(FeedbackRows.find(r[&"id"])),
+						"%s (gap or sparse) reported unlisted %s" % [r[&"id"], ch])

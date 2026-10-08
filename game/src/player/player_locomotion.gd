@@ -269,8 +269,10 @@ func _update_crouch() -> void:
 func _set_crouched(on: bool) -> void:
 	crouched = on
 	_set_shape(on)
-	# 11 §2 crouch/stand: cloth rustle; camera height 120 ms with a 0.05 m dip.
+	# 11 §2 crouch/stand: cloth rustle; camera height 120 ms with a 0.05 m dip; the held
+	# light dips 1° with it (Image).
 	_p.rig.set_eye_height(Tuning.PLAYER_CAMERA_HEIGHT_CROUCH if on else Tuning.PLAYER_CAMERA_HEIGHT)
+	_p.flashlight.dip(Tuning.FEEDBACK_CROUCH_HELD_DIP_DEG)
 	_p.sounds.play(&"crouch")
 
 

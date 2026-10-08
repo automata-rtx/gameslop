@@ -198,6 +198,7 @@ func _arrive(kind: StringName) -> void:
 	if capture_mouse and DisplayServer.get_name() != "headless":
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_set_phase(PHASE_PLAYING)
+	GameState.run.stratum = data.stratum
 	EventBus.level_entered.emit(GameState.run.depth, data.stratum, kind)
 	_begin_director(level, kind)
 	level_ready.emit(GameState.run.depth)

@@ -69,17 +69,50 @@ func test_binds_a_real_player_and_reads_its_signals() -> void:
 
 
 func test_coherence_numeral_ticks_at_30_per_second() -> void:
-	fake.set_coherence(70.0, &"still")
-	assert_eq(hud.coherence.value, 70.0, "the bar takes the value at once")
+	fake.set_coherence(85.0, &"static")
+	assert_eq(hud.coherence.value, 85.0, "the bar takes the value at once")
 	assert_eq(hud.coherence.numeral_text(), "100", "the numeral does not jump")
-	_step(0.5)
-	assert_approx(hud.coherence.shown, 85.0, 0.01)
-	assert_eq(hud.coherence.numeral_text(), "085")
-	_step(0.5)
-	assert_eq(hud.coherence.numeral_text(), "070")
-	fake.set_coherence(85.0, &"polaroid")
 	_step(0.25)
-	assert_approx(hud.coherence.shown, 77.5, 0.01, "ticks up at the same rate")
+	assert_approx(hud.coherence.shown, 92.5, 0.01)
+	_step(0.25)
+	assert_eq(hud.coherence.numeral_text(), "085")
+	fake.set_coherence(95.0, &"polaroid")
+	_step(0.25)
+	assert_approx(hud.coherence.shown, 92.5, 0.01, "ticks up at the same rate")
+
+
+## 04 §6 (R11): a single change of 20 or more ticks at 60 per second, inside the 600 ms
+## loss linger; the dissolve snaps the numeral to the target.
+func test_big_changes_tick_fast_and_the_dissolve_snaps() -> void:
+	fake.set_coherence(70.0, &"still")
+	assert_eq(hud.coherence.tick_rate, Tuning.COHERENCE_TICK_RATE_FAST)
+	_step(0.25)
+	assert_approx(hud.coherence.shown, 85.0, 0.01, "60 per second")
+	_step(0.25)
+	assert_eq(hud.coherence.numeral_text(), "070", "landed within the loss linger")
+	fake.set_coherence(60.0, &"static")
+	assert_eq(hud.coherence.tick_rate, Tuning.COHERENCE_TICK_RATE, "a small change walks at 30")
+	_step(0.4)
+	fake.set_coherence(0.0, &"still")
+	hud._on_dissolved(&"still")
+	assert_eq(hud.coherence.numeral_text(), "000", "snapped at the dissolve")
+
+
+## 11 §3 Unlock earned: the unlock chime plays with the notification.
+func test_unlock_earned_plays_the_chime() -> void:
+	var before := _chimes()
+	EventBus.unlock_earned.emit(&"radio")
+	assert_eq(_chimes(), before + 1, "ui_unlock played")
+
+
+func _chimes() -> int:
+	var n := 0
+	if AudioManager.pool == null:
+		return 0
+	for p: Node in AudioManager.pool.players_2d:
+		if p.get_meta(AudioPool.META_ID, &"") == &"ui_unlock" and bool(p.get(&"playing")):
+			n += 1
+	return n
 
 
 func test_coherence_loss_segment_lingers_600_ms_then_shutters_out() -> void:

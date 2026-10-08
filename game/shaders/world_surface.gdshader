@@ -76,7 +76,8 @@ uniform float wear_from = 0.55;
 const float GRID_SPACING = 0.5;          // WORLD_GRID_SPACING
 const vec3 GRID_COLOR = vec3(0.7913, 0.7913, 0.7913); // WORLD_GRID_LINE_COLOR in linear
 const float SOFT_BAND_HZ = 0.5;          // WORLD_SOFT_BAND_HZ
-const float SOFT_BAND_AMPLITUDE = 0.03;  // WORLD_SOFT_BAND_AMPLITUDE
+const float SOFT_BAND_AMPLITUDE = 0.08;  // WORLD_SOFT_BAND_AMPLITUDE
+const float SOFT_BAND_K = 6.3;           // WORLD_SOFT_BAND_K
 const float SOFT_PREVIEW_U = 0.3;        // WORLD_SOFT_PREVIEW_U
 const float SOFT_PREVIEW_DIST = 2.0;     // WORLD_SOFT_PREVIEW_DIST
 const float SOFT_PREVIEW_SPAN = 1.2;     // WORLD_SOFT_PREVIEW_SPAN
@@ -261,11 +262,14 @@ void fragment() {
 		base *= 1.0 - floor_seam * (1.0 - smoothstep(0.0, floor_seam_width, COLOR.b));
 	}
 
-	// 02 §5 soft walls: a faint moving interference band, 0.5 Hz, amplitude 0.03.
+	// 02 §5 soft walls: a faint moving interference band, 0.5 Hz, amplitude 0.08 (R11: 0.03
+	// did not read). Bands about 1 m apart drift up the wall at the band rate, their strength
+	// beating slowly along it, so the wall shimmers rather than breathing as one tone.
 	float soft_u = 0.0;
 	if (soft > 0.5) {
 		float ph = TAU * SOFT_BAND_HZ * g_time;
-		base += SOFT_BAND_AMPLITUDE * sin(ph + v_world_pos.y * 2.2) * sin(ph * 0.5 - puv.x * 3.1 + v_world_pos.y * 0.7);
+		float beat = 0.6 + 0.4 * sin(ph * 0.5 - puv.x * 3.1 + v_world_pos.y * 0.7);
+		base += SOFT_BAND_AMPLITUDE * sin(ph - v_world_pos.y * SOFT_BAND_K) * beat;
 		// Aimed within 2 m: intersect the crosshair ray with this surface's plane.
 		float facing = dot(fwd, n);
 		if (facing < -0.05) {

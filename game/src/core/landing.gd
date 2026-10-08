@@ -27,6 +27,21 @@ const SHUDDER_HZ := Vector2(31.0, 23.0)
 const DOOR_TIME := 0.6
 const CEILING_EMISSION := 4.0
 const LIGHT_ENERGY := 1.8
+## 02 §7 Landing cabin look (render constants, R11).
+const JAMB := 0.06
+const DOOR_SEAM := 0.02
+const DOOR_LAMP_EMISSION := 6.0
+const PANEL_PATTERN := 6
+const PANEL_SIZE_M := 0.5
+const PANEL_SEAM_M := 0.006
+const STEEL_ALBEDO := Color(0.40, 0.41, 0.43)
+const DOOR_ALBEDO := Color(0.58, 0.59, 0.61)
+const RUBBER_ALBEDO := Color(0.05, 0.05, 0.055)
+const SEAM_ALBEDO := Color(0.06, 0.06, 0.07)
+const STEEL_METALLIC := 0.55
+const STEEL_ROUGHNESS := 0.3
+const STEEL_NOISE := 0.4
+const PANEL_SHADER := "res://shaders/landing_panel.gdshader"
 const METAL := "res://data/materials/halls/prop_metal.tres"
 const BLACK := "res://data/materials/halls/prop_black.tres"
 const EMISSIVE := "res://data/materials/halls/fixture_emissive.tres"
@@ -108,9 +123,11 @@ func _open_door() -> void:
 	var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(_door_l, ^"position:x", DOOR_X - DOOR_WIDTH * 0.75, DOOR_TIME)
 	tw.tween_property(_door_r, ^"position:x", DOOR_X + DOOR_WIDTH * 0.75, DOOR_TIME)
-	tw.chain().tween_callback(func() -> void:
-		running = false
-		finished.emit())
+	tw.chain().tween_callback(func() -> void: running = false)
+	# 05 §4 / 11 §3 Arrival (proper): the door opens onto the next level, so the arrival (the
+	# cut, level_entered, the depth label) shares this frame with the door's sound; the slide
+	# plays under the cut (CHANGELOG R11).
+	finished.emit()
 
 
 func _exit_tree() -> void:
@@ -170,25 +187,45 @@ func slot_under_crosshair() -> int:
 
 # --- geometry -------------------------------------------------------------------------------
 
+## 02 §7 Landing cabin: brushed steel panels, a dark rubber floor, a warm key light from
+## above the door wall, and a door that reads (dark jambs, a black shaft behind two leaves
+## with a seam, a lamp over it). Every surface is the world shader (02 §5, T8).
 func _build_cabin() -> void:
-	var metal := load(METAL) as Material
+	var steel := _steel(STEEL_ALBEDO, PANEL_PATTERN)
+	var door_steel := _steel(DOOR_ALBEDO, 0)
 	var black := load(BLACK) as Material
+	var rubber := _steel(RUBBER_ALBEDO, 0)
+	rubber.set_shader_parameter(&"metallic", 0.0)
+	rubber.set_shader_parameter(&"roughness", 0.9)
 	var hw := CABIN_SIZE.x * 0.5
 	var hd := CABIN_SIZE.z * 0.5
 	var h := CABIN_SIZE.y
-	_box(Vector3(CABIN_SIZE.x, WALL, CABIN_SIZE.z), Vector3(0, -WALL * 0.5, 0), black, true)
-	_box(Vector3(CABIN_SIZE.x, WALL, CABIN_SIZE.z), Vector3(0, h + WALL * 0.5, 0), metal, false)
-	_box(Vector3(WALL, h, CABIN_SIZE.z), Vector3(-hw - WALL * 0.5, h * 0.5, 0), metal, true)
-	_box(Vector3(WALL, h, CABIN_SIZE.z), Vector3(hw + WALL * 0.5, h * 0.5, 0), metal, true)
-	_box(Vector3(CABIN_SIZE.x, h, WALL), Vector3(0, h * 0.5, hd + WALL * 0.5), metal, true)
+	_box(Vector3(CABIN_SIZE.x, WALL, CABIN_SIZE.z), Vector3(0, -WALL * 0.5, 0), rubber, true)
+	_box(Vector3(CABIN_SIZE.x, WALL, CABIN_SIZE.z), Vector3(0, h + WALL * 0.5, 0), steel, false)
+	_box(Vector3(WALL, h, CABIN_SIZE.z), Vector3(-hw - WALL * 0.5, h * 0.5, 0), steel, true)
+	_box(Vector3(WALL, h, CABIN_SIZE.z), Vector3(hw + WALL * 0.5, h * 0.5, 0), steel, true)
+	_box(Vector3(CABIN_SIZE.x, h, WALL), Vector3(0, h * 0.5, hd + WALL * 0.5), steel, true)
 	# Front wall around the door opening.
 	var left_w := DOOR_X - DOOR_WIDTH * 0.5 + hw
 	var right_w := hw - (DOOR_X + DOOR_WIDTH * 0.5)
-	_box(Vector3(left_w, h, WALL), Vector3(-hw + left_w * 0.5, h * 0.5, -hd - WALL * 0.5), metal, true)
-	_box(Vector3(right_w, h, WALL), Vector3(hw - right_w * 0.5, h * 0.5, -hd - WALL * 0.5), metal, true)
-	_box(Vector3(DOOR_WIDTH, h - DOOR_HEIGHT, WALL), Vector3(DOOR_X, (h + DOOR_HEIGHT) * 0.5, -hd - WALL * 0.5), metal, true)
-	_door_l = _box(Vector3(DOOR_WIDTH * 0.5, DOOR_HEIGHT, 0.04), Vector3(DOOR_X - DOOR_WIDTH * 0.25, DOOR_HEIGHT * 0.5, -hd + 0.03), metal, false)
-	_door_r = _box(Vector3(DOOR_WIDTH * 0.5, DOOR_HEIGHT, 0.04), Vector3(DOOR_X + DOOR_WIDTH * 0.25, DOOR_HEIGHT * 0.5, -hd + 0.03), metal, false)
+	_box(Vector3(left_w, h, WALL), Vector3(-hw + left_w * 0.5, h * 0.5, -hd - WALL * 0.5), steel, true)
+	_box(Vector3(right_w, h, WALL), Vector3(hw - right_w * 0.5, h * 0.5, -hd - WALL * 0.5), steel, true)
+	_box(Vector3(DOOR_WIDTH, h - DOOR_HEIGHT, WALL), Vector3(DOOR_X, (h + DOOR_HEIGHT) * 0.5, -hd - WALL * 0.5), steel, true)
+	# The door: dark jambs and header proud of the wall, the black shaft behind the opening,
+	# two leaves with a seam between them, and a warm lamp over the opening.
+	var jz := -hd + JAMB * 0.5
+	_box(Vector3(JAMB, DOOR_HEIGHT + JAMB, JAMB), Vector3(DOOR_X - DOOR_WIDTH * 0.5 - JAMB * 0.5, (DOOR_HEIGHT + JAMB) * 0.5, jz), black, false)
+	_box(Vector3(JAMB, DOOR_HEIGHT + JAMB, JAMB), Vector3(DOOR_X + DOOR_WIDTH * 0.5 + JAMB * 0.5, (DOOR_HEIGHT + JAMB) * 0.5, jz), black, false)
+	_box(Vector3(DOOR_WIDTH + JAMB * 2.0, JAMB, JAMB), Vector3(DOOR_X, DOOR_HEIGHT + JAMB * 0.5, jz), black, false)
+	_box(Vector3(DOOR_WIDTH + 0.2, DOOR_HEIGHT + 0.1, 0.05), Vector3(DOOR_X, DOOR_HEIGHT * 0.5, -hd - WALL - 0.03), black, false)
+	var leaf := DOOR_WIDTH * 0.5 - DOOR_SEAM * 0.5
+	_door_l = _box(Vector3(leaf, DOOR_HEIGHT, 0.04), Vector3(DOOR_X - DOOR_WIDTH * 0.25 - DOOR_SEAM * 0.25, DOOR_HEIGHT * 0.5, -hd - 0.02), door_steel, false)
+	_door_r = _box(Vector3(leaf, DOOR_HEIGHT, 0.04), Vector3(DOOR_X + DOOR_WIDTH * 0.25 + DOOR_SEAM * 0.25, DOOR_HEIGHT * 0.5, -hd - 0.02), door_steel, false)
+	var lamp := (load(EMISSIVE) as Material).duplicate() as ShaderMaterial
+	if lamp != null:
+		lamp.set_shader_parameter(&"emission", Color(Tuning.LANDING_KEY_COLOR))
+		lamp.set_shader_parameter(&"emission_strength", DOOR_LAMP_EMISSION)
+	_box(Vector3(0.36, 0.05, 0.03), Vector3(DOOR_X, DOOR_HEIGHT + JAMB + 0.1, -hd + 0.015), lamp, false)
 	# Handrail and the ceiling light panel.
 	_box(Vector3(0.04, 0.04, CABIN_SIZE.z * 0.8), Vector3(hw - 0.06, 0.95, 0), black, false)
 	var lit := (load(EMISSIVE) as Material).duplicate() as ShaderMaterial
@@ -202,6 +239,32 @@ func _build_cabin() -> void:
 	light.light_energy = LIGHT_ENERGY
 	light.light_color = Color(1.0, 0.94, 0.78)
 	geometry.add_child(light)
+	# The warm key: from the ceiling behind the player, down onto the door wall and panel.
+	var key := SpotLight3D.new()
+	key.name = "CabinKey"
+	key.position = Vector3(0.1, h - 0.12, hd - 0.2)
+	geometry.add_child(key)
+	key.basis = Basis.looking_at(Vector3(0.1, 1.1, -hd) - key.position, Vector3.UP)
+	key.spot_range = 4.0
+	key.spot_angle = Tuning.LANDING_KEY_ANGLE_DEG
+	key.spot_angle_attenuation = 0.8
+	key.light_energy = Tuning.LANDING_KEY_ENERGY
+	key.light_color = Color(Tuning.LANDING_KEY_COLOR)
+	key.shadow_enabled = true
+
+
+## A world-shader steel of `albedo`: brushed panels when `pattern` is 6 (02 §7 cabin).
+func _steel(albedo: Color, pattern: int) -> ShaderMaterial:
+	var m := (load(METAL) as ShaderMaterial).duplicate() as ShaderMaterial
+	m.set_shader_parameter(&"albedo", albedo)
+	m.set_shader_parameter(&"albedo_secondary", SEAM_ALBEDO)
+	m.set_shader_parameter(&"pattern_mode", pattern)
+	m.set_shader_parameter(&"pattern_scale", PANEL_SIZE_M)
+	m.set_shader_parameter(&"pattern_detail", PANEL_SEAM_M)
+	m.set_shader_parameter(&"metallic", STEEL_METALLIC)
+	m.set_shader_parameter(&"roughness", STEEL_ROUGHNESS)
+	m.set_shader_parameter(&"noise_albedo_amount", STEEL_NOISE)
+	return m
 
 
 func _box(sz: Vector3, pos: Vector3, mat: Material, solid: bool) -> MeshInstance3D:
@@ -229,7 +292,12 @@ func _box(sz: Vector3, pos: Vector3, mat: Material, solid: bool) -> MeshInstance
 func _build_panel() -> void:
 	_viewport = SubViewport.new()
 	_viewport.name = "PanelViewport"
-	_viewport.size = LandingPanel.SIZE
+	# Rendered at 2x its layout size with the 2D stretched and fonts oversampled, so the text
+	# stays crisp on the cabin wall at 960 x 540 and at 1080p (02 §7 Landing cabin).
+	_viewport.size = LandingPanel.SIZE * Tuning.LANDING_PANEL_SUPERSAMPLE
+	_viewport.size_2d_override = LandingPanel.SIZE
+	_viewport.size_2d_override_stretch = true
+	_viewport.oversampling = true
 	_viewport.transparent_bg = false
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	panel = LandingPanel.new()
@@ -241,9 +309,9 @@ func _build_panel() -> void:
 	var q := QuadMesh.new()
 	q.size = PANEL_SIZE
 	_panel_quad.mesh = q
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_texture = _viewport.get_texture()
+	var mat := ShaderMaterial.new()
+	mat.shader = load(PANEL_SHADER) as Shader
+	mat.set_shader_parameter(&"panel_tex", _viewport.get_texture())
 	_panel_quad.material_override = mat
 	_panel_quad.position = PANEL_POS
 	geometry.add_child(_panel_quad)

@@ -19,6 +19,8 @@ const BEAT_DECAY := 8.0
 var value: float = Tuning.COHERENCE_MAX
 ## The numeral's walking value.
 var shown: float = Tuning.COHERENCE_MAX
+## Units per second the numeral walks at (04 §6: 30, or 60 after a change of 20 or more).
+var tick_rate: float = Tuning.COHERENCE_TICK_RATE
 ## Director threat 0..1 (EventBus.threat_changed), sets the heartbeat rate.
 var threat: float = 0.0
 ## Live segments: {from, to, kind, t}.
@@ -57,6 +59,10 @@ func _process(delta: float) -> void:
 func set_value(v: float, delta: float) -> void:
 	var before := value
 	value = clampf(v, 0.0, Tuning.COHERENCE_MAX)
+	# 04 §6: a big single change (a contact, a drop) ticks at the fast rate so the numeral
+	# lands inside the loss linger; small changes keep the 30 per second walk.
+	tick_rate = Tuning.COHERENCE_TICK_RATE_FAST if absf(delta) >= Tuning.COHERENCE_TICK_FAST_FROM \
+			else Tuning.COHERENCE_TICK_RATE
 	if is_zero_approx(delta):
 		shown = value
 		segments.clear()
@@ -64,6 +70,13 @@ func set_value(v: float, delta: float) -> void:
 		segments.append({"from": value, "to": before, "kind": LOSS, "t": 0.0})
 	elif value > before:
 		segments.append({"from": before, "to": value, "kind": GAIN, "t": 0.0})
+	_render_numeral()
+	queue_redraw()
+
+
+## 04 §6: at the dissolve the numeral stops walking and reads the target (000).
+func snap() -> void:
+	shown = value
 	_render_numeral()
 	queue_redraw()
 
@@ -96,7 +109,7 @@ func track_pulse() -> float:
 
 func advance(dt: float) -> void:
 	var before := shown
-	shown = UiMotion.tick_toward(shown, value, Tuning.COHERENCE_TICK_RATE, dt)
+	shown = UiMotion.tick_toward(shown, value, tick_rate, dt)
 	_beat_t += dt
 	var live: Array[Dictionary] = []
 	for s in segments:

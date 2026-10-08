@@ -38,6 +38,7 @@ var _script_vars: Dictionary = {}
 ## The HUD prompt's hold bar: 11 §2 lists "underline fills on the prompt" as Image and "fill
 ## bar" as Readout for Interact hold; it is one widget, so it counts on both channels.
 var _underline: Dictionary = {}
+var _last_charge: float = 0.0
 
 
 func clear_history() -> void:
@@ -112,6 +113,10 @@ func _image(tree: SceneTree) -> Dictionary:
 	var cr := CoherenceRenderer
 	d["cr.coherence"] = cr.coherence01
 	d["cr.noclip_charge"] = cr.noclip_charge
+	# The preview's direction (11 §2 noclip cancel: "preview collapses"): the charge value
+	# moves every frame while charging, so the turn from growing to collapsing is its own key.
+	d["cr.noclip_preview"] = signf(snappedf(cr.noclip_charge - _last_charge, 0.0001))
+	_last_charge = cr.noclip_charge
 	d["cr.noclip_commit"] = cr.noclip_commit
 	d["cr.noclip_invalid"] = cr.noclip_invalid
 	d["cr.noclip_target"] = cr.noclip_target
@@ -138,7 +143,11 @@ func _image(tree: SceneTree) -> Dictionary:
 		d["light.hand"] = f.hand_light.light_energy
 		d["light.lens"] = f.lens_emission()
 		d["light.wheel"] = f.wheel.rotation
+		# The wheel turning or stopped (11 §2 crank full: "wheel stops"); its angle is
+		# noise while it turns, so the stop itself is its own key.
+		d["light.wheel_turning"] = f.is_turning()
 		d["light.held"] = f.held.position
+		d["light.held_rot"] = f.held.rotation
 		d["held.bob_amp"] = snappedf(float(p.rig.get(&"_bob_amp_target")) * p.rig.bob_scale, 0.05)
 		var hand: HeldHand = p.inventory.get(&"_hand")
 		if hand != null and hand.root != null:

@@ -16,6 +16,9 @@ T4  Coherence is visible without the HUD. For each pose the four frames (100, 60
     must be orderable by measurement: between consecutive frames at least two of saturation
     (falls), grain (rises) and vignette (corner-to-centre brightness falls) move the right
     way, and none moves the wrong way by more than its tolerance.
+Soft wall (02 section 5). The band on the soft wall changes the wall between soft_wall_c100
+    and soft_wall_c100_t1 (1 s of world time apart, grain held) by SOFT_MIN_DELTA..SOFT_MAX_DELTA
+    luma, at least SOFT_CONTROL_RATIO times the change elsewhere in the frame.
 Thresholds are constants below; they restate 02, they are not tuned to the frames.
 """
 import json
@@ -34,6 +37,13 @@ T4_SAT_STEP = 0.01
 T4_NOISE_STEP = 0.0005
 T4_VIG_STEP = 0.01
 T4_WRONG_WAY = 0.5   # fraction of the step above which a reversed feature counts as wrong
+# 02 section 5 soft walls: the band's temporal contrast between two frames 1 s apart (half a
+# 0.5 Hz period), as mean |delta luma| of 8 px block means on the wall. Below the minimum the
+# shimmer is not there to read; above the maximum it is garish (it must stay "faint").
+SOFT_BLOCK_PX = 8
+SOFT_MIN_DELTA = 0.008
+SOFT_MAX_DELTA = 0.05
+SOFT_CONTROL_RATIO = 3
 
 
 # ---------------------------------------------------------------- PNG reading
@@ -214,6 +224,38 @@ def check_t4(feats):
     return worst, "; ".join(notes) if notes else "sat/grain/vig ordered"
 
 
+def block_luma(img, block=SOFT_BLOCK_PX):
+    """Luma averaged over block x block tiles (kills grain and TAA speckle)."""
+    y = luma(img)
+    h, w = (y.shape[0] // block) * block, (y.shape[1] // block) * block
+    return y[:h, :w].reshape(h // block, block, w // block, block).mean(axis=(1, 3))
+
+
+def soft_contrast(img_a, img_b, rect, block=SOFT_BLOCK_PX):
+    """(soft, control): mean |delta luma| of the block means inside the soft wall's screen rect and
+    outside it, between two frames SOFT_INTERVAL apart."""
+    d = np.abs(block_luma(img_a, block) - block_luma(img_b, block))
+    x0, y0, x1, y1 = [int(v) // block for v in rect]
+    mask = np.zeros(d.shape, dtype=bool)
+    mask[y0:max(y1, y0 + 1), x0:max(x1, x0 + 1)] = True
+    soft = float(d[mask].mean()) if mask.any() else 0.0
+    control = float(d[~mask].mean()) if (~mask).any() else 0.0
+    return soft, control
+
+
+def check_soft(img_a, img_b, rect):
+    """02 section 5: the soft wall's band must read as a shimmer (a temporal change of at least
+    SOFT_MIN_DELTA luma on the wall, SOFT_CONTROL_RATIO times the rest of the frame) without
+    being garish (at most SOFT_MAX_DELTA)."""
+    if len(rect) != 4 or rect[2] <= rect[0] or rect[3] <= rect[1]:
+        return "NOCOV", "soft wall not on screen"
+    soft, control = soft_contrast(img_a, img_b, rect)
+    ok = soft >= SOFT_MIN_DELTA and soft <= SOFT_MAX_DELTA and soft >= SOFT_CONTROL_RATIO * control
+    detail = "wall %.4f vs rest %.4f luma over 1 s (want %.3f..%.3f, >= %dx rest)" % (
+        soft, control, SOFT_MIN_DELTA, SOFT_MAX_DELTA, SOFT_CONTROL_RATIO)
+    return ("PASS" if ok else "FAIL"), detail
+
+
 def run(tour_dir):
     path = os.path.join(tour_dir, "manifest.json")
     if not os.path.exists(path):
@@ -252,6 +294,14 @@ def run(tour_dir):
                 shown = " ".join("%.2f/%.4f/%.2f" % (f["sat"], f["grain"], f["vig"]) for f in feats)
                 rows.append((stratum, "T4 order " + pose, status, "%s  [sat/grain/vig %s]" % (detail, shown)))
                 failed |= status == "FAIL"
+        if "soft_wall_c100" in entries and "soft_wall_c100_t1" in entries:
+            a, b = entries["soft_wall_c100"], entries["soft_wall_c100_t1"]
+            status, detail = check_soft(decode_png(os.path.join(tour_dir, a["file"])),
+                                        decode_png(os.path.join(tour_dir, b["file"])), a.get("soft_rect", []))
+            rows.append((stratum, "soft wall shimmer", status, detail))
+            failed |= status == "FAIL"
+        else:
+            rows.append((stratum, "soft wall shimmer", "NOCOV", "no soft wall frames (level has none?)"))
         for name in ("noclip_commit", "null_8m"):
             rows.append((stratum, "frame " + name, "PASS" if name in entries else "MISSING",
                          entries[name]["file"] if name in entries else "not captured"))
@@ -313,6 +363,16 @@ def selftest():
               {"sat": 0.5, "grain": 0.008, "vig": 0.6}, {"sat": 0.1, "grain": 0.012, "vig": 0.4}]
     flat = [dict(ladder[0]) for _ in range(4)]
     ok &= check_t4(ladder)[0] == "PASS" and check_t4(flat)[0] == "FAIL"
+    # Soft wall shimmer: a 2% swing inside the rect passes, none fails, a 20% swing is garish.
+    base = np.full((64, 96, 3), 0.4, dtype=np.float32)
+    rect = [32, 16, 64, 48]
+    def swung(v):
+        img = base.copy()
+        img[16:48, 32:64] += v
+        return img
+    ok &= check_soft(base, swung(0.02), rect)[0] == "PASS"
+    ok &= check_soft(base, base, rect)[0] == "FAIL"
+    ok &= check_soft(base, swung(0.2), rect)[0] == "FAIL"
     print("tour_check selftest: %s" % ("ok" if ok else "FAILED"))
     return 0 if ok else 1
 

@@ -313,6 +313,8 @@ func _on_prompt_progress(fraction: float) -> void:
 ## 11 §3 dissolve: the HUD shutters out 0.5 s into the sequence.
 func _on_dissolved(_cause: StringName) -> void:
 	_dissolve_t = 0.0
+	# 04 §6: the numeral snaps to the target (000) rather than walking down under the dissolve.
+	coherence.snap()
 
 
 # --- EventBus -----------------------------------------------------------------------------
@@ -339,7 +341,9 @@ func _on_note_found(id: StringName) -> void:
 	notify(Strings.MSG_ARCHIVE_NOTE.replace("{id}", String(id)))
 
 
+## 11 §3 Unlock earned: the unlock chime and the notification in ui_accent.
 func _on_unlock_earned(id: StringName) -> void:
+	AudioManager.play_2d(&"ui_unlock")
 	notify(unlock_message(id), UiTokens.UI_ACCENT)
 
 
