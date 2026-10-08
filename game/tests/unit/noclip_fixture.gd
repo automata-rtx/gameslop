@@ -24,10 +24,15 @@ static func wall(parent: Node, kind: StringName, pos: Vector3 = Vector3(0, WALL_
 	s.size = size
 	var owner_id := body.create_shape_owner(body)
 	body.shape_owner_add_shape(owner_id, s)
-	body.set_meta(&"shape_meta", {owner_id: {
-		&"cell": Vector2i(0, 0), &"dir": LevelGrid.N, &"wall_type": Tuning.GRID_WALL_TYPES.find(kind),
-		&"wall_kind": kind, &"thickness": size.z, &"other_cell": Vector2i(0, -1),
-		&"walkable": true, &"other_walkable": far_walkable}})
+	# The wall is the N edge of the cell whose N boundary (z = cell * 2 - 1) it stands on.
+	var cell := Vector2i(roundi(pos.x / Tuning.GRID_CELL_SIZE), roundi((pos.z + Tuning.GRID_CELL_SIZE * 0.5) / Tuning.GRID_CELL_SIZE))
+	var meta := {
+		&"cell": cell, &"dir": LevelGrid.N, &"wall_type": Tuning.GRID_WALL_TYPES.find(kind),
+		&"wall_kind": kind, &"thickness": size.z, &"other_cell": cell + LevelGrid.DIRS[LevelGrid.N],
+		&"walkable": true, &"other_walkable": far_walkable}
+	if kind == &"DOOR":
+		meta[&"closed"] = true  # a fixture door is a closed leaf
+	body.set_meta(&"shape_meta", {owner_id: meta})
 	parent.add_child(body)
 	body.global_position = pos
 	return body

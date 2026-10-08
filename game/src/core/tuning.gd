@@ -253,6 +253,13 @@ const NOCLIP_LANDING_STEP := 0.05                   # m between capsule probes a
 const NOCLIP_LANDING_LIFT := 0.02                   # m the landing capsule sits above the floor
 const NOCLIP_FLOOR_PROBE := 1.0                     # m above and below the body the landing floor is looked for
 const NOCLIP_INVALID_PREVIEW := 0.15                # g_noclip_charge shown while invalid, so the dashed preview reads (11 §2)
+# Noclip review task constants (R6; 06 gives no number, CHANGELOG):
+const NOCLIP_PLANE_TOLERANCE := 0.05                # m: two wall hits on one plane are one target (charge keeps across seams)
+const NOCLIP_PLANE_NORMAL_DOT := 0.99               # normals at least this aligned are one plane
+const NOCLIP_LANDING_COARSE_STEP := 0.25            # m between coarse landing probes before the 5 cm fine pass
+const NOCLIP_LANDING_CACHE_QUANT := 0.05            # m pose quantum of the landing cache
+const NOCLIP_LANDING_CACHE_FRAMES := 6              # physics frames a cached landing stays good
+const NOCLIP_FALL_CLAMP_BELOW := 2.0                # m below the floor the drop's fall stops (06 §8: into black, not out of the world)
 
 # 06 §9  Coherence
 const COHERENCE_MAX := 100.0

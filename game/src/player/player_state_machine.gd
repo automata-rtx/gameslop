@@ -29,13 +29,14 @@ const ALL: Array[StringName] = [
 ## from -> allowed targets (besides locomotion-to-locomotion, which is always allowed).
 ## 06 §12: Stunned interrupts NoclipCharge but not NoclipPass. 06 §8: a drop is committed
 ## before the fall, so Dropping never leads to Dissolving. Dissolving and Cinematic end
-## the player's agency for the rest of the run.
+## the player's agency for the rest of the run. A charge ends silently when the player
+## walks into an open exit (Landing) or takes a hide spot (Hidden).
 const TRANSITIONS: Dictionary = {
 	IDLE: [NOCLIP_CHARGE, STUNNED, HIDDEN, LANDING, DROPPING, DISSOLVING, CINEMATIC],
 	WALK: [NOCLIP_CHARGE, STUNNED, HIDDEN, LANDING, DROPPING, DISSOLVING, CINEMATIC],
 	SPRINT: [NOCLIP_CHARGE, STUNNED, HIDDEN, LANDING, DROPPING, DISSOLVING, CINEMATIC],
 	CROUCH: [NOCLIP_CHARGE, STUNNED, HIDDEN, LANDING, DROPPING, DISSOLVING, CINEMATIC],
-	NOCLIP_CHARGE: [IDLE, WALK, CROUCH, NOCLIP_PASS, DROPPING, STUNNED, DISSOLVING],
+	NOCLIP_CHARGE: [IDLE, WALK, CROUCH, NOCLIP_PASS, DROPPING, STUNNED, HIDDEN, LANDING, DISSOLVING],
 	NOCLIP_PASS: [IDLE, WALK, CROUCH, DISSOLVING],
 	STUNNED: [IDLE, WALK, CROUCH, DISSOLVING],
 	HIDDEN: [IDLE, CROUCH, STUNNED, DISSOLVING],

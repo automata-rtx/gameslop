@@ -36,7 +36,10 @@ func test_terminal_states() -> void:
 
 func test_hidden_rules() -> void:
 	assert_true(SM.allowed(SM.IDLE, SM.HIDDEN))
-	assert_false(SM.allowed(SM.NOCLIP_CHARGE, SM.HIDDEN), "no hiding mid-charge")
+	assert_true(SM.allowed(SM.NOCLIP_CHARGE, SM.HIDDEN), "hiding mid-charge cancels the charge (noclip review)")
+	assert_true(SM.allowed(SM.NOCLIP_CHARGE, SM.LANDING), "walking into an open exit mid-charge")
+	assert_false(SM.allowed(SM.NOCLIP_PASS, SM.HIDDEN))
+	assert_false(SM.allowed(SM.DROPPING, SM.HIDDEN))
 	assert_true(SM.allowed(SM.HIDDEN, SM.STUNNED), "a found hider is contacted")
 	assert_false(SM.allowed(SM.HIDDEN, SM.SPRINT))
 

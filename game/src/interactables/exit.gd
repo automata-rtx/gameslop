@@ -177,9 +177,15 @@ func _on_body_entered(body: Node3D) -> void:
 		try_enter(body)
 
 
-## The player stepped into the volume: only an open exit takes them.
+## The player stepped into the volume: only an open exit takes them, and only a player
+## walking in (a locomotion state, charging a noclip, which then ends silently, or
+## stunned at crouch pace): a drop or a pass through the volume is never a proper exit
+## (noclip review).
 func try_enter(player: Node3D) -> bool:
 	if not accepting or is_entering or not is_open():
+		return false
+	var sm: PlayerStateMachine = (player as Player).state_machine if player is Player else null
+	if sm != null and not sm.has_movement():
 		return false
 	is_entering = true
 	AudioManager.play_3d(&"exit_open", sight_point.global_position)
