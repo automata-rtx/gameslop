@@ -7,7 +7,7 @@
 [ext_resource type="Script" path="res://src/interactables/interactable.gd" id="5_interactable"]
 
 [sub_resource type="BoxMesh" id="Mesh_body"]
-size = Vector3(1, 1.85, 0.7)
+size = Vector3(1, 1.85, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_panel"]
 size = Vector3(0.6, 1.2, 0.02)
@@ -19,28 +19,28 @@ size = Vector3(0.22, 0.5, 0.02)
 size = Vector3(0.7, 0.18, 0.02)
 
 [sub_resource type="BoxShape3D" id="Shape_body"]
-size = Vector3(1, 1.85, 0.7)
+size = Vector3(1, 1.85, 0.5)
 
 [node name="Vending" type="Node3D"]
 script = ExtResource("4_script")
 
 [node name="Body" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0.1)
 mesh = SubResource("Mesh_body")
 material_override = ExtResource("1_body")
 
 [node name="Panel" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 1.15, -0.355)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 1.15, -0.155)
 mesh = SubResource("Mesh_panel")
 material_override = ExtResource("2_panel")
 
 [node name="Slot" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.33, 1.1, -0.355)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.33, 1.1, -0.155)
 mesh = SubResource("Mesh_slot")
 material_override = ExtResource("3_black")
 
 [node name="Tray" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.3, -0.355)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.3, -0.155)
 mesh = SubResource("Mesh_tray")
 material_override = ExtResource("3_black")
 
@@ -50,7 +50,7 @@ collision_layer = 9
 collision_mask = 0
 
 [node name="Shape" type="CollisionShape3D" parent="Collider"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0.1)
 shape = SubResource("Shape_body")
 
 [node name="Interactable" type="Node" parent="Collider"]
@@ -60,4 +60,4 @@ prompt = "USE"
 
 [node name="TrayPoint" type="Marker3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.3, -0.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.3, -0.3)

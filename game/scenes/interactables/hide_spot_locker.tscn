@@ -13,31 +13,31 @@ albedo_color = Color(0.02, 0.02, 0.02, 1)
 roughness = 0.9
 
 [sub_resource type="BoxMesh" id="Mesh_back"]
-size = Vector3(1, 2.2, 0.06)
+size = Vector3(0.8, 2.2, 0.06)
 
 [sub_resource type="BoxShape3D" id="Shape_back"]
-size = Vector3(1, 2.2, 0.06)
+size = Vector3(0.8, 2.2, 0.06)
 
 [sub_resource type="BoxMesh" id="Mesh_side"]
-size = Vector3(0.06, 2.2, 0.9)
+size = Vector3(0.06, 2.2, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_side"]
-size = Vector3(0.06, 2.2, 0.9)
+size = Vector3(0.06, 2.2, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_top"]
-size = Vector3(1, 0.06, 0.9)
+size = Vector3(0.8, 0.06, 0.5)
 
 [sub_resource type="BoxShape3D" id="Shape_top"]
-size = Vector3(1, 0.06, 0.9)
+size = Vector3(0.8, 0.06, 0.5)
 
 [sub_resource type="BoxMesh" id="Mesh_door"]
-size = Vector3(0.88, 2.06, 0.03)
+size = Vector3(0.68, 2.06, 0.03)
 
 [sub_resource type="BoxShape3D" id="Shape_door"]
-size = Vector3(0.88, 2.06, 0.03)
+size = Vector3(0.68, 2.06, 0.03)
 
 [sub_resource type="BoxMesh" id="Mesh_slot"]
-size = Vector3(0.5, 0.012, 0.005)
+size = Vector3(0.4, 0.012, 0.005)
 
 [node name="HideSpotLocker" type="Node3D" node_paths=PackedStringArray("occluders")]
 script = ExtResource("1_spot")
@@ -45,40 +45,40 @@ occluders = [NodePath("Door/DoorMesh")]
 
 [node name="ViewPoint" type="Marker3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 1.6, 0.3)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 1.6, 0.1)
 
 [node name="ExitPoint" type="Marker3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 1.0)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0.65)
 
 [node name="Shell" type="StaticBody3D" parent="."]
 collision_mask = 0
 
 [node name="BackMesh" type="MeshInstance3D" parent="Shell"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -0.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -0.22)
 mesh = SubResource("Mesh_back")
 surface_material_override/0 = SubResource("Mat_metal")
 
 [node name="BackShape" type="CollisionShape3D" parent="Shell"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -0.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -0.22)
 shape = SubResource("Shape_back")
 
 [node name="LeftMesh" type="MeshInstance3D" parent="Shell"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.47, 1.1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.37, 1.1, 0)
 mesh = SubResource("Mesh_side")
 surface_material_override/0 = SubResource("Mat_metal")
 
 [node name="LeftShape" type="CollisionShape3D" parent="Shell"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.47, 1.1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.37, 1.1, 0)
 shape = SubResource("Shape_side")
 
 [node name="RightMesh" type="MeshInstance3D" parent="Shell"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.47, 1.1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.37, 1.1, 0)
 mesh = SubResource("Mesh_side")
 surface_material_override/0 = SubResource("Mat_metal")
 
 [node name="RightShape" type="CollisionShape3D" parent="Shell"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.47, 1.1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.37, 1.1, 0)
 shape = SubResource("Shape_side")
 
 [node name="TopMesh" type="MeshInstance3D" parent="Shell"]
@@ -91,7 +91,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.17, 0)
 shape = SubResource("Shape_top")
 
 [node name="Door" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.08, 0.43)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.08, 0.235)
 collision_layer = 9
 collision_mask = 0
 

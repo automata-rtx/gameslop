@@ -8,16 +8,19 @@ extends RefCounted
 ## 40% of the fixture groups dark (60% in Cycle 2) so the floor has unlit regions until the
 ## breaker is thrown.
 
-## Desk footprint (m): 1.4 wide along its wall, 0.6 deep, 0.74 high (prefab desk.tscn): a
-## cubicle cell keeps a lane wide enough for the 0.4 m navigation agent beside it.
-const DESK_DEPTH := 0.6
+## Desk footprint (m): 1.4 wide along its wall, 0.5 deep, 0.74 high (prefab desk.tscn): R13,
+## a wall prop is at most 0.5 m deep, so the cell's cross (LEVEL_PROP_CLEARANCE) stays clear.
+const DESK_DEPTH := 0.5
 const DESK_HEIGHT := 0.74
 ## The monitor stands this far off the desk's wall.
 const MONITOR_INSET := 0.2
-const LOCKER_INSET := 0.3
-const CHAIR_INSET := 0.3
+## R13: the locker's back on the wall plane (0.5 deep), its door 0.4 m from the centre.
+const LOCKER_INSET := 0.25
+## R13: the chair's 0.22 m collider from 0.40 to 0.84 m off the centre line.
+const CHAIR_INSET := 0.28
 const COOLER_INSET := 0.25
-const CABINET_INSET := 0.3
+## R13: the cabinet's back on the wall plane (0.5 deep).
+const CABINET_INSET := 0.25
 ## Filing cabinets per small office: 0 to this many.
 const CABINETS_MAX := 2
 ## Fixture groups that never start dark: the spawn lobby's (the player arrives in light).

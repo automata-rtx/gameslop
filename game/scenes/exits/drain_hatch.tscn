@@ -216,23 +216,23 @@ mesh = SubResource("Box_17")
 material_override = ExtResource("5_x")
 
 [node name="Post" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 0.8, 0.06)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 0.8, -0.66)
 mesh = SubResource("Box_18")
 material_override = ExtResource("5_x")
 
 [node name="PostFoot" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 0.02, 0.06)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 0.02, -0.66)
 mesh = SubResource("Box_19")
 material_override = ExtResource("5_x")
 
 [node name="LampHousing" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 1.64, 0.06)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 1.64, -0.66)
 mesh = SubResource("Box_20")
 material_override = ExtResource("5_x")
 
 [node name="Lamp" type="MeshInstance3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 1.72, 0.06)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 1.72, -0.66)
 mesh = SubResource("Box_22")
 material_override = SubResource("Mat_21")
 cast_shadow = 0
@@ -243,12 +243,12 @@ collision_mask = 0
 metadata/wall_kind = &"PROP"
 
 [node name="Shape" type="CollisionShape3D" parent="PostBody"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 0.8, 0.06)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 0.8, -0.66)
 shape = SubResource("Shape_23")
 
 [node name="Display" type="Label3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 1.47, -0.002)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 1.47, -0.722)
 visible = false
 pixel_size = 0.0016
 text = "01:10"
@@ -261,7 +261,7 @@ texture_filter = 1
 
 [node name="ReaderMount" type="Node3D" parent="."]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.98, 0, -0.005)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.66, 0, -0.725)
 
 [node name="Light" type="OmniLight3D" parent="."]
 unique_name_in_owner = true

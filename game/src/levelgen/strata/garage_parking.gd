@@ -5,6 +5,10 @@ extends RefCounted
 ## about 35% of the bays, a cell apart, each a hide spot host (under_car, the HideSpot scene
 ## of M2.8); barriers stand at 10% of the bay-row ends. Nothing parks where it would cut the
 ## deck in two: every car and barrier keeps all walkable cells reachable around it.
+## R13: a car fills its two cells and a barrier its one, so they are recorded in the grid
+## (LevelGrid.block: F_BLOCKED, not walkable); never on the critical path, and never at a
+## ramp head (GARAGE_RAMP_HEAD_CLEAR_CELLS beyond either end of a ramp, its column and the
+## two beside it), so a ramp always opens onto clear deck.
 ## Lamps: a sodium cage lamp on one face of every pillar (the face looking down the longest
 ## open run), grouped by 4x4-cell quadrants; one in each core room and on each ramp.
 
@@ -22,6 +26,8 @@ var cars: int = 0
 
 ## Cell index -> true for the cells either side of a soft wall (kept clear).
 var _soft_cells: Dictionary = {}
+## Cell index -> true for the cells in front of a ramp's ends (kept clear).
+var _ramp_heads: Dictionary = {}
 
 
 func _init(generator: GarageGenerator) -> void:
@@ -31,6 +37,19 @@ func _init(generator: GarageGenerator) -> void:
 		var a := Vector2i(e.x, e.y)
 		_soft_cells[grid.idx(a)] = true
 		_soft_cells[grid.idx(a + LevelGrid.DIRS[e.z])] = true
+	for run: Array in gen.ramps:
+		if run.is_empty():
+			continue
+		var up := grid.ramp_dir_of(run[0])
+		if up < 0:
+			continue
+		var side := LevelGrid.DIRS[(up + 1) % 4]
+		for end: Array in [[run[run.size() - 1], LevelGrid.DIRS[up]], [run[0], -LevelGrid.DIRS[up]]]:
+			for k in range(1, Tuning.GARAGE_RAMP_HEAD_CLEAR_CELLS + 1):
+				for s in range(-1, 2):
+					var c: Vector2i = end[0] + (end[1] as Vector2i) * k + side * s
+					if grid.in_bounds(c):
+						_ramp_heads[grid.idx(c)] = true
 
 
 ## Bay cells: Vector3i(x, z, wall dir) for deck cells against a strip or the deck's
@@ -86,12 +105,16 @@ func park() -> void:
 			break
 		var a := Vector2i(p.x, p.y)
 		var b := a + LevelGrid.DIRS[p.w]
+		# The under_car spot lets the player out into the aisle beside the car's middle (R13).
+		var aisle := LevelGrid.DIRS[LevelGrid.opposite(p.z)]
+		if not grid.is_walkable(a + aisle) or not grid.is_walkable(b + aisle):
+			continue
 		if not _clear_around(a) or not _clear_around(b) or not _keeps_connected([a, b]):
 			continue
 		for c in [a, b]:
 			blocked[grid.idx(c)] = true
 			gen.occupied[grid.idx(c)] = true
-			grid.add_flag(c, LevelGrid.F_NO_SPAWN)
+			grid.block(c)
 		grid.add_flag(a, LevelGrid.F_HIDE_SPOT_HOST)
 		var off := StratumGenerator.wall_offset(p.z, CAR_INSET) + Vector3(LevelGrid.DIRS[p.w].x, 0, LevelGrid.DIRS[p.w].y) * Tuning.GRID_CELL_SIZE * 0.5
 		var yaw := LevelData.yaw_facing(p.w)
@@ -106,9 +129,12 @@ func park() -> void:
 	_barriers(all, bay_of, rng)
 
 
-## No other car or barrier within one cell (07 §5.3: min spacing 1 cell).
+## No other car or barrier within one cell (07 §5.3: min spacing 1 cell); never on the
+## critical path or a ramp head (R13).
 func _clear_around(c: Vector2i) -> bool:
-	if gen.occupied.has(grid.idx(c)) or grid.kind(c) != LevelGrid.FLOOR or _soft_cells.has(grid.idx(c)):
+	var i := grid.idx(c)
+	if gen.occupied.has(i) or grid.kind(c) != LevelGrid.FLOOR or _soft_cells.has(i) or _ramp_heads.has(i) \
+			or grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
 		return false
 	for z in range(c.y - 1, c.y + 2):
 		for x in range(c.x - 1, c.x + 2):
@@ -207,7 +233,7 @@ func _search_connected(extra: Array) -> bool:
 				queue.append(j)
 	var want := 0
 	for i in grid.cell_count():
-		if LevelGrid.kind_walkable(grid.cells[i]) and not blocked.has(i) and not extra.has(grid.cell_at(i)):
+		if grid.is_walkable_i(i) and not blocked.has(i) and not extra.has(grid.cell_at(i)):
 			want += 1
 	return queue.size() == want
 
@@ -233,7 +259,7 @@ func _barriers(all: Array[Vector3i], bay_of: Dictionary, rng: RandomNumberGenera
 			continue
 		blocked[grid.idx(c)] = true
 		gen.occupied[grid.idx(c)] = true
-		grid.add_flag(c, LevelGrid.F_NO_SPAWN)
+		grid.block(c)
 		gen.data.add_placement(LevelData.P_PROP, c, StratumGenerator.wall_offset(e.z, BARRIER_INSET),
 			LevelData.yaw_facing(e.z), {&"prop": &"barrier", &"dir": e.z})
 		made += 1

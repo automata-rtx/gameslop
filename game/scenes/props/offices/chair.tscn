@@ -28,7 +28,7 @@ rings = 1
 size = Vector3(0.3, 0.03, 0.05)
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_6"]
-radius = 0.25
+radius = 0.22
 height = 1
 
 [node name="Chair" type="Node3D"]

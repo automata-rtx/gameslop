@@ -144,7 +144,8 @@ func _lane_rope(basin: Dictionary) -> void:
 		c -= LevelGrid.DIRS[up]
 
 
-## A lifeguard chair on the hall floor beside the rim, facing the water.
+## A lifeguard chair on the hall floor beside the rim, facing the water. Its 0.8 m frame
+## fills the cell (R13): the cell is blocked, so only where the hall stays whole without it.
 func _lifeguard_chair(basin: Dictionary, rng: RandomNumberGenerator) -> void:
 	var sides := _sides(basin)
 	var side := sides[rng.randi_range(0, 1)]
@@ -152,8 +153,9 @@ func _lifeguard_chair(basin: Dictionary, rng: RandomNumberGenerator) -> void:
 	var grid := gen.grid
 	if not grid.is_walkable(c) or gen.occupied.has(grid.idx(c)):
 		return
+	if not BlockOps.try_block(grid, [c] as Array[Vector2i], gen.data.spawn_cell):
+		return
 	gen.occupied[grid.idx(c)] = true
-	grid.add_flag(c, LevelGrid.F_NO_SPAWN)
 	_prop(&"lifeguard_chair", c, Vector3.ZERO, LevelData.yaw_facing(LevelGrid.opposite(side)), -1)
 
 
