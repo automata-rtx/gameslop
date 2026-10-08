@@ -22,6 +22,8 @@ static func poses(data: LevelData) -> Array[Dictionary]:
 			var d := _deck_pose(data)
 			if not d.is_empty():
 				out.append(d)
+		&"offices", &"server":
+			out.append_array(StratumShotsM22.poses(data))
 	return out
 
 

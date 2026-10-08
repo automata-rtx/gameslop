@@ -76,7 +76,7 @@ static func spend_kind(target: StringName) -> StringName:
 ## - `cache`: an optional Dictionary the caller keeps between frames (find_landing_cached);
 ##   null computes every landing afresh.
 ## Returns {target, valid, reason, point, normal, distance, key, landing, has_landing,
-## wall_kind, plane, far_cell, has_far_cell, far_floor_y}. `key` names the aim for display
+## wall_kind, plane, far_cell, has_far_cell, far_floor_y, pass_depth}. `key` names the aim for display
 ## and debugging; same_target() decides whether two aims are one target.
 static func evaluate(space: PhysicsDirectSpaceState3D, eye: Vector3, dir: Vector3, body_pos: Vector3,
 		shape: Shape3D, coherence: float, floor_solid: bool, exclude: Array[RID] = [],
@@ -85,7 +85,7 @@ static func evaluate(space: PhysicsDirectSpaceState3D, eye: Vector3, dir: Vector
 	var out := {&"target": TARGET_NONE, &"valid": false, &"reason": Tuning.NOCLIP_REASON_TOO_FAR,
 		&"point": Vector3.ZERO, &"normal": Vector3.ZERO, &"distance": INF, &"key": "",
 		&"landing": body_pos, &"has_landing": false, &"wall_kind": &"", &"plane": 0.0,
-		&"far_cell": Vector2i.ZERO, &"has_far_cell": false, &"far_floor_y": body_pos.y}
+		&"far_cell": Vector2i.ZERO, &"has_far_cell": false, &"far_floor_y": body_pos.y, &"pass_depth": 0.0}
 	var hit := _ray(space, eye, eye + d * Tuning.NOCLIP_PROBE_RANGE, exclude)
 	if hit.is_empty():
 		# The builder makes no ceiling colliders: an upward aim that meets nothing is the
@@ -133,6 +133,7 @@ static func evaluate(space: PhysicsDirectSpaceState3D, eye: Vector3, dir: Vector
 			out[&"has_far_cell"] = true
 		if far[&"has_floor_y"]:
 			out[&"far_floor_y"] = far[&"floor_y"]
+		out[&"pass_depth"] = float(far.get(&"pass_depth", 0.0))
 		var landing: Variant = find_landing_cached(cache, space, p, n, d, float(out[&"far_floor_y"]),
 				shape, exclude, far)
 		if landing == null:
@@ -212,6 +213,8 @@ static func far_side_walkable(info: Dictionary, normal: Vector3) -> int:
 static func far_side(info: Dictionary, normal: Vector3) -> Dictionary:
 	var out := {&"known": false, &"walkable": true, &"has_cell": false, &"cell": Vector2i.ZERO,
 		&"has_floor_y": false, &"floor_y": 0.0}
+	if bool(info.get(&"rack", false)) and info.has(&"far_walkable") and info.get(&"cell") is Vector2i:
+		return rack_far_side(info, normal, out)
 	if not (info.has(&"dir") and info.has(&"walkable") and info.has(&"other_walkable")):
 		return out
 	var dv: Vector2i = LevelGrid.DIRS[int(info[&"dir"])]
@@ -226,6 +229,31 @@ static func far_side(info: Dictionary, normal: Vector3) -> Dictionary:
 	if info.has(fy_key):
 		out[&"has_floor_y"] = true
 		out[&"floor_y"] = float(info[fy_key])
+	return out
+
+
+## M2.2 rack ruling (07 §7, open item M2.2): a rack face passes through the whole rack
+## (the cell and both edge strips) to the cell beyond it along the face's inward normal;
+## that cell must be walkable (a rack behind the rack is NO SPACE). `pass_depth` is how much
+## deeper than a wall the pass reaches, so the landing is looked for beyond the rack.
+static func rack_far_side(info: Dictionary, normal: Vector3, out: Dictionary) -> Dictionary:
+	var into := Vector2(-normal.x, -normal.z)
+	var best := 0
+	var best_dot := -INF
+	for d in 4:
+		var dot := Vector2(LevelGrid.DIRS[d]).dot(into)
+		if dot > best_dot:
+			best_dot = dot
+			best = d
+	var c: Vector2i = info[&"cell"]
+	out[&"known"] = true
+	out[&"walkable"] = bool((info[&"far_walkable"] as Array)[best])
+	out[&"has_cell"] = true
+	out[&"cell"] = c + LevelGrid.DIRS[best]
+	if info.has(&"far_floor_y"):
+		out[&"has_floor_y"] = true
+		out[&"floor_y"] = float((info[&"far_floor_y"] as Array)[best])
+	out[&"pass_depth"] = maxf(0.0, float(info.get(&"thickness", Tuning.GRID_WALL_THICKNESS)) - Tuning.GRID_WALL_THICKNESS)
 	return out
 
 

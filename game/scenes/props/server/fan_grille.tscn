@@ -1,0 +1,137 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Material" path="res://data/materials/server/dark_metal.tres" id="1_r"]
+[ext_resource type="Material" path="res://data/materials/server/prop_metal.tres" id="2_r"]
+[ext_resource type="Script" path="res://src/levelgen/props/server_fan.gd" id="3_r"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(0.8, 0.03, 0.04)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(0.04, 0.03, 0.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(0.76, 0.008, 0.008)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_4"]
+top_radius = 0.06
+bottom_radius = 0.06
+height = 0.04
+radial_segments = 10
+rings = 1
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(0.3, 0.008, 0.08)
+
+[sub_resource type="Animation" id="Animation_6"]
+resource_name = "spin"
+length = 0.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Blades:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {"times": PackedFloat32Array(0, 0.8), "transitions": PackedFloat32Array(1, 1), "update": 0, "values": [Vector3(0, 0, 0), Vector3(0, 6.28319, 0)]}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_7"]
+_data = {&"spin": SubResource("Animation_6")}
+
+[node name="FanGrille" type="Node3D"]
+script = ExtResource("3_r")
+merge = Array[NodePath]([NodePath("Blades")])
+cast_shadows = false
+
+[node name="FrameN" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.015, -0.38)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("1_r")
+cast_shadow = 0
+
+[node name="FrameS" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.015, 0.38)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("1_r")
+cast_shadow = 0
+
+[node name="FrameW" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.38, -0.015, 0)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("1_r")
+cast_shadow = 0
+
+[node name="FrameE" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.38, -0.015, 0)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("1_r")
+cast_shadow = 0
+
+[node name="Bar0" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.032, -0.3)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Bar1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.032, -0.15)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Bar2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.032, 0)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Bar3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.032, 0.15)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Bar4" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.032, 0.3)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Hub" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+mesh = SubResource("CylinderMesh_4")
+material_override = ExtResource("1_r")
+cast_shadow = 0
+
+[node name="Blades" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+
+[node name="Blade0" type="MeshInstance3D" parent="Blades"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.17, 0, -0)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Blade1" type="MeshInstance3D" parent="Blades"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 1.04095e-17, 0, -0.17)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Blade2" type="MeshInstance3D" parent="Blades"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, -0, 0, -1, -0.17, 0, -2.0819e-17)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Blade3" type="MeshInstance3D" parent="Blades"]
+transform = Transform3D(-0, 0, -1, 0, 1, 0, 1, 0, -0, -3.12285e-17, 0, 0.17)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("2_r")
+cast_shadow = 0
+
+[node name="Anim" type="AnimationPlayer" parent="."]
+unique_name_in_owner = true
+libraries = {&"": SubResource("AnimationLibrary_7")}
+autoplay = &"spin"

@@ -83,6 +83,8 @@ func finish() -> void:
 	keys.sort()
 	for key in keys:
 		var a: Dictionary = _acc[key]
+		if (a[&"v"] as PackedVector3Array).is_empty():
+			continue  # opened for faces that all came out empty (M2.2: rack corners)
 		var arrays := []
 		arrays.resize(Mesh.ARRAY_MAX)
 		arrays[Mesh.ARRAY_VERTEX] = a[&"v"]

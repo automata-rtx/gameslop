@@ -129,6 +129,12 @@ static func path_band(level: LevelData) -> Vector2:
 		&"garage":
 			var s := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[2])
 			return Vector2(Tuning.VALIDATE_GARAGE_PATH_MIN, Tuning.VALIDATE_GARAGE_PATH_MAX) * s
+		&"offices":
+			var s := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[3])
+			return Vector2(Tuning.VALIDATE_OFFICES_PATH_MIN, Tuning.VALIDATE_OFFICES_PATH_MAX) * s
+		&"server":
+			var s := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[4])
+			return Vector2(Tuning.VALIDATE_SERVER_PATH_MIN, Tuning.VALIDATE_SERVER_PATH_MAX) * s
 	var scale := float(level.grid.size.x) / float(Tuning.GRID_SIZE_BY_DEPTH[1])
 	return Vector2(Tuning.VALIDATE_HALLS_PATH_MIN, Tuning.VALIDATE_HALLS_PATH_MAX) * scale
 
@@ -298,6 +304,10 @@ static func _rule10_stratum(level: LevelData, ds: PackedInt32Array, f: PackedStr
 					decks[grid.deck[i]] += 1
 			if decks[0] == 0 or decks[1] == 0:
 				f.append("r10: Garage deck unreachable (%d, %d walkable)" % decks)
+		&"offices":
+			StratumRules.offices(level, ds, f)
+		&"server":
+			StratumRules.server(level, ds, f)
 
 
 ## 05 §10 first Descent guarantees that the data can show: Powered with the breaker room on

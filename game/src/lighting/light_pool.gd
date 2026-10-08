@@ -124,9 +124,10 @@ func register_fixture(fixture: Fixture) -> void:
 	(_groups[fixture.group_id] as Array[Fixture]).append(fixture)
 	# 03: about one fixture in six carries the tired-ballast buzz instead of the hum.
 	var h := hash(Vector3i((fixture.global_position * 10.0).round())) if fixture.is_inside_tree() else _fixtures.size()
-	fixture.hum_id = buzz_id if posmod(h, 6) == 0 else hum_id
+	var buzz := posmod(h, 6) == 0 and bool(fixture.light_value(&"buzz", true))
+	fixture.hum_id = buzz_id if buzz else hum_id
 	# R4 V3: the buzzing ballast also looks tired: greener, 85% energy, steady.
-	fixture.set_buzzing(posmod(h, 6) == 0)
+	fixture.set_buzzing(buzz)
 
 
 func fixtures() -> Array[Fixture]:
@@ -184,19 +185,19 @@ func power_wave(origin: Vector3) -> float:
 ## fixture has a clear grid sight line to it (pooled lights cast no shadows, so without the
 ## grid test they would light through 0.2 m walls; CHANGELOG 2026-10-08).
 func is_lit(pos: Vector3) -> bool:
-	var r2 := light_range * light_range
 	for f in _fixtures:
 		if not f.powered:
 			continue
+		var r := float(f.light_value(&"range", light_range))
 		var a := anchor_of(f)
-		if a.distance_squared_to(pos) <= r2 and (grid == null or SightOps.clear(grid, a, pos)):
+		if a.distance_squared_to(pos) <= r * r and (grid == null or SightOps.clear(grid, a, pos)):
 			return true
 	return false
 
 
 ## Where a fixture's pooled light hangs.
 func anchor_of(f: Fixture) -> Vector3:
-	return f.global_position - Vector3(0.0, light_drop, 0.0)
+	return f.global_position - Vector3(0.0, float(f.light_value(&"drop", light_drop)), 0.0)
 
 
 func active_light_count() -> int:
@@ -225,7 +226,7 @@ func _process(delta: float) -> void:
 		if f == null:
 			continue
 		_fade[i] = minf(1.0, _fade[i] + delta / Tuning.LIGHT_POOL_FADE_IN)
-		_lights[i].light_energy = light_energy * f.intensity * f.energy_scale() * _fade[i]
+		_lights[i].light_energy = float(f.light_value(&"energy", light_energy)) * f.intensity * f.energy_scale() * _fade[i]
 
 
 func _origin() -> Vector3:
@@ -260,7 +261,9 @@ func reevaluate() -> void:
 	for k in chosen.size():
 		rank[chosen[k]] = k
 	for i in _lights.size():
-		_lights[i].shadow_enabled = _assigned_i[i] >= 0 and int(rank.get(_assigned_i[i], shadowed)) < shadowed
+		var fi := _assigned_i[i]
+		_lights[i].shadow_enabled = fi >= 0 and int(rank.get(fi, shadowed)) < shadowed \
+			and bool(_fixtures[fi].light_value(&"shadow", true))
 
 
 func _lend(i: int, fi: int) -> void:
@@ -271,6 +274,11 @@ func _lend(i: int, fi: int) -> void:
 	var l := _lights[i]
 	l.global_position = anchor_of(f)
 	l.light_color = f.light_tint(light_color)
+	var r := float(f.light_value(&"range", light_range))
+	if l is OmniLight3D:
+		(l as OmniLight3D).omni_range = r
+	elif l is SpotLight3D:
+		(l as SpotLight3D).spot_range = r
 	l.light_energy = 0.0
 	l.visible = true
 	_set_hum(i, f.hum_id)

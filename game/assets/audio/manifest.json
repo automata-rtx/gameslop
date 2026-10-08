@@ -828,6 +828,120 @@
     96000
    ]
   },
+  "room_tone_offices": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ambience/room_tone_offices_v01.wav"
+   ],
+   "length_s": [
+    8.000021
+   ],
+   "loop_frames": [
+    384000
+   ],
+   "runtime": {
+    "level_db": -30
+   }
+  },
+  "fixture_hum_offices": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_hum_offices_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "fixture_buzz_offices": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_buzz_offices_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "room_tone_server": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 2,
+   "files": [
+    "res://assets/audio/ambience/room_tone_server_v01.wav"
+   ],
+   "length_s": [
+    8.000021
+   ],
+   "loop_frames": [
+    384000
+   ],
+   "runtime": {
+    "level_db": -30
+   }
+  },
+  "fixture_hum_server": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_hum_server_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "fixture_buzz_server": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fixture_buzz_server_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ]
+  },
+  "fan_loop": {
+   "group": "ambience",
+   "bus": "Ambience",
+   "loop": true,
+   "channels": 1,
+   "files": [
+    "res://assets/audio/ambience/fan_loop_v01.wav"
+   ],
+   "length_s": [
+    2.000021
+   ],
+   "loop_frames": [
+    96000
+   ],
+   "runtime": {
+    "max_distance": 10.0
+   }
+  },
   "power_wave_ignite": {
    "group": "world",
    "bus": "Ambience",
