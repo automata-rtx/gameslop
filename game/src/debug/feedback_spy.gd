@@ -122,6 +122,12 @@ func _image(tree: SceneTree) -> Dictionary:
 	d["cr.noclip_target"] = cr.noclip_target
 	d["cr.static"] = cr.static_amount
 	d["cr.null_radius"] = cr.null_radius
+	# 02 §8 Null: the camera inside the radius (lines, halo) and inside the 2 m core (black
+	# with the halo); the post shader measures from the camera, as here.
+	var vp_cam := tree.root.get_camera_3d()
+	var dn := vp_cam.global_position.distance_to(cr.null_pos) if vp_cam != null and cr.null_radius > 0.0 else INF
+	d["cr.null_inside"] = dn <= cr.null_radius
+	d["cr.null_core"] = dn <= Tuning.NULL_CORE_RADIUS
 	d["cr.threat"] = cr.threat
 	for k: Variant in cr.post_params:
 		d["post.%s" % k] = cr.post_params[k]
@@ -231,6 +237,9 @@ func _sound() -> Dictionary:
 		d[key + ".on"] = l.get(&"playing")
 		d[key + ".db"] = snappedf(float(l.get(&"volume_db")), 0.5)
 		d[key + ".pitch"] = snappedf(float(l.get(&"pitch_scale")), 0.01)
+	# The Null grid tone (a runtime generator, not a pool player) and its core mute.
+	d["gen.null_tone"] = snappedf(NullTone.amplitude(am.null_distance()), 0.01)
+	d["gen.null_core"] = am.in_null_core()
 	for bus: StringName in [&"World", &"Music", &"UI", &"Player", &"Ambience", &"Errors"]:
 		d["duck.%s" % bus] = snappedf(am.duck_db(bus), 0.5)
 	return d

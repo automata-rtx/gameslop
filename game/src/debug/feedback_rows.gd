@@ -108,8 +108,11 @@ static func all() -> Array[Dictionary]:
 			&"M": ["cam.offset", "cam.rotation"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"echo_4m", "Echo at 4 m", "11 §3", "ISR",
 			{&"expect": {&"I": ["echo."], &"S": ["play.echo_breath"], &"R": ["Caption"]}}))
-	rows.append(_row(&"null_radius", "Null radius", "11 §3", "ISM", {}, PENDING, "Null lands with M2.6"))
-	rows.append(_row(&"null_core", "Null core", "11 §3", "ISMR", {}, PENDING, "Null lands with M2.6"))
+	rows.append(_row(&"null_radius", "Null radius", "11 §3", "ISM",
+			{&"expect": {&"I": ["cr.null_radius", "cr.null_inside"], &"S": ["gen.null_tone"], &"M": ["rig.jitter"]}}))
+	rows.append(_row(&"null_core", "Null core", "11 §3", "ISMR", {&"window": 20,
+			&"expect": {&"I": ["cr.null_core"], &"S": ["gen.null_core", "duck."], &"M": ["rig.jitter"],
+			&"R": ["Coherence"]}}))
 	rows.append(_row(&"exit_seen", "Exit seen", "11 §3", "ISR",
 			{&"expect": {&"I": ["exit."], &"S": ["play.exit_latch"], &"R": ["Depth"]}}))
 	rows.append(_row(&"breaker", "Breaker thrown by player", "11 §3", "ISMR", {&"window": 30,
