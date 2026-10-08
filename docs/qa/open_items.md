@@ -32,3 +32,6 @@ Deferred work found during production. Each line names the task that should abso
 - M2.14: Director should feed `MusicDirector.set_intensity` once it exists.
 - M2.7/M3.4: the sim bot walks the critical path and never provokes Peak; add an exploring/sprinting bot profile so simulated playtests cover the full sawtooth on real levels.
 - Player owner: player.gd is 421 lines (limit 400, 14 §6); split it in the next player task.
+- M2.11: title shows `SaveManager.consume_reset_notice()` and the Daily result; title asks `GameState.is_mode_available`/`is_loadout_available` before start_run.
+- Player/run owner: apply `RunState.crank_rate_mult` (player crank) and `flicker_attract_mult` (Flicker, M2.5); update `RunState.distance_m` from player movement.
+- (M2.10 done: custom user dir, note recording, strata_reached, score via Clock.)
