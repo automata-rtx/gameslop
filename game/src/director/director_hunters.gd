@@ -19,6 +19,8 @@ var director: Director
 ## Static instance id -> seconds its field has cut the only route (08 §3).
 var _cut_time: Dictionary = {}
 var _counts: Dictionary = {}
+## Hunters with no fair cell at level entry, retried once per second (`spawn_pending`).
+var pending: Array[StringName] = []
 
 
 func live() -> Array[ErrorBase]:
@@ -76,19 +78,44 @@ func spawn_roster(roster: Array[StringName]) -> void:
 			d.skipped.append(id)
 	if ids.is_empty() or not _player_ok() or _grid() == null:
 		return
+	var band := DirectorSpawn.breaker_exit_band(d.data) if _first_descent_depth1() else {}
+	var cells := _pick(ids, band)
+	for i in ids.size():
+		if cells[i] == LevelData.NO_CELL:
+			# No fair cell from the arrival pose (an open hall in view): wait until the
+			# player moves or turns (M1.13: every level with a native slot has a hunter).
+			pending.append(ids[i])
+			continue
+		spawn(ids[i], _grid().world_of(cells[i]))
+
+
+## DirectorSpawn.pick_cells from the player's current pose.
+func _pick(ids: Array[StringName], band: Dictionary = {}) -> Array[Vector2i]:
+	var d := director
 	var cam := d.player.rig.camera
 	var vp_size := cam.get_viewport().get_visible_rect().size if cam.is_inside_tree() else Vector2(16, 9)
 	var aspect := maxf(vp_size.x / maxf(vp_size.y, 1.0), 16.0 / 9.0)
 	var fwd := -cam.global_transform.basis.z
-	var band := DirectorSpawn.breaker_exit_band(d.data) if _first_descent_depth1() else {}
-	var cells := DirectorSpawn.pick_cells(d.data, ids, d.native, d.player.global_position, d.player.eye_position(),
+	return DirectorSpawn.pick_cells(d.data, ids, d.native, d.player.global_position, d.player.eye_position(),
 		fwd, DirectorSpawn.half_fov_h(cam.fov, aspect), d.rng, band)
-	for i in ids.size():
+
+
+## Once per second: spawns each pending hunter as soon as a fair cell exists (same rules as
+## at entry). One spawned after Calm wakes at once (Build entry would have woken it), where
+## 05 §10 allows; otherwise it is Dormant like the rest.
+func spawn_pending() -> void:
+	if pending.is_empty() or not _player_ok() or _grid() == null:
+		return
+	var cells := _pick(pending)
+	var left: Array[StringName] = []
+	for i in pending.size():
 		if cells[i] == LevelData.NO_CELL:
-			push_warning("Director: no fair spawn cell for %s at depth %d (player cell %s, spawn cell %s, cells %s)" % [
-				ids[i], d.depth, _grid().cell_of(d.player.global_position), d.data.spawn_cell, cells])
+			left.append(pending[i])
 			continue
-		spawn(ids[i], _grid().world_of(cells[i]))
+		var e := spawn(pending[i], _grid().world_of(cells[i]))
+		if e != null and director.pacing.phase != DirectorPacing.CALM and director.wake_allowed():
+			e.wake()
+	pending = left
 
 
 func spawn(id: StringName, pos: Vector3) -> ErrorBase:

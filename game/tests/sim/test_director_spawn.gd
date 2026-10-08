@@ -174,17 +174,25 @@ func test_every_depth_2_level_has_a_hunter_and_a_static() -> void:
 		for id: StringName in sub[&"roster"]:
 			if DirectorRules.spawnable(id):
 				ids.append(id)
-		var pose := _spawn_pose(data)
-		var cells := DirectorSpawn.pick_cells(data, ids, sub[&"native"], pose[0], pose[1], pose[2], half, rng)
-		var hunter := false
-		var static_ok := false
-		for i in ids.size():
-			if cells[i] == LevelData.NO_CELL:
-				continue
-			hunter = hunter or DirectorRules.is_hunter(ids[i])
-			static_ok = static_ok or ids[i] == &"static"
-		assert_true(hunter, "seed %d (%s): a hunter spawns (%s)" % [s, stratum, ids])
-		assert_true(static_ok, "seed %d (%s): a Static spawns" % [s, stratum])
+		var pos := data.grid.world_of(data.spawn_cell)
+		# Every facing: the arrival camera's yaw is the run's, not the data's.
+		var hunter_facings := 0
+		for yaw_i in 4:
+			var fwd := _forward(yaw_i * PI * 0.5)
+			var cells := DirectorSpawn.pick_cells(data, ids, sub[&"native"], pos, pos + Vector3.UP * Tuning.PLAYER_CAMERA_HEIGHT,
+				fwd, half, rng)
+			var hunter := false
+			var static_ok := false
+			for i in ids.size():
+				if cells[i] == LevelData.NO_CELL:
+					continue
+				hunter = hunter or DirectorRules.is_hunter(ids[i])
+				static_ok = static_ok or ids[i] == &"static"
+			assert_true(static_ok, "seed %d (%s) facing %d: a Static spawns" % [s, stratum, yaw_i])
+			hunter_facings += 1 if hunter else 0
+		# A hunter with no fair cell from the arrival pose waits (spawn_pending) until the
+		# player turns: some facing must give it one.
+		assert_gt(hunter_facings, 0, "seed %d (%s): a fair hunter cell from some facing (%s)" % [s, stratum, ids])
 
 
 ## M1.13 ruling: with no fair cell left, Static takes the farthest legal cell (≥ 20 m and out

@@ -212,6 +212,7 @@ func _tick(dt: float) -> void:
 	if _check_left <= 0.0:
 		_check_left = Tuning.DIRECTOR_CALM_CHECK_INTERVAL
 		hunters.enforce_caps(s)
+		hunters.spawn_pending()
 	_static_left -= dt
 	if _static_left <= 0.0:
 		_static_left = Tuning.STATIC_FAIR_CHECK_INTERVAL

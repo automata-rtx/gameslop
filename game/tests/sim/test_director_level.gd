@@ -278,3 +278,19 @@ func test_relief_entry_hints_hunters_away_at_once() -> void:
 		var d := DirectorSpawn.flat_dist(h._hint, _p.global_position)
 		assert_true(d >= Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST - 0.01 and d <= Tuning.DIRECTOR_HINT_AWAY_MAX + 0.01,
 			"25 to 40 m from the player (%.1f m)" % d)
+
+
+## M1.13 (R10): a hunter with no fair cell at entry waits and is spawned by the 1 s retry as
+## soon as one exists; after Calm it wakes at once.
+func test_pending_hunter_spawns_on_retry() -> void:
+	_begin()
+	var before := _d.errors.size()
+	_into_build()
+	_d.hunters.pending.append(&"still")
+	_advance(Tuning.DIRECTOR_CALM_CHECK_INTERVAL + 0.05)
+	assert_true(_d.hunters.pending.is_empty(), "spawned within a second")
+	assert_eq(_d.errors.size(), before + 1)
+	var e := _d.errors[_d.errors.size() - 1]
+	assert_eq(e.error_id, &"still")
+	assert_true(DirectorSpawn.flat_dist(e.body_position(), _p.global_position) >= Tuning.ERROR_SPAWN_MIN_DIST, "at a fair cell")
+	assert_false(e.is_dormant(), "after Calm it wakes at once")
