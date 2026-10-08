@@ -102,6 +102,10 @@ func test_captioned_sounds_reach_the_hud_end_to_end() -> void:
 	EventBus.audio_cue.emit(Strings.CAPTION_NOCLIP_COMMIT, Vector3.ZERO)
 	assert_contains(hud.captions.lines(), "[footsteps, behind, late]")
 	assert_contains(hud.captions.lines(), "[tear]")
+	# M2.14: Echo's contact emits `[contact]` twice; the stack shows it once.
+	EventBus.audio_cue.emit(Strings.CAPTION_CONTACT, Vector3.ZERO)
+	EventBus.audio_cue.emit(Strings.CAPTION_CONTACT, Vector3.ZERO)
+	assert_eq(Array(hud.captions.lines()).count(Strings.CAPTION_CONTACT), 1)
 
 
 func test_text_size_scales_captions_and_notes() -> void:
