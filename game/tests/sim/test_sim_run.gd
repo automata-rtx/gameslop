@@ -7,7 +7,8 @@ extends TestCase
 ## Asserts: over the three seeds the Director visits Peak and Relief; every run starts in
 ## Calm and follows the sawtooth order; the contact log (each error's own
 ## `contacted_player`, not the Director's counter) keeps 3 s between contacts and 20 s
-## between two contacts by the same error (05 §9 rules 4 and 5); no run gets stuck.
+## between two contacts by the same error (05 §9 rules 4 and 5); every contact follows a
+## chase and none lands in Relief; Static spawns; no run gets stuck.
 ## `test_contact_check_can_fail` proves the contact check catches violations.
 
 const SEEDS := 3
@@ -64,6 +65,10 @@ func test_explorer_drives_the_sawtooth_on_real_levels() -> void:
 		assert_eq(SimBot.contact_violations(log).size(), 0, "%s: %s" % [tag, SimBot.contact_violations(log)])
 		assert_eq(int(r.get("contacts", -1)), log.size(), "%s: the Director approved exactly the logged contacts" % tag)
 		assert_true(int(r.get("telemetry_rows", 0)) > 10, "%s: telemetry rows" % tag)
+		# M1.13 rulings: a contact follows a chase, and Relief is space (no contact in it).
+		assert_eq(int(r.get("contacts_unchased", -1)), 0, "%s: every contact followed a chase" % tag)
+		assert_eq(int(r.get("contacts_in_relief", -1)), 0, "%s: no contact in Relief" % tag)
+		assert_true(bool(r.get("has_static", false)), "%s: Static spawned" % tag)
 	assert_gt(peaks, 0, "the Director reached Peak on a real level")
 	assert_gt(reliefs, 0, "and Relief after it")
 
