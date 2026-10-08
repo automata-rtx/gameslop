@@ -354,6 +354,7 @@ func _on_baked(nm: NavigationMesh) -> void:
 
 
 func _apply_bake(nm: NavigationMesh) -> void:
+	assert(OS.get_thread_caller_id() == OS.get_main_thread_id(), "LevelBuilder: bake applied off the main thread")
 	bake_ms = (Time.get_ticks_usec() - _bake_started_us) / 1000.0
 	navigation_ok = nm.get_polygon_count() > 0
 	if not navigation_ok:
