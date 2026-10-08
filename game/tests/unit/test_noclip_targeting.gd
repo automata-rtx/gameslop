@@ -103,7 +103,7 @@ func test_wall_charge_takes_0_6_s_and_costs_10() -> void:
 	await _run_frames(6)
 	assert_approx(_p.coherence, 100.0 - Tuning.NOCLIP_WALL_COST, 0.0001, "committed by 0.6 s")
 	assert_contains(_p.sounds.played, &"noclip_commit")
-	assert_eq(_commits.size(), 1)
+	assert_eq(_commits.size(), 0, "noclip_committed waits for the pass to end beyond the wall")
 	var tear := _noises.filter(func(n: Array) -> bool: return n[2] == Tuning.NOISE_KIND_TEAR)
 	assert_eq(tear.size(), 1, "one tear noise")
 	assert_approx(tear[0][1], Tuning.NOISE_NOCLIP_COMMIT_RADIUS, 0.0001, "20 m")
@@ -156,9 +156,10 @@ func test_blocked_landing_falls_back_to_the_start() -> void:
 	_hold()
 	while not _p.state_machine.is_in(PlayerStateMachine.NOCLIP_PASS):
 		await get_tree().physics_frame
-	# Something fills the landing spot during the hitstop: the pass must not end inside it.
-	var to: Vector3 = _commits[0][2]
-	PlayerFixture.box(_w, Vector3(1.5, 2.5, 1.5), to + Vector3(0, 1.25, 0))
+	# Something fills the whole far side during the hitstop: the pass must not end inside
+	# it, and with no spot left in the landing cell it falls back to the start.
+	var to: Vector3 = _nt.motion.to
+	PlayerFixture.box(_w, Vector3(1.5, 2.5, 4.0), to + Vector3(0, 1.25, -1.0))
 	await _run_frames(_frames_for(Tuning.NOCLIP_PASS_TIME_MS / 1000.0) + 3)
 	assert_true(_p.state_machine.is_in(PlayerStateMachine.IDLE))
 	assert_false(_overlaps_world(_p), "not inside geometry")
@@ -297,6 +298,8 @@ func test_wall_pass_counts_in_the_run() -> void:
 	GameState.start_run(Tuning.MODE_DESCENT, &"faller", 8)
 	_hold()
 	await _run_frames(_frames_for(0.6) + 3)
+	assert_eq(GameState.run.walls_passed, 0, "counted only when the pass ends beyond the wall")
+	await _run_frames(_frames_for(Tuning.NOCLIP_PASS_TIME_MS / 1000.0) + 3)
 	assert_eq(GameState.run.walls_passed, 1)
 	assert_approx(GameState.run.coherence_spent, Tuning.NOCLIP_WALL_COST, 0.0001)
 	GameState.end_run(&"test")

@@ -80,7 +80,10 @@ static func _edge_box(boxes: Array[Dictionary], grid: LevelGrid, height: float, 
 
 
 ## 07 §7 metadata for the edge (c, dir): the side named by `cell` and `dir`, the type, the
-## thickness, and both cells with whether each is walkable ("what is behind").
+## thickness, and both cells with whether each is walkable ("what is behind") and its floor
+## height (noclip lands in the far cell on its floor within a step: ramps, basins). A DOOR
+## edge's box is the header above the opening; it carries no `closed` state, so noclip
+## treats it as SOLID (the Door prefab's leaf and jambs carry the state).
 static func wall_meta(g: LevelGrid, c: Vector2i, d: int) -> Dictionary:
 	var o := c + LevelGrid.DIRS[d]
 	var type := g.wall(c, d)
@@ -88,6 +91,7 @@ static func wall_meta(g: LevelGrid, c: Vector2i, d: int) -> Dictionary:
 		&"cell": c, &"dir": d, &"wall_type": type, &"wall_kind": Tuning.GRID_WALL_TYPES[type],
 		&"thickness": Tuning.GRID_WALL_THICKNESS, &"other_cell": o,
 		&"walkable": g.is_walkable(c), &"other_walkable": g.is_walkable(o),
+		&"floor_y": g.floor_y(c), &"other_floor_y": g.floor_y(o),
 	}
 
 

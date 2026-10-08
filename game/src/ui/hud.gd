@@ -11,6 +11,8 @@ extends Control
 const HIDDEN_ALPHA := Tuning.HIDE_HUD_DIM
 const LOCKED_STATUSES: Array[StringName] = [&"powered", &"keyed", &"sealed"]
 const SOURCE_RESET := &"reset"
+## A noclip pass that fell back returns its cost: not a gain, the numeral snaps back.
+const SOURCE_NOCLIP_REFUND := &"noclip_refund"
 const ARRIVAL_DROP := &"drop"
 ## Unlock ids by message kind (05 §6, Strings.MSG_*).
 const ITEM_UNLOCKS: Array[StringName] = [&"glowstick", &"radio", &"flare", &"fuse"]
@@ -258,7 +260,7 @@ func _on_coherence_changed(value: float, delta: float, source: StringName) -> vo
 	if source == SOURCE_RESET:
 		restore()
 		delta = 0.0
-	set_coherence(value, delta)
+	set_coherence(value, 0.0 if source == SOURCE_NOCLIP_REFUND else delta)
 
 
 func _on_stamina_changed(value: float) -> void:

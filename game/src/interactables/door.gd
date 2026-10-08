@@ -38,7 +38,9 @@ func _ready() -> void:
 
 ## Copies the edge metadata (07 §7) onto the bodies: the leaf is the DOOR wall itself; the
 ## jambs are plain wall (WALL). The leaf counts as a wall for noise (06 §6) only while it is
-## closed: an open leaf's `wall_kind` is PROP.
+## closed: an open leaf's `wall_kind` is PROP. Leaf and jambs both carry `closed`, so noclip
+## refuses the whole frame of an open door (SOLID); the header above (BuildCollision) has
+## no `closed` and is always SOLID.
 func set_edge_meta(meta: Dictionary) -> void:
 	for k in meta:
 		leaf.set_meta(k, meta[k])
@@ -83,6 +85,8 @@ func _set_open(on: bool, time: float, audible: bool, slam: bool = false) -> void
 	is_open = on
 	interactable.prompt = Strings.PROMPT_CLOSE_DOOR if on else Strings.PROMPT_OPEN_DOOR
 	leaf.set_meta(&"closed", not on)
+	# The jambs follow the leaf for noclip (07 §7): an open doorway's frame is SOLID.
+	jambs.set_meta(&"closed", not on)
 	_apply_leaf_kind()
 	_sync_grid()
 	var angle := OPEN_ANGLE if on else 0.0

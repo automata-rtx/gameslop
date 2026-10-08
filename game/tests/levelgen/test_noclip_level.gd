@@ -127,3 +127,104 @@ func test_walls_onto_non_walkable_cells_refuse() -> void:
 						if _eval(c, d)[&"valid"]:
 							solid += 1
 	assert_eq(solid, 0, "no wall onto a non-walkable cell is ever valid")
+
+
+## Eye poses for the sweep: walkable cells (every other one, up to `limit`), the centre and
+## four points 0.55 m towards the corners.
+func _sweep_poses(limit: int) -> Array:
+	var g := _data.grid
+	var out: Array = []
+	var n := 0
+	for z in g.size.y:
+		for x in g.size.x:
+			var c := Vector2i(x, z)
+			if not g.is_walkable(c) or (x + z) % 2 != 0:
+				continue
+			n += 1
+			if n > limit:
+				return out
+			for off: Vector2 in [Vector2.ZERO, Vector2(0.55, 0.55), Vector2(-0.55, 0.55), Vector2(0.55, -0.55), Vector2(-0.55, -0.55)]:
+				out.append(g.world_of(c) + Vector3(off.x, 0.0, off.y))
+	return out
+
+
+## Noclip review item 4: wherever the player stands and whichever way they look (corners
+## included), a valid wall target lands in the far cell the grid check approved, on
+## walkable floor, in free space.
+func test_corner_sweep_lands_in_the_approved_far_cell() -> void:
+	var g := _data.grid
+	var space := _level.get_world_3d().direct_space_state
+	var shape := NoclipFixture.capsule()
+	var valid := 0
+	var oblique := 0
+	for base: Vector3 in _sweep_poses(60):
+		for step in 24:
+			var yaw := TAU * step / 24.0
+			var dir := Vector3(sin(yaw), -0.08, cos(yaw)).normalized()
+			var eye := base + Vector3.UP * Tuning.PLAYER_CAMERA_HEIGHT
+			var a := NoclipQuery.evaluate(space, eye, dir, base, shape, 100.0, false)
+			if not a[&"valid"] or a[&"target"] == NoclipQuery.TARGET_FLOOR:
+				continue
+			valid += 1
+			var land: Vector3 = a[&"landing"]
+			assert_true(a[&"has_far_cell"], "the builder names the far cell")
+			assert_eq(g.cell_of(land), a[&"far_cell"], "landing in the approved far cell from %s yaw %d" % [base, step])
+			assert_true(g.is_walkable(a[&"far_cell"]))
+			assert_approx(land.y, g.floor_y(a[&"far_cell"]) + Tuning.NOCLIP_LANDING_LIFT, 0.05, "on its floor")
+			assert_true(NoclipQuery.is_free(space, land, shape))
+			var n: Vector3 = a[&"normal"]
+			if absf(Vector3(dir.x, 0, dir.z).normalized().dot(-n)) < 0.8:
+				oblique += 1
+	print("  # sweep: %d valid wall aims, %d oblique" % [valid, oblique])
+	assert_gt(valid, 20, "the sweep found walls to pass")
+	assert_gt(oblique, 0, "oblique aims were checked")
+
+
+## Noclip review item 12: the cost of one targeting frame, headless. All aims cold (every
+## landing computed), then the aims that find a landing, cold and warm (the same pose again
+## within the cache lifetime: a held aim). Best of three passes.
+func test_targeting_cost_per_frame() -> void:
+	var space := _level.get_world_3d().direct_space_state
+	var shape := NoclipFixture.capsule()
+	var poses: Array = []
+	for base: Vector3 in _sweep_poses(30):
+		for step in 8:
+			var yaw := TAU * step / 8.0
+			poses.append([base + Vector3.UP * Tuning.PLAYER_CAMERA_HEIGHT, Vector3(sin(yaw), -0.08, cos(yaw)).normalized(), base])
+	var landing_poses: Array = []
+	for p: Array in poses:
+		if NoclipQuery.evaluate(space, p[0], p[1], p[2], shape, 100.0, false)[&"has_landing"]:
+			landing_poses.append(p)
+	var all_cold := _time_evals(space, shape, poses, null)
+	var cold := _time_evals(space, shape, landing_poses, null)
+	var warm := _time_held(space, shape, landing_poses)
+	print("  # targeting per frame: %.1f us over %d aims; with a landing %.1f us cold, %.1f us cached (%d)" % [
+		all_cold, poses.size(), cold, warm, landing_poses.size()])
+	assert_gt(landing_poses.size(), 0)
+	assert_lt(warm, cold, "the cache saves the landing search")
+	assert_lt(cold, 2000.0, "under 2 ms per frame even cold (headless CPU)")
+
+
+func _time_evals(space: PhysicsDirectSpaceState3D, shape: Shape3D, poses: Array, cache: Variant) -> float:
+	var best := INF
+	for rep in 3:
+		var t0 := Time.get_ticks_usec()
+		for p: Array in poses:
+			NoclipQuery.evaluate(space, p[0], p[1], p[2], shape, 100.0, false, [], cache)
+		best = minf(best, float(Time.get_ticks_usec() - t0) / maxi(poses.size(), 1))
+	return best
+
+
+## A held aim: each pose evaluated once to fill the cache, then timed again.
+func _time_held(space: PhysicsDirectSpaceState3D, shape: Shape3D, poses: Array) -> float:
+	var best := INF
+	for rep in 3:
+		var total := 0
+		var cache := {}
+		for p: Array in poses:
+			NoclipQuery.evaluate(space, p[0], p[1], p[2], shape, 100.0, false, [], cache)
+			var t0 := Time.get_ticks_usec()
+			NoclipQuery.evaluate(space, p[0], p[1], p[2], shape, 100.0, false, [], cache)
+			total += Time.get_ticks_usec() - t0
+		best = minf(best, float(total) / maxi(poses.size(), 1))
+	return best

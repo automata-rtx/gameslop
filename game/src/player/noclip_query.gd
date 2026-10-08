@@ -1,13 +1,15 @@
 class_name NoclipQuery
 extends RefCounted
 ## Noclip validity (06 §8, 07 §7) as pure physics queries: what the aim names, whether it
-## can be passed, why not, and where the body lands. No state; NoclipTargeting calls it
-## every physics frame while `noclip` is held, and the unit tests call it against
-## synthetic walls. Call only from the physics step (or a test after a physics frame).
+## can be passed, why not, and where the body lands. No state of its own (the caller may
+## pass a landing cache); NoclipTargeting calls it every physics frame while `noclip` is
+## held, and the unit tests call it against synthetic walls. Call only from the physics
+## step (or a test after a physics frame).
 ##
-## Order of reasons: SOLID (the structure refuses), TOO FAR (the aim is beyond 2.5 m),
-## TOO THIN (Coherence <= cost: a noclip can never reduce Coherence to 0), NO SPACE (no
-## free capsule space 0.3..2.0 m beyond the aimed surface). Floors and ceilings never
+## Order of reasons (06 §8 and the noclip review): beyond 2.5 m TOO FAR (except a ceiling,
+## always SOLID), then SOLID (the structure refuses), TOO THIN (Coherence <= cost: a noclip
+## can never reduce Coherence to 0), NO SPACE (the far cell is not walkable, or no free
+## capsule space 0.3..2.0 m beyond the aimed surface inside it). Floors and ceilings never
 ## show NO SPACE.
 
 ## Target ids (04 Interfaces: wall, soft, floor). TARGET_NONE: nothing aimed at all.
@@ -22,8 +24,13 @@ const TARGET_NONE := &""
 ## refuses with SOLID.
 const PASSABLE_KINDS: Array[StringName] = [&"WALL", &"PARTITION", &"DOOR", &"INTERIOR"]
 const SOFT_KINDS: Array[StringName] = [&"SOFT"]
+const KIND_DOOR := &"DOOR"
 ## Cell kinds a floor drop may start from (07 §7): FLOOR, ROOM, BASIN.
 const DROP_CELL_KINDS: Array[int] = [LevelGrid.FLOOR, LevelGrid.ROOM, LevelGrid.BASIN]
+
+## Reused query objects (one allocation, not one per probe).
+static var _shape_q: PhysicsShapeQueryParameters3D
+static var _ray_q: PhysicsRayQueryParameters3D
 
 
 ## Charge time in seconds for a target id (06 §8). Unknown ids time as a wall (04).
@@ -66,15 +73,19 @@ static func spend_kind(target: StringName) -> StringName:
 ## - `body_pos`: the body origin (feet); `shape`: the body's current collision shape
 ##   (standing or crouched capsule), placed with its base on the landing floor.
 ## - `coherence`: the player's Coherence; `floor_solid`: true on the run's last depth.
-## Returns {target, valid, reason, point, normal, distance, key, landing, has_landing}.
-## `key` names the aimed thing (collider and shape) so a charge can tell when the aim left
-## it; every valid floor shares one key, so walking while charging a drop keeps the charge.
+## - `cache`: an optional Dictionary the caller keeps between frames (find_landing_cached);
+##   null computes every landing afresh.
+## Returns {target, valid, reason, point, normal, distance, key, landing, has_landing,
+## wall_kind, plane, far_cell, has_far_cell, far_floor_y}. `key` names the aim for display
+## and debugging; same_target() decides whether two aims are one target.
 static func evaluate(space: PhysicsDirectSpaceState3D, eye: Vector3, dir: Vector3, body_pos: Vector3,
-		shape: Shape3D, coherence: float, floor_solid: bool, exclude: Array[RID] = []) -> Dictionary:
+		shape: Shape3D, coherence: float, floor_solid: bool, exclude: Array[RID] = [],
+		cache: Variant = null) -> Dictionary:
 	var d := dir.normalized()
 	var out := {&"target": TARGET_NONE, &"valid": false, &"reason": Tuning.NOCLIP_REASON_TOO_FAR,
 		&"point": Vector3.ZERO, &"normal": Vector3.ZERO, &"distance": INF, &"key": "",
-		&"landing": body_pos, &"has_landing": false}
+		&"landing": body_pos, &"has_landing": false, &"wall_kind": &"", &"plane": 0.0,
+		&"far_cell": Vector2i.ZERO, &"has_far_cell": false, &"far_floor_y": body_pos.y}
 	var hit := _ray(space, eye, eye + d * Tuning.NOCLIP_PROBE_RANGE, exclude)
 	if hit.is_empty():
 		# The builder makes no ceiling colliders: an upward aim that meets nothing is the
@@ -85,30 +96,45 @@ static func evaluate(space: PhysicsDirectSpaceState3D, eye: Vector3, dir: Vector
 		return out
 	var n: Vector3 = hit[&"normal"]
 	var p: Vector3 = hit[&"position"]
+	var info := LevelBuilder.shape_info(hit[&"collider"], int(hit[&"shape"]))
 	out[&"point"] = p
 	out[&"normal"] = n
 	out[&"distance"] = eye.distance_to(p)
-	out[&"key"] = "%d:%d" % [hit[&"collider_id"], hit[&"shape"]]
-	var kind := classify(hit, floor_solid)
+	out[&"plane"] = n.dot(p)
+	var kind := classify(hit, floor_solid, info)
 	out[&"target"] = kind[&"target"]
+	out[&"wall_kind"] = kind[&"wall_kind"]
 	if kind[&"target"] == TARGET_FLOOR and kind[&"solid"] == false:
 		out[&"key"] = String(TARGET_FLOOR)
+	else:
+		out[&"key"] = "%s:%s:%d,%d,%d:%d" % [kind[&"target"], kind[&"wall_kind"], roundi(n.x * 100.0),
+				roundi(n.y * 100.0), roundi(n.z * 100.0), roundi(float(out[&"plane"]) / Tuning.NOCLIP_PLANE_TOLERANCE)]
+	# Beyond 2.5 m the answer is TOO FAR whatever the surface is, except a ceiling.
+	if out[&"distance"] > Tuning.NOCLIP_RANGE and not is_ceiling(n):
+		return out
 	if kind[&"solid"]:
 		out[&"reason"] = Tuning.NOCLIP_REASON_SOLID
 		return out
 	if out[&"distance"] > Tuning.NOCLIP_RANGE:
-		out[&"reason"] = Tuning.NOCLIP_REASON_TOO_FAR
 		return out
 	if too_thin(coherence, out[&"target"]):
 		out[&"reason"] = Tuning.NOCLIP_REASON_TOO_THIN
 		return out
 	if out[&"target"] != TARGET_FLOOR:
 		# 07 §7 / orchestrator rule: the grid decides first. A far-side cell that is not
-		# walkable is NO SPACE whatever the shape cast finds (hollow void blocks).
-		if far_side_walkable(LevelBuilder.shape_info(hit[&"collider"], int(hit[&"shape"])), n) == 0:
+		# walkable is NO SPACE whatever the shape cast finds (hollow void blocks). The
+		# landing must then lie in that very cell, on its floor within a step.
+		var far := far_side(info, n)
+		if far[&"known"] and not far[&"walkable"]:
 			out[&"reason"] = Tuning.NOCLIP_REASON_NO_SPACE
 			return out
-		var landing: Variant = find_landing(space, p, n, d, body_pos.y, shape, exclude)
+		if far[&"has_cell"]:
+			out[&"far_cell"] = far[&"cell"]
+			out[&"has_far_cell"] = true
+		if far[&"has_floor_y"]:
+			out[&"far_floor_y"] = far[&"floor_y"]
+		var landing: Variant = find_landing_cached(cache, space, p, n, d, float(out[&"far_floor_y"]),
+				shape, exclude, far)
 		if landing == null:
 			out[&"reason"] = Tuning.NOCLIP_REASON_NO_SPACE
 			return out
@@ -119,37 +145,88 @@ static func evaluate(space: PhysicsDirectSpaceState3D, eye: Vector3, dir: Vector
 	return out
 
 
-## What a ray hit is to noclip: {target, solid}. Floors by normal (within 20 deg of up),
-## walls by normal (within 30 deg of horizontal); anything else (ceilings, slopes) is a
-## solid wall-glyph target. A wall's kind comes from the builder metadata (07 §7).
-static func classify(hit: Dictionary, floor_solid: bool) -> Dictionary:
+## Whether two evaluations name the same target; a charge continues while this holds
+## (06 §8: looking away cancels). Floors: any valid floor. Walls: the same target id and
+## wall kind on the same plane (normal within NOCLIP_PLANE_NORMAL_DOT, plane offset within
+## NOCLIP_PLANE_TOLERANCE), whichever collider shape carries it, so strafing along one
+## wall keeps the charge across the 2 m segment seams.
+static func same_target(a: Dictionary, b: Dictionary) -> bool:
+	if a.is_empty() or b.is_empty() or a[&"target"] != b[&"target"]:
+		return false
+	if a[&"target"] == TARGET_FLOOR:
+		return a[&"key"] == b[&"key"]
+	if a[&"wall_kind"] != b[&"wall_kind"]:
+		return false
+	var na: Vector3 = a[&"normal"]
+	var nb: Vector3 = b[&"normal"]
+	return na.dot(nb) >= Tuning.NOCLIP_PLANE_NORMAL_DOT \
+			and absf(float(a[&"plane"]) - float(b[&"plane"])) <= Tuning.NOCLIP_PLANE_TOLERANCE
+
+
+## A surface facing down by more than 30 deg below horizontal: a ceiling (never valid).
+static func is_ceiling(n: Vector3) -> bool:
+	return n.y < -sin(deg_to_rad(Tuning.NOCLIP_WALL_NORMAL_MAX_DEG))
+
+
+## What a ray hit is to noclip: {target, solid, wall_kind}. Floors by normal (within 20
+## deg of up), walls by normal (within 30 deg of horizontal); anything else (ceilings,
+## slopes) is a solid wall-glyph target. A wall's kind comes from the builder metadata
+## (07 §7); `info` is LevelBuilder.shape_info of the hit when the caller already has it.
+static func classify(hit: Dictionary, floor_solid: bool, info: Variant = null) -> Dictionary:
 	var n: Vector3 = hit[&"normal"]
-	var info := LevelBuilder.shape_info(hit[&"collider"], int(hit[&"shape"]))
+	var meta: Dictionary = info if info is Dictionary else LevelBuilder.shape_info(hit[&"collider"], int(hit[&"shape"]))
 	if n.y >= cos(deg_to_rad(Tuning.NOCLIP_FLOOR_NORMAL_MAX_DEG)):
-		return {&"target": TARGET_FLOOR, &"solid": floor_solid or not is_drop_floor(hit[&"collider"], info)}
+		return {&"target": TARGET_FLOOR, &"wall_kind": &"",
+			&"solid": floor_solid or not is_drop_floor(hit[&"collider"], meta)}
+	var wk := wall_kind_of(hit[&"collider"], meta)
 	if absf(n.y) > sin(deg_to_rad(Tuning.NOCLIP_WALL_NORMAL_MAX_DEG)):
-		return {&"target": TARGET_WALL, &"solid": true}
-	var wk := wall_kind_of(hit[&"collider"], info)
+		return {&"target": TARGET_WALL, &"solid": true, &"wall_kind": wk}
+	# 07 §7: a door edge is a candidate only while its leaf is closed. Whatever carries the
+	# leaf's `closed` state (the leaf, the jambs) follows it; a DOOR edge without it (the
+	# header above the opening) is SOLID.
+	var closed: Variant = meta.get(&"closed", null)
+	var is_closed := closed is bool and bool(closed)
+	if closed is bool and not is_closed:
+		return {&"target": TARGET_WALL, &"solid": true, &"wall_kind": wk}
 	if wk in SOFT_KINDS:
-		return {&"target": TARGET_SOFT, &"solid": false}
-	if wk in PASSABLE_KINDS:
-		# 07 §7: a door is a candidate only while closed (the leaf carries `closed`).
-		var closed: Variant = info.get(&"closed", true)
-		return {&"target": TARGET_WALL, &"solid": closed is bool and not closed}
-	return {&"target": TARGET_WALL, &"solid": true}
+		return {&"target": TARGET_SOFT, &"solid": false, &"wall_kind": wk}
+	var wt: Variant = meta.get(&"wall_type", -1)
+	if wk == KIND_DOOR or (wt is int and int(wt) == LevelGrid.DOOR):
+		return {&"target": TARGET_WALL, &"solid": not is_closed, &"wall_kind": wk}
+	return {&"target": TARGET_WALL, &"solid": not (wk in PASSABLE_KINDS), &"wall_kind": wk}
 
 
 ## Whether the cell beyond the aimed wall face is walkable, from the builder's edge
 ## metadata {cell, dir, walkable, other_walkable}: 1 yes, 0 no, -1 unknown (no metadata).
-## The face's normal points back at the aiming side, so the far side is `other_cell` when
-## the normal points against `dir`, else `cell`.
 static func far_side_walkable(info: Dictionary, normal: Vector3) -> int:
-	if not (info.has(&"dir") and info.has(&"walkable") and info.has(&"other_walkable")):
+	var far := far_side(info, normal)
+	if not far[&"known"]:
 		return -1
+	return 1 if far[&"walkable"] else 0
+
+
+## The far side of an aimed wall face from the builder's edge metadata {cell, dir,
+## walkable, other_walkable, floor_y, other_floor_y}: {known, walkable, has_cell, cell,
+## has_floor_y, floor_y}. The face's normal points back at the aiming side, so the far
+## side is the `dir` neighbour of `cell` when the normal points against `dir`, else `cell`.
+static func far_side(info: Dictionary, normal: Vector3) -> Dictionary:
+	var out := {&"known": false, &"walkable": true, &"has_cell": false, &"cell": Vector2i.ZERO,
+		&"has_floor_y": false, &"floor_y": 0.0}
+	if not (info.has(&"dir") and info.has(&"walkable") and info.has(&"other_walkable")):
+		return out
 	var dv: Vector2i = LevelGrid.DIRS[int(info[&"dir"])]
-	var facing := normal.x * dv.x + normal.z * dv.y
-	var far: bool = info[&"other_walkable"] if facing < 0.0 else info[&"walkable"]
-	return 1 if far else 0
+	var beyond := normal.x * dv.x + normal.z * dv.y < 0.0
+	out[&"known"] = true
+	out[&"walkable"] = bool(info[&"other_walkable"] if beyond else info[&"walkable"])
+	if info.get(&"cell") is Vector2i:
+		var c: Vector2i = info[&"cell"]
+		out[&"has_cell"] = true
+		out[&"cell"] = c + dv if beyond else c
+	var fy_key := &"other_floor_y" if beyond else &"floor_y"
+	if info.has(fy_key):
+		out[&"has_floor_y"] = true
+		out[&"floor_y"] = float(info[fy_key])
+	return out
 
 
 ## The upper-cased wall kind of a hit (per-shape builder metadata first, then the body).
@@ -173,29 +250,21 @@ static func is_drop_floor(collider: Object, info: Dictionary) -> bool:
 	return collider != null and collider.has_meta(&"floor") and bool(collider.get_meta(&"floor"))
 
 
-## 06 §8 free space behind a wall: the body's capsule, standing on a floor within a step of
-## the current one, at the first spot 0.3..2.0 m beyond the aimed point along the
-## horizontal aim (the pass moves along the aim). Returns the body origin, or null.
+## The grid cell of a world position (LevelGrid.cell_of without a grid).
+static func cell_at(pos: Vector3) -> Vector2i:
+	return Vector2i(roundi(pos.x / Tuning.GRID_CELL_SIZE), roundi(pos.z / Tuning.GRID_CELL_SIZE))
+
+
+## find_landing through a cache the caller keeps (NoclipLanding.cached).
+static func find_landing_cached(cache: Variant, space: PhysicsDirectSpaceState3D, point: Vector3, normal: Vector3,
+		aim: Vector3, ref_y: float, shape: Shape3D, exclude: Array[RID] = [], far: Dictionary = {}) -> Variant:
+	return NoclipLanding.cached(cache, space, point, normal, aim, ref_y, shape, exclude, far)
+
+
+## 06 §8 free space behind a wall, inside the far cell (NoclipLanding.find).
 static func find_landing(space: PhysicsDirectSpaceState3D, point: Vector3, normal: Vector3, aim: Vector3,
-		body_y: float, shape: Shape3D, exclude: Array[RID] = []) -> Variant:
-	var along := Vector3(aim.x, 0.0, aim.z)
-	var into := -Vector3(normal.x, 0.0, normal.z)
-	if into.length_squared() < 0.0001:
-		return null
-	into = into.normalized()
-	if along.length_squared() < 0.0001 or along.normalized().dot(into) <= 0.05:
-		along = into
-	along = along.normalized()
-	var dist := Tuning.NOCLIP_FREE_SPACE_MIN
-	while dist <= Tuning.NOCLIP_FREE_SPACE_MAX + 0.0001:
-		var xz := point + along * dist
-		var fy: Variant = floor_under(space, Vector3(xz.x, body_y, xz.z), exclude)
-		if fy != null:
-			var origin := Vector3(xz.x, float(fy) + Tuning.NOCLIP_LANDING_LIFT, xz.z)
-			if is_free(space, origin, shape, exclude):
-				return origin
-		dist += Tuning.NOCLIP_LANDING_STEP
-	return null
+		ref_y: float, shape: Shape3D, exclude: Array[RID] = [], far: Dictionary = {}) -> Variant:
+	return NoclipLanding.find(space, point, normal, aim, ref_y, shape, exclude, far)
 
 
 ## The floor height under `at` within a step of at.y (06 §3 step height), or null when
@@ -215,13 +284,14 @@ static func floor_under(space: PhysicsDirectSpaceState3D, at: Vector3, exclude: 
 
 ## True when `shape` placed with its base at `origin` overlaps nothing on the world layer.
 static func is_free(space: PhysicsDirectSpaceState3D, origin: Vector3, shape: Shape3D, exclude: Array[RID] = []) -> bool:
-	var q := PhysicsShapeQueryParameters3D.new()
-	q.shape = shape
-	q.transform = Transform3D(Basis.IDENTITY, origin + Vector3.UP * shape_half_height(shape))
-	q.collision_mask = PlayerLayers.WORLD_MASK
-	q.exclude = exclude
-	q.collide_with_areas = false
-	return space.intersect_shape(q, 1).is_empty()
+	if _shape_q == null:
+		_shape_q = PhysicsShapeQueryParameters3D.new()
+		_shape_q.collision_mask = PlayerLayers.WORLD_MASK
+		_shape_q.collide_with_areas = false
+	_shape_q.shape = shape
+	_shape_q.transform = Transform3D(Basis.IDENTITY, origin + Vector3.UP * shape_half_height(shape))
+	_shape_q.exclude = exclude
+	return space.intersect_shape(_shape_q, 1).is_empty()
 
 
 static func shape_half_height(shape: Shape3D) -> float:
@@ -235,10 +305,15 @@ static func shape_half_height(shape: Shape3D) -> float:
 
 
 static func _ray(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3, exclude: Array[RID]) -> Dictionary:
-	var q := PhysicsRayQueryParameters3D.create(from, to, PlayerLayers.WORLD_MASK, exclude)
-	q.collide_with_areas = false
-	q.hit_from_inside = false
-	var hit := space.intersect_ray(q)
+	if _ray_q == null:
+		_ray_q = PhysicsRayQueryParameters3D.new()
+		_ray_q.collision_mask = PlayerLayers.WORLD_MASK
+		_ray_q.collide_with_areas = false
+		_ray_q.hit_from_inside = false
+	_ray_q.from = from
+	_ray_q.to = to
+	_ray_q.exclude = exclude
+	var hit := space.intersect_ray(_ray_q)
 	if not hit.is_empty() and (hit[&"normal"] as Vector3).length_squared() < 0.5:
 		return {}  # started inside a shape: not a surface
 	return hit

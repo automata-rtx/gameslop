@@ -116,7 +116,8 @@ func _segment_life(kind: int) -> float:
 
 
 func _render_numeral() -> void:
-	_numeral.text = str(ceili(shown - 0.0001)).pad_zeros(Tuning.HUD_COHERENCE_PAD)
+	# Never 000 while any Coherence is left: zero is the dissolve (noclip review).
+	_numeral.text = str(maxi(ceili(shown - 0.0001), 1 if shown > 0.0 else 0)).pad_zeros(Tuning.HUD_COHERENCE_PAD)
 	var c := UiTokens.UI_DANGER if is_danger() else UiTokens.UI_FG
 	_numeral.add_theme_color_override(&"font_color", c)
 	_label.add_theme_color_override(&"font_color", UiTokens.UI_DANGER if is_danger() else UiTokens.UI_DIM)

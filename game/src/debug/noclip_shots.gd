@@ -75,7 +75,8 @@ func _run() -> void:
 	await _pose(p, good)
 	Input.action_press(&"noclip")
 	var nt := p.noclip_targeting as NoclipTargeting
-	await _until(func() -> bool: return nt.phase == NoclipTargeting.Phase.PASSING and nt.get(&"_pass_t") > 0.0)
+	# Mid-pass: the sine in-out pass crosses the wall at half its time (NoclipMotion).
+	await _until(func() -> bool: return nt.phase == NoclipTargeting.Phase.PASSING and nt.pass_time() >= NoclipMotion.PASS_TIME * 0.5)
 	p.set_physics_process(false)
 	nt.set_physics_process(false)
 	for f in SETTLE:

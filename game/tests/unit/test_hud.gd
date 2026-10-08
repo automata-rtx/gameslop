@@ -395,3 +395,20 @@ func test_exit_status_clears_in_the_cabin_and_returns_on_entry() -> void:
 	EventBus.level_entered.emit(4, &"garage", &"proper")
 	assert_eq(hud.depth.exit_text(), "EXIT: UNKNOWN")
 	assert_true(hud.depth.exit_shutter.is_shown(), "restored on the next level")
+
+
+func test_numeral_never_reads_000_while_coherence_is_left() -> void:
+	hud.coherence.set_value(0.00004, 0.0)
+	assert_eq(hud.coherence.numeral_text(), "001", "any Coherence above 0 reads at least 001")
+	hud.coherence.set_value(0.4, 0.0)
+	assert_eq(hud.coherence.numeral_text(), "001")
+	hud.coherence.set_value(0.0, 0.0)
+	assert_eq(hud.coherence.numeral_text(), "000", "only 0 is 000")
+
+
+func test_noclip_refund_snaps_without_a_gain_segment() -> void:
+	fake.set_coherence(90.0, &"noclip")
+	fake.set_coherence(100.0, &"noclip_refund")
+	assert_eq(hud.coherence.numeral_text(), "100", "the numeral snaps back")
+	assert_false(hud.coherence.segments.any(func(s: Dictionary) -> bool: return int(s["kind"]) == HudCoherence.GAIN),
+			"a refund is not a gain")

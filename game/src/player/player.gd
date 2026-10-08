@@ -33,6 +33,11 @@ const SETTING_SENSITIVITY := &"mouse_sensitivity"
 const SETTING_INVERT_Y := &"invert_y"
 const CAUSE_SUBSTRATE := &"substrate"
 const SOURCE_UNKNOWN_ERROR := &"error"
+## A wall pass that ended back at its start returns its cost under this source (no gain
+## feedback; the HUD snaps the numeral back).
+const SOURCE_NOCLIP_REFUND := &"noclip_refund"
+## States in which Coherence cannot fall (the drop's fall and the Landing cabin).
+const NO_LOSS_STATES: Array[StringName] = [PlayerStateMachine.DROPPING, PlayerStateMachine.LANDING]
 ## 11 §3 dissolve: the camera drifts 0.02 m (down) over the 1.5 s sequence.
 const DISSOLVE_DRIFT_DIR := Vector3.DOWN
 ## States in which the player has no legs of their own: entering one halts locomotion
@@ -182,8 +187,13 @@ func _exit_tree() -> void:
 
 
 ## 06 §9: the only way Coherence changes. Clamped 0..100; no passive regeneration.
+## Coherence cannot fall during a drop or the Landing (noclip review): the player has no
+## body in the level then, so losses are ignored. SOURCE_NOCLIP_REFUND (a pass that fell
+## back to its start) restores the cost without the gain feedback: it is not a gain.
 func apply_coherence(delta: float, source: StringName) -> void:
 	if is_dissolving() or is_zero_approx(delta):
+		return
+	if delta < 0.0 and state_machine.state in NO_LOSS_STATES:
 		return
 	var before := coherence
 	coherence = clampf(coherence + delta, 0.0, Tuning.COHERENCE_MAX)
@@ -197,7 +207,7 @@ func apply_coherence(delta: float, source: StringName) -> void:
 	if applied < 0.0:
 		# 11 §3 Coherence loss (any source): the loss tick per unit lost, rate-limited.
 		sounds.add_loss(-applied)
-	if applied > 0.0:
+	if applied > 0.0 and source != SOURCE_NOCLIP_REFUND:
 		# 11 §3 Coherence gain: saturation overshoot, warm chord, FOV +2 then back 400 ms.
 		CoherenceRenderer.pulse(&"coherence_gain")
 		sounds.play(&"coherence_gain")
