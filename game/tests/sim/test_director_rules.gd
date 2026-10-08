@@ -63,12 +63,12 @@ func test_roster_per_depth() -> void:
 	assert_eq(_count(_roster(6, &"garage"), &"null"), 0)
 
 
-func test_spawnable_is_static_still_and_echo() -> void:
+func test_spawnable_is_static_still_echo_and_flicker() -> void:
 	assert_true(DirectorRules.spawnable(&"static"))
 	assert_true(DirectorRules.spawnable(&"still"))
 	assert_true(DirectorRules.spawnable(&"echo"), "Echo is built (M2.4)")
-	for id: StringName in [&"flicker", &"null"]:
-		assert_false(DirectorRules.spawnable(id), "%s arrives in M2" % id)
+	assert_true(DirectorRules.spawnable(&"flicker"), "Flicker is built (M2.5)")
+	assert_false(DirectorRules.spawnable(&"null"), "Null arrives in M2.6")
 
 
 func test_chaser_caps_and_awake_hunters() -> void:
