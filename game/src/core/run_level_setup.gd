@@ -39,7 +39,7 @@ static func prepare(level: Level, data: LevelData) -> Dictionary:
 		darken_exit_room(level, data)
 	# Orchestrator decision (M1.9): the run populates pickups, seeded from the level seed,
 	# and frees the item and note markers.
-	for kind: StringName in [LevelData.P_ITEM, LevelData.P_NOTE]:
+	for kind: StringName in [LevelData.P_ITEM, LevelData.P_NOTE, LevelData.P_KEYCARD]:
 		for m: Node in tree.get_nodes_in_group(LevelPlacer.group_of(kind)):
 			if level.is_ancestor_of(m):
 				m.queue_free()
@@ -102,9 +102,8 @@ static func run_power_wave(level: Level, data: LevelData, exit: Exit, breaker_po
 
 # --- pure rules --------------------------------------------------------------------------
 
-## 05 §6, 09 §2: the kinds the pool may offer this run. A kind needs a world scene (M1:
-## Polaroid, Glowstick, Chalk; Flare, Radio and Fuse land in M2.8) and its unlock; Daily
-## Descent ignores unlock state (05 §8).
+## 05 §6, 09 §2: the kinds the pool may offer this run. A kind needs a world scene (every belt
+## kind has one since M2.8) and its unlock; Daily Descent ignores unlock state (05 §8).
 static func item_pool(meta: MetaState, daily: bool = false) -> Array[StringName]:
 	var out: Array[StringName] = []
 	for kind: StringName in Tuning.ITEM_WEIGHT:

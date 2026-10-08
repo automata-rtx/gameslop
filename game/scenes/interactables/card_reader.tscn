@@ -1,0 +1,60 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://src/interactables/card_reader.gd" id="1_reader"]
+[ext_resource type="Script" path="res://src/interactables/interactable.gd" id="2_interactable"]
+[ext_resource type="Material" path="res://data/materials/halls/prop_metal.tres" id="3_metal"]
+[ext_resource type="Material" path="res://data/materials/halls/prop_black.tres" id="4_black"]
+[ext_resource type="Shader" path="res://shaders/world_surface.gdshader" id="5_world"]
+
+[sub_resource type="ShaderMaterial" id="Mat_indicator"]
+shader = ExtResource("5_world")
+shader_parameter/albedo = Color(1, 0.690196, 0, 1)
+shader_parameter/roughness = 0.5
+shader_parameter/emission = Color(1, 0.690196, 0, 1)
+shader_parameter/emission_strength = 0.0
+shader_parameter/noise_albedo_amount = 0.0
+
+[sub_resource type="BoxMesh" id="Mesh_box"]
+size = Vector3(0.16, 0.26, 0.05)
+
+[sub_resource type="BoxMesh" id="Mesh_slot"]
+size = Vector3(0.1, 0.012, 0.01)
+
+[sub_resource type="BoxMesh" id="Mesh_led"]
+size = Vector3(0.03, 0.03, 0.01)
+
+[sub_resource type="BoxShape3D" id="Shape_box"]
+size = Vector3(0.24, 0.34, 0.1)
+
+[node name="CardReader" type="Node3D"]
+script = ExtResource("1_reader")
+
+[node name="Box" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -0.025)
+mesh = SubResource("Mesh_box")
+material_override = ExtResource("3_metal")
+
+[node name="Slot" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -0.052)
+mesh = SubResource("Mesh_slot")
+material_override = ExtResource("4_black")
+
+[node name="Indicator" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.33, -0.052)
+mesh = SubResource("Mesh_led")
+material_override = SubResource("Mat_indicator")
+
+[node name="Body" type="StaticBody3D" parent="."]
+unique_name_in_owner = true
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -0.05)
+shape = SubResource("Shape_box")
+
+[node name="Interactable" type="Node" parent="Body"]
+unique_name_in_owner = true
+script = ExtResource("2_interactable")
+prompt = "NO CARD"

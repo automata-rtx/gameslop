@@ -8,6 +8,8 @@ extends Node
 ## Held models (09 §3) hang off the player's camera and share the flashlight's bob at 60%.
 
 signal changed(slots: Array, selected: int)
+## The keycard (09 §2: not a belt item) was picked up or dropped.
+signal keycard_changed(has_card: bool)
 
 const SLOT_COUNT := Tuning.ITEM_BELT_SLOTS
 ## Where a raised held item rests, camera space: lower right, beside the flashlight (02 §9).
@@ -20,6 +22,8 @@ const SOUND_SELECT := &"ui_move"
 var slots: Array = []
 var selected: int = 0
 var player: Player = null
+## 09 §2: the Keycard is a key, not a belt item. Carried for the level; dropped when it ends.
+var keycard: bool = false
 
 var _behaviors: Dictionary = {}
 var _light_query: Callable
@@ -38,6 +42,7 @@ func _ready() -> void:
 		# 06 Interfaces: a glowstick within 4 m (a flare within 8 m) lights a node for Still.
 		_light_query = _lit_by_chemical_light
 		player.add_light_query(_light_query)
+	EventBus.level_left.connect(func(_proper: bool) -> void: set_keycard(false))
 	changed.emit(slots, selected)
 
 
@@ -190,12 +195,21 @@ func swap_in(kind: StringName, count: int, state: Dictionary = {}, index: int = 
 	return old
 
 
+## Picks up or drops the keycard (announces keycard_changed on a change).
+func set_keycard(on: bool) -> void:
+	if keycard == on:
+		return
+	keycard = on
+	keycard_changed.emit(on)
+
+
 ## Empties the belt (a new Descent), then gives the loadout's `{kind: count}` (05 §7).
 func reset(items: Dictionary = {}) -> void:
 	for b: ItemBase in _behaviors.values():
 		b.cancel()
 	_clear_slots()
 	selected = 0
+	set_keycard(false)
 	for kind: Variant in items:
 		add(StringName(kind), int(items[kind]))
 	_changed()
@@ -308,7 +322,6 @@ func behavior_for(kind: StringName) -> ItemBase:
 	return b
 
 
-## The behaviours that exist so far; Flare, Radio and Fuse land with M2.8.
 static func _new_behavior(kind: StringName) -> ItemBase:
 	match kind:
 		&"polaroid":
@@ -317,6 +330,12 @@ static func _new_behavior(kind: StringName) -> ItemBase:
 			return ChalkItem.new()
 		&"glowstick":
 			return GlowstickItem.new()
+		&"flare":
+			return FlareItem.new()
+		&"radio":
+			return RadioItem.new()
+		&"fuse":
+			return FuseItem.new()
 	return null
 
 

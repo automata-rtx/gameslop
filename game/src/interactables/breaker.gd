@@ -4,9 +4,12 @@ extends Node3D
 ## the lever animates 0.3 s, the clunk, a 25 m `mech` noise, EventBus.breaker_thrown(pos).
 ## The run answers the bus event with the power wave (wave_delays below) and the exit.
 ## Variant B (07 §6, unlock #4): an empty fuse socket; the player inserts a carried fuse
-## (0.8 s) before the lever can be thrown. Pulling the fuse back out is M2.9.
+## (0.8 s) before the lever can be thrown, and can pull it back out (0.8 s) until the lever is
+## thrown: a small socket collider (%Socket, %SocketInteractable) offers `[HOLD E] PULL FUSE`
+## while the fuse is in and the belt can take it.
 ## Scene contract: %Pivot (lever hinge), %Lamp (indicator), %Body (StaticBody3D on world +
-## interactable) with %Interactable.
+## interactable) with %Interactable, %Socket (StaticBody3D, layer set here) with
+## %SocketInteractable.
 
 signal thrown(pos: Vector3)
 
@@ -24,10 +27,13 @@ const LAMP_ON := 3.0
 @onready var lamp: MeshInstance3D = %Lamp
 @onready var body: StaticBody3D = %Body
 @onready var interactable: Interactable = %Interactable
+@onready var socket: StaticBody3D = %Socket
+@onready var socket_interactable: Interactable = %SocketInteractable
 
 var is_thrown: bool = false
 var fuse_in: bool = true
 var _lamp_mat: ShaderMaterial
+var _fuse_model: Node3D
 
 
 func _ready() -> void:
@@ -42,6 +48,13 @@ func _ready() -> void:
 	interactable.condition = _offers
 	interactable.interacted.connect(_on_interacted)
 	_refresh_prompt(null)
+	socket_interactable.condition = _socket_offers
+	socket_interactable.interacted.connect(_on_socket_interacted)
+	_fuse_model = ItemModels.held(&"fuse")
+	_fuse_model.rotation = Vector3(PI * 0.5, 0.0, 0.0)
+	ItemModels.set_held(_fuse_model, false)
+	socket.add_child(_fuse_model)
+	_sync_socket()
 
 
 ## What the box offers this player: the lever, or (Variant B) inserting a carried fuse.
@@ -73,13 +86,55 @@ static func _carries_fuse(player: Node) -> bool:
 
 func _on_interacted(player: Node) -> void:
 	if not fuse_in:
-		var inv := Inventory.of(player)
-		if inv != null and inv.consume(FUSE, 1) > 0:
-			fuse_in = true
-			AudioManager.play_3d(&"item_pickup", global_position)
-			_refresh_prompt(player)
+		insert_fuse(player)
 		return
 	throw_breaker()
+
+
+## 09 §2: puts the carried fuse in the socket (Variant B). Returns false without one.
+func insert_fuse(player: Node) -> bool:
+	if fuse_in or is_thrown:
+		return false
+	var inv := Inventory.of(player)
+	if inv == null or inv.consume(FUSE, 1) <= 0:
+		return false
+	fuse_in = true
+	AudioManager.play_3d(&"fuse_insert", global_position + Vector3(0.0, 1.2, -0.3))
+	_refresh_prompt(player)
+	_sync_socket()
+	return true
+
+
+## 09 §2: pulls the fuse back out onto the belt (before the lever is thrown). False when it is
+## not in, the lever is thrown, or the belt cannot take it.
+func pull_fuse(player: Node) -> bool:
+	if variant != VARIANT_B or not fuse_in or is_thrown:
+		return false
+	var inv := Inventory.of(player)
+	if inv == null or inv.add(FUSE, 1) <= 0:
+		return false
+	fuse_in = false
+	AudioManager.play_3d(&"fuse_pull", global_position + Vector3(0.0, 1.2, -0.3))
+	_refresh_prompt(player)
+	_sync_socket()
+	return true
+
+
+func _socket_offers(player: Node) -> bool:
+	var inv := Inventory.of(player) if player != null else null
+	return variant == VARIANT_B and fuse_in and not is_thrown and inv != null and inv.can_accept(FUSE)
+
+
+func _on_socket_interacted(player: Node) -> void:
+	pull_fuse(player)
+
+
+## The socket collider answers only a Variant B box whose lever is not thrown; the fuse shows
+## while it is in.
+func _sync_socket() -> void:
+	var live := variant == VARIANT_B and not is_thrown
+	socket.collision_layer = PlayerLayers.INTERACTABLE_MASK if live else 0
+	_fuse_model.visible = variant == VARIANT_B and fuse_in
 
 
 ## Throws the lever (09 §5). Returns false when already thrown or the fuse is missing.
@@ -88,6 +143,7 @@ func throw_breaker() -> bool:
 		return false
 	is_thrown = true
 	interactable.enabled = false
+	_sync_socket()
 	var tw := create_tween().set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	tw.tween_property(pivot, ^"rotation:x", deg_to_rad(LEVER_DOWN_DEG), Tuning.BREAKER_LEVER_TIME)
 	if _lamp_mat != null:

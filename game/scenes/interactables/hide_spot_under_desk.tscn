@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/interactables/hide_spot.gd" id="1_spot"]
+[ext_resource type="Script" path="res://src/interactables/interactable.gd" id="2_interactable"]
+
+[sub_resource type="BoxShape3D" id="Shape_kneehole"]
+size = Vector3(0.9, 0.6, 0.3)
+
+[node name="HideSpotUnderDesk" type="Node3D"]
+script = ExtResource("1_spot")
+kind = &"under_desk"
+yaw_limit_deg = 35.0
+
+[node name="ViewPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.1)
+
+[node name="ExitPoint" type="Marker3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 1.1)
+
+[node name="Kneehole" type="StaticBody3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Kneehole"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0.5)
+shape = SubResource("Shape_kneehole")
+
+[node name="Interactable" type="Node" parent="Kneehole"]
+unique_name_in_owner = true
+script = ExtResource("2_interactable")
+prompt = "HIDE"

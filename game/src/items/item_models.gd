@@ -16,6 +16,19 @@ const POLAROID_H := 0.11
 const POLAROID_PHOTO := 0.07
 const GLOWSTICK_LEN := 0.15
 const CHALK_LEN := 0.06
+const FLARE_LEN := 0.25
+const RADIO_W := 0.12
+const RADIO_H := 0.08
+const RADIO_D := 0.035
+const RADIO_ANTENNA := 0.1
+const FUSE_LEN := 0.05
+const CARD_W := 0.085
+const CARD_H := 0.054
+const FLARE_RED := Color(0.32, 0.05, 0.04)
+const BRASS := Color(0.71, 0.55, 0.22)
+const FUSE_GREY := Color(0.5, 0.5, 0.52)
+const LED_RED := Color("FF3B3B")
+const CARD_AMBER := Color("FFB000")
 ## Glowstick tube emission at full life.
 const GLOW_EMISSION := 2.5
 const WORLD_SHADER := preload("res://shaders/world_surface.gdshader")
@@ -35,6 +48,14 @@ static func _build(kind: StringName) -> Node3D:
 			return _glowstick()
 		&"chalk":
 			return _chalk()
+		&"flare":
+			return _flare()
+		&"radio":
+			return _radio()
+		&"fuse":
+			return _fuse()
+		&"keycard":
+			return _keycard()
 	var n := Node3D.new()
 	n.name = "Held_%s" % kind
 	return n
@@ -51,6 +72,14 @@ static func world(kind: StringName) -> Node3D:
 			m.rotation = Vector3(0.0, deg_to_rad(35.0), deg_to_rad(90.0))
 		&"chalk":
 			m.rotation = Vector3(0.0, 0.0, deg_to_rad(80.0))
+		&"flare":
+			m.rotation = Vector3(0.0, deg_to_rad(25.0), deg_to_rad(90.0))
+		&"radio":
+			m.rotation = Vector3(deg_to_rad(-90.0), deg_to_rad(15.0), 0.0)
+		&"fuse":
+			m.rotation = Vector3(0.0, deg_to_rad(-30.0), deg_to_rad(90.0))
+		&"keycard":
+			m.rotation = Vector3(deg_to_rad(-90.0), deg_to_rad(20.0), 0.0)
 	# Wrap so the pickup can spin or bob the wrapper without fighting the tilt.
 	var holder := Node3D.new()
 	holder.name = "World_%s" % kind
@@ -159,4 +188,116 @@ static func _chalk() -> Node3D:
 	c.rings = 1
 	_mesh(root, c, _mat(WHITE, 1.0), Vector3.ZERO, Vector3.ZERO, "Stick")
 	root.rotation = Vector3(deg_to_rad(-70.0), 0.0, deg_to_rad(-10.0))
+	return root
+
+
+## A 0.25 m dark red cylinder with a pale striker cap (09 §3). The flame and the light belong
+## to the Flare node, not the model.
+static func _flare() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Held_flare"
+	var c := CylinderMesh.new()
+	c.top_radius = 0.014
+	c.bottom_radius = 0.014
+	c.height = FLARE_LEN
+	c.radial_segments = 12
+	c.rings = 1
+	_mesh(root, c, _mat(FLARE_RED, 0.9), Vector3.ZERO, Vector3.ZERO, "Body")
+	var cap := CylinderMesh.new()
+	cap.top_radius = 0.0155
+	cap.bottom_radius = 0.0155
+	cap.height = 0.03
+	cap.radial_segments = 12
+	cap.rings = 1
+	_mesh(root, cap, _mat(Color(0.75, 0.72, 0.66), 0.7), Vector3(0.0, FLARE_LEN * 0.5 - 0.01, 0.0), Vector3.ZERO, "Cap")
+	var band := CylinderMesh.new()
+	band.top_radius = 0.0145
+	band.bottom_radius = 0.0145
+	band.height = 0.02
+	band.radial_segments = 12
+	band.rings = 1
+	_mesh(root, band, _mat(WHITE, 0.8), Vector3(0.0, -0.04, 0.0), Vector3.ZERO, "Band")
+	root.rotation = Vector3(deg_to_rad(-62.0), deg_to_rad(8.0), deg_to_rad(-10.0))
+	return root
+
+
+## The tip of a flare model in its own space (where the flame stands).
+static func flare_tip() -> Vector3:
+	return Vector3(0.0, FLARE_LEN * 0.5 + 0.005, 0.0)
+
+
+## A 0.12 m box with a 0.1 m antenna and a red LED (09 §3). `Led` glows when the radio is on.
+static func _radio() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Held_radio"
+	var box := BoxMesh.new()
+	box.size = Vector3(RADIO_W, RADIO_H, RADIO_D)
+	_mesh(root, box, _mat(Color(0.16, 0.16, 0.17), 0.7), Vector3.ZERO, Vector3.ZERO, "Box")
+	var grille := BoxMesh.new()
+	grille.size = Vector3(0.05, 0.05, 0.004)
+	_mesh(root, grille, _mat(DARK, 0.95), Vector3(-0.026, -0.004, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Grille")
+	var dial := BoxMesh.new()
+	dial.size = Vector3(0.026, 0.012, 0.004)
+	_mesh(root, dial, _mat(Color(0.62, 0.6, 0.5), 0.6), Vector3(0.03, 0.012, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Dial")
+	var led := BoxMesh.new()
+	led.size = Vector3(0.008, 0.008, 0.004)
+	_mesh(root, led, _mat(LED_RED.darkened(0.7), 0.5), Vector3(0.045, -0.025, RADIO_D * 0.5 + 0.001), Vector3.ZERO, "Led")
+	var ant := CylinderMesh.new()
+	ant.top_radius = 0.0016
+	ant.bottom_radius = 0.0022
+	ant.height = RADIO_ANTENNA
+	ant.radial_segments = 6
+	ant.rings = 1
+	_mesh(root, ant, _mat(Color(0.7, 0.7, 0.72), 0.4), Vector3(-0.045, RADIO_H * 0.5 + RADIO_ANTENNA * 0.5 - 0.004, 0.0), Vector3(0.0, 0.0, deg_to_rad(-12.0)), "Antenna")
+	root.rotation = Vector3(deg_to_rad(-12.0), deg_to_rad(-24.0), deg_to_rad(4.0))
+	return root
+
+
+## Lights or darkens the radio model's LED.
+static func set_radio_led(model: Node, on: bool) -> void:
+	var led := model.get_node_or_null("Led") as MeshInstance3D
+	if led == null:
+		return
+	var m := (led.material_override as ShaderMaterial).duplicate() as ShaderMaterial
+	m.set_shader_parameter(&"albedo", LED_RED if on else LED_RED.darkened(0.7))
+	m.set_shader_parameter(&"emission", LED_RED)
+	m.set_shader_parameter(&"emission_strength", 3.0 if on else 0.0)
+	led.material_override = m
+
+
+## A 0.05 m grey cylinder with brass caps (09 §3).
+static func _fuse() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Held_fuse"
+	var c := CylinderMesh.new()
+	c.top_radius = 0.009
+	c.bottom_radius = 0.009
+	c.height = FUSE_LEN
+	c.radial_segments = 12
+	c.rings = 1
+	_mesh(root, c, _mat(FUSE_GREY, 0.5), Vector3.ZERO, Vector3.ZERO, "Body")
+	for sign_y: float in [-1.0, 1.0]:
+		var cap := CylinderMesh.new()
+		cap.top_radius = 0.0098
+		cap.bottom_radius = 0.0098
+		cap.height = 0.012
+		cap.radial_segments = 12
+		cap.rings = 1
+		_mesh(root, cap, _mat(BRASS, 0.35), Vector3(0.0, sign_y * (FUSE_LEN * 0.5 - 0.002), 0.0), Vector3.ZERO, "Cap_up" if sign_y > 0.0 else "Cap_down")
+	root.rotation = Vector3(deg_to_rad(-40.0), deg_to_rad(10.0), deg_to_rad(-20.0))
+	return root
+
+
+## The keycard: a flat amber card with a dark stripe (not a belt item; carried, shown as a
+## glyph beside the depth label). The model is the pickup and the card in the reader's hand.
+static func _keycard() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Held_keycard"
+	var card := BoxMesh.new()
+	card.size = Vector3(CARD_W, CARD_H, 0.002)
+	_mesh(root, card, _mat(CARD_AMBER.darkened(0.15), 0.6, 0.35), Vector3.ZERO, Vector3.ZERO, "Card")
+	var stripe := BoxMesh.new()
+	stripe.size = Vector3(CARD_W, 0.011, 0.0005)
+	_mesh(root, stripe, _mat(DARK, 0.8), Vector3(0.0, 0.012, 0.0012), Vector3.ZERO, "Stripe")
+	root.rotation = Vector3(deg_to_rad(10.0), deg_to_rad(-20.0), deg_to_rad(6.0))
 	return root

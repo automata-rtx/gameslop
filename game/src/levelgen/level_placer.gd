@@ -13,7 +13,15 @@ const GROUP_ERROR_SPAWNS := &"error_spawns"
 const META_PLACEMENT := &"placement"
 const PROPS_DIR := "res://scenes/props/%s/%s.tscn"
 const DOOR_SCENE := "res://scenes/props/shared/door.tscn"
-const HIDE_SPOT_SCENES: Dictionary = {&"locker": "res://scenes/interactables/hide_spot_locker.tscn"}
+## 09 §6 hide spots by the placement's `kind` param. `desk` is accepted for `under_desk`.
+const HIDE_SPOT_SCENES: Dictionary = {
+	&"locker": "res://scenes/interactables/hide_spot_locker.tscn",
+	&"under_car": "res://scenes/interactables/hide_spot_under_car.tscn",
+	&"under_desk": "res://scenes/interactables/hide_spot_under_desk.tscn",
+	&"desk": "res://scenes/interactables/hide_spot_under_desk.tscn",
+	&"pump_corner": "res://scenes/interactables/hide_spot_pump_corner.tscn",
+	&"rack_gap": "res://scenes/interactables/hide_spot_rack_gap.tscn",
+}
 
 ## Kinds that become markers (interactive versions come later).
 const MARKER_KINDS: Array[StringName] = [LevelData.P_SPAWN, LevelData.P_EXIT, LevelData.P_BREAKER,
@@ -160,7 +168,15 @@ func _hide_spot(p: Dictionary, parent: Node3D) -> Node3D:
 	var n := scene.instantiate() as Node3D
 	var c: Vector2i = p[&"cell"]
 	n.name = "HideSpot_%d_%d" % [c.x, c.y]
-	n.transform = _xform(p, PI)
+	# The locker faces +Z (yaw + PI); the others look out along -Z, like props. An under-car
+	# spot looks out of the car's aisle side: the placement's yaw is the car's length axis.
+	var t := _xform(p, PI if kind == &"locker" else 0.0)
+	var params: Dictionary = p[&"params"]
+	if kind == &"under_car" and params.has(&"dir"):
+		t.basis = Basis(Vector3.UP, LevelData.yaw_facing(LevelGrid.opposite(int(params[&"dir"]))))
+	n.transform = t
+	if n is HideSpot:
+		(n as HideSpot).configure(params)
 	n.set_meta(META_PLACEMENT, p)
 	_tag_bodies(n, {&"wall_kind": &"PROP"})
 	parent.add_child(n)
