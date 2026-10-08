@@ -65,8 +65,12 @@ func test_still_scene_contract() -> void:
 	add_child(s)
 	assert_eq(s.body.collision_layer, 1 << (Tuning.LAYER_ERRORS - 1), "layer 3")
 	var shape := (s.body.get_child(0) as CollisionShape3D).shape as CapsuleShape3D
-	assert_approx(shape.radius, Tuning.STILL_CAPSULE_RADIUS)
-	assert_approx(shape.height, Tuning.STILL_CAPSULE_HEIGHT)
+	# R7: the body collides as the navigation agent so it fits 1.0 m doorways under 2.1 m
+	# headers; the drawn column below keeps 0.5 x 2.6 m (02 §8).
+	assert_approx(shape.radius, Tuning.STILL_BODY_RADIUS)
+	assert_approx(shape.height, Tuning.STILL_BODY_HEIGHT)
+	assert_lt(shape.radius * 2.0, 1.0, "fits a 1.0 m doorway")
+	assert_lt(shape.height, Tuning.LEVELBUILD_DOOR_HEIGHT, "fits under the door header")
 	var box := s.column.mesh.get_aabb()
 	assert_approx(box.position.y, 0.0, 0.001, "stands on the floor (flat base)")
 	assert_approx(box.size.y, Tuning.STILL_CAPSULE_HEIGHT, 0.001)
