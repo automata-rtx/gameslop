@@ -4,7 +4,8 @@ extends Control
 ## GARAGE`, ui_danger; a win in ui_accent), a line reporting the cause (00 §5), then the
 ## table typed line by line at 60 cps, then the items `DESCEND AGAIN` (default; Enter
 ## restarts within 1 s) and `TITLE`. Reads GameState and Clock; writes nothing but the
-## next GameState.start_run. Score and BEST are M2.10's (the score prints a dash until then).
+## next GameState.start_run. SCORE and BEST come from GameState (05 §5); unlocks earned this
+## run follow the table in ui_accent, worded as the HUD notifications (04 §6, §7).
 
 const RUN_SCENE := "res://scenes/run.tscn"
 const TITLE_SCENE := "res://scenes/title.tscn"
@@ -37,6 +38,8 @@ func _ready() -> void:
 	col.add_child(spacer)
 	for t in table_lines():
 		_add_line(col, t, &"MenuItemLabel")
+	for t in unlock_lines():
+		_add_line(col, t, &"AccentLabel")
 	var spacer2 := Control.new()
 	spacer2.custom_minimum_size.y = UiTokens.GRID * 4
 	col.add_child(spacer2)
@@ -108,8 +111,28 @@ static func table_lines() -> Array[String]:
 	out.append(Strings.SUMMARY_LINE_FLOORS_DROPPED.replace("{value}", str(run.drops_total)))
 	out.append(Strings.SUMMARY_LINE_NOTES_FOUND.replace("{value}", str(run.notes_found.size())))
 	out.append(Strings.SUMMARY_LINE_ERRORS_EVADED.replace("{value}", str(run.evasions)))
-	out.append(Strings.SUMMARY_LINE_SCORE.replace("{value}", Strings.SUMMARY_VALUE_PENDING))
+	out.append(Strings.SUMMARY_LINE_SCORE.replace("{value}", format_score(run.score)))
+	out.append(Strings.SUMMARY_LINE_BEST.replace("{value}", format_score(int(GameState.meta.stats.get("best_score", 0)))))
 	return out
+
+
+## 04 §7: one line per unlock earned this run (`ITEM UNLOCKED: RADIO`).
+static func unlock_lines() -> Array[String]:
+	var out: Array[String] = []
+	if GameState.run != null:
+		for id in GameState.run.unlocks_earned:
+			out.append(Hud.unlock_message(id))
+	return out
+
+
+## 04 §7: `2,310`.
+static func format_score(score: int) -> String:
+	var digits := str(absi(score))
+	var out := ""
+	while digits.length() > 3:
+		out = "," + digits.right(3) + out
+		digits = digits.left(digits.length() - 3)
+	return ("-" if score < 0 else "") + digits + out
 
 
 static func format_time(seconds: float) -> String:

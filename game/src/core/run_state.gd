@@ -1,7 +1,8 @@
 class_name RunState
 extends RefCounted
 ## One Descent's state (05 Interfaces), held by the GameState autoload.
-## Placeholder data holder: M1.9 and M2.10 fill strata order, loadouts, and scoring.
+## GameState.start_run fills it from the mode and the loadout (05 §7, §8); the run scene
+## and the errors feed the counters through GameState.record_*.
 
 var run_seed: int = 0
 var mode: StringName = &"descent"
@@ -28,3 +29,16 @@ var distance_m: float = 0.0
 ## error id -> notice count this run.
 var encounters: Dictionary = {}
 var started_at_ms: int = 0
+## 05 §10: this Descent is the save's first (scripted guarantees apply).
+var first_descent: bool = false
+## Loadout multipliers (05 §7 Lightbearer): flashlight crank rate, Flicker light attraction distance.
+var crank_rate_mult: float = 1.0
+var flicker_attract_mult: float = 1.0
+## The loadout's starting belt (item kind -> count); the run puts it on the belt.
+var start_items: Dictionary = {}
+## Daily Descent: the UTC "YYYYMMDD" this attempt belongs to (13 §4); empty otherwise.
+var daily_key: String = ""
+## Final Descent Score, set by GameState.end_run (05 §5).
+var score: int = 0
+## Unlock ids earned during this run, in order (Run Summary unlock lines, 04 §7).
+var unlocks_earned: Array[StringName] = []
