@@ -396,3 +396,14 @@ class _Column extends Node3D:
 
 	func observe_points() -> Array:
 		return [global_position + Vector3.UP * height * 0.5, global_position + Vector3.UP * height]
+
+
+func test_fresh_fractional_loss_ticks_at_once() -> void:
+	_p.sounds.played.clear()
+	for i in 30:
+		_p.tick_timers(0.05)
+	_p.apply_coherence(-0.25, &"static")
+	assert_eq(_ticks(), 1, "a loss after a quiet second ticks within the frame (11 §3)")
+	_p.apply_coherence(-0.25, &"static")
+	_p.tick_timers(0.1)
+	assert_eq(_ticks(), 1, "the next fractions accumulate again")

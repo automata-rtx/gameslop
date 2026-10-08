@@ -46,9 +46,16 @@ func noclip_commit_wall(b: FeedbackBench) -> void:
 	await face_edge(b, spots[&"good"])
 	b.set_coherence(80.0)
 	await b.arm()
-	b.anchor_on(b.player().noclip_committed)
+	# noclip_committed fires at the end of a wall pass (R6); the commit itself is the
+	# switch into NoclipPass, which happens before its sound and motion.
+	var sm := b.player().state_machine
+	var on_pass := func(_from: StringName, to: StringName) -> void:
+		if to == PlayerStateMachine.NOCLIP_PASS:
+			b.anchor()
+	sm.state_changed.connect(on_pass)
 	b.press(&"noclip")
 	await b.until(b.is_anchored, 400)
+	sm.state_changed.disconnect(on_pass)
 	b.release(&"noclip")
 
 
