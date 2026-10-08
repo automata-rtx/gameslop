@@ -19,6 +19,7 @@ const SEED_LABEL_LAYOUT := "layout"                 # 07 §1 sub-seeds
 const SEED_LABEL_PLACEMENT := "placement"
 const SEED_LABEL_PROPS := "props"
 const SEED_LABEL_FIXTURES := "fixtures"
+const SEED_LABEL_ERROR := "error:%s:%d"             # per-error rng: Seeds.derive(level_seed, label % [id, index]) (M1.7)
 const SEED_DAILY_PREFIX := "NOCLIP:"                # run_seed = hash(prefix + "YYYYMMDD" UTC) (05 §8, 13 §4)
 const SEED_DAILY_DATE_FORMAT := "YYYYMMDD"
 
@@ -330,6 +331,12 @@ const ERROR_STATE_LUNGE := &"lunge"
 const ERROR_STATE_ATTACHED := &"attached"
 const ERROR_PROXIMITY_HZ := 10.0                    # error_proximity emission rate
 const ERROR_PROXIMITY_INTERVAL := 0.1               # s
+# Build-task constants (M1.7; 08 gives no number): how errors walk.
+const ERROR_ARRIVE_DIST := 0.6                      # m (XZ): a nav target counts as reached
+const ERROR_DOOR_OPEN_DIST := 1.6                   # m (XZ): a closed door this near on the path is opened
+const ERROR_RETREAT_SAMPLES := 12                   # candidate points tried for an unhinted retreat
+const ERROR_CONTACT_MAX_DY := 2.0                   # m: contact also needs the bodies on one floor
+const ERROR_LOG_LINES := 8                          # transitions kept per error for the debug overlay
 
 # 08 §8  Aggression mapping: linear between the columns, clamped outside [0.25, 0.75]
 const AGGR_MIN := 0.25
@@ -375,6 +382,10 @@ const STATIC_MIN_EVADE_TIME := 2.0                  # s inside before release co
 const STATIC_FORCED_DRAIN := 0.6                    # renderer drain floor inside the field (08 §3)
 const STATIC_FORCED_BED := 0.6                      # static bed inside the field
 const STATIC_VISIBLE_DIST := 15.0                   # m, distortion visible at (08 §1)
+const STATIC_CENTRE_HEIGHT := 1.5                   # m above the floor (M1.7: the field is centred at chest height)
+const STATIC_BAND_OUTSIDE_DB := -24.0               # static_band loop gain outside the field (03 "rises inside")
+const STATIC_BAND_INSIDE_DB := 0.0                  # ... at full field strength
+const STATIC_FLARE_GROUP := &"flares_burning"       # burning flares join this group (M1.7 contract for 09)
 
 # 08 §4  Still
 const STILL_CAPSULE_RADIUS := 0.5                   # m (reading: "0.5 x 2.6" = radius x height, as Echo/player)
@@ -404,6 +415,8 @@ const STILL_RENDER_TICK_BLIP_HZ := 6000.0           # Hz blip (03)
 const STILL_RENDER_TICK_BLIP_MS := 10
 const STILL_SILENCE_RANGE := 8.0                    # m: ambience -6 dB
 const STILL_SILENCE_DB := -6.0
+const STILL_WANDER_RADIUS := 14.0                   # m: an unhinted Wander leg ends within this (M1.7)
+const STILL_EYE_POINT_TOP := 0.2                    # m below the column top: the upper observe point (M1.7)
 
 # 08 §5  Flicker
 const FLICKER_HOP_MIN := 6.0                        # s, x hop multiplier

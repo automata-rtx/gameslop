@@ -1,0 +1,48 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://src/errors/error_static.gd" id="1_static"]
+[ext_resource type="Script" path="res://src/errors/senses.gd" id="2_senses"]
+[ext_resource type="Shader" path="res://shaders/static_field.gdshader" id="3_shader"]
+
+[sub_resource type="SphereShape3D" id="Shape_field"]
+resource_local_to_scene = true
+radius = 4.0
+
+[sub_resource type="ShaderMaterial" id="Mat_field"]
+render_priority = 0
+shader = ExtResource("3_shader")
+
+[sub_resource type="SphereMesh" id="Mesh_field"]
+resource_local_to_scene = true
+material = SubResource("Mat_field")
+radius = 4.0
+height = 8.0
+radial_segments = 32
+rings = 16
+
+[node name="Static" type="Node3D"]
+script = ExtResource("1_static")
+error_id = &"static"
+
+[node name="Senses" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_senses")
+hearing_mult = 1.0
+sight_range = 0.0
+
+[node name="Field" type="Area3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+collision_layer = 0
+collision_mask = 0
+monitoring = false
+monitorable = false
+
+[node name="Shape" type="CollisionShape3D" parent="Field"]
+shape = SubResource("Shape_field")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_field")
