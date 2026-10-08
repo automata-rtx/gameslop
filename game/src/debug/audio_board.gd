@@ -79,6 +79,17 @@ func _build_controls() -> void:
 	_button(row, "INSIDE STATIC", func() -> void: AudioManager.set_static_inside(true))
 	_button(row, "OUTSIDE STATIC", func() -> void: AudioManager.set_static_inside(false))
 	_button(row, "STOP ALL", _stop_all)
+	# M2.14: the Null tone at the emitter, the drone (intensity, phases, title, ending), and
+	# Flicker's total silence.
+	_button(row, "NULL AT EMITTER", func() -> void:
+		CoherenceRenderer.set_null(_emitter.global_position, Tuning.NULL_UNRENDER_RADIUS))
+	_button(row, "NULL GONE", func() -> void: CoherenceRenderer.set_null(CoherenceRenderer.NULL_POS_ABSENT, 0.0))
+	_slider(row, "INTENSITY", 0.0, 1.0, 0.0, func(v: float) -> void: AudioManager.music.set_intensity(v))
+	for ph: StringName in [&"build", &"peak", &"relief", &"pursuit"]:
+		_button(row, String(ph).to_upper(), func() -> void: AudioManager.music.set_phase(ph))
+	_button(row, "TITLE MUSIC", func() -> void: AudioManager.music.play_title())
+	_button(row, "ENDING", func() -> void: AudioManager.music.play_ending())
+	_button(row, "LUNGE SILENCE", func() -> void: AudioManager.silence(&"World", Tuning.FLICKER_DARK_TIME))
 	_place_emitter()
 
 

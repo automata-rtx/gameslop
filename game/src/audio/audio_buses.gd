@@ -8,7 +8,7 @@ extends RefCounted
 ## ├── World (reverb per stratum; high-pass for the Substrate's empty render)
 ## │   ├── Footsteps, Interact, Errors (limiter -6 dBFS, rule 2), Ambience
 ## ├── Player (low shelf +2 dB at 90 Hz)
-## ├── Music
+## ├── Music (low-pass 600 Hz, opened to 1.8 kHz by MusicDirector, 03 §5)
 ## └── UI
 
 ## bus -> parent, in AudioServer index order (Tuning.AUDIO_BUSES).
@@ -23,6 +23,7 @@ const WORLD_HIGHPASS := 1
 const MASTER_LIMITER := 0
 const ERRORS_LIMITER := 0
 const PLAYER_SHELF := 0
+const MUSIC_LOWPASS := 0
 
 
 ## True when every bus exists in order, routed and carrying its effects.
@@ -36,7 +37,8 @@ static func is_complete() -> bool:
 	return reverb() != null and highpass() != null \
 		and _effect(&"Master", MASTER_LIMITER) is AudioEffectHardLimiter \
 		and _effect(&"Errors", ERRORS_LIMITER) is AudioEffectHardLimiter \
-		and _effect(&"Player", PLAYER_SHELF) is AudioEffectLowShelfFilter
+		and _effect(&"Player", PLAYER_SHELF) is AudioEffectLowShelfFilter \
+		and music_lowpass() != null
 
 
 ## Rebuilds the whole layout when anything is missing. Safe to call repeatedly.
@@ -74,10 +76,18 @@ static func ensure() -> void:
 	shelf.cutoff_hz = Tuning.AUDIO_PLAYER_LOW_SHELF_HZ
 	shelf.gain = db_to_linear(Tuning.AUDIO_PLAYER_LOW_SHELF_DB)
 	AudioServer.add_bus_effect(AudioServer.get_bus_index(&"Player"), shelf)
+	var music_lp := AudioEffectLowPassFilter.new()
+	music_lp.cutoff_hz = Tuning.MUSIC_LP_CLOSED_HZ
+	AudioServer.add_bus_effect(AudioServer.get_bus_index(&"Music"), music_lp)
 
 
 static func reverb() -> AudioEffectReverb:
 	return _effect(&"World", WORLD_REVERB) as AudioEffectReverb
+
+
+## 03 §5: the live filter on the drone (the pads are rendered open to 1.8 kHz).
+static func music_lowpass() -> AudioEffectLowPassFilter:
+	return _effect(&"Music", MUSIC_LOWPASS) as AudioEffectLowPassFilter
 
 
 static func highpass() -> AudioEffectHighPassFilter:

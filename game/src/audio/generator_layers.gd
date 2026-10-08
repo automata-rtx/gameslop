@@ -5,7 +5,11 @@ extends Node
 ## at lerp(-60, -18, drain^1.5) dB, silent at 100 Coherence, on the Player bus. Inside
 ## Static's field the bed is held at 0.6 drain-equivalent (08 §3, STATIC_FORCED_BED).
 ## It is fed by setters (set_coherence, set_static_inside) and never reads the player.
-## The Null grid tone joins this node with Null (M3).
+## The second layer is the Null grid tone (NullTone), fed by AudioManager with the
+## listener's distance to g_null_pos and its side. It plays on Master, not Errors: Errors
+## sits under World, whose Substrate high-pass (300 Hz) would erase a 55 Hz tone, and
+## Null's core mutes World, Player and Music (03 §4) while the tone stays. Its level
+## follows the Effects slider through set_null_trim().
 
 ## The bed tops out at a 6 kHz cutoff, so 24 kHz is enough and halves the script cost.
 const MIX_RATE := 24000.0
@@ -18,6 +22,9 @@ var _lp: Vector2 = Vector2.ZERO # one-pole state per channel
 var _rng := RandomNumberGenerator.new()
 var _player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
+var null_tone := NullTone.new(MIX_RATE)
+var _null_player: AudioStreamPlayer
+var _null_playback: AudioStreamGeneratorPlayback
 
 
 func _ready() -> void:
@@ -30,18 +37,30 @@ func _ready() -> void:
 	_player.stream = gen
 	_player.bus = &"Player"
 	add_child(_player)
+	var gen2 := AudioStreamGenerator.new()
+	gen2.mix_rate = MIX_RATE
+	gen2.buffer_length = BUFFER_S
+	_null_player = AudioStreamPlayer.new()
+	_null_player.name = "NullTone"
+	_null_player.stream = gen2
+	_null_player.bus = &"Master"
+	add_child(_null_player)
 
 
 func _exit_tree() -> void:
 	# Release the playback the audio server holds, so quitting leaks nothing.
 	_playback = null
+	_null_playback = null
 	if _player != null:
 		_player.stop()
+	if _null_player != null:
+		_null_player.stop()
 
 
 ## The generator only runs while the bed is audible or ramping down: at full Coherence it
 ## costs nothing.
 func _process(_delta: float) -> void:
+	_process_null()
 	if target_gain() <= 0.0 and _gain <= 0.0:
 		if _player.playing:
 			_player.stop()
@@ -57,6 +76,40 @@ func _process(_delta: float) -> void:
 		_playback.push_buffer(render(n))
 	elif target_gain() <= 0.0:
 		_gain = 0.0  # nothing queued to ramp through: done
+
+
+func _process_null() -> void:
+	if _null_player == null:
+		return
+	if null_tone.is_silent():
+		if _null_player.playing:
+			_null_player.stop()
+			_null_playback = null
+		return
+	if not _null_player.playing:
+		_null_player.play()
+		_null_playback = _null_player.get_stream_playback() as AudioStreamGeneratorPlayback
+	if _null_playback == null:
+		return
+	var n := _null_playback.get_frames_available()
+	if n > 0:
+		_null_playback.push_buffer(null_tone.render(n))
+
+
+## The listener's distance to Null (INF when there is none) and its side (-1..1).
+func set_null(distance: float, pan: float = 0.0) -> void:
+	null_tone.distance = distance
+	null_tone.pan = pan
+
+
+## The Effects slider (and its ducks) in dB, since the tone bypasses World.
+func set_null_trim(db: float) -> void:
+	if _null_player != null:
+		_null_player.volume_db = db
+
+
+func is_null_running() -> bool:
+	return _null_player != null and _null_player.playing
 
 
 func is_running() -> bool:

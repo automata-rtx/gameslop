@@ -226,6 +226,7 @@ func _tick(dt: float) -> void:
 	threat = DirectorRules.smooth_threat(threat, s.threat, dt)
 	if absf(threat - prev) > 0.0005 or (threat == 0.0 and prev != 0.0):
 		EventBus.threat_changed.emit(threat)
+	if AudioManager.has_node(^"MusicDirector"): AudioManager.get_node(^"MusicDirector").call(&"set_intensity", pacing.intensity)  # 10 §6
 	_telemetry_left -= dt
 	if _telemetry_left <= 0.0:
 		_telemetry_left = Tuning.DIRECTOR_TELEMETRY_INTERVAL
