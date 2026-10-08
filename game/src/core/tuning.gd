@@ -20,6 +20,10 @@ const SEED_LABEL_PLACEMENT := "placement"
 const SEED_LABEL_PROPS := "props"
 const SEED_LABEL_FIXTURES := "fixtures"
 const SEED_LABEL_ERROR := "error:%s:%d"             # per-error rng: Seeds.derive(level_seed, label % [id, index]) (M1.7)
+const SEED_LABEL_STRATA := "strata"                 # 05 §2 strata order of a run
+const SEED_LABEL_DROP := "drop"                     # 05 §4 drop arrival cell (per level seed)
+const SEED_LABEL_LANDING := "landing"               # 05 §4 Landing item choice (per depth)
+const SEED_LABEL_ITEMS := "items"                   # ItemSpawner photos and note draws (per level seed)
 const SEED_DAILY_PREFIX := "NOCLIP:"                # run_seed = hash(prefix + "YYYYMMDD" UTC) (05 §8, 13 §4)
 const SEED_DAILY_DATE_FORMAT := "YYYYMMDD"
 
@@ -88,6 +92,8 @@ const DROP_FALL_TIME := 1.2                         # s of grain and sub thump
 const DROP_ARRIVAL_MIN_ERROR_DIST := 15.0           # m from every error (05 §4, 06 §11)
 const DROP_ARRIVAL_FADE_MS := 400                   # black and grain to world (11 §3)
 const ARRIVAL_MIN_WALL_DIST := 2.0                  # m, never spawn facing a wall closer than this (06 §11)
+const LANDING_LACKING_WEIGHT_MULT := 2.0            # 09 §2 "favouring kinds the player holds none of" (09 gives no number)
+const LANDING_RIPPLE_AT := 0.5                      # fraction of LANDING_TIME when the unrender ripple crosses (11 §3 "once")
 
 ## 05 §5 scoring
 const SCORE_PER_DEPTH := 1000

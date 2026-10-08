@@ -1,0 +1,137 @@
+class_name RunSummary
+extends Control
+## The Run Summary (04 §7): full black; the top line typed (`DISSOLVED BY STILL · DEPTH 03 ·
+## GARAGE`, ui_danger; a win in ui_accent), a line reporting the cause (00 §5), then the
+## table typed line by line at 60 cps, then the items `DESCEND AGAIN` (default; Enter
+## restarts within 1 s) and `TITLE`. Reads GameState and Clock; writes nothing but the
+## next GameState.start_run. Score and BEST are M2.10's (the score prints a dash until then).
+
+const RUN_SCENE := "res://scenes/run.tscn"
+const TITLE_SCENE := "res://scenes/title.tscn"
+const WIN_CAUSE := &"threshold"
+const ITEM_AGAIN := &"descend_again"
+const ITEM_TITLE := &"title"
+
+var lines: Array[UiTypedLabel] = []
+var menu: MenuList
+var _texts: Array[String] = []
+var _typing: int = -1
+var _leaving: bool = false
+
+
+func _ready() -> void:
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	var bg := ColorRect.new()
+	bg.color = UiTokens.UI_BG
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(bg)
+	var col := VBoxContainer.new()
+	col.position = Vector2(UiTokens.SAFE_MARGIN * 4, UiTokens.SAFE_MARGIN * 4)
+	col.add_theme_constant_override(&"separation", UiTokens.GRID)
+	add_child(col)
+	var win := GameState.last_cause() == WIN_CAUSE
+	_add_line(col, top_line(), &"AccentLabel" if win else &"DangerLabel")
+	_add_line(col, cause_explanation(GameState.last_cause()), &"DimLabel")
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = UiTokens.GRID * 3
+	col.add_child(spacer)
+	for t in table_lines():
+		_add_line(col, t, &"MenuItemLabel")
+	var spacer2 := Control.new()
+	spacer2.custom_minimum_size.y = UiTokens.GRID * 4
+	col.add_child(spacer2)
+	menu = MenuList.new()
+	menu.add_item(ITEM_AGAIN, Strings.SUMMARY_DESCEND_AGAIN)
+	menu.add_item(ITEM_TITLE, Strings.SUMMARY_TITLE)
+	menu.activated.connect(choose)
+	col.add_child(menu)
+	_type_next()
+
+
+func _add_line(parent: Node, text: String, variation: StringName) -> void:
+	var l := UiTypedLabel.new()
+	l.theme_type_variation = variation
+	l.sound = true
+	l.text = ""
+	parent.add_child(l)
+	lines.append(l)
+	_texts.append(text)
+	l.finished.connect(_type_next)
+
+
+func _type_next() -> void:
+	_typing += 1
+	if _typing < lines.size():
+		lines[_typing].type_text(_texts[_typing])
+	elif _typing == lines.size():
+		AudioManager.play_2d(&"ui_summary_stamp")
+
+
+## Prints every line at once (any key skips the typing).
+func finish_typing() -> void:
+	for i in lines.size():
+		lines[i].show_full(_texts[i])
+	_typing = lines.size() + 1
+
+
+func is_typing() -> bool:
+	return _typing < lines.size()
+
+
+## 04 §7 top line from GameState.
+static func top_line() -> String:
+	var run := GameState.run
+	var depth := run.depth if run != null else 1
+	var cause := GameState.last_cause()
+	if cause == WIN_CAUSE:
+		return Strings.SUMMARY_WIN_LINE.replace("{depth}", "%02d" % depth)
+	var cause_text := String(Strings.CAUSE_LINES.get(cause, Strings.CAUSE_DISSOLVED_BY.replace("{error}", String(cause).to_upper())))
+	var stratum := GameState.stratum_for(depth) if run != null else Tuning.STRATUM_DEPTH1
+	return Strings.SUMMARY_TOP_LINE.replace("{cause}", cause_text).replace("{depth}", "%02d" % depth) \
+			.replace("{stratum}", String(Strings.STRATUM_NAMES.get(stratum, String(stratum).to_upper())))
+
+
+static func cause_explanation(cause: StringName) -> String:
+	return String(Strings.CAUSE_EXPLANATIONS.get(cause, Strings.CAUSE_EXPLANATION_DEFAULT))
+
+
+## The table (04 §7), in its order. Time from Clock.run_seconds (pause excluded).
+static func table_lines() -> Array[String]:
+	var run := GameState.run
+	var out: Array[String] = []
+	if run == null:
+		return out
+	out.append(Strings.SUMMARY_LINE_DEPTH.replace("{value}", str(run.depth)))
+	out.append(Strings.SUMMARY_LINE_TIME.replace("{value}", format_time(Clock.run_seconds())))
+	out.append(Strings.SUMMARY_LINE_COHERENCE_SPENT.replace("{value}", str(roundi(run.coherence_spent))))
+	out.append(Strings.SUMMARY_LINE_WALLS_PASSED.replace("{value}", str(run.walls_passed)))
+	out.append(Strings.SUMMARY_LINE_FLOORS_DROPPED.replace("{value}", str(run.drops_total)))
+	out.append(Strings.SUMMARY_LINE_NOTES_FOUND.replace("{value}", str(run.notes_found.size())))
+	out.append(Strings.SUMMARY_LINE_ERRORS_EVADED.replace("{value}", str(run.evasions)))
+	out.append(Strings.SUMMARY_LINE_SCORE.replace("{value}", Strings.SUMMARY_VALUE_PENDING))
+	return out
+
+
+static func format_time(seconds: float) -> String:
+	var s := maxi(0, int(seconds))
+	return "%02d:%02d" % [s / 60, s % 60]
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if is_typing() and event is InputEventKey and event.is_pressed() and not event.is_action(&"ui_accept"):
+		finish_typing()
+		get_viewport().set_input_as_handled()
+
+
+## DESCEND AGAIN starts a new Descent with the same mode and loadout; TITLE goes back.
+func choose(id: StringName) -> void:
+	if _leaving:
+		return
+	_leaving = true
+	if id == ITEM_AGAIN:
+		var run := GameState.run
+		GameState.start_run(run.mode if run != null else Tuning.MODE_DESCENT,
+				run.loadout if run != null else &"faller", Run.new_seed())
+		SceneRouter.change_to(RUN_SCENE)
+	else:
+		SceneRouter.change_to(TITLE_SCENE)

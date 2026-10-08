@@ -19,3 +19,7 @@ Deferred work found during production. Each line names the task that should abso
 - M3.2: noclip commit frame: grid lines are lost under grain spike and jitter; make "lines within 3 m" read.
 - M1.9/M2.10: GameState must subscribe to note_found and record notes into run/meta; add meta.stats.strata_reached (ItemSpawner uses found notes as a proxy for tier 2).
 - M3.2: Static reads as dark smoke (offset pulls in the dark corridor end); 02 §8 wants a faint refraction shimmer. Still column top is rounded like a door arch; consider a flat top.
+- M2.13/M3.2: Landing cabin is dim grey metal; door barely reads; give the cabin its own look (02) and a readable door.
+- Player owner: `Player.look()` refuses mouse look in Landing; 05 §4 wants a free cabin camera.
+- HUD owner: needs a dim keyless prompt (`FUSE MISSING` for Variant B breaker without a fuse); clear the exit line while in the cabin.
+- M2.1: depths 2+ generate as Halls until the other grammars exist (HUD shows HALLS, summary names the planned stratum).

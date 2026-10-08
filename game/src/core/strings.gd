@@ -226,6 +226,19 @@ const CAUSE_LINES: Dictionary = {
 	&"threshold": "THRESHOLD CROSSED",
 	&"abandoned": "DESCENT ABANDONED",              # not in the design text; a run can end by abandonment (05 §1)
 }
+## One line under the top line that reports what happened (00 §5: death explains itself;
+## 01 §9: it reports, never mocks; 01 §6 rule 3: it describes the effect).
+const CAUSE_EXPLANATIONS: Dictionary = {
+	&"static": "Coherence drained while you stood inside the hum.",
+	&"still": "It closed the distance while nothing was looking at it.",
+	&"flicker": "It came out of a lit fixture while your light was on.",
+	&"echo": "It arrived on your own footsteps, late.",
+	&"null": "Nothing was drawn where you stood.",
+	&"substrate": "The unfinished floor stopped drawing you.",
+	&"abandoned": "The Descent was left unfinished.",
+}
+const CAUSE_EXPLANATION_DEFAULT := "Coherence reached zero."
+const SUMMARY_VALUE_PENDING := "—"                                         # score until M2.10
 const CAUSE_DISSOLVED_BY := "DISSOLVED BY {error}"
 const CAUSE_DISSOLVED_BY_SUBSTRATE := "DISSOLVED BY THE SUBSTRATE"
 

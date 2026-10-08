@@ -1,0 +1,35 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/core/run.gd" id="1_run"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3_hud"]
+[ext_resource type="Script" path="res://src/ui/dissolve_grid.gd" id="4_dissolve"]
+
+[node name="Run" type="Node3D"]
+script = ExtResource("1_run")
+
+[node name="Levels" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+unique_name_in_owner = true
+
+[node name="HudLayer" type="CanvasLayer" parent="."]
+layer = 1
+
+[node name="Hud" parent="HudLayer" instance=ExtResource("3_hud")]
+unique_name_in_owner = true
+
+[node name="Overlay" type="CanvasLayer" parent="."]
+layer = 50
+
+[node name="DissolveGrid" type="Control" parent="Overlay"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("4_dissolve")

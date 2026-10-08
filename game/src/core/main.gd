@@ -5,10 +5,16 @@ extends Node
 
 ## 14 §9: --smoke waits this long after generating depth 1, then quits 0.
 const SMOKE_WAIT_S := 2.0
+const TITLE_SCENE := "res://scenes/title.tscn"
 
 
 func _ready() -> void:
 	SceneRouter.set_host(%Content)
+	# 04 §4: the 120 ms glitch between screens (SceneRouter's transition hook).
+	var glitch := GlitchTransition.new()
+	glitch.name = "GlitchTransition"
+	add_child(glitch)
+	SceneRouter.transition = glitch
 	if OS.is_debug_build():
 		var overlay := DebugOverlay.new()
 		overlay.name = "DebugOverlay"
@@ -23,8 +29,7 @@ func _ready() -> void:
 	if args.wants_direct_level():
 		_show(DirectLevel.from_args(args))
 		return
-	# TODO(M1.9): SceneRouter.change_to("res://scenes/title.tscn") once the title exists;
-	# until then %Content holds the placeholder title.
+	SceneRouter.change_to(TITLE_SCENE)
 
 
 func _run_smoke() -> void:
@@ -68,3 +73,8 @@ func _show(node: Node) -> void:
 	for child in %Content.get_children():
 		child.queue_free()
 	%Content.add_child(node)
+
+
+func _exit_tree() -> void:
+	if SceneRouter.transition is GlitchTransition and (SceneRouter.transition as Node).get_parent() == self:
+		SceneRouter.transition = null
