@@ -44,7 +44,33 @@ func _shot(name: String) -> void:
 	print("run_bench: saved %s" % path)
 
 
+## `--landing-only`: the Landing cabin alone under the Halls environment (02 §7 cabin look,
+## the 2x item panel): from the player's eye, and from the side facing the door.
+func _landing_only() -> void:
+	var world := WorldEnvironment.new()
+	world.environment = StratumEnvironment.build(load("res://data/strata/halls.tres") as StratumData)
+	add_child(world)
+	var landing := (load("res://scenes/landing.tscn") as PackedScene).instantiate() as Landing
+	landing.landing_time = 600.0
+	add_child(landing)
+	var cam := Camera3D.new()
+	cam.fov = 75.0
+	add_child(cam)
+	cam.global_transform = landing.player_transform().translated(Vector3(0.0, Tuning.PLAYER_CAMERA_HEIGHT, 0.0))
+	cam.make_current()
+	landing.begin(cam, [&"glowstick", &"chalk"] as Array[StringName], true)
+	await _wait(2.0)
+	await _shot("landing_cabin")
+	cam.look_at_from_position(Vector3(0.6, 1.5, 0.7), Vector3(Landing.DOOR_X, 1.2, -1.0))
+	await _wait(1.0)
+	await _shot("landing_door")
+	get_tree().quit(0)
+
+
 func _run() -> void:
+	if OS.get_cmdline_user_args().has("--landing-only"):
+		await _landing_only()
+		return
 	await SceneRouter.change_to(TITLE_SCENE)
 	await _wait(0.5)
 	await _shot("title")

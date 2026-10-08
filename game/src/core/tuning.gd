@@ -94,6 +94,10 @@ const DROP_ARRIVAL_FADE_MS := 400                   # black and grain to world (
 const ARRIVAL_MIN_WALL_DIST := 2.0                  # m, never spawn facing a wall closer than this (06 §11)
 const LANDING_LACKING_WEIGHT_MULT := 2.0            # 09 §2 "favouring kinds the player holds none of" (09 gives no number)
 const LANDING_RIPPLE_AT := 0.5                      # fraction of LANDING_TIME when the unrender ripple crosses (11 §3 "once")
+const LANDING_KEY_ENERGY := 2.4                     # the cabin's warm key light (02 §7 Landing cabin; R11 render constant)
+const LANDING_KEY_COLOR := "#FFDCA8"
+const LANDING_KEY_ANGLE_DEG := 55.0                 # spot half-angle from above the door wall
+const LANDING_PANEL_SUPERSAMPLE := 2                # the item panel's SubViewport renders at 2x its layout size
 
 ## 05 §5 scoring
 const SCORE_PER_DEPTH := 1000

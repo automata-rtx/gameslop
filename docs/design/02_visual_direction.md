@@ -143,6 +143,11 @@ Hex values are the canonical palette. Agents set these in `StratumData` resource
 - **The Threshold:** a plain white front door with a brass-coloured handle, `#F2F2F2`, in a frame, standing alone on a lit pocket. Under the door, a 2 cm strip of daylight: emission `#FFF7E0` × 20 with glow. This is the only warm light in the stratum. It is visible from far away through unrendered walls (T5 for the player: hope has a colour).
 - **Fog:** none. Distance fog to `#000000` from 25 m to 45 m. **Ambient:** `#101010` 0.05. **Exposure:** 1.0.
 
+### The Landing cabin (elevator, `05` §4)
+- **Surfaces:** brushed steel panels (world shader panel pattern, 0.5 m panels, dark seams, light noise), a dark rubber floor, a light-panel ceiling.
+- **Light:** the ceiling panel plus a warm key light (`#FFDCA8`-ish, spot from above the door wall) so the door and the item panel are the brightest things in the cabin.
+- **The door reads:** dark jambs around the opening, a black shaft behind two steel leaves with a 2 cm seam between them, a small warm lamp over the door. The item panel is rendered at 2× so its text stays crisp.
+
 ### Cycle 2 corruption (post-win, `05`)
 Each stratum keeps its palette but gains: fixture hue shifted 12° towards the next stratum's light colour, 25% of fixtures dark, fog density × 1.3, vertex jitter floor 0.004, and 10% of surfaces in the world shader at `u = 0.2`. The Substrate gains Null at double radius.
 
