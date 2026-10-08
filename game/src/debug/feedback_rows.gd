@@ -105,7 +105,7 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"still_observed", "Still observed 2 s", "11 §3", "IS",
 			{&"expect": {&"I": ["still."], &"S": ["play.still_tick"]}}))
 	rows.append(_row(&"flicker_lunge", "Flicker lunge", "11 §3", "ISMR", {&"window": 30,
-			&"expect": {&"I": ["fixtures.flash", "fixtures.lunge_dark"], &"S": ["play.flicker_flash", "duck.World"],
+			&"expect": {&"I": ["fixtures.flash", "fixtures.lunge_dark"], &"S": ["play.flicker_lunge", "duck.World"],
 			&"M": ["cam.offset", "cam.rotation"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"echo_4m", "Echo at 4 m", "11 §3", "ISR",
 			{&"expect": {&"I": ["echo."], &"S": ["play.echo_breath"], &"R": ["Caption"]}}, GAP,

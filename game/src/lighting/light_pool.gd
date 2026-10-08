@@ -210,20 +210,7 @@ func is_group_lit(group_id: int) -> bool:
 ## Lit fixtures (powered, not in a lunge dark) within `radius` of `pos` in XZ whose light
 ## has a clear grid sight line to `pos` (CHANGELOG 2026-10-08), nearest first.
 func lit_fixtures_near(pos: Vector3, radius: float) -> Array[Fixture]:
-	var out: Array[Fixture] = []
-	var d: Array[float] = []
-	for f in _fixtures:
-		if not f.is_lit():
-			continue
-		var dist := FixtureGroups.flat_dist(f.global_position, pos)
-		if dist > radius:
-			continue
-		if grid != null and not SightOps.clear(grid, anchor_of(f), pos):
-			continue
-		var k := d.bsearch(dist)
-		d.insert(k, dist)
-		out.insert(k, f)
-	return out
+	return FixtureGroups.lit_near(_fixtures, grid, anchor_of, pos, radius)
 
 
 func _topo() -> FixtureGroups:

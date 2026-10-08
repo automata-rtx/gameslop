@@ -13,6 +13,9 @@ static func begin_lunge(e: ErrorFlicker, attached: bool) -> void:
 	e.charge = 1.0
 	e._flash_frame = Engine.get_process_frames()
 	e._flash_usec = Time.get_ticks_usec()
+	e.transition_to(Tuning.ERROR_STATE_LUNGE, "charge 1.0")
+	if e.state != Tuning.ERROR_STATE_LUNGE:
+		return
 	var at := e.global_position
 	if attached and e.has_player():
 		at = e.player.flashlight.beam_origin()
@@ -22,7 +25,6 @@ static func begin_lunge(e: ErrorFlicker, attached: bool) -> void:
 		e.light_pool.group_lunge_flash(e.current_group)
 	FlickerPresent.play(FlickerPresent.FLASH_SOUND, at)
 	e._silence_left = Tuning.FLICKER_FLASH_NOISE_MS / 1000.0
-	e.transition_to(Tuning.ERROR_STATE_LUNGE, "charge 1.0")
 
 
 static func resolve_lunge(e: ErrorFlicker) -> void:

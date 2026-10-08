@@ -112,3 +112,22 @@ static func _cell_group(grid: LevelGrid, c: Vector2i, all: Array[Fixture], group
 			best_d = dist
 			best = f.group_id
 	return best
+
+
+## LightPool.lit_fixtures_near: of `fixtures`, the lit ones (powered, not lunge-dark) within
+## `radius` of `pos` in XZ whose light (`anchor_of`) has a clear grid line to it, nearest first.
+static func lit_near(fixtures: Array[Fixture], grid: LevelGrid, anchor_of: Callable, pos: Vector3, radius: float) -> Array[Fixture]:
+	var out: Array[Fixture] = []
+	var d: Array[float] = []
+	for f in fixtures:
+		if not f.is_lit():
+			continue
+		var dist := flat_dist(f.global_position, pos)
+		if dist > radius:
+			continue
+		if grid != null and not SightOps.clear(grid, anchor_of.call(f), pos):
+			continue
+		var k := d.bsearch(dist)
+		d.insert(k, dist)
+		out.insert(k, f)
+	return out

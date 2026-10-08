@@ -181,9 +181,13 @@ func flicker_lunge(b: FeedbackBench) -> void:
 	var e := spawn_error(b, &"flicker", Vector3(best.global_position.x, p.global_position.y, best.global_position.z)) as ErrorFlicker
 	e.set_aggression(0.75)
 	await b.arm()
+	# Anchor on the Lunge transition itself: the flash and the noise follow it in the same call.
+	var on_lunge := func(_from: StringName, to: StringName) -> void:
+		if to == Tuning.ERROR_STATE_LUNGE:
+			b.anchor()
+	e.state_changed.connect(on_lunge)
 	e.wake()
-	await b.until(func() -> bool: return e.lunges > 0, 240)
-	b.anchor()
+	await b.until(b.is_anchored, 240)
 	await b.ticks(30)
 	free_error(e)
 
