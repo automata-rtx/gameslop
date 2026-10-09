@@ -3,6 +3,8 @@ extends GPUParticles3D
 ## 02 §10: dust motes in Halls, Garage and Offices. One box emitter (12 m) that follows
 ## the player; 200 particles, 1 mm quads, slow drift, alpha 0.12, lit (so the flashlight
 ## picks them out). Particles live in world space, so moving the box never drags them.
+## The Substrate's 1 px white pixels drifting upward (02 §10, M3.2) are the same follow-box
+## emitter with a screen-pixel draw pass: `create_pixels`.
 
 ## The node the box follows (the player or camera). Null: the emitter stays put.
 var follow: Node3D
@@ -11,6 +13,7 @@ const LIFETIME_S := 14.0
 const DRIFT_SPEED_MIN := 0.01      # m/s
 const DRIFT_SPEED_MAX := 0.04
 const SINK := 0.004                # m/s^2, barely settling
+const PIXEL_SHADER := "res://shaders/pixel_particles.gdshader"
 
 
 ## `particle_scale` is the preset's particle count factor (02 §12: Low 50%).
@@ -27,6 +30,36 @@ static func create(particle_scale: float = 1.0) -> DustMotes:
 	d.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	d.process_material = _process_material(half)
 	d.draw_pass_1 = _quad()
+	return d
+
+
+## 02 §10 Substrate: 1 px white "pixels" drifting upward in the same 12 m follow box,
+## unshaded (pixel_particles.gdshader), fading in and out over their lifetime.
+static func create_pixels(particle_scale: float = 1.0) -> DustMotes:
+	var d := DustMotes.new()
+	d.name = "SubstratePixels"
+	d.amount = maxi(1, roundi(Tuning.SUBSTRATE_PIXEL_PARTICLES * particle_scale))
+	var half := Tuning.DUST_BOX_SIZE * 0.5
+	d.lifetime = Tuning.DUST_BOX_SIZE / (Tuning.SUBSTRATE_PIXEL_RISE_MIN + Tuning.SUBSTRATE_PIXEL_RISE_MAX)
+	d.preprocess = d.lifetime
+	d.local_coords = false
+	d.randomness = 1.0
+	d.visibility_aabb = AABB(Vector3.ONE * -(half + 2.0), Vector3.ONE * (Tuning.DUST_BOX_SIZE + 4.0))
+	d.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var m := _process_material(half)
+	m.spread = 8.0
+	m.initial_velocity_min = Tuning.SUBSTRATE_PIXEL_RISE_MIN
+	m.initial_velocity_max = Tuning.SUBSTRATE_PIXEL_RISE_MAX
+	m.gravity = Vector3.ZERO
+	d.process_material = m
+	var q := QuadMesh.new()
+	q.size = Vector2.ONE
+	var mat := ShaderMaterial.new()
+	mat.shader = load(PIXEL_SHADER) as Shader
+	mat.set_shader_parameter(&"pixel_px", Tuning.SUBSTRATE_PIXEL_PX)
+	mat.set_shader_parameter(&"pixel_color", Color(0.902, 0.902, 0.902, Tuning.SUBSTRATE_PIXEL_ALPHA))
+	q.material = mat
+	d.draw_pass_1 = q
 	return d
 
 

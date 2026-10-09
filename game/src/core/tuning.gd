@@ -24,6 +24,7 @@ const SEED_LABEL_STRATA := "strata"                 # 05 §2 strata order of a r
 const SEED_LABEL_DROP := "drop"                     # 05 §4 drop arrival cell (per level seed)
 const SEED_LABEL_LANDING := "landing"               # 05 §4 Landing item choice (per depth)
 const SEED_LABEL_ITEMS := "items"                   # ItemSpawner photos and note draws (per level seed)
+const SEED_LABEL_BUBBLES := "bubbles"               # 02 §10 Pools bubble stream sources (per basin)
 const SEED_DAILY_PREFIX := "NOCLIP:"                # run_seed = hash(prefix + "YYYYMMDD" UTC) (05 §8, 13 §4)
 const SEED_DAILY_DATE_FORMAT := "YYYYMMDD"
 
@@ -1055,7 +1056,7 @@ const RENDER_FPS_TARGET := 60
 # Render-task implementation constants (02 gives no number; chosen against T1/T3 in the
 # render bench, M1.5). Volumetric fog: emission in the fog colour keeps unlit air visible.
 const RENDER_FOG_EMISSION_ENERGY := 0.2
-const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 3.0, &"server": 4.5}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3; M2.13a: 0.8 -> 3.0, the deep shadows hold amber air; M2.2: Server surfaces are #0A0C10, only lit fog shows the aisles)
+const RENDER_FOG_EMISSION_STRATUM: Dictionary = {&"garage": 3.0, &"server": 11.0}   # per-stratum override (M2.1: the Garage's dark fog read flat black, T3; M2.13a: 0.8 -> 3.0, the deep shadows hold amber air; M2.2: Server surfaces are #0A0C10, only lit fog shows the aisles; M3.2: Server 4.5 -> 11, T1 at 4 m read 0.04 with the flashlight on)
 # M2.13a: strata whose surfaces reflect the background (the fog colour, 02 §6 "sky colour is
 # the fog colour"): Pools' wet tile and chrome take a faint teal sheen; elsewhere reflections stay off.
 const RENDER_REFLECT_BACKGROUND_STRATA: Array[StringName] = [&"pools"]
@@ -1259,6 +1260,20 @@ const DUST_BOX_SIZE := 12.0                         # m
 const DUST_PARTICLES := 200
 const DUST_ALPHA := 0.12
 const DUST_QUAD_SIZE := 0.0035                      # m (3.5 mm: 1 mm is sub-pixel beyond 1 m)
+# 02 §10 (M3.2): Substrate pixels, one box emitter following the player like the dust
+const SUBSTRATE_PIXEL_PARTICLES := 240
+const SUBSTRATE_PIXEL_PX := 1.0                     # screen pixels, at any distance
+const SUBSTRATE_PIXEL_ALPHA := 0.8
+const SUBSTRATE_PIXEL_RISE_MIN := 0.06              # m/s upward drift
+const SUBSTRATE_PIXEL_RISE_MAX := 0.18
+# 02 §10 (M3.2): Pools bubbles, thin streams from hashed points on each wet basin's floor
+const POOLS_BUBBLE_STREAM_AREA := 12.0              # m² of basin per stream
+const POOLS_BUBBLE_STREAMS_MAX := 3                 # per basin
+const POOLS_BUBBLES_PER_STREAM := 14
+const POOLS_BUBBLE_SOURCE_RADIUS := 0.06            # m
+const POOLS_BUBBLE_SIZE_MIN := 0.008                # m diameter (drawn at least 3 px)
+const POOLS_BUBBLE_SIZE_MAX := 0.018
+const POOLS_BUBBLE_RISE := 0.22                     # m/s
 const PARTICLES_LOW_SCALE := 0.5
 
 # 02 §11 camera

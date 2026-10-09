@@ -9,7 +9,7 @@ signal geometry_ready
 signal navigation_ready(ok: bool)
 signal built
 
-## 02 §10: dust motes in these strata.
+## 02 §10: dust motes in these strata (`dust` holds the Substrate's pixels there).
 const DUST_STRATA: Array[StringName] = [&"halls", &"garage", &"offices"]
 ## The live level is in this group; `Level.grid_in(tree)` reads its grid.
 const GROUP := &"levels"
@@ -78,8 +78,14 @@ func begin(level_data: LevelData, quality_preset: StringName = Tuning.QUALITY_PR
 		apply_cycle2_fog(world_environment.environment)
 	StratumEnvironment.apply_viewport_preset(get_viewport(), preset)
 	light_pool.configure(stratum, preset)
+	var particles := float(StratumEnvironment.preset_of(preset)[&"particles"])
 	if DUST_STRATA.has(data.stratum):
-		dust = DustMotes.create(float(StratumEnvironment.preset_of(preset)[&"particles"]))
+		dust = DustMotes.create(particles)
+	elif data.stratum == Tuning.STRATUM_SUBSTRATE:
+		# 02 §10: the Substrate's 1 px white pixels drifting upward (Pools' bubbles are the
+		# WaterVolumes'; Server has none).
+		dust = DustMotes.create_pixels(particles)
+	if dust != null:
 		add_child(dust)
 	builder = LevelBuilder.new()
 	builder.name = "Builder"
