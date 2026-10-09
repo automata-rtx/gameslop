@@ -73,7 +73,25 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Known issues:** as cp-10; see `docs/qa/open_items.md`.
 - **Tester (optional, 30–45 minutes, needs a GPU):** `docs/qa/human_check_M2.md` with the save fixture `docs/qa/fixtures/meta_m2_mid_save.json`.
 
-## cp-12-cohesion — pending (M3.4 tuning notes for the human runs)
+## cp-12-cohesion — 2026-10-09 (commit e0caa96) — **for the human to play**
+- **Works:** M3 is complete and reviewed (`docs/reviews/M3_cohesion.md`, no blocking findings).
+  - **Feedback Contract:** all 47 rows ticked from the bench (`docs/qa/feedback_checklist.md`).
+  - **Visual targets:** T1 to T8 pass the histogram script for every stratum and Cycle 2 (107 checks). T5/T6 are judged by eye in `docs/qa/visual_targets_by_eye.md`.
+  - **Audio:** mix pass (Errors headroom, Echo's step level, occlusion and caption coverage tests).
+  - **Tuning and performance:** tuning from 60 simulated Descents; performance pass with budgets enforced at the Garage and Server peak, plus R19/R21 hitch and CPU fixes.
+  - **UI:** UI fits at UI scale 0.75 to 1.5 and 1280x720 to 2560x1440; the title's live corridor; Archive credits.
+  - **Text:** a text gate (forbidden words, punctuation, model names).
+  - **New here:** Pools bubbles, Substrate pixels and the Substrate's white Landing pocket.
+  - **Gate:** `tools/ci/checkpoint.sh` green: 1,400 tests with budgets enforced, validator, exports, Linux smoke.
+- **Stubbed:** stairwell Landings for Pools and Server (they still use the cabin; M4); Archive Polaroid thumbnails (M4).
+- **Known issues:** see `docs/qa/open_items.md`.
+  - Slow explorers can sit at the top of dread for minutes in Build.
+  - The first visible frame of a Descent is 6.5 to 10.5 ms headless.
+  - Server peak script headroom is 0.2 to 0.35 ms.
+  - Not verified without a GPU or ears: frame times, bloom, AgX, every sound.
+- **Tester (wanted, about 30 minutes plus optional parts):** `docs/qa/human_check_M3.md`, with notes in `docs/qa/notes_cp-12.md`. Optional parts: L listen check, P performance, A accessibility, G GPU visuals, T targeted runs.
+
+### cp-12 tuning questions (M3.4)
 - **Tuned from sims (M3.4):** 60 simulated Descents before and after (`docs/qa/descent_sim.md`). Null's core drains 10/s (was 12); a death names the largest loss within 0.25 s. Threshold reached: direct 8 → 16, cautious 8 → 11, explorer 0 → 0 of 20. Most of the old Null lethality was the sim bot walking rooms cell by cell.
 - **The 5 human runs must confirm:** (1) the Substrate is hard but winnable at 10/s, and whether players route around Null with the unrender view or walk through its core; (2) Still's counter works for a human: keeping it lit in view and backing away, or hiding, ends its chase at depths 2 and 5 (the sims record 3 Still evasions in 279 levels, so no Still number was changed); (3) a new player reaches depth 2 within three attempts and early deaths take 5 to 10 minutes; (4) the Offices light dilemma reads as a choice (breaker and flashlight against dark, the glowstick as the answer); (5) how much noclip a human spends and the Coherence at depth 6 arrival (sims: 90+); (6) the sawtooth by ear: a long Build while exploring should not feel like constant maximum dread (R20: the crank row now counts only in Build, Peak and Pursuit). **Landing gain decision rule (R20, M3 review S1, pre-agreed):** if the human runs arrive at depths 3 to 6 averaging 90 or more Coherence, cp-13 halves the Landing gain to 10; below 70 it stays 20. Record per run: depth reached, cause, Coherence at each arrival, Null core time if any.
 
