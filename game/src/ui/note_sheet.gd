@@ -141,6 +141,11 @@ func dismiss() -> void:
 		dismissed.emit()
 
 
+## Shown, it types, counts its life and watches the movement hold (advance below).
+func _wants_process() -> bool:
+	return phase != Phase.CLOSED
+
+
 func advance(dt: float) -> void:
 	super.advance(dt)
 	if not is_shown():

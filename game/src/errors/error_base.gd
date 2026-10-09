@@ -400,11 +400,10 @@ func _process_error(delta: float) -> void:
 
 
 ## True when the distance moved across one of the lines the audio feed reacts to.
+## R21: two comparisons, no Array built per error per physics frame.
 static func _crossed_proximity_line(from: float, to: float) -> bool:
-	for line: float in [Tuning.STILL_SILENCE_RANGE, Tuning.AUDIO_ERRORS_DUCK_DIST]:
-		if (from < line) != (to < line):
-			return true
-	return false
+	return (from < Tuning.STILL_SILENCE_RANGE) != (to < Tuning.STILL_SILENCE_RANGE) \
+		or (from < Tuning.AUDIO_ERRORS_DUCK_DIST) != (to < Tuning.AUDIO_ERRORS_DUCK_DIST)
 
 
 ## 14 §9 debug overlay line.

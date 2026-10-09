@@ -320,7 +320,9 @@ func _tick_sound() -> void:
 	var beam := state == Tuning.ERROR_STATE_ATTACHED and has_player()
 	var on := beam or _flicker_group >= 0
 	if on and _emitter != null:
-		_emitter.global_position = player.flashlight.beam_origin() if beam else light_pool.group_centroid(_flicker_group)
+		var at := player.flashlight.beam_origin() if beam else light_pool.group_centroid(_flicker_group)
+		if _emitter.global_position != at:  # R21: a write re-propagates to both 3D players
+			_emitter.global_position = at
 	FlickerPresent.stutter(_loops, on, charge)
 
 

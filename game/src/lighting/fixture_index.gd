@@ -77,8 +77,8 @@ func near(pos: Vector3, radius: float) -> PackedInt32Array:
 	var hi := key_of(pos + Vector3(radius, 0.0, radius))
 	for z in range(lo.y, hi.y + 1):
 		for x in range(lo.x, hi.x + 1):
-			var k := Vector2i(x, z)
-			if _buckets.has(k):
-				out.append_array(_buckets[k])
+			var list: Variant = _buckets.get(Vector2i(x, z))
+			if list != null:
+				out.append_array(list)
 	out.sort()
 	return out

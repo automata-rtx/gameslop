@@ -14,11 +14,23 @@ extends RefCounted
 var entries: Array[Dictionary] = []
 var next_index: int = 0
 var capacity: int = Tuning.ECHO_TRAIL_CAPACITY
+## R21: entries added unresolved since the last resolve() (an upper bound: a dropped entry
+## is not subtracted), so resolve() does not walk the whole trail every physics frame.
+var _unresolved: int = 0
+## R21: target_index() is asked every physics frame but changes only when a step is heard
+## or dropped; the answer is kept for the trail version and delay it was computed for.
+var _version: int = 0
+var _target_version: int = -1
+var _target_size: int = -1
+var _target_delay: float = NAN
+var _target_cached: int = -1
 
 
 func clear() -> void:
 	entries.clear()
 	next_index = 0
+	_unresolved = 0
+	_version += 1
 
 
 func size() -> int:
@@ -35,6 +47,9 @@ func add(pos: Vector3, time: float, surface: StringName = &"", speed_kind: Strin
 	var e := {&"position": pos, &"time": time, &"surface": surface, &"speed_kind": speed_kind,
 		&"resolved": surface != &"" and speed_kind != &""}
 	entries.append(e)
+	_version += 1
+	if not bool(e[&"resolved"]):
+		_unresolved += 1
 	while entries.size() > capacity:
 		entries.pop_front()
 		next_index = maxi(next_index - 1, 0)
@@ -54,6 +69,8 @@ func newest_time() -> float:
 func target_index(delay: float = Tuning.ECHO_TRAIL_DELAY) -> int:
 	if entries.is_empty():
 		return -1
+	if _version == _target_version and entries.size() == _target_size and delay == _target_delay:
+		return _target_cached
 	var limit := newest_time() - delay + 1e-6
 	var out := 0
 	for i in entries.size():
@@ -61,6 +78,10 @@ func target_index(delay: float = Tuning.ECHO_TRAIL_DELAY) -> int:
 			out = i
 		else:
 			break
+	_target_version = _version
+	_target_size = entries.size()
+	_target_delay = delay
+	_target_cached = out
 	return out
 
 
@@ -88,6 +109,7 @@ func count_since(t: float) -> int:
 func drop_before(t: float) -> void:
 	while not entries.is_empty() and float(entries[0][&"time"]) < t:
 		entries.pop_front()
+		_version += 1
 		next_index = maxi(next_index - 1, 0)
 
 
@@ -95,6 +117,9 @@ func drop_before(t: float) -> void:
 ## (Player.step_trail(), 08 Interfaces) by matching the step position. Unmatched entries
 ## keep `fallback_surface` and walk.
 func resolve(player_trail: RingBuffer, fallback_surface: StringName) -> void:
+	if _unresolved == 0:
+		return
+	_unresolved = 0
 	for e in entries:
 		if bool(e[&"resolved"]):
 			continue

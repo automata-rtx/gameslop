@@ -71,4 +71,7 @@ static func fit_column(s: ErrorStill) -> void:
 	if s.column == null:
 		return
 	var h := column_height(s.grid, s.body_position())
-	s.column.scale = Vector3(1.0, h / Tuning.STILL_CAPSULE_HEIGHT, 1.0)
+	var scale := Vector3(1.0, h / Tuning.STILL_CAPSULE_HEIGHT, 1.0)
+	# R21: only a change is written (each write re-propagates the column's transform).
+	if s.column.scale != scale:
+		s.column.scale = scale
