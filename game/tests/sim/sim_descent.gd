@@ -15,6 +15,12 @@ extends RefCounted
 ## time_s, outcome, cause, contacts, picked (the Landing item taken after this level).
 
 const LANDING_WAIT_S := 30.0
+## M3.4: the bot's per-level keys kept in each `levels` entry for the tuning tables.
+const TELEMETRY_KEYS: Array[StringName] = [&"contact_log", &"losses", &"contact_light", &"breaker_s",
+	&"phase_intensity", &"phase_counts", &"max_intensity", &"spawned", &"encounters", &"retreated_chases",
+	&"notices", &"scares", &"hides", &"stuck_at", &"null_woke_s", &"null_core_s", &"null_drained",
+	&"null_wake_dist", &"null_min_dist", &"null_replaced", &"null_wake_flat", &"path_m", &"player_path_f",
+	&"null_path_f", &"winding_player", &"winding_null", &"soft_passes", &"soft_fails", &"stuck_events", &"evasions", &"last_losses"]
 const PICK_PREFERENCE: Array[StringName] = [&"glowstick", &"flare", &"polaroid"]
 const LOW_COHERENCE := 75.0
 
@@ -23,6 +29,9 @@ var host: Node
 var profile: StringName = SimBot.PROFILE_DIRECT
 var max_seconds: float = 600.0
 var linger: bool = false
+## M3.4: when set, each level's Director telemetry CSV goes to
+## <csv_dir>/<profile>_seed<n>_d<depth>.csv.
+var csv_dir: String = ""
 ## Stop after this many levels (a gate test that only proves the chain works).
 var max_levels: int = 99
 
@@ -59,6 +68,8 @@ func play(run_seed: int) -> Dictionary:
 		bot.linger = linger or profile == SimBot.PROFILE_EXPLORER
 		bot.chain = true
 		bot.run = _run
+		if not csv_dir.is_empty():
+			bot.csv_path = csv_dir.path_join("%s_seed%d_d%d.csv" % [profile, run_seed, depth])
 		var r: Dictionary = await bot.play(run_seed)
 		played += 1
 		entry[&"outcome"] = r.get(&"outcome", &"error")
@@ -67,6 +78,9 @@ func play(run_seed: int) -> Dictionary:
 		entry[&"contacts"] = r.get(&"contacts", 0)
 		entry[&"exit_coh"] = r.get(&"coherence", 0.0)
 		entry[&"items_used"] = r.get(&"items_used", {})
+		for k: StringName in TELEMETRY_KEYS:
+			if r.has(k):
+				entry[k] = r[k]
 		levels.append(entry)
 		print("sim-descent %s seed %d depth %d %s: arrived %.0f, left %.0f, %.0f s, %s %s" % [profile, run_seed, depth,
 			entry[&"stratum"], entry[&"arrive_coh"], entry[&"exit_coh"], entry[&"time_s"], entry[&"outcome"], entry[&"cause"]])

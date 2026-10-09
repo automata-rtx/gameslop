@@ -2,7 +2,7 @@ extends TestCase
 ## 08 §7 Null, headless, on the flat floor with the real player and a wall between them:
 ## the rule (straight at the player at exactly 2.4 m/s, through walls; Cycle 2 2.8), the
 ## tell reaching CoherenceRenderer (g_null_pos / g_null_radius, 24 m from depth 12) and the
-## 11 §3 jitter, the cost (12 per second inside the 2 m core, not a contact: no gate, no
+## 11 §3 jitter, the cost (10 per second inside the 2 m core, not a contact: no gate, no
 ## stun, hidden or not; walking out ends it), Dormant until pursue(), no Satiated, no
 ## Search, notice once and never an evasion, the roster (depth 6 and the Cycle 2 Substrate
 ## only), the spawn at LevelData.null_spawn_cell, and determinism.
@@ -143,7 +143,7 @@ func test_jitter_in_the_radius_and_in_the_core() -> void:
 
 # --- the cost ------------------------------------------------------------------------------------
 
-func test_core_drains_12_per_second_without_a_contact() -> void:
+func test_core_drains_10_per_second_without_a_contact() -> void:
 	var e := _null(_p.global_position)
 	var hits: Array = []
 	e.contacted_player.connect(func(c: float) -> void: hits.append(c))
@@ -151,7 +151,7 @@ func test_core_drains_12_per_second_without_a_contact() -> void:
 	e.pursue()
 	await _seconds(1.0)
 	assert_true(e.in_core())
-	assert_approx(before - _p.coherence, Tuning.NULL_DRAIN_PER_S, 0.25, "12 per second")
+	assert_approx(before - _p.coherence, Tuning.NULL_DRAIN_PER_S, 0.25, "10 per second (M3.4)")
 	assert_approx(e.drained, before - _p.coherence, 0.001)
 	assert_eq(_gate_calls, 0, "not a contact: the gate is never asked")
 	assert_false(e.can_contact(), "Null never contacts")

@@ -327,7 +327,7 @@ func test_five_errors_with_one_rule_each() -> void:
 func test_error_costs_match_the_law_of_errors() -> void:
 	# 08 §1 cost column.
 	var contact := {&"static": 0.0, &"still": 35.0, &"flicker": 30.0, &"echo": 25.0, &"null": 0.0}
-	var drain := {&"static": 4.0, &"still": 0.0, &"flicker": 0.0, &"echo": 0.0, &"null": 12.0}
+	var drain := {&"static": 4.0, &"still": 0.0, &"flicker": 0.0, &"echo": 0.0, &"null": 10.0}
 	for e in DataRegistry.errors():
 		assert_approx(e.contact_cost, contact[e.id], 0.0001, String(e.id))
 		assert_approx(e.drain_per_second, drain[e.id], 0.0001, String(e.id))

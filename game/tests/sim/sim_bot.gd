@@ -77,6 +77,8 @@ const REPATH_INTERVAL := 2.0
 const EXPLORE_ROOMS := 4
 const EXPLORE_DEAD_ENDS := 2
 const EXPLORE_MAX_S := 300.0
+const THRESHOLD_FRONT := 1.6       # M3.4: m in front of the Threshold door's face
+const EXPLORE_SPREAD_CELLS := 6     # M3.4: top-up explore cells at least this far apart
 const LINGER_ROOMS := 7
 const LINGER_DEAD_ENDS := 3
 const LINGER_MAX_S := 360.0
@@ -169,6 +171,8 @@ var _decisions: Array = []
 var items := SimBotItems.new()
 ## The Null counter and its numbers (M2.6).
 var nul := SimBotNull.new()
+## M3.4 tuning telemetry (losses per source, light at contacts, breaker, phase intensity).
+var tel := SimBotTelemetry.new()
 var _pickup: ItemPickup = null
 var _echo_still: float = 0.0
 ## The light went off for Flicker (back on when clear); where the bot leaves a lit area to.
@@ -217,6 +221,8 @@ func play(run_seed: int) -> Dictionary:
 	_plan_profile()
 	items.bot = self
 	nul.bot = self
+	tel.bot = self
+	tel.start()
 	var on_item := func(kind: StringName) -> void: _decide("item:%s" % kind)
 	var on_noclip := func(_k: StringName, _a: Vector3, _b: Vector3) -> void: _decide("noclip")
 	EventBus.item_used.connect(on_item)
@@ -232,6 +238,7 @@ func play(run_seed: int) -> Dictionary:
 		_t += dt
 		_watch_errors()
 		nul.tick(_t, dt)
+		tel.tick()
 		max_i = maxf(max_i, director.intensity)
 		_watch_peaks()
 		if run.phase == Run.PHASE_ENDED and GameState.last_cause() == GameState.WIN_CAUSE:
@@ -248,9 +255,10 @@ func play(run_seed: int) -> Dictionary:
 			break
 		_think(dt)
 		if OS.has_environment("SIMBOT_TRACE") and fmod(_t, 0.5) < dt:
-			print("trace t=%.1f p=%s cell=%s wp=%s tight=%s goal=%s stuck=%.0f ev=%d" % [_t, run.player.global_position.snappedf(0.01),
+			print("trace t=%.1f p=%s cell=%s wp=%s tight=%s goal=%s stuck=%.0f ev=%d st=%s soft=%s busy=%s coh=%.0f" % [_t, run.player.global_position.snappedf(0.01),
 				run.data.grid.cell_of(run.player.global_position), _waypoints.slice(0, 3), _tight.slice(0, 3),
-				run.data.grid.cell_of(_goal), _stuck_time, _stuck_events])
+				run.data.grid.cell_of(_goal), _stuck_time, _stuck_events, run.player.state_machine.state, nul.soft_active(),
+				items.busy(), run.player.coherence])
 		if OS.has_environment("SIMBOT_DEBUG") and fmod(_t, 1.0) < dt:
 			for n in tree.get_nodes_in_group(ErrorBase.GROUP):
 				var st := n as ErrorStatic
@@ -269,6 +277,8 @@ func play(run_seed: int) -> Dictionary:
 		run.player.dissolved.disconnect(on_dissolved)
 	_scare_results(result)
 	nul.results(result)
+	tel.stop()
+	tel.results(result)
 	result[&"cause"] = cause[0]
 	result[&"outcome"] = outcome
 	result[&"time_s"] = snappedf(_t, 0.1)
@@ -489,6 +499,7 @@ func _watch_errors() -> void:
 			if DirectorRules.is_chasing_state(to):
 				_chased_since[key] = true)
 		e.contacted_player.connect(func(_cost: float) -> void:
+			tel.contact(id)
 			_contact_log.append([snappedf(_t, 0.001), String(id), key, String(phase_before_contact(director.pacing)),
 				bool(_chased_since.get(key, false))])
 			_chased_since[key] = false)
@@ -514,23 +525,43 @@ func _plan_profile() -> void:
 ## Off-path rooms and dead ends, visited nearest first.
 func _explore_targets(rooms_n: int, ends_n: int) -> Array[Vector2i]:
 	var grid := run.data.grid
+	# M3.4: only cells the bot can walk to (a Garage core room's centre can be walled off;
+	# with no grid path the bot walked straight at it and ended `stuck` in the lobby).
+	var walk := grid.distance_field(run.data.spawn_cell)
+	var reach := func(c: Vector2i) -> bool: return grid.in_bounds(c) and walk[grid.idx(c)] >= 0
 	var pool: Array[Vector2i] = []
 	var rooms := grid.rooms()
 	for r: RoomData in rooms:
 		if r.kind == RoomData.SPAWN or r.kind == RoomData.EXIT:
 			continue
 		var c := r.center()
-		if grid.is_walkable(c) and not grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
+		if grid.is_walkable(c) and not grid.has_flag(c, LevelGrid.F_CRITICAL_PATH) and reach.call(c):
 			pool.append(c)
 	_shuffle(pool)
 	var out: Array[Vector2i] = pool.slice(0, rooms_n)
 	var ends: Array[Vector2i] = []
 	for i in grid.cell_count():
 		var c := grid.cell_at(i)
-		if grid.has_flag(c, LevelGrid.F_DEAD_END) and not grid.has_flag(c, LevelGrid.F_CRITICAL_PATH):
+		if grid.has_flag(c, LevelGrid.F_DEAD_END) and not grid.has_flag(c, LevelGrid.F_CRITICAL_PATH) and reach.call(c):
 			ends.append(c)
 	_shuffle(ends)
 	out.append_array(ends.slice(0, ends_n))
+	# M3.4: open strata (Garage: two rooms, few dead ends) top up with spread-out reachable
+	# cells off the critical path, so the explorer still wanders the deck.
+	var want := rooms_n + ends_n
+	if out.size() < want:
+		var extra: Array[Vector2i] = []
+		for i in grid.cell_count():
+			var c := grid.cell_at(i)
+			if walk[i] > 0 and grid.is_walkable(c) and not grid.has_flag(c, LevelGrid.F_CRITICAL_PATH) \
+					and not grid.has_flag(c, LevelGrid.F_SPAWN_ROOM) and not grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+				extra.append(c)
+		_shuffle(extra)
+		for c in extra:
+			if out.size() >= want:
+				break
+			if out.all(func(o: Vector2i) -> bool: return absi(o.x - c.x) + absi(o.y - c.y) >= EXPLORE_SPREAD_CELLS):
+				out.append(c)
 	return out
 
 
@@ -814,6 +845,7 @@ func _follow(goal: Vector3, dt: float, sprint: bool, look: Vector3 = Vector3.ZER
 		_prev_wp = _waypoints[0]
 		_waypoints.remove_at(0)
 		_tight.remove_at(0)
+	nul.straighten()
 	if not _waypoints.is_empty() and _field_cells.has(grid.cell_of(_waypoints[0])) and not _in_static() \
 			and not nul.near(SimBotNull.PRESS):
 		_field_wait += dt
@@ -868,6 +900,11 @@ func _plan_path(goal: Vector3) -> void:
 	var p := run.player
 	var grid := run.data.grid
 	_clear_path()
+	# M3.4: the Threshold door stands alone at the pocket's centre and is entered from its
+	# face; a route that reached the pocket from another side walked into the slab and stood
+	# there in Null's core. Go to the point in front of the door first.
+	var final := goal
+	goal = _threshold_front(goal)
 	var prev := grid.cell_of(p.global_position)
 	var cells := ErrorStatic.cell_path(grid, prev, grid.cell_of(goal))
 	_field_cells = {}
@@ -920,6 +957,21 @@ func _plan_path(goal: Vector3) -> void:
 		_push_wp(grid.world_of(c), false)
 		prev = c
 	_push_wp(goal, false)
+	if goal != final:
+		_push_wp(final, false)
+
+
+## M3.4: for the Substrate's Threshold door, the point THRESHOLD_FRONT in front of its face
+## while the bot is not already on that side and nearer; else `goal` unchanged.
+func _threshold_front(goal: Vector3) -> Vector3:
+	if run.exit == null or run.data.stratum != Tuning.STRATUM_SUBSTRATE or not goal.is_equal_approx(_exit_point()):
+		return goal
+	var front := run.exit.approach_point(THRESHOLD_FRONT)
+	var fwd := Vector3(front.x - goal.x, 0.0, front.z - goal.z).normalized()
+	var off := Vector3(run.player.global_position.x - goal.x, 0.0, run.player.global_position.z - goal.z)
+	if off.dot(fwd) > 0.3 and off.length() < THRESHOLD_FRONT + 0.3:
+		return goal
+	return front
 
 
 ## R14b: the rest of the kept Pursuit route from `here` (empty to take `fresh`): the route

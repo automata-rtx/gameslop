@@ -81,6 +81,22 @@ func test_cause_is_last_damage_source_and_substrate() -> void:
 	assert_eq(_dissolved, [&"substrate"], "noclip is never a cause")
 
 
+## M3.4 (06 §9 reading): losses within DEATH_CAUSE_WINDOW are one moment and the largest is
+## the cause, whatever order the errors process in (Null's core and a Static field together).
+func test_overlapping_drains_name_the_larger() -> void:
+	_p.apply_coherence(-99.95, &"null")
+	await get_tree().physics_frame
+	_p.apply_coherence(-0.067, &"static")  # Static processed first in the next frame and finished it
+	assert_eq(_dissolved, [&"null"], "Static's residual tick beside Null's core is not the cause")
+
+
+func test_cause_after_the_window_is_the_later_source() -> void:
+	_p.apply_coherence(-99.95, &"null")
+	await await_physics_frames(roundi(Tuning.DEATH_CAUSE_WINDOW * Engine.physics_ticks_per_second) + 1)
+	_p.apply_coherence(-0.067, &"static")
+	assert_eq(_dissolved, [&"static"], "out of the core, Static's field is the last damage source")
+
+
 func test_contact_costs_stuns_and_pushes() -> void:
 	var e := _error(&"still", Vector3(0, 0.5, -0.8))
 	var start := _p.global_position
@@ -169,6 +185,7 @@ func test_contact_interrupts_noclip_charge() -> void:
 
 func test_lethal_contact_dissolves() -> void:
 	_p.apply_coherence(-80.0, &"static")
+	await await_physics_frames(roundi(Tuning.DEATH_CAUSE_WINDOW * Engine.physics_ticks_per_second) + 1)  # M3.4 window
 	var e := _error(&"still", Vector3(0, 0.5, -1))
 	assert_true(_p.contact(e, 35.0))
 	assert_eq(_dissolved, [&"still"])

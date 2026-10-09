@@ -110,7 +110,7 @@ func test_coherence_and_contact() -> void:
 	_eq("COHERENCE_GAIN_PROPER_EXIT", 20.0)
 	_eq("COHERENCE_GAIN_POLAROID", 25.0)
 	_eq("COHERENCE_LOSS_STATIC_PER_S", 4.0)
-	_eq("COHERENCE_LOSS_NULL_PER_S", 12.0)
+	_eq("COHERENCE_LOSS_NULL_PER_S", 10.0)
 	_eq("COHERENCE_LOSS_CYCLE2_SUBSTRATE_PER_S", 0.2)
 	_eq("COHERENCE_CONTACT_STILL", 35.0)
 	_eq("COHERENCE_CONTACT_ECHO", 25.0)
@@ -193,7 +193,7 @@ func test_echo_and_null() -> void:
 	_eq("NULL_UNRENDER_RADIUS", 12.0)
 	_eq("NULL_UNRENDER_RADIUS_CYCLE2", 24.0)
 	_eq("NULL_CORE_RADIUS", 2.0)
-	_eq("NULL_DRAIN_PER_S", 12.0)
+	_eq("NULL_DRAIN_PER_S", 10.0)
 	_eq("NULL_SPAWN_PATH_FRACTION", 0.55)
 	_eq("NULL_DEAD_END_MAX_CELLS", 4)
 	# Null is slower than walking (08 §7).

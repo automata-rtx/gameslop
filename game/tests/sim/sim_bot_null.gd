@@ -35,6 +35,13 @@ const SOFT_AT := 0.6
 ## fraction of the kept route's remaining length (20% shorter), or when the kept route
 ## enters Null's 2 m core (or a Static field, or cannot be walked any more).
 const ROUTE_SWITCH := 0.8
+## M3.4: in the Pursuit every profile walks straight across open floor to the farthest of
+## the next STRAIGHT_LOOKAHEAD waypoints it can reach on a clear line (a player reading the
+## unrender view does not walk a room's cells in an L or a staircase). A line is clear when
+## it and its two parallels STRAIGHT_HALF_WIDTH to either side step only through open edges.
+const STRAIGHT_LOOKAHEAD := 8
+const STRAIGHT_HALF_WIDTH := 0.45
+const STRAIGHT_SAMPLE := 0.2
 
 var bot: SimBot
 ## Bot seconds when Null entered Chase (-1 never), seconds in its core, Coherence drained.
@@ -154,6 +161,86 @@ static func soft_edge(grid: LevelGrid, c: Vector2i, dir: int, bad: Dictionary) -
 	var n := c + LevelGrid.DIRS[dir]
 	return grid.wall(c, dir) == LevelGrid.SOFT and grid.is_walkable(c) and grid.is_walkable(n) \
 		and not bad.has(LevelGrid.edge_key(c, dir))
+
+
+## Cells holding a studio light (its pole stands in a corner the grid does not know about):
+## a straight line never crosses them. Cached per level.
+var _prop_cells: Dictionary = {}
+var _prop_data: LevelData = null
+
+
+func _props(data: LevelData) -> Dictionary:
+	if _prop_data != data:
+		_prop_data = data
+		_prop_cells = {}
+		for pl: Dictionary in data.placements:
+			if pl.get(&"kind") == LevelData.P_FIXTURE and (pl.get(&"params", {}) as Dictionary).get(&"fixture") == SubstrateGenerator.STUDIO_LIGHT:
+				_prop_cells[pl[&"cell"]] = true
+	return _prop_cells
+
+
+## M3.4: drops the bot's next waypoints up to the farthest one reachable on a clear line
+## (never past a doorway pair, a soft crossing's near cell, into the Threshold pocket (the
+## door is walked into from its face), across a studio light's cell, or, for the profiles
+## that route around Null, a cell of its avoid ring).
+func straighten() -> void:
+	var w := bot._waypoints
+	if w.size() < 2 or bot._tight[0] or not pursuing():
+		return
+	var grid := bot.run.data.grid
+	var from := bot.run.player.global_position
+	var avoid := cells(grid) if bot.profile != SimBot.PROFILE_DIRECT else {}
+	avoid.merge(_props(bot.run.data))
+	var best := 0
+	for j in range(1, mini(w.size(), STRAIGHT_LOOKAHEAD + 1)):
+		var cj := grid.cell_of(w[j])
+		if bot._tight[j] or grid.has_flag(cj, LevelGrid.F_EXIT_ROOM) or not walk_clear(grid, from, w[j], avoid):
+			break
+		best = j
+		if bot._soft_cross.has(grid.cell_of(w[j])):
+			break
+	for k in best:
+		bot._prev_wp = w[0]
+		w.remove_at(0)
+		bot._tight.remove_at(0)
+
+
+## True when a body walks from `a` to `b` (XZ) through open edges only: the centre line and
+## its two parallels STRAIGHT_HALF_WIDTH to either side; a diagonal cell change needs both
+## of its L steps open; no cell in `avoid`.
+static func walk_clear(grid: LevelGrid, a: Vector3, b: Vector3, avoid: Dictionary = {}) -> bool:
+	var seg := Vector3(b.x - a.x, 0.0, b.z - a.z)
+	var length := seg.length()
+	if length < 0.01:
+		return true
+	var side := seg.normalized().cross(Vector3.UP) * STRAIGHT_HALF_WIDTH
+	var n := ceili(length / STRAIGHT_SAMPLE)
+	for off: Vector3 in [Vector3.ZERO, side, -side]:
+		var prev := grid.cell_of(a + off)
+		if not grid.is_walkable(prev) or avoid.has(prev):
+			return false
+		for i in range(1, n + 1):
+			var c := grid.cell_of(a + off + seg * (float(i) / n))
+			if c == prev:
+				continue
+			if not grid.is_walkable(c) or avoid.has(c) or not _step_ok(grid, prev, c):
+				return false
+			prev = c
+	return true
+
+
+static func _step_ok(grid: LevelGrid, c0: Vector2i, c1: Vector2i) -> bool:
+	var d := c1 - c0
+	var dir := LevelGrid.DIRS.find(d)
+	if dir >= 0:
+		return grid.can_step(c0, dir)
+	if absi(d.x) != 1 or absi(d.y) != 1:
+		return false
+	var dx := LevelGrid.DIRS.find(Vector2i(d.x, 0))
+	var dz := LevelGrid.DIRS.find(Vector2i(0, d.y))
+	var ax := c0 + Vector2i(d.x, 0)
+	var az := c0 + Vector2i(0, d.y)
+	return grid.can_step(c0, dx) and grid.can_step(ax, dz) and grid.can_step(c0, dz) and grid.can_step(az, dx)
 
 
 func soft_active() -> bool:

@@ -188,7 +188,7 @@ func null_radius(b: FeedbackBench) -> void:
 
 ## 11 §3 Null core: an awake Null 9 m ahead is placed on the player (the placement stands
 ## in for its walk): black with the halo, everything muted but the grid tone, the 0.01 m
-## jitter, and the drain of 12 per second on the Coherence readout.
+## jitter, and the drain of 10 per second on the Coherence readout.
 func null_core(b: FeedbackBench) -> void:
 	await b.pose_sightline()
 	b.set_coherence(90.0)

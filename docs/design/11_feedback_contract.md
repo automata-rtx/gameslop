@@ -54,7 +54,7 @@ The tables below are the contract. An agent implementing an action implements it
 | Flicker lunge | group flashes white 2 frames, then dark 1.5 s | flash noise, then silence | trauma 0.4 if hit | loss if hit |
 | Echo at 4 m | shimmer | breath swell | — | `[footsteps, behind, late]` |
 | Null radius | unrender lines, halo | grid tone | 0.004 m jitter | — |
-| Null core | black with halo | everything muted but grid tone | 0.01 m jitter | drain 12 per second |
+| Null core | black with halo | everything muted but grid tone | 0.01 m jitter | drain 10 per second |
 | Exit seen | exit prefab's light pulses once | long tone (Cycled) or latch (others) | — | `EXIT: …` status shutters in, −0.15 intensity |
 | Exit unlocked | exit light goes steady warm | latch and hiss | — | status to `OPEN` in `ui_fg`, `EXIT UNLOCKED` notification |
 | Enter exit | 0.6 s entering tween into the cabin | hydraulic hiss | FOV −3° | `DESCENDING` |
