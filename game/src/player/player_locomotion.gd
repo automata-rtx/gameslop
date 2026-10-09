@@ -17,6 +17,8 @@ const BOB_CUT_SCALE := 1.0 - Tuning.FEEDBACK_STAMINA_EMPTY_BOB_CUT
 const STAND_PROBE_RADIUS_INSET := 0.02
 const STAND_PROBE_HEIGHT_INSET := 0.1
 const STAND_PROBE_LIFT := 0.05
+## 12 §7: resume a held sprint after the stamina lockout (default off: press it again).
+const SETTING_AUTO_SPRINT := &"auto_sprint"
 
 var stamina := Stamina.new()
 var noise := NoiseModel.new()
@@ -109,6 +111,7 @@ func physics_update(delta: float) -> void:
 	_update_crouch()
 	var before := _p.global_position
 	_move(delta)
+	_count_distance(before)
 	_apply_push(delta)
 	var moved := Vector3(_p.global_position.x - before.x, 0.0, _p.global_position.z - before.z).length()
 	_after_move(moved, delta)
@@ -141,6 +144,14 @@ func _move(delta: float) -> void:
 		var lift := PlayerMovement.try_step_up(_p, intended)
 		if lift > 0.0:
 			_p.rig.absorb_step(lift)
+
+
+## 13 §2 DISTANCE WALKED: the horizontal distance of each grounded walking step (the push
+## is not walking; the noclip pass, the drop and the Landing never reach physics_update).
+func _count_distance(before: Vector3) -> void:
+	if not _p.is_on_floor() or GameState.run == null or not GameState.is_run_active():
+		return
+	GameState.run.distance_m += Vector2(_p.global_position.x - before.x, _p.global_position.z - before.z).length()
 
 
 ## The contact push as a displacement of its own: moved and slid along walls, its
@@ -229,10 +240,19 @@ func _set_sprinting(on: bool) -> void:
 func _on_stamina_exhausted() -> void:
 	# 11 §2 stamina empty: gasp; FOV snaps back; bob -20% for 2 s; the HUD arc turns danger.
 	_p.input.clear_sprint_latch()
+	# 12 §7 auto-sprint off (default): a held sprint key does not resume the sprint after
+	# the lockout; it must be released and pressed again. On: it resumes once it can.
+	if not auto_sprint():
+		_p.input.hold_sprint_until_release()
 	_p.rig.fov_hold(0.0, 0.0, CameraRig.HOLD_SPRINT)
 	_bob_cut_left = Tuning.FEEDBACK_STAMINA_EMPTY_BOB_TIME
 	_p.sounds.play(&"stamina_empty_gasp")
 	stamina_exhausted.emit()
+
+
+static func auto_sprint() -> bool:
+	var v: Variant = SettingsManager.get_value(SETTING_AUTO_SPRINT)
+	return v is bool and v
 
 
 # --- surfaces (06 §6) ------------------------------------------------------------------
