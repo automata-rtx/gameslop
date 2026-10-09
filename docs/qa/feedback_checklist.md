@@ -13,25 +13,25 @@ $GODOT_BIN --headless --path game res://scenes/debug/feedback_bench.tscn -- --au
 | Ticked | Action / event | Ref | I | S | M | R | Result | What reacted |
 |---|---|---|---|---|---|---|---|---|
 | [x] | Walk step | 11 §2 | x | x | x | - | ok 3/3 | I held.bob_amp; S play.foot_carpet; M cam.offset |
-| [x] | Sprint start | 11 §2 | x | x | x | x | ok 4/3 | I held.bob_amp; S loop.sprint_breath_loop.24215.on; M rig.bob_amp; R StaminaShutter.vis |
-| [x] | Sprint stop | 11 §2 | x | x | x | - | ok 3/3 | I held.bob_amp; S loop.sprint_breath_loop.24215.db; M rig.bob_amp |
+| [x] | Sprint start | 11 §2 | x | x | x | x | ok 4/3 | I held.bob_amp; S loop.sprint_breath_loop.13126.on; M rig.bob_amp; R StaminaShutter.vis |
+| [x] | Sprint stop | 11 §2 | x | x | x | - | ok 3/3 | I held.bob_amp; S loop.sprint_breath_loop.13126.db; M rig.bob_amp |
 | [x] | Stamina empty | 11 §2 | x* | x | x | x | ok 3/3 | I held.bob_amp; S play.stamina_empty_gasp; M cam.fov; R @Control@82.exhausted |
 | [x] | Crouch | 11 §2 | x | x | x | - | ok 3/3 | I light.held_rot; S play.crouch; M cam.offset |
 | [x] | Stand | 11 §2 | x | x | x | - | ok 3/3 | I light.held_rot; S play.crouch; M cam.offset |
 | [x] | Flashlight on | 11 §2 | x | x | x | x | ok 4/3 | I light.on; S play.flashlight_toggle; M cam.rotation; R Crank.charge |
 | [x] | Flashlight off | 11 §2 | x | x | x | x | ok 4/3 | I light.on; S play.flashlight_toggle; M cam.rotation; R Crank.light_on |
-| [x] | Crank (hold) | 11 §2 | x | x | x | x | ok 4/3 | I light.beam; S loop.crank_loop.48683.on; M cam.offset; R Crank.charge |
+| [x] | Crank (hold) | 11 §2 | x | x | x | x | ok 4/3 | I light.beam; S loop.crank_loop.70252.on; M cam.offset; R Crank.charge |
 | [x] | Crank full | 11 §2 | x | x | x* | x | ok 3/3 | I light.wheel_turning; S play.crank_full; M rig.sway; R Crank.turning |
 | [x] | Item select | 11 §2 | x | x | x | x | ok 4/3 | I hand.pos; S play.ui_move; M cam.rotation; R Belt.selected |
 | [x] | Item use: Polaroid | 11 §2 | x | x | x | +72 | ok 3/3 (R later by design: 09 §2: the Polaroid is spent on its flash at 1.2 s (a stun mid-use cancels it for free), so the count and Coherence read there) | I hand.model; S play.polaroid_charge; M cam.fov |
-| [x] | Item use: Glowstick | 11 §2 | x | x | x | x | ok 4/3 | I scene.children; S play.glowstick_crack; M cam.rotation; R Slot1.draws |
+| [x] | Item use: Glowstick | 11 §2 | x | x | x | x | ok 4/3 | I hand.model; S play.glowstick_crack; M cam.rotation; R Slot1.draws |
 | [x] | Chalk stamp | 11 §2 | x | x | x | x | ok 4/3 | I decals; S play.chalk_mark; M cam.rotation; R Slot1.draws |
 | [x] | Item use: Flare | 11 §2 | x | x | x | x | ok 4/3 | I scene.children; S play.flare_ignite; M cam.rotation; R BeltShutter.draws |
 | [x] | Item use: Radio | 11 §2 | x | x | x | x | ok 4/3 | I hand.model; S play.radio_ping; M cam.rotation; R BeltShutter.draws |
 | [x] | Interact press | 11 §2 | x | x | x | x | ok 4/3 | I x.door; S play.door_close; M cam.rotation; R Prompt.raw_text |
 | [x] | Interact press: item | 11 §2 | x | x | x | x | ok 4/3 | I x.fly; S play.item_pickup; M cam.rotation; R BeltShutter.draws |
 | [x] | Interact hold | 11 §2 | x | x | - | x | ok 3/3 | I ui.underline; S play.ui_hold_tick; R Shutter.draws |
-| [x] | Noclip charge | 11 §2 | x | x | x | x | ok 4/3 | I cr.noclip_target; S loop.noclip_charge.17961.on; M cam.offset; R @Control@83.target |
+| [x] | Noclip charge | 11 §2 | x | x | x | x | ok 4/3 | I cr.noclip_target; S loop.noclip_charge.30827.on; M cam.offset; R @Control@83.target |
 | [x] | Noclip cancel | 11 §2 | x | x | x | x | ok 4/3 | I cr.noclip_preview_collapsing; S play.noclip_cancel; M rig.sway; R NoclipShutter.draws |
 | [x] | Noclip invalid | 11 §2 | x | x | - | x | ok 3/3 | I cr.noclip_charge; S play.noclip_fail; R NoclipShutter.vis |
 | [x] | Noclip commit (wall) | 11 §2 | x | x | x | x | ok 4/3 | I cr.noclip_commit; S play.noclip_commit; M clock.hitstop; R Coherence.value |
@@ -40,7 +40,7 @@ $GODOT_BIN --headless --path game res://scenes/debug/feedback_bench.tscn -- --au
 | [x] | Coherence loss | 11 §3 | x | x | - | x | ok 3/3 | I cr.coherence; S play.coherence_loss_tick; R Coherence.value |
 | [x] | Coherence gain | 11 §3 | x | x | x | x | ok 4/3 | I cr.coherence; S play.coherence_gain; M cam.fov; R Coherence.value |
 | [x] | Error contact | 11 §3 | x | x | x | x | ok 4/3 | I cr.coherence; S play.error_contact_hit; M clock.hitstop; R Coherence.value |
-| [x] | Inside Static | 11 §3 | x | x | x | x | ok 4/3 | I cr.coherence; S loop.static_hum.29288.on; M cam.offset; R Coherence.value |
+| [x] | Inside Static | 11 §3 | x | x | x | x | ok 4/3 | I cr.coherence; S loop.static_hum.16679.on; M cam.offset; R Coherence.value |
 | [x] | Still within 8 m | 11 §3 | - | x | - | x | ok 2/2 | S duck.Ambience; R Stack.draws |
 | [x] | Still observed 2 s | 11 §3 | x | x | - | - | ok 2/2 | I still.ticks; S play.still_tick |
 | [x] | Flicker lunge | 11 §3 | x | x | x | x | ok 4/3 | I fixtures.flash; S play.flicker_lunge; M cam.offset; R Coherence.value |

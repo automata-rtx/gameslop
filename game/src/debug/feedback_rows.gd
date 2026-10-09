@@ -68,8 +68,10 @@ static func all() -> Array[Dictionary]:
 			{&"window": 90, &"expect": {&"I": ["hand.", "pulse.flash"], &"S": ["play.polaroid_charge"],
 			&"M": ["cam.fov", "rig.holds"], &"R": ["Belt", "Coherence"]},
 			&"allow": {&"R": "09 §2: the Polaroid is spent on its flash at 1.2 s (a stun mid-use cancels it for free), so the count and Coherence read there"}}))
+	# The hand's wind-up starts on the press, a few ticks before the throw the sound and the
+	# belt answer, so the image may already be moving (lookback; expected keys only).
 	rows.append(_row(&"item_glowstick", "Item use: Glowstick", "11 §2", "ISMR",
-			{&"expect": {&"I": ["hand.", "scene.children", "level.content"], &"S": ["play.glowstick_crack"], &"M": ["cam.rotation"], &"R": ["Belt"]}}))
+			{&"lookback": {&"I": 8}, &"expect": {&"I": ["hand.", "scene.children", "level.content"], &"S": ["play.glowstick_crack"], &"M": ["cam.rotation"], &"R": ["Belt"]}}))
 	rows.append(_row(&"chalk_stamp", "Chalk stamp", "11 §2", "ISMR",
 			{&"expect": {&"I": ["decals", "hand."], &"S": ["play.chalk_mark"], &"M": ["cam.rotation"], &"R": ["Belt"]}}))
 	rows.append(_row(&"item_flare", "Item use: Flare", "11 §2", "ISMR",
