@@ -5,6 +5,8 @@ extends Node
 ## DEPTH 0 and the NOCLIP card, the credits mid-roll, the last line, and with `--variant`
 ## the title menu on the far wall (aimed at DESCEND); then the Run Summary.
 ##   tools/ci/render.sh --path game --resolution 960x540 res://scenes/debug/ending_bench.tscn -- --shots build/ending [--variant]
+## Without `--shots` the bench plays the ending live for a human (mouse captured, real time):
+##   godot --path game res://scenes/debug/ending_bench.tscn -- [--variant]
 ## Saves go to user://bench, never the player's Archive. Debug-only: no player text here.
 
 const ENDING_SCENE := "res://scenes/ending.tscn"
@@ -13,6 +15,8 @@ const CROSSING_COHERENCE := 22.0
 
 var out_dir: String = DEFAULT_DIR
 var variant: bool = false
+## No `--shots`: the real ending, for a human with a GPU (human_check_M2.md).
+var live: bool = false
 var _host: Node
 
 
@@ -21,6 +25,7 @@ func _ready() -> void:
 	var i := args.find("--shots")
 	if i != -1 and i + 1 < args.size():
 		out_dir = args[i + 1]
+	live = i == -1
 	variant = args.has("--variant")
 	DirAccess.make_dir_recursive_absolute(_abs(out_dir))
 	SaveManager.directory = "user://bench"
@@ -81,6 +86,8 @@ func _pose(e: Ending, local: Vector3, target: Vector3, pitch: float = 0.0) -> vo
 func _run() -> void:
 	_won_run()
 	await SceneRouter.change_to(ENDING_SCENE, false)
+	if live:
+		return
 	var e := SceneRouter.current_scene() as Ending
 	e.capture_mouse = false
 	await _wait(0.2)
