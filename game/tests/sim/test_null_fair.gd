@@ -1,9 +1,9 @@
 extends TestCase
 ## R14 (10 §2, 07 §5.6): on Pursuit entry a dormant Null within 20 m of the player is
 ## re-placed at DirectorSpawn.null_pursuit_cell: the critical-path cell between the player
-## and the Threshold, >= 20 m from the player, nearest the 55% point; else the path cell on
-## the Threshold side farthest from the player; else the walkable cell farthest from the
-## player. Pure helper on a hand-made U corridor, then over real Substrate levels.
+## and the Threshold, >= 20 m from the player, nearest the 55% point; else (R14b) the cell
+## behind the player (a longer walk to the Threshold) >= 20 m away, nearest the 20 m ring;
+## else the walkable cell farthest from the player; never in the Threshold pocket. Pure helper on a hand-made U corridor, then over real Substrate levels.
 
 ## The U: row 0 from x 0 to 19, down column 19 to row 4, row 4 back to x 0 (the Threshold
 ## pocket is (0,4) and (1,4)). 43 path cells; the 55% point is index 23, (19,4).
@@ -63,21 +63,23 @@ func test_tier_1_ignores_cells_near_in_a_straight_line_but_behind() -> void:
 	var c := DirectorSpawn.null_pursuit_cell(data, _at(data, Vector2i(6, 0)))
 	assert_eq(c, Vector2i(19, 4))
 	assert_gt(data.critical_path.find(c), 6, "between the player and the Threshold")
-	# At x 10 nothing ahead is 20 m out ((19,4) is 19.7 m): the farthest cell ahead.
-	assert_eq(DirectorSpawn.null_pursuit_cell(data, _at(data, Vector2i(10, 0))), Vector2i(19, 4))
+	# At x 10 nothing ahead is 20 m out ((19,4) is 19.7 m): behind, on the 20 m ring (R14b).
+	assert_eq(DirectorSpawn.null_pursuit_cell(data, _at(data, Vector2i(10, 0))), Vector2i(0, 0))
 
 
-func test_tier_2_farthest_path_cell_ahead() -> void:
+func test_tier_2_behind_the_player_nearest_the_20_m_ring() -> void:
 	var data := _u_level()
-	# At (8,4) every cell ahead is within 16 m: the farthest of them, outside the pocket.
-	assert_eq(DirectorSpawn.null_pursuit_cell(data, _at(data, Vector2i(8, 4))), Vector2i(2, 4))
+	# At (8,4) every cell ahead is within 16 m: Null goes behind (a longer walk to the
+	# Threshold), the cell nearest 20 m: (18,4) at 20.0 m, not (18,0) at 21.5 m.
+	var c := DirectorSpawn.null_pursuit_cell(data, _at(data, Vector2i(8, 4)))
+	assert_eq(c, Vector2i(18, 4))
+	# In the pocket: behind and on the ring, never in the pocket.
+	assert_eq(DirectorSpawn.null_pursuit_cell(data, _at(data, Vector2i(1, 4))), Vector2i(11, 4))
 
 
 func test_tier_3_farthest_walkable_cell() -> void:
 	var data := _u_level()
-	# In the pocket nothing outside it lies ahead: the farthest walkable cell.
-	assert_eq(DirectorSpawn.null_pursuit_cell(data, _at(data, Vector2i(1, 4))), Vector2i(19, 0))
-	# No path at all: the same rule.
+	# No path: nothing is ahead or behind; the farthest walkable cell outside the pocket.
 	data.critical_path = [] as Array[Vector2i]
 	assert_eq(DirectorSpawn.null_pursuit_cell(data, _at(data, Vector2i(0, 0))), Vector2i(19, 4))
 
@@ -108,9 +110,11 @@ func test_deterministic_and_fair_on_substrate_levels() -> void:
 			assert_true(g.is_walkable(c), ctx)
 			if DirectorSpawn.flat_dist(g.world_of(c), pos) < Tuning.NULL_SPAWN_MIN_DIST:
 				continue
-			if not path.has(c):
-				continue
+			assert_false(g.has_flag(c, LevelGrid.F_EXIT_ROOM), "never in the Threshold pocket: " + ctx)
+			if to_exit[g.idx(c)] > to_exit[g.idx(pc)]:
+				continue  # R14b: behind the player (no path cell ahead was 20 m out)
 			tier1 += 1
+			assert_true(path.has(c), ctx)
 			assert_false(g.has_flag(c, LevelGrid.F_EXIT_ROOM), "never in the Threshold pocket: " + ctx)
 			assert_lt(to_exit[g.idx(c)], to_exit[g.idx(pc)], "nearer the Threshold than the player: " + ctx)
 			# No other qualifying path cell is nearer the 55% point.
@@ -164,4 +168,45 @@ func test_bot_plans_through_a_soft_wall_when_shorter() -> void:
 	var again := bot._path_avoiding(Vector2i(0, 0), Vector2i(0, 1), {}, true)
 	assert_eq(again.size(), 2 * W - 1, "a refused soft wall is not tried again")
 	assert_true(bot._soft_cross.is_empty())
+	run.free()
+
+
+## R14b: the Pursuit route is kept between repaths unless the new one is clearly shorter
+## (under 80% of what is left), the kept one enters a Static field or Null's core, the goal
+## changed or the bot left it.
+func test_bot_keeps_its_route_unless_clearly_better() -> void:
+	var g := LevelGrid.new(Vector2i(W, 2))
+	for x in W:
+		g.set_kind(Vector2i(x, 0), LevelGrid.FLOOR)
+		g.set_kind(Vector2i(x, 1), LevelGrid.FLOOR)
+		if x + 1 < W:
+			g.set_wall(Vector2i(x, 0), LevelGrid.E, LevelGrid.NONE)
+			g.set_wall(Vector2i(x, 1), LevelGrid.E, LevelGrid.NONE)
+	g.set_wall(Vector2i(W - 1, 0), LevelGrid.S, LevelGrid.NONE)
+	g.finalize_walls()
+	var data := LevelData.new()
+	data.grid = g
+	var run := Run.new()
+	run.data = data
+	var bot := SimBot.new()
+	bot.tree = get_tree()
+	bot.run = run
+	bot.nul.bot = bot
+	var route: Array[Vector2i] = []
+	for x in W:
+		route.append(Vector2i(x, 0))
+	for x in range(W - 1, -1, -1):
+		route.append(Vector2i(x, 1))
+	bot._route = route
+	bot._route_goal = Vector2i(0, 1)
+	var here := Vector2i(2, 0)
+	var rest: Array[Vector2i] = route.slice(3)
+	var same_ish: Array[Vector2i] = rest.slice(0, rest.size() - 2)
+	assert_eq(bot._kept_route(here, Vector2i(0, 1), same_ish, {}), rest, "not 20% shorter: kept")
+	var short: Array[Vector2i] = rest.slice(0, roundi(rest.size() * 0.7))
+	assert_true(bot._kept_route(here, Vector2i(0, 1), short, {}).is_empty(), "clearly shorter: switch")
+	assert_true(bot._kept_route(here, Vector2i(0, 1), same_ish, {Vector2i(10, 0): true}).is_empty(),
+		"the kept route enters a Static field")
+	assert_true(bot._kept_route(here, Vector2i(5, 1), same_ish, {}).is_empty(), "another goal")
+	assert_true(bot._kept_route(Vector2i(5, 5), Vector2i(0, 1), same_ish, {}).is_empty(), "off the route")
 	run.free()

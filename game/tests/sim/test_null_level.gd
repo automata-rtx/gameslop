@@ -118,8 +118,10 @@ func test_pursuit_re_places_a_dormant_null_within_20_m() -> void:
 	assert_eq(_d.phase, DirectorPacing.PURSUIT)
 	assert_eq(_d.hunters.null_replaced, 1)
 	assert_eq(g.cell_of(n.global_position), want, "at the R14 cell")
-	assert_true(path.has(want) and path.find(want) > path.find(near), "on the critical path, Threshold side")
+	assert_false(g.has_flag(want, LevelGrid.F_EXIT_ROOM), "never in the Threshold pocket")
 	assert_gt(DirectorSpawn.flat_dist(n.global_position, _p.global_position), before, "farther than it was")
+	assert_true(DirectorSpawn.flat_dist(n.global_position, _p.global_position) >= Tuning.NULL_SPAWN_MIN_DIST,
+		"20 m or more away (ahead, or behind the player: R14b)")
 	assert_eq(n.state, Tuning.ERROR_STATE_CHASE, "then woken")
 	_p.global_transform = _level.spawn_transform()
 	await await_physics_frames(2)

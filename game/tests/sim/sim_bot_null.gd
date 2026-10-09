@@ -8,6 +8,8 @@ extends RefCounted
 ## (06 §10: hiding does not stop the core): the Pursuit branch runs before the hide logic.
 ## The direct bot only sprints with Null within 15 m, as with any chaser, and keeps its
 ## path. Records the Pursuit timing, the wake distance and the cost.
+## R14b: a route around Null is kept between repaths unless a new one is clearly better
+## (SimBot._kept_route), so the bot no longer flips between ways every 0.5 s.
 ## R14: in the Pursuit the explorer and the cautious bot also route through soft walls when
 ## that shortens the way to the Threshold (a player reading the unrender view sees them),
 ## by the real noclip input: stand at the cell centre before the soft edge, face it, hold
@@ -29,6 +31,10 @@ const SOFT_AIM_GRACE := 0.2
 ## Within this of the near cell's centre the bot stops walking and charges (the ray reaches
 ## 2.5 m; the wall is 1 m from the centre).
 const SOFT_AT := 0.6
+## R14b route hysteresis: a new route replaces the kept one only when it is under this
+## fraction of the kept route's remaining length (20% shorter), or when the kept route
+## enters Null's 2 m core (or a Static field, or cannot be walked any more).
+const ROUTE_SWITCH := 0.8
 
 var bot: SimBot
 ## Bot seconds when Null entered Chase (-1 never), seconds in its core, Coherence drained.
@@ -111,6 +117,13 @@ func _wake_shape(e: ErrorNull) -> void:
 	shape[&"dead_end_longest"] = longest
 	if OS.has_environment("SIMBOT_NULL"):
 		print("null-wake t=%.1f player=%s null=%s %s" % [woke_at, pc, nc, shape])
+
+
+## True when `floor_pos` is inside the awake Null's 2 m core (XZ).
+func in_core(floor_pos: Vector3) -> bool:
+	var e := find()
+	return e != null and e.state == Tuning.ERROR_STATE_CHASE \
+		and DirectorSpawn.flat_dist(floor_pos, e.global_position) < Tuning.NULL_CORE_RADIUS
 
 
 ## Walkable cells inside the avoid ring around the awake Null (empty when it sleeps).

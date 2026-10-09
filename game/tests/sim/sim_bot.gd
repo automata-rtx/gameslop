@@ -174,6 +174,11 @@ var _flicker_goal: Vector3 = Vector3.INF
 var _sidestep_left: float = 0.0
 ## R14: soft-wall crossings in the current plan (near cell -> direction), Pursuit only.
 var _soft_cross: Dictionary = {}
+## R14b route hysteresis in the Pursuit: the route being followed (from the cell it was
+## planned at), its soft crossings and its goal cell.
+var _route: Array[Vector2i] = []
+var _route_soft: Dictionary = {}
+var _route_goal: Vector2i = LevelData.NO_CELL
 
 
 ## Plays `run_seed` at `depth` (first Descent off, so depth 1 carries a hunter).
@@ -866,9 +871,21 @@ func _plan_path(goal: Vector3) -> void:
 			around = _path_avoiding(prev, grid.cell_of(goal), fields, soft)
 		if not around.is_empty():
 			cells = around
+			if nul.pursuing():
+				# R14b: keep the route around Null unless the new one is clearly better.
+				var kept := _kept_route(prev, grid.cell_of(goal), cells, fields)
+				if kept.is_empty():
+					_route = [prev] as Array[Vector2i]
+					_route.append_array(cells)
+					_route_soft = _soft_cross.duplicate()
+					_route_goal = grid.cell_of(goal)
+				else:
+					cells = kept
+					_soft_cross = _route_soft.duplicate()
 		else:
 			_field_cells = fields
 			_soft_cross = {}
+			_route = [] as Array[Vector2i]
 	if not _soft_cross.is_empty() and _soft_cross.has(prev):
 		# The first crossing is from the bot's own cell: walk to its centre first.
 		_push_wp(grid.world_of(prev), false)
@@ -889,6 +906,36 @@ func _plan_path(goal: Vector3) -> void:
 		_push_wp(grid.world_of(c), false)
 		prev = c
 	_push_wp(goal, false)
+
+
+## R14b: the rest of the kept Pursuit route from `here` (empty to take `fresh`): the route
+## is kept while it still leads to `goal`, the bot is on it, it can still be walked (open
+## steps, or its soft crossings while noclip is affordable and not refused), it stays out
+## of Static's fields and of Null's 2 m core, and `fresh` is not clearly shorter (under
+## SimBotNull.ROUTE_SWITCH of its length).
+func _kept_route(here: Vector2i, goal: Vector2i, fresh: Array[Vector2i], fields: Dictionary) -> Array[Vector2i]:
+	var none: Array[Vector2i] = []
+	if _route_goal != goal:
+		return none
+	var k := _route.find(here)
+	if k < 0 or k >= _route.size() - 1:
+		return none
+	var rest: Array[Vector2i] = _route.slice(k + 1)
+	if float(fresh.size()) < float(rest.size()) * SimBotNull.ROUTE_SWITCH:
+		return none
+	var grid := run.data.grid
+	var prev := here
+	for c in rest:
+		if fields.has(c) or nul.in_core(grid.world_of(c)):
+			return none
+		var d := LevelGrid.DIRS.find(c - prev)
+		if d < 0:
+			return none
+		if not grid.can_step(prev, d) and (int(_route_soft.get(prev, -1)) != d or not nul.soft_allowed() \
+				or not SimBotNull.soft_edge(grid, prev, d, nul.bad_soft)):
+			return none
+		prev = c
+	return rest
 
 
 ## Walkable cells inside an awake Static's field (plus a body's margin).

@@ -151,15 +151,16 @@ static func null_needs_replace(null_pos: Vector3, player_pos: Vector3) -> bool:
 	return flat_dist(null_pos, player_pos) < Tuning.NULL_SPAWN_MIN_DIST
 
 
-## R14: where the Pursuit re-places a dormant Null that is too near the player. In order:
-## 1. the critical-path cell between the player and the Threshold (walking nearer the
-##    Threshold than the player's cell is) that is >= 20 m (XZ) from the player and whose
-##    path index is nearest the 55% point (ties: the earlier index);
-## 2. else the critical-path cell on the Threshold side farthest (XZ) from the player;
-## 3. else the walkable cell farthest (XZ) from the player.
-## Tiers 1 and 2 never use the Threshold pocket (the exit room), so Null never stands on
-## the Threshold. Pure and deterministic (scan order breaks ties; no random draw). NO_CELL
-## only on a grid without a walkable cell.
+## R14 / R14b: where the Pursuit re-places a dormant Null that is too near the player.
+## 1. The critical-path cell between the player and the Threshold (a shorter walk to the
+##    Threshold than the player's cell) that is >= 20 m (XZ) from the player and whose path
+##    index is nearest the 55% point (ties: the earlier index).
+## 2. Else (R14b, 08 §7: a player past the 55% point has gained the far side) the walkable
+##    cell behind the player (a longer walk to the Threshold than the player's cell) that is
+##    >= 20 m from the player and nearest the 20 m ring.
+## 3. Else the walkable cell farthest (XZ) from the player.
+## Never in the Threshold pocket (the exit room). Pure and deterministic (scan order breaks
+## ties; no random draw). NO_CELL only when no walkable cell lies outside the pocket.
 static func null_pursuit_cell(data: LevelData, player_pos: Vector3) -> Vector2i:
 	var grid := data.grid
 	var path := data.critical_path
@@ -170,7 +171,9 @@ static func null_pursuit_cell(data: LevelData, player_pos: Vector3) -> Vector2i:
 		to_exit = grid.distance_field(path[path.size() - 1])
 		if grid.in_bounds(pc):
 			player_w = to_exit[grid.idx(pc)]
-	var ahead: Array[int] = []
+	var min_d := Tuning.NULL_SPAWN_MIN_DIST
+	var k55 := roundi((path.size() - 1) * Tuning.NULL_SPAWN_PATH_FRACTION)
+	var best := -1
 	for i in path.size():
 		var c := path[i]
 		if not grid.in_bounds(c) or not grid.is_walkable(c) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
@@ -180,28 +183,29 @@ static func null_pursuit_cell(data: LevelData, player_pos: Vector3) -> Vector2i:
 		# A player off the reachable grid (mid-pass) counts as at the path's start.
 		if w < 0 or (player_w >= 0 and w >= player_w):
 			continue
-		ahead.append(i)
-	var k55 := roundi((path.size() - 1) * Tuning.NULL_SPAWN_PATH_FRACTION)
-	var best := -1
-	for i in ahead:
-		if flat_dist(grid.world_of(path[i]), player_pos) < Tuning.NULL_SPAWN_MIN_DIST:
+		if flat_dist(grid.world_of(c), player_pos) < min_d:
 			continue
 		if best < 0 or absi(i - k55) < absi(best - k55):
 			best = i
 	if best >= 0:
 		return path[best]
-	var far_d := -1.0
-	for i in ahead:
-		var d := flat_dist(grid.world_of(path[i]), player_pos)
-		if d > far_d:
-			far_d = d
-			best = i
-	if best >= 0:
-		return path[best]
 	var out := LevelData.NO_CELL
+	if player_w >= 0:
+		var ring := INF
+		for i in grid.cell_count():
+			var c := grid.cell_at(i)
+			if not grid.is_walkable(c) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM) or to_exit[i] <= player_w:
+				continue
+			var d := flat_dist(grid.world_of(c), player_pos)
+			if d >= min_d and d < ring:
+				ring = d
+				out = c
+		if out != LevelData.NO_CELL:
+			return out
+	var far_d := -1.0
 	for i in grid.cell_count():
 		var c := grid.cell_at(i)
-		if not grid.is_walkable(c):
+		if not grid.is_walkable(c) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
 			continue
 		var d := flat_dist(grid.world_of(c), player_pos)
 		if d > far_d:
