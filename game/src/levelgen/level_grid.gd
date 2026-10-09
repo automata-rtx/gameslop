@@ -320,8 +320,8 @@ func cell_of(world_pos: Vector3) -> Vector2i:
 # ------------------------------------------------------------------ queries (07 Interfaces)
 
 ## BFS walking distance in cells from `from` (-1: unreachable). Respects walls and doors.
-## Blocked cells are never entered; a blocked `from` (at a car's flank) measures outwards.
-func distance_field(from: Vector2i) -> PackedInt32Array:
+## Blocked cells are never entered; a blocked `from` measures outwards. R19: `max_cells` >= 0 stops there.
+func distance_field(from: Vector2i, max_cells: int = -1) -> PackedInt32Array:
 	var dist := PackedInt32Array()
 	dist.resize(cell_count())
 	dist.fill(-1)
@@ -334,6 +334,7 @@ func distance_field(from: Vector2i) -> PackedInt32Array:
 	while head < queue.size():
 		var i := queue[head]
 		head += 1
+		if max_cells >= 0 and dist[i] >= max_cells: continue
 		var base := i * 4
 		var next_d := dist[i] + 1
 		var lg := ledges[i]

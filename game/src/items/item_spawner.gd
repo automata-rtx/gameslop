@@ -22,28 +22,42 @@ const OPT_STRATUM_REACHED := &"stratum_reached"
 static func populate(level_root: Node, level: LevelData, rng: RandomNumberGenerator,
 		options: Dictionary = {}) -> Array[Node3D]:
 	var out: Array[Node3D] = []
-	for p in level.placements_of(LevelData.P_ITEM):
-		var node := _spawn_item(level_root, level, p, rng)
-		if node != null:
-			out.append(node)
-	for p in level.placements_of(LevelData.P_KEYCARD):
-		var card := _spawn_keycard(level_root, level, p, rng)
-		if card != null:
-			out.append(card)
-	var ids := pick_notes(level, rng, options)
-	var note_scene := load(NOTE_SCENE) as PackedScene
-	var placements := level.placements_of(LevelData.P_NOTE)
-	for i in placements.size():
-		if i >= ids.size() or ids[i] == &"":
-			continue
-		var n := note_scene.instantiate() as NotePickup
-		n.note_id = ids[i]
-		n.name = "Note_%s" % ids[i]
-		level_root.add_child(n)
-		n.position = _floor_position(level, placements[i])
-		n.rotation.y = placements[i][&"yaw"] + rng.randf_range(-0.6, 0.6)
-		out.append(n)
+	for step in populate_steps(level_root, level, rng, out, options):
+		step.call()
 	return out
+
+
+## R19: populate as ordered steps (one pickup each, the note draw before the notes), so the
+## run can spread them over frames (14 §10 build slice); the rng draws keep their order.
+## Each step appends its pickup to `out`.
+static func populate_steps(level_root: Node, level: LevelData, rng: RandomNumberGenerator,
+		out: Array[Node3D], options: Dictionary = {}) -> Array[Callable]:
+	var steps: Array[Callable] = []
+	for p in level.placements_of(LevelData.P_ITEM):
+		steps.append(func() -> void:
+			var node := _spawn_item(level_root, level, p, rng)
+			if node != null:
+				out.append(node))
+	for p in level.placements_of(LevelData.P_KEYCARD):
+		steps.append(func() -> void:
+			var card := _spawn_keycard(level_root, level, p, rng)
+			if card != null:
+				out.append(card))
+	var ids: Array[StringName] = []
+	var placements := level.placements_of(LevelData.P_NOTE)
+	steps.append(func() -> void: ids.assign(pick_notes(level, rng, options)))
+	for i in placements.size():
+		steps.append(func() -> void:
+			if i >= ids.size() or ids[i] == &"":
+				return
+			var n := (load(NOTE_SCENE) as PackedScene).instantiate() as NotePickup
+			n.note_id = ids[i]
+			n.name = "Note_%s" % ids[i]
+			level_root.add_child(n)
+			n.position = _floor_position(level, placements[i])
+			n.rotation.y = placements[i][&"yaw"] + rng.randf_range(-0.6, 0.6)
+			out.append(n))
+	return steps
 
 
 static func _spawn_item(level_root: Node, level: LevelData, p: Dictionary,

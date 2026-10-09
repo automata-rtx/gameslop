@@ -10,16 +10,23 @@ static var _flare_frame: int = -1
 
 
 ## BFS cell path from `from` to `to` (both included after `from`), empty if unreachable.
+## R19: over cell indices with LevelGrid.open_mask (the same steps, in the same N, E, S, W
+## order, as can_step), so the path is the one the Vector2i search found; it was 2.7 to
+## 4.8 ms per Static at Relief entry (three Statics re-planned in one Director tick).
 static func cell_path(g: LevelGrid, from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	if from == to:
 		out.append(to)
+		return out
+	if not g.in_bounds(from) or not g.in_bounds(to):
 		return out
 	var prev := PackedInt32Array()
 	prev.resize(g.cell_count())
 	prev.fill(-1)
 	var start := g.idx(from)
 	var goal := g.idx(to)
+	var w := g.size.x
+	var steps := PackedInt32Array([-w, 1, w, -1])
 	prev[start] = start
 	var queue := PackedInt32Array([start])
 	var head := 0
@@ -28,20 +35,22 @@ static func cell_path(g: LevelGrid, from: Vector2i, to: Vector2i) -> Array[Vecto
 		head += 1
 		if i == goal:
 			break
-		var c := g.cell_at(i)
+		var m := g.open_mask(i)
+		if m == 0:
+			continue
 		for d in 4:
-			if not g.can_step(c, d):
-				continue
-			var j := g.idx(c + LevelGrid.DIRS[d])
-			if prev[j] == -1:
-				prev[j] = i
-				queue.append(j)
+			if (m & (1 << d)) != 0:
+				var j := i + steps[d]
+				if prev[j] == -1:
+					prev[j] = i
+					queue.append(j)
 	if prev[goal] == -1:
 		return out
 	var k := goal
 	while k != start:
-		out.push_front(g.cell_at(k))
+		out.append(g.cell_at(k))
 		k = prev[k]
+	out.reverse()
 	return out
 
 

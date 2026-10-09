@@ -41,15 +41,9 @@ size = Vector3(0.4, 0.012, 0.005)
 
 [node name="HideSpotLocker" type="Node3D" node_paths=PackedStringArray("occluders")]
 script = ExtResource("1_spot")
+view_offset = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 1.6, 0.1)
+exit_offset = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0.65)
 occluders = [NodePath("Door/DoorMesh")]
-
-[node name="ViewPoint" type="Marker3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 1.6, 0.1)
-
-[node name="ExitPoint" type="Marker3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0.65)
 
 [node name="Shell" type="StaticBody3D" parent="."]
 collision_mask = 0

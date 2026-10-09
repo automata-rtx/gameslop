@@ -40,14 +40,8 @@ size = Vector3(0.9, 1.4, 0.5)
 script = ExtResource("1_spot")
 kind = &"pump_corner"
 yaw_limit_deg = 35.0
-
-[node name="ViewPoint" type="Marker3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0.5)
-
-[node name="ExitPoint" type="Marker3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+view_offset = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0.5)
+exit_offset = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
 
 [node name="Pump" type="StaticBody3D" parent="."]
 collision_mask = 0

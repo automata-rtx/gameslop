@@ -10,14 +10,8 @@ size = Vector3(0.9, 1.9, 0.3)
 script = ExtResource("1_spot")
 kind = &"rack_gap"
 yaw_limit_deg = 35.0
-
-[node name="ViewPoint" type="Marker3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0.3)
-
-[node name="ExitPoint" type="Marker3D" parent="."]
-unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.2)
+view_offset = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0.3)
+exit_offset = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.2)
 
 [node name="Nook" type="StaticBody3D" parent="."]
 collision_layer = 8

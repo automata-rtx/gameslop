@@ -34,8 +34,8 @@ func test_every_kind_has_a_scene_with_its_host_contract() -> void:
 	for kind in KINDS:
 		var s := _spot(kind)
 		assert_eq(s.kind, kind, String(kind))
-		assert_not_null(s.view_point, "%s view point" % kind)
-		assert_not_null(s.exit_point, "%s exit point" % kind)
+		assert_ne(s.view_offset, Transform3D.IDENTITY, "%s view point" % kind)
+		assert_ne(s.exit_offset, Transform3D.IDENTITY, "%s exit point" % kind)
 		assert_eq(s.interactable.prompt_text(), Strings.PROMPT_HIDE, String(kind))
 		assert_true(s.is_in_group(&"hide_spots"))
 		var body := s.interactable.get_parent() as CollisionObject3D
@@ -54,11 +54,41 @@ func test_placer_maps_every_kind() -> void:
 
 func test_view_heights_follow_09_06() -> void:
 	var car := _spot(&"under_car")
-	assert_approx(car.view_point.position.y, Tuning.HIDE_UNDER_CAR_CAMERA_HEIGHT, 0.0001, "0.35 m under a car")
-	assert_lt(car.view_point.position.y, Tuning.HIDE_UNDER_CAR_SLOT_HEIGHT, "below the 0.4 m belly")
-	assert_approx(_spot(&"under_desk").view_point.position.y, Tuning.HIDE_UNDER_DESK_CAMERA_HEIGHT, 0.0001, "0.5 m behind the panel")
-	assert_approx(_spot(&"pump_corner").view_point.position.y, Tuning.HIDE_PUMP_CORNER_EYE_HEIGHT, 0.0001)
-	assert_approx(_spot(&"rack_gap").view_point.position.y, Tuning.HIDE_RACK_GAP_EYE_HEIGHT, 0.0001)
+	assert_approx(car.view_offset.origin.y, Tuning.HIDE_UNDER_CAR_CAMERA_HEIGHT, 0.0001, "0.35 m under a car")
+	assert_lt(car.view_offset.origin.y, Tuning.HIDE_UNDER_CAR_SLOT_HEIGHT, "below the 0.4 m belly")
+	assert_approx(_spot(&"under_desk").view_offset.origin.y, Tuning.HIDE_UNDER_DESK_CAMERA_HEIGHT, 0.0001, "0.5 m behind the panel")
+	assert_approx(_spot(&"pump_corner").view_offset.origin.y, Tuning.HIDE_PUMP_CORNER_EYE_HEIGHT, 0.0001)
+	assert_approx(_spot(&"rack_gap").view_offset.origin.y, Tuning.HIDE_RACK_GAP_EYE_HEIGHT, 0.0001)
+
+
+## R19 equivalence: the view and exit points moved from Marker3D nodes to transforms on the
+## host. The world transforms are the ones the markers gave (their M2.8 values), placed and
+## turned; the under-desk kneehole keeps its box, offset, layer and mask on the host body.
+func test_view_and_exit_points_match_the_former_markers() -> void:
+	var flip := Basis(Vector3.UP, PI)
+	var was := {
+		&"locker": [Transform3D(flip, Vector3(0, 1.6, 0.1)), Transform3D(flip, Vector3(0, 0, 0.65))],
+		&"under_car": [Transform3D(Basis(), Vector3(0, 0.35, -0.55)), Transform3D(Basis(), Vector3(0, 0, -1.55))],
+		&"under_desk": [Transform3D(Basis(), Vector3(0, 0.5, 0.1)), Transform3D(Basis(), Vector3(0, 0, -0.65))],
+		&"pump_corner": [Transform3D(Basis(), Vector3(0, 1.1, 0.5)), Transform3D(Basis(), Vector3(0, 0, -0.5))],
+		&"rack_gap": [Transform3D(Basis(), Vector3(0, 1.5, 0.3)), Transform3D(Basis(), Vector3(0, 0, -1.2))],
+	}
+	for kind: StringName in was:
+		var s := _spot(kind, Vector3(3, 0.2, -6), 0.7)
+		var host := s.global_transform
+		for i in 2:
+			var want := host * (was[kind][i] as Transform3D)
+			var got := s.view_transform() if i == 0 else s.exit_transform()
+			assert_true(got.origin.distance_to(want.origin) < 0.0001, "%s %s origin" % [kind, ["view", "exit"][i]])
+			assert_true(got.basis.is_equal_approx(want.basis), "%s %s basis" % [kind, ["view", "exit"][i]])
+	var desk: Node = _spot(&"under_desk")
+	assert_true(desk is StaticBody3D, "the under-desk host is its own kneehole body")
+	var body := desk as StaticBody3D
+	assert_eq(body.collision_layer, PlayerLayers.INTERACTABLE_MASK, "layer 4 only")
+	assert_eq(body.collision_mask, 0)
+	var shape := desk.find_children("*", "CollisionShape3D", false, false)[0] as CollisionShape3D
+	assert_true((shape.shape as BoxShape3D).size.is_equal_approx(Vector3(0.9, 0.6, 0.3)), "kneehole box")
+	assert_true(shape.position.is_equal_approx(Vector3(0, 0.4, -0.1)), "kneehole offset")
 
 
 func test_yaw_limits() -> void:
@@ -156,7 +186,7 @@ func test_enter_slide_look_limit_and_leave_for_every_kind() -> void:
 		var cam := _p.rig.camera.global_position
 		var want := s.view_transform().origin
 		assert_lt(cam.distance_to(want), 0.02, "%s: the eye slid to the view point" % kind)
-		assert_approx(cam.y, s.view_point.global_position.y, 0.02)
+		assert_approx(cam.y, s.view_transform().origin.y, 0.02)
 		# Look is clamped to the spot's yaw limit.
 		_p.rig.anchored_look(10.0, 0.0, s.yaw_limit_deg)
 		var yaw := wrapf(_p.rig.rotation.y - s.view_transform().basis.get_euler().y, -PI, PI)

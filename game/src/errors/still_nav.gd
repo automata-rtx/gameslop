@@ -49,7 +49,7 @@ static func plan_inspection(s: ErrorStill) -> Array[Dictionary]:
 		if spot == null or spot.global_position.distance_to(at) > Tuning.STILL_HIDE_SEARCH_RADIUS:
 			continue
 		if s.rng.randf() < s.hide_check_chance():
-			out.append({"pos": snap(s, spot.exit_point.global_position), "spot": spot})
+			out.append({"pos": snap(s, spot.exit_transform().origin), "spot": spot})
 	for i in Tuning.ERROR_SEARCH_INSPECT_CELLS:
 		var p := random_point_near(s, at, Tuning.ERROR_SEARCH_INSPECT_RADIUS)
 		if s.has_hint() and i == 0:

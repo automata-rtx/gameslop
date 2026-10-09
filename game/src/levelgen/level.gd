@@ -24,6 +24,7 @@ var stratum: StratumData
 var builder: LevelBuilder
 var dust: DustMotes
 var preset: StringName = Tuning.QUALITY_PRESET_DEFAULT
+var _prelight: Marker3D
 
 
 func _ready() -> void:
@@ -148,10 +149,26 @@ func spawn_transform() -> Transform3D:
 	return builder.spawn_transform if builder != null else Transform3D.IDENTITY
 
 
+## R19 (14 §10): lends the pool's lights from the spawn's eye in a loading frame, so the
+## arrival frame's attach_player finds them lent (it re-lends only what differs). The
+## marker it measures from goes when the player is attached.
+func prelight(eye_height: float) -> void:
+	if _prelight == null:
+		_prelight = Marker3D.new()
+		_prelight.name = "PrelightEye"
+		add_child(_prelight)
+	_prelight.global_position = spawn_transform().origin + Vector3.UP * eye_height
+	light_pool.target = _prelight
+	light_pool.reevaluate()
+
+
 ## Puts the player at the spawn and points the level's per-player systems at it: the light
 ## pool measures from it, dust follows it, and powered fixtures count as light for its
 ## observation (06, 08 §4).
 func attach_player(player: Node3D, eye: Node3D = null) -> void:
+	if _prelight != null:
+		_prelight.queue_free()
+		_prelight = null
 	player.global_transform = spawn_transform()
 	light_pool.target = eye if eye != null else player
 	light_pool.reevaluate()
