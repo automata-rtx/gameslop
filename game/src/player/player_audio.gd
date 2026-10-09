@@ -100,6 +100,13 @@ func clear_loss() -> void:
 	_loss_pending = 0.0
 
 
+## Bench isolation: drops pending ticks and the rate limit, so the next loss ticks at once.
+func reset_loss_limit() -> void:
+	_loss_pending = 0.0
+	_loss_wait = 0.0
+	_since_loss = LOSS_QUIET_S
+
+
 func loss_ticks_pending() -> int:
 	return int(_loss_pending)
 

@@ -65,9 +65,19 @@ func _check_chain(results: Array) -> void:
 			var before: Dictionary = prev.get("arrive_items", {})
 			var used: Dictionary = prev.get("items_used", {})
 			var now: Dictionary = e.get("arrive_items", {})
+			# 09: on a full belt a new kind (the Landing pick, a fuse taken in the level) replaces
+			# a whole stack, so one kind may go for each new kind that arrived.
+			var new_kinds := 0
+			for kind: String in now:
+				if not before.has(kind):
+					new_kinds += 1
+			var swaps := new_kinds if before.size() >= Tuning.ITEM_BELT_SLOTS else 0
 			for kind: String in before:
 				if kind == "chalk":
 					continue  # chalk is spent by drawing, which the bots do not report as an item use
+				if int(now.get(kind, 0)) == 0 and swaps > 0:
+					swaps -= 1
+					continue
 				assert_true(int(now.get(kind, 0)) + int(used.get(kind, 0)) >= int(before[kind]),
 					"%s: %s carried into depth %d" % [tag, kind, i + 1])
 			# The Landing's pick (recorded on the level it was taken after) lands on the belt.

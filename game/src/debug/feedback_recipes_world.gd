@@ -83,6 +83,8 @@ func coherence_loss(b: FeedbackBench) -> void:
 	b.player().sounds.clear_loss()
 	await b.ticks(12)
 	await b.arm()
+	# Anything that lost Coherence while arming must not hold the limit at the anchor.
+	b.player().sounds.reset_loss_limit()
 	b.anchor()
 	b.player().apply_coherence(-10.0, &"bench")
 
