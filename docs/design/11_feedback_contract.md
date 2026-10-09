@@ -96,3 +96,7 @@ Implemented by `Clock.hitstop(ms)`: `get_tree().paused = true` for N ms of wall-
 - `CameraRig`: `add_trauma(v)`, `fov_punch(delta_deg, up_ms, down_ms)`, `fov_hold(delta_deg)`, `set_bob_scale(v)`, `nod(pitch_deg)`, `roll_kick(deg)`.
 - `Clock.hitstop(ms)`.
 - `HUD` methods per `04`.
+
+### Interface additions during production
+- M3.1 (bench): rows carry `allow` (per listed channel, why the table times it later; only `item_polaroid.R`) and results `full` (every listed channel on time except the allowed ones) next to `ok` (the contract's floor, three of four); every listed channel of a row names the keys it expects (`FeedbackRows`), so a coincidence cannot pass. `--trace` prints the changed keys per frame around each row's anchor. The spy counts a sound by its start stamp, not only while it plays. `HideSpot.lift_view_mask()` (Leave hide spot lifts the mask when the slide out starts); `ErrorBase` sends `error_proximity` on the tick it crosses 8 m or 10 m as well as at 10 Hz.
+

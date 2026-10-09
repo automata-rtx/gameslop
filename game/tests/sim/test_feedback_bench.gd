@@ -45,6 +45,31 @@ func test_every_implemented_row_reacts_on_enough_channels_within_50_ms() -> void
 	assert_eq(bad.size(), 0, "rows below their channel count:\n" + "\n".join(bad))
 
 
+## M3.1: the contract's floor is three channels, but the table lists more: every channel it
+## lists reacts on time, except the ones a row documents as later by the table's own timing.
+func test_every_listed_channel_reacts_on_time() -> void:
+	var bad: PackedStringArray = []
+	for r in _results:
+		if r[&"status"] == FeedbackRows.IMPLEMENTED and not r[&"full"]:
+			bad.append("%s: %s\n  %s" % [r[&"id"], r[&"unexcused"], FeedbackBench.format_line(r)])
+	assert_eq(bad.size(), 0, "listed channels that did not react in time:\n" + "\n".join(bad))
+
+
+## Enter exit prints `DESCENDING` when the entering tween starts, not 0.6 s later (M3.1).
+func test_enter_exit_prints_descending_with_the_tween() -> void:
+	var c: Dictionary = (_row(&"enter_exit")[&"channels"] as Dictionary).get(&"R", {})
+	assert_false(c.is_empty(), "the readout reacted")
+	assert_true(FeedbackBench.within(c), "inside 50 ms")
+	assert_contains(String(c[&"key"]), "Notifications")
+
+
+## Leave hide spot lifts the view mask as the player starts out, not when the slide ends.
+func test_leave_hide_lifts_the_mask_at_once() -> void:
+	var c: Dictionary = (_row(&"hide_leave")[&"channels"] as Dictionary).get(&"I", {})
+	assert_false(c.is_empty(), "the image reacted")
+	assert_true(FeedbackBench.within(c))
+
+
 func test_gap_rows_still_have_their_gap() -> void:
 	for r in _results:
 		if r[&"status"] == FeedbackRows.GAP:

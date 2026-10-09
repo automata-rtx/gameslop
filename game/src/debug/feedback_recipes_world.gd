@@ -86,7 +86,7 @@ func coherence_loss(b: FeedbackBench) -> void:
 	# Anything that lost Coherence while arming must not hold the limit at the anchor.
 	b.player().sounds.reset_loss_limit()
 	b.anchor()
-	b.player().apply_coherence(-10.0, &"bench")
+	b.player().apply_coherence(-10.0, &"static")
 
 
 func coherence_gain(b: FeedbackBench) -> void:
@@ -94,7 +94,7 @@ func coherence_gain(b: FeedbackBench) -> void:
 	b.set_coherence(60.0)
 	await b.arm()
 	b.anchor()
-	b.player().apply_coherence(10.0, &"bench")
+	b.player().apply_coherence(Tuning.COHERENCE_GAIN_POLAROID, &"polaroid")
 
 
 func error_contact(b: FeedbackBench) -> void:
@@ -124,13 +124,21 @@ func inside_static(b: FeedbackBench) -> void:
 	p.rig.set_jitter(0.0)
 
 
+## 11 §3 Still within 8 m: an awake Still 12 m ahead steps across the 8 m line (the placement
+## stands in for its walk): its own proximity report ducks the room and prints `[silence]`,
+## on the tick it crosses (not at the next 10 Hz report).
 func still_within_8m(b: FeedbackBench) -> void:
 	await b.pose_sightline()
+	var s := spawn_error(b, &"still", ahead(b, 12.0)) as ErrorStill
+	s.wake()
+	await b.ticks(15)
 	await b.arm()
 	b.anchor()
-	EventBus.error_proximity.emit(&"still", 6.0)
+	s.place_at(ahead(b, 6.0))
 	await b.ticks(30)
-	EventBus.error_proximity.emit(&"still", 40.0)
+	free_error(s)
+	# The feed keeps the last distance it was told: let it hear the Still leave.
+	EventBus.error_proximity.emit(&"still", 99.0)
 
 
 func still_observed(b: FeedbackBench) -> void:
@@ -147,30 +155,29 @@ func still_observed(b: FeedbackBench) -> void:
 	free_error(s)
 
 
-## 11 §3 Echo at 4 m: an awake Echo steps inside 4 m of the player (placed, so the frame is
-## exact): the shimmer appears and the breath swell plays at once.
+## 11 §3 Echo at 4 m: a dormant Echo 7 m ahead (it neither walks nor steps, so no earlier
+## step has put its caption on screen) comes awake inside 4 m and takes a stride (the
+## placement and the stride length stand in for its walk): the shimmer appears, the breath
+## swell plays and the stride's step prints `[footsteps, …, late]`, all through its own code.
 func echo_4m(b: FeedbackBench) -> void:
 	await b.pose_sightline()
 	var e := spawn_error(b, &"echo", ahead(b, 7.0)) as ErrorEcho
 	e.senses.hearing_mult = 0.0
-	e.wake()
-	# A caption still on screen from an earlier row would only refresh; start from an empty
-	# stack so the step's caption is a new line, and report the cues if the row fails.
 	if b.run.hud != null and b.run.hud.captions != null:
 		b.run.hud.captions.clear()
+	await b.ticks(12)
+	await b.arm()
 	var cues: Array[String] = []
 	var on_cue := func(text: String, _pos: Vector3) -> void: cues.append(text)
 	EventBus.audio_cue.connect(on_cue)
-	await b.ticks(12)
-	await b.arm()
 	b.anchor()
 	e.place_at(ahead(b, 3.5))
-	# Echo comes inside 4 m by walking: the stride that lands it plays its step (the R
-	# column's `[footsteps, …, late]` caption, M2.12). The placement stands in for the walk.
-	EchoPresent.play_step(e, NoiseModel.DEFAULT_SURFACE)
+	e.wake()
+	EchoWalk.stride_step(e, NoiseModel.step_distance(NoiseModel.GAIT_WALK))
 	await b.ticks(8)
 	EventBus.audio_cue.disconnect(on_cue)
-	print("  # echo_4m cues: %s; captions setting %s" % [cues, SettingsManager.get_value(&"captions")])
+	if cues.is_empty():
+		push_warning("echo_4m: no caption cue after the stride (captions setting %s)" % SettingsManager.get_value(&"captions"))
 	free_error(e)
 
 
@@ -186,7 +193,7 @@ func null_radius(b: FeedbackBench) -> void:
 	free_error(e)
 
 
-## 11 §3 Null core: an awake Null 9 m ahead is placed on the player (the placement stands
+## 11 §3 Null core: a dormant Null 9 m ahead is woken and placed on the player (the placement stands
 ## in for its walk): black with the halo, everything muted but the grid tone, the 0.01 m
 ## jitter, and the drain of 12 per second on the Coherence readout.
 func null_core(b: FeedbackBench) -> void:
@@ -194,10 +201,12 @@ func null_core(b: FeedbackBench) -> void:
 	b.set_coherence(90.0)
 	var p := b.player()
 	var e := spawn_error(b, &"null", ahead(b, 9.0)) as ErrorNull
-	e.pursue()
-	await b.ticks(12)
 	await b.arm()
+	# Woken and on the player in one call: a Null that has been walking while the bench waits
+	# for quiet can already be in the core, and then nothing changes at the anchor (the old
+	# intermittent null_core miss under load).
 	b.anchor()
+	e.pursue()
 	e.global_position = p.global_position
 	await b.ticks(20)
 	free_error(e)
@@ -310,7 +319,8 @@ func unlock_earned(b: FeedbackBench) -> void:
 	await b.pose_sightline()
 	await b.arm()
 	b.anchor()
-	EventBus.unlock_earned.emit(&"glowstick")
+	# The game's own grant: the meta flag, the run's list and EventBus.unlock_earned.
+	GameState.call(&"_earn", &"glowstick")
 
 
 # --- the Descent --------------------------------------------------------------------------------------

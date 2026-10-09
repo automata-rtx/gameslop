@@ -13,7 +13,7 @@ const COVERAGE: Dictionary = {
 	"Flashlight on / off": [&"flashlight_on", &"flashlight_off"],
 	"Crank (hold)": [&"crank"],
 	"Crank full": [&"crank_full"],
-	"Interact press": [&"interact_press"],
+	"Interact press": [&"interact_press", &"interact_pickup"],
 	"Interact hold": [&"interact_hold"],
 	"Item select": [&"item_select"],
 	"Item use (each)": [&"item_polaroid", &"item_glowstick", &"item_flare", &"item_radio"],
@@ -73,6 +73,58 @@ func test_every_active_row_has_a_recipe_and_every_pending_row_a_reason() -> void
 			assert_contains(String(r[&"listed"]), String(ch), "%s expects an unlisted channel" % r[&"id"])
 
 
+## M3.1: a channel the table lists is held to what the row itself names, never to "any change":
+## a vacuous pass (a caption that happened to redraw, a lamp that was already moving) needs an
+## expected-key list to be impossible. `allow` names the few channels the table times later.
+func test_every_listed_channel_names_what_it_expects() -> void:
+	for r in FeedbackRows.all():
+		if r[&"status"] == FeedbackRows.PENDING:
+			continue
+		for ch in String(r[&"listed"]):
+			var keys: Array = (r[&"expect"] as Dictionary).get(StringName(ch), [])
+			assert_false(keys.is_empty(), "%s lists %s but names no expected keys" % [r[&"id"], ch])
+		for ch: StringName in (r[&"allow"] as Dictionary):
+			assert_contains(String(r[&"listed"]), String(ch), "%s allows an unlisted channel" % r[&"id"])
+			assert_false(String((r[&"allow"] as Dictionary)[ch]).is_empty(), "%s allows %s without a reason" % [r[&"id"], ch])
+
+
+## The only listed channels allowed off the 50 ms budget are the Polaroid's count and gain,
+## which 09 §2 spends on the flash at 1.2 s. A new exception is a design decision.
+func test_late_by_design_is_a_short_list() -> void:
+	var allowed: Array[String] = []
+	for r in FeedbackRows.all():
+		for ch: StringName in (r[&"allow"] as Dictionary):
+			allowed.append("%s.%s" % [r[&"id"], ch])
+	assert_eq(allowed, ["item_polaroid.R"])
+
+
+## A sound that began and ended between two slow frames is still a sound that played (the
+## cause of the old interact_hold flake: the 40 ms hold tick was gone before the next sample).
+func test_spy_counts_a_sound_that_ended_before_the_sample() -> void:
+	var spy := FeedbackSpy.new()
+	spy.sample(get_tree())
+	var before: int = int(spy._sound().get("play.ui_hold_tick", 0))
+	AudioManager.play_2d(&"ui_hold_tick")
+	for p in AudioManager.pool.players_2d:
+		if p.get_meta(AudioPool.META_ID, &"") == &"ui_hold_tick":
+			p.stop()
+	var after: int = int(spy._sound().get("play.ui_hold_tick", 0))
+	assert_eq(after, before + 1, "counted although it no longer plays")
+
+
+## A row's anchor-to-key search never credits a continuous channel that was already moving.
+func test_noclip_cancel_reads_the_collapse_not_the_charge() -> void:
+	var spy := FeedbackSpy.new()
+	var cr := CoherenceRenderer
+	var prev := cr.noclip_charge
+	for v in [0.1, 0.2, 0.3, 0.4]:
+		cr.set_noclip_charge(v)
+		assert_false(bool(spy._image(get_tree())["cr.noclip_preview_collapsing"]), "growing is not collapsing")
+	cr.set_noclip_charge(0.2)
+	assert_true(bool(spy._image(get_tree())["cr.noclip_preview_collapsing"]), "falling is")
+	cr.set_noclip_charge(prev)
+
+
 ## A row added to or renamed in 11 §2/§3 has to be covered by the bench (or the map above).
 func test_the_contract_document_is_covered() -> void:
 	var path := ProjectSettings.globalize_path(CONTRACT).simplify_path()
@@ -102,6 +154,22 @@ func test_the_contract_document_is_covered() -> void:
 			assert_true(ids.has(id), "'%s' maps to missing row %s" % [n, id])
 	for n: String in COVERAGE:
 		assert_contains(names, n, "COVERAGE names a row the contract no longer has")
+
+
+## M3.1: docs/qa/feedback_checklist.md is the bench's `--md` output; every row of the table
+## is in it and ticked. A row added to FeedbackRows without regenerating it fails here.
+func test_the_checklist_lists_every_row_ticked() -> void:
+	var path := ProjectSettings.globalize_path("res://../docs/qa/feedback_checklist.md").simplify_path()
+	if not FileAccess.file_exists(path):
+		return  # an exported build has no docs
+	var text := FileAccess.get_file_as_string(path)
+	for r in FeedbackRows.all():
+		var found := false
+		for line in text.split("\n"):
+			if line.begins_with("| [x] | %s | %s |" % [r[&"label"], r[&"ref"]]):
+				found = true
+		assert_true(found, "'%s' is not a ticked row of docs/qa/feedback_checklist.md (regenerate it with the bench)" % r[&"label"])
+	assert_false(text.contains("| [ ] |"), "an unticked row")
 
 
 func test_spy_change_detection() -> void:

@@ -10,7 +10,7 @@ const STATES: Array[StringName] = [
 	&"full", &"low_coherence", &"coherence_gain", &"noclip_charging", &"noclip_floor_ready",
 	&"invalid", &"stunned", &"prompt_hold", &"notification_typing", &"hidden", &"cranking_low",
 	&"substrate_sealed", &"note_faller", &"note_builder", &"note_stray",
-	&"colorblind", &"captions_stack", &"first_run_hint", &"belt_live", &"note_captions",
+	&"colorblind", &"captions_stack", &"first_run_hint", &"belt_live", &"note_captions", &"note_prompt",
 ]
 
 
@@ -169,6 +169,13 @@ static func apply(state: StringName, hud: Hud, fake: HudFakePlayer) -> void:
 				_step(hud, 0.2)
 			hud.caption(Strings.CAPTION_STILL_SILENCE)
 			_step(hud, 1.0)
+		&"note_prompt":
+			# M3.1: the longest note (the tallest sheet), an interaction prompt and a caption
+			# at once: the prompt line rises above the sheet when the sheet would cover it.
+			hud.show_note(longest_note())
+			fake.prompt_changed.emit(Strings.PROMPT_OPEN_DOOR, 0.0)
+			hud.caption(Strings.CAPTION_STILL_SILENCE)
+			_step(hud, 1.5)
 		&"note_stray":
 			var stray: NoteData = null
 			for n in DataRegistry.notes():
@@ -177,6 +184,15 @@ static func apply(state: StringName, hud: Hud, fake: HudFakePlayer) -> void:
 					break
 			hud.show_note(stray)
 			_step(hud, 5.0)
+
+
+## The note with the most text (the tallest sheet).
+static func longest_note() -> NoteData:
+	var best: NoteData = null
+	for n in DataRegistry.notes():
+		if best == null or n.text.length() > best.text.length():
+			best = n
+	return best
 
 
 static func _step(hud: Hud, seconds: float) -> void:

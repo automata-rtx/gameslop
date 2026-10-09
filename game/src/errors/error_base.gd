@@ -57,6 +57,8 @@ var _search_pending: bool = false
 var _dormant_acc: float = 0.0
 var _sense_acc: float = 0.0
 var _prox_acc: float = 0.0
+## The distance of the last error_proximity emission.
+var _prox_last: float = INF
 var _hint: Vector3 = Vector3.ZERO
 var _has_hint: bool = false
 ## True between a notice and its end (evasion, contact, retreat or sleep).
@@ -368,9 +370,22 @@ func _process_error(delta: float) -> void:
 		_sense_acc = 0.0
 	_tick(delta)
 	_prox_acc += delta
-	if _prox_acc >= Tuning.ERROR_PROXIMITY_INTERVAL:
+	var dist := distance_to_player()
+	# 11 §3 "Still within 8 m": the ducks and the `[silence]` caption answer the crossing
+	# on its own tick, not up to a poll (100 ms) later (M3.1).
+	var crossed := _crossed_proximity_line(_prox_last, dist)
+	if _prox_acc >= Tuning.ERROR_PROXIMITY_INTERVAL or crossed:
 		_prox_acc = 0.0
-		EventBus.error_proximity.emit(error_id, distance_to_player())
+		_prox_last = dist
+		EventBus.error_proximity.emit(error_id, dist)
+
+
+## True when the distance moved across one of the lines the audio feed reacts to.
+static func _crossed_proximity_line(from: float, to: float) -> bool:
+	for line: float in [Tuning.STILL_SILENCE_RANGE, Tuning.AUDIO_ERRORS_DUCK_DIST]:
+		if (from < line) != (to < line):
+			return true
+	return false
 
 
 ## 14 §9 debug overlay line.

@@ -32,6 +32,7 @@ var hidden_state: bool = false
 ## 12 §6 HUD option: &"full", &"minimal", &"off".
 var hud_mode: StringName = &"full"
 
+var _descending_shown: bool = false
 var _dim_from: float = 1.0
 var _dim_to: float = 1.0
 var _dim_t: float = INF
@@ -92,8 +93,41 @@ func advance(dt: float) -> void:
 		if _dissolve_t >= Tuning.FEEDBACK_DISSOLVE_HUD_SHUTTER:
 			_dissolve_t = -1.0
 			_shutter_all_out()
-	# M3.6: while a note sheet shows, the caption stack ends above it (never under the sheet).
-	captions.set_floor(note_sheet.global_position.y - captions.global_position.y if note_sheet.visible else INF)
+	_clear_note_sheet()
+
+
+## M3.1 ruling (04 §8 fixes the sheet and 04 §6 the prompt line; at UI scale 1.5 the lower
+## third reaches the line): while a note sheet would cover the prompt line, the line (and
+## the first-run hint that shares its place) rises to sit a grid unit above the sheet, but
+## never closer to the crosshair than HUD_PROMPT_CROSSHAIR_CLEAR above its centre (the
+## noclip arc and the reason word stay clear). The caption stack ends above whichever is
+## highest (11 §6: captions never overlap the prompt; M3.6: nor the sheet). Without an
+## overlap nothing moves: the line keeps its 04 §6 place.
+func _clear_note_sheet() -> void:
+	var lift := 0.0
+	var floor_y := INF
+	if note_sheet.visible:
+		var top := note_sheet.global_position.y
+		floor_y = top
+		var half := maxf(prompt.reserved_height(), hints.line.reserved_height()) * 0.5
+		var centre := prompt.global_position.y
+		var bottom := centre + half
+		if bottom + UiTokens.GRID > top:
+			var want := minf(top - UiTokens.GRID, centre - float(Tuning.HUD_PROMPT_OFFSET_Y) - float(Tuning.HUD_PROMPT_CROSSHAIR_CLEAR))
+			lift = maxf(bottom - want, 0.0)
+			floor_y = minf(floor_y, centre - lift - half)
+	prompt.set_lift(lift)
+	hints.line.set_lift(lift)
+	captions.set_floor(floor_y - captions.global_position.y if floor_y < INF else INF)
+
+
+## 11 §3 Enter exit: `DESCENDING` prints when the entering tween starts (the Run calls this),
+## not when the level is left 0.6 s later; the later level_left finds it shown (M3.1).
+func show_descending() -> void:
+	if _descending_shown:
+		return
+	_descending_shown = true
+	notify(Strings.MSG_DESCENDING)
 
 
 # --- binding ------------------------------------------------------------------------------
@@ -358,6 +392,7 @@ func _on_dissolved(_cause: StringName) -> void:
 
 func _on_level_entered(d: int, stratum: StringName, arrival: StringName) -> void:
 	restore()
+	_descending_shown = false
 	set_depth(d, stratum)
 	depth.set_exit_status(HudDepth.STATUS_UNKNOWN, 0.0)
 	exit_unlock_notified = false
@@ -367,7 +402,7 @@ func _on_level_entered(d: int, stratum: StringName, arrival: StringName) -> void
 
 func _on_level_left(proper: bool) -> void:
 	if proper:
-		notify(Strings.MSG_DESCENDING)
+		show_descending()
 	# 05 §4: the cabin has no exit; the status line shutters out until the next level.
 	depth.clear_exit_status()
 

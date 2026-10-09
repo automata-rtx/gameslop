@@ -67,6 +67,7 @@ func eject() -> void:
 func _end(seconds: float) -> void:
 	var s := spot
 	leaving = true
+	s.lift_view_mask()
 	_p.sounds.stop_loop(PlayerAudio.LOOP_HIDE_BREATH, Tuning.FEEDBACK_SPRINT_BREATH_OUT)
 	var ex := s.exit_transform()
 	_p.global_position = ex.origin

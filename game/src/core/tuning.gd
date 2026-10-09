@@ -1431,6 +1431,7 @@ const HUD_STAMINA_ARC_HIDE_DELAY := 1.0             # s after refill
 const HUD_NOCLIP_ARC_RADIUS := 24                   # px, 360 degrees
 const HUD_NOCLIP_ECHO_RING_LEAD_MS := 100           # outer ring completes 100 ms before commit
 const HUD_PROMPT_OFFSET_Y := 120                    # px below the crosshair
+const HUD_PROMPT_CROSSHAIR_CLEAR := 40              # px: a prompt lifted over a note sheet ends this far above the crosshair centre (the noclip arc is 24)
 const HUD_NOTIFY_TIME := 4.0                        # s
 const HUD_NOTIFY_MAX_STACK := 2
 const HUD_DEPTH_STRATUM_PAD := 2                    # DEPTH 03

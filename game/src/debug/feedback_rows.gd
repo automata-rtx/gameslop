@@ -11,6 +11,9 @@ extends RefCounted
 ##   expect    per channel, substrings of the spy keys that count as the row's own feedback
 ##             (a sound id, a HUD part, the held light), so a coincidental change elsewhere
 ##             can never pass a row; a channel without an entry accepts any change
+##   allow     per channel, why a listed channel may stay off the 50 ms budget (the table's own
+##             timing puts it later, e.g. the Polaroid's count at its flash). Every other
+##             listed channel must react on time (`full`), not just three of four
 ##   chained   continues the previous row's flow (the drop's arrival, the Landing): the bench
 ##             neither waits for quiet nor releases input before it
 ## Status: `implemented`; `pending` (the feature does not exist yet, with the reason); `gap`
@@ -39,66 +42,76 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"walk_step", "Walk step", "11 §2", "ISM", {&"lookback": {&"I": 60, &"M": 60},
 			&"expect": {&"I": HELD, &"S": ["play.foot_"], &"M": ["cam.offset", "cam.rotation", "rig.bob"]}}))
 	rows.append(_row(&"sprint_start", "Sprint start", "11 §2", "ISMR",
-			{&"expect": {&"I": HELD, &"S": ["loop.sprint_breath"], &"R": ["Stamina", "Crosshair"]}}))
+			{&"expect": {&"I": HELD, &"S": ["loop.sprint_breath"], &"M": ["rig.bob_amp", "cam.fov", "rig.holds"],
+			&"R": ["Stamina", "Crosshair"]}}))
 	rows.append(_row(&"sprint_stop", "Sprint stop", "11 §2", "ISM",
-			{&"expect": {&"I": HELD, &"S": ["loop.sprint_breath"]}}))
+			{&"expect": {&"I": HELD, &"S": ["loop.sprint_breath"], &"M": ["rig.bob_amp", "cam.fov", "rig.holds"]}}))
 	rows.append(_row(&"stamina_empty", "Stamina empty", "11 §2", "SMR",
-			{&"expect": {&"S": ["play.stamina_empty_gasp"], &"R": ["Stamina", "Crosshair"]}}))
+			{&"expect": {&"S": ["play.stamina_empty_gasp"], &"M": ["cam.fov", "rig.holds", "rig.bob_amp"],
+			&"R": ["Stamina", "Crosshair"]}}))
 	rows.append(_row(&"crouch", "Crouch", "11 §2", "ISM",
 			{&"expect": {&"I": ["light.held_rot"], &"S": ["play.crouch"], &"M": ["cam.", "rig.position"]}}))
 	rows.append(_row(&"stand", "Stand", "11 §2", "ISM",
 			{&"expect": {&"I": ["light.held_rot"], &"S": ["play.crouch"], &"M": ["cam.", "rig.position"]}}))
 	rows.append(_row(&"flashlight_on", "Flashlight on", "11 §2", "ISMR",
-			{&"expect": {&"I": ["light."], &"S": ["play.flashlight_toggle"], &"R": ["Crank"]}}))
+			{&"expect": {&"I": ["light."], &"S": ["play.flashlight_toggle"], &"M": ["cam.rotation"], &"R": ["Crank"]}}))
 	rows.append(_row(&"flashlight_off", "Flashlight off", "11 §2", "ISMR",
-			{&"expect": {&"I": ["light."], &"S": ["play.flashlight_toggle"], &"R": ["Crank"]}}))
+			{&"expect": {&"I": ["light."], &"S": ["play.flashlight_toggle"], &"M": ["cam.rotation"], &"R": ["Crank"]}}))
 	rows.append(_row(&"crank", "Crank (hold)", "11 §2", "ISMR",
-			{&"expect": {&"I": ["light."], &"S": ["loop.crank_loop", "loop.crank_whine"], &"R": ["Crank"]}}))
+			{&"expect": {&"I": ["light."], &"S": ["loop.crank_loop", "loop.crank_whine"],
+			&"M": ["cam.offset", "rig.sway"], &"R": ["Crank"]}}))
 	rows.append(_row(&"crank_full", "Crank full", "11 §2", "ISR",
 			{&"expect": {&"I": ["light.wheel_turning"], &"S": ["play.crank_full"], &"R": ["Crank"]}}))
 	rows.append(_row(&"item_select", "Item select", "11 §2", "ISMR",
-			{&"expect": {&"I": ["hand."], &"S": ["play.ui_move"], &"R": ["Belt"]}}))
+			{&"expect": {&"I": ["hand."], &"S": ["play.ui_move"], &"M": ["cam.rotation"], &"R": ["Belt"]}}))
 	rows.append(_row(&"item_polaroid", "Item use: Polaroid", "11 §2", "ISMR",
-			{&"window": 90, &"expect": {&"I": ["hand.", "pulse.flash"], &"S": ["play.polaroid_charge"]}}))
+			{&"window": 90, &"expect": {&"I": ["hand.", "pulse.flash"], &"S": ["play.polaroid_charge"],
+			&"M": ["cam.fov", "rig.holds"], &"R": ["Belt", "Coherence"]},
+			&"allow": {&"R": "09 §2: the Polaroid is spent on its flash at 1.2 s (a stun mid-use cancels it for free), so the count and Coherence read there"}}))
 	rows.append(_row(&"item_glowstick", "Item use: Glowstick", "11 §2", "ISMR",
-			{&"expect": {&"I": ["hand.", "scene.children", "level.content"], &"S": ["play.glowstick_crack"], &"R": ["Belt"]}}))
+			{&"expect": {&"I": ["hand.", "scene.children", "level.content"], &"S": ["play.glowstick_crack"], &"M": ["cam.rotation"], &"R": ["Belt"]}}))
 	rows.append(_row(&"chalk_stamp", "Chalk stamp", "11 §2", "ISMR",
-			{&"expect": {&"I": ["decals", "hand."], &"S": ["play.chalk_mark"], &"R": ["Belt"]}}))
+			{&"expect": {&"I": ["decals", "hand."], &"S": ["play.chalk_mark"], &"M": ["cam.rotation"], &"R": ["Belt"]}}))
 	rows.append(_row(&"item_flare", "Item use: Flare", "11 §2", "ISMR",
-			{&"expect": {&"I": ["hand.", "scene.children"], &"S": ["play.flare_ignite"], &"R": ["Belt"]}}))
+			{&"expect": {&"I": ["hand.", "scene.children"], &"S": ["play.flare_ignite"], &"M": ["cam.rotation"], &"R": ["Belt"]}}))
 	rows.append(_row(&"item_radio", "Item use: Radio", "11 §2", "ISMR",
-			{&"expect": {&"I": ["hand."], &"S": ["play.radio_ping"], &"R": ["Belt"]}}))
+			{&"expect": {&"I": ["hand."], &"S": ["play.radio_ping"], &"M": ["cam.rotation"], &"R": ["Belt"]}}))
 	# --- 11 §2 interaction and noclip -----------------------------------------------------
 	rows.append(_row(&"interact_press", "Interact press", "11 §2", "ISMR",
-			{&"expect": {&"I": ["x.door"], &"S": ["play.door_"], &"R": ["Prompt"]}}))
+			{&"expect": {&"I": ["x.door"], &"S": ["play.door_"], &"M": ["cam.rotation"], &"R": ["Prompt"]}}))
+	rows.append(_row(&"interact_pickup", "Interact press: item", "11 §2", "ISMR",
+			{&"expect": {&"I": ["x.fly"], &"S": ["play.item_pickup"], &"M": ["cam.rotation"], &"R": ["Belt", "Prompt"]}}))
 	rows.append(_row(&"interact_hold", "Interact hold", "11 §2", "ISR", {&"window": 30,
 			&"lookback": {&"I": 20, &"S": 2, &"R": 20}, &"expect": {&"I": ["ui.underline"], &"S": ["play.ui_hold_tick"],
 			&"R": ["Prompt"]}}))
 	rows.append(_row(&"noclip_charge", "Noclip charge", "11 §2", "ISMR",
-			{&"expect": {&"I": ["cr.noclip", "light."], &"S": ["loop.noclip_charge"], &"R": ["Crosshair"]}}))
+			{&"expect": {&"I": ["cr.noclip", "light."], &"S": ["loop.noclip_charge"],
+			&"M": ["cam.fov", "rig.holds", "rig.sway", "cam.offset"], &"R": ["Crosshair"]}}))
 	rows.append(_row(&"noclip_cancel", "Noclip cancel", "11 §2", "ISMR",
-			{&"expect": {&"I": ["cr.noclip"], &"S": ["play.noclip_cancel"], &"R": ["Crosshair"]}}))
+			{&"expect": {&"I": ["cr.noclip_preview_collapsing"], &"S": ["play.noclip_cancel"],
+			&"M": ["cam.fov", "rig.holds", "rig.sway"], &"R": ["Crosshair"]}}))
 	rows.append(_row(&"noclip_invalid", "Noclip invalid", "11 §2", "ISR",
 			{&"expect": {&"I": ["cr.noclip"], &"S": ["play.noclip_fail"], &"R": ["Crosshair"]}}))
 	rows.append(_row(&"noclip_commit_wall", "Noclip commit (wall)", "11 §2", "ISMR",
 			{&"expect": {&"I": ["cr.noclip_commit", "pulse.noclip_commit"], &"S": ["play.noclip_commit"],
-			&"R": ["Coherence"]}}))
+			&"M": ["clock.hitstop", "cam.fov", "rig.holds", "rig.trauma"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"hide_enter", "Enter hide spot", "11 §2", "ISR",
-			{&"expect": {&"I": ["hide_mask", "hide.mask"], &"S": ["play.crouch"]}}))
+			{&"expect": {&"I": ["hide_mask", "hide.mask"], &"S": ["play.crouch"], &"R": ["hidden_state", "Dimmable"]}}))
 	rows.append(_row(&"hide_leave", "Leave hide spot", "11 §2", "ISMR",
-			{&"expect": {&"I": ["hide_mask", "hide.mask"], &"S": ["play.crouch"]}}))
+			{&"expect": {&"I": ["hide_mask", "hide.mask"], &"S": ["play.crouch"],
+			&"M": ["cam.", "rig.position", "rig.anchored"], &"R": ["hidden_state", "Dimmable"]}}))
 	# --- 11 §3 things that happen to the player -------------------------------------------
 	rows.append(_row(&"coherence_loss", "Coherence loss", "11 §3", "ISR",
 			{&"expect": {&"I": ["cr.coherence", "post."], &"S": ["play.coherence_loss_tick"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"coherence_gain", "Coherence gain", "11 §3", "ISMR",
 			{&"expect": {&"I": ["cr.coherence", "post.", "pulse.coherence_gain"], &"S": ["play.coherence_gain"],
-			&"R": ["Coherence"]}}))
+			&"M": ["cam.fov", "rig.holds"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"error_contact", "Error contact", "11 §3", "ISMR",
 			{&"expect": {&"I": ["cr.coherence", "post.", "pulse.hit"], &"S": ["play.error_contact_hit"],
-			&"R": ["Coherence"]}}))
+			&"M": ["clock.hitstop", "rig.trauma", "cam.offset"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"inside_static", "Inside Static", "11 §3", "ISMR", {&"window": 36,
 			&"expect": {&"I": ["cr.static", "cr.coherence", "post."], &"S": ["loop.static_hum", "loop.static_band"],
-			&"R": ["Coherence"]}}))
+			&"M": ["rig.jitter", "cam.offset"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"still_within_8m", "Still within 8 m", "11 §3", "SR", {&"window": 48,
 			&"expect": {&"S": ["duck.Ambience"], &"R": ["Caption"]}}))
 	rows.append(_row(&"still_observed", "Still observed 2 s", "11 §3", "IS",
@@ -116,7 +129,8 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"exit_seen", "Exit seen", "11 §3", "ISR",
 			{&"expect": {&"I": ["exit."], &"S": ["play.exit_latch"], &"R": ["Depth"]}}))
 	rows.append(_row(&"breaker", "Breaker thrown by player", "11 §3", "ISMR", {&"window": 30,
-			&"expect": {&"I": ["x.lever", "fixtures.powered"], &"S": ["play.breaker_lever"]}}))
+			&"expect": {&"I": ["x.lever", "fixtures.powered"], &"S": ["play.breaker_lever"],
+			&"M": ["rig.trauma", "cam.offset"], &"R": ["Captions", "Depth"]}}))
 	rows.append(_row(&"exit_unlocked", "Exit unlocked", "11 §3", "ISR",
 			{&"chained": true, &"expect": {&"I": ["exit."], &"S": ["play.exit_open", "play.exit_latch"],
 			&"R": ["Depth", "Notifications"]}}))
@@ -127,19 +141,22 @@ static func all() -> Array[Dictionary]:
 	# --- the Descent: these end the level, so they run last ---------------------------------
 	rows.append(_row(&"noclip_commit_floor", "Noclip commit (floor)", "11 §2", "ISMR",
 			{&"expect": {&"I": ["cr.noclip_commit", "pulse.", "cr.coherence"], &"S": ["play.noclip_commit"],
-			&"R": ["Coherence"]}}))
+			&"M": ["clock.hitstop", "cam.offset", "cam.rotation", "rig.position"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"arrival_drop", "Arrival (drop)", "11 §3", "ISMR",
-			{&"chained": true, &"expect": {&"I": ["cr.drop_arrive", "pulse.drop"], &"S": ["play.drop_arrival"]}}))
+			{&"chained": true, &"expect": {&"I": ["cr.drop_arrive", "pulse.drop"], &"S": ["play.drop_arrival"],
+			&"M": ["rig.trauma", "cam.offset"], &"R": ["Notifications"]}}))
 	rows.append(_row(&"enter_exit", "Enter exit", "11 §3", "ISMR", {&"window": 20,
-			&"expect": {&"I": ["run.phase", "exit."], &"S": ["play.exit_open"]}}))
+			&"expect": {&"I": ["run.phase", "exit."], &"S": ["play.exit_open"], &"M": ["cam.fov", "rig.holds"],
+			&"R": ["Notifications"]}}))
 	rows.append(_row(&"landing", "Landing", "11 §3", "ISMR",
 			{&"chained": true, &"expect": {&"I": ["run.phase", "landing.", "pulse.ripple"],
-			&"S": ["play.exit_latch", "loop.fixture_hum"]}}))
+			&"S": ["play.exit_latch", "loop.fixture_hum"], &"M": ["rig.trauma", "cam.offset"],
+			&"R": ["Coherence", "..size"]}}))
 	rows.append(_row(&"arrival_proper", "Arrival (proper)", "11 §3", "ISR",
 			{&"chained": true, &"expect": {&"I": ["landing.door"], &"S": ["play.exit_open"], &"R": ["Depth"]}}))
 	rows.append(_row(&"dissolve", "Dissolve", "11 §3", "ISMR", {&"window": 36,
 			&"expect": {&"I": ["dissolve.", "pulse.dissolve", "cr.coherence", "post."], &"S": ["play.dissolve"],
-			&"R": ["Coherence"]}}))
+			&"M": ["cam.offset", "rig.position"], &"R": ["Coherence"]}}))
 	rows.append(_row(&"threshold", "Threshold crossed", "11 §3", "ISR", {&"window": 20,
 			&"expect": {&"I": ["x.white"], &"S": ["play.threshold_tone"], &"R": [".vis"]}}))
 	return rows
@@ -159,6 +176,7 @@ static func _row(id: StringName, label: String, ref: String, listed: String, opt
 		&"lookback": opts.get(&"lookback", {}),
 		&"expect": opts.get(&"expect", {}),
 		&"chained": bool(opts.get(&"chained", false)),
+		&"allow": opts.get(&"allow", {}),
 	}
 
 

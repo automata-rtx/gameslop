@@ -53,6 +53,8 @@ static func _rows_ratio() -> float:
 
 func apply_compact() -> void:
 	super.apply_compact()
+	if rows == null:
+		return  # registered but not built yet (the pause menu's shell resizes first)
 	rows.max_height_ratio = _rows_ratio()
 	rows.fit_height()
 
