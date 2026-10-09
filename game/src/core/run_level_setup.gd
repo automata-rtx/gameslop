@@ -147,6 +147,25 @@ static func cut_power(level: Level, exit: Exit, lit: Array[Fixture]) -> void:
 		level.light_pool.reevaluate()
 
 
+## M1.8 hook: the per-level Director, when the level carries one (a node named Director or
+## in group `director`), gets begin(level, player, arrival) with as many arguments as it takes.
+static func begin_director(lvl: Level, player: Player, kind: StringName) -> void:
+	var d: Node = lvl.find_child("Director", true, false)
+	if d == null:
+		for n in lvl.get_tree().get_nodes_in_group(&"director"):
+			if lvl.is_ancestor_of(n):
+				d = n
+				break
+	if d == null:
+		# M1.8: the Director is per level (14 §3); the run gives each level its own.
+		d = Director.new()
+		lvl.add_child(d)
+	if not d.has_method(&"begin"):
+		return
+	var args: Array = [lvl, player, kind]
+	d.callv(&"begin", args.slice(0, d.get_method_argument_count(&"begin")))
+
+
 # --- pure rules --------------------------------------------------------------------------
 
 ## 05 §6, 09 §2: the kinds the pool may offer this run. A kind needs a world scene (every belt

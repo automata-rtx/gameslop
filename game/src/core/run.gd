@@ -7,7 +7,7 @@ extends Node3D
 ## Transitions (05 §4): the proper exit (entering tween, the Landing cabin while the next
 ## level builds), the drop (the noclip floor commit, black and grain, a random valid cell),
 ## and the dissolve (11 §3 grid scatter, then GameState.end_run and the summary).
-## The Director (M1.8) is per level: _begin_director() calls it when the level has one.
+## The Director (M1.8) is per level: RunLevelSetup.begin_director() starts it on arrival.
 ## The floor drop arrives as `floor_drop_committed()` on the Player or its NoclipTargeting
 ## (M1.4, built in parallel); the run connects to whichever has it, by name.
 
@@ -221,27 +221,8 @@ func _arrive(kind: StringName) -> void:
 		exit.start_cycle()
 	GameState.run.stratum = data.stratum
 	EventBus.level_entered.emit(GameState.run.depth, data.stratum, kind)
-	_begin_director(level, kind)
+	RunLevelSetup.begin_director(level, player, kind)
 	level_ready.emit(GameState.run.depth)
-
-
-## M1.8 hook: the per-level Director, when the level carries one (a node named Director or
-## in group `director`), gets begin(level, player, arrival) with as many arguments as it takes.
-func _begin_director(lvl: Level, kind: StringName) -> void:
-	var d: Node = lvl.find_child("Director", true, false)
-	if d == null:
-		for n in get_tree().get_nodes_in_group(&"director"):
-			if lvl.is_ancestor_of(n):
-				d = n
-				break
-	if d == null:
-		# M1.8: the Director is per level (14 §3); the run gives each level its own.
-		d = Director.new()
-		lvl.add_child(d)
-	if not d.has_method(&"begin"):
-		return
-	var args: Array = [lvl, player, kind]
-	d.callv(&"begin", args.slice(0, d.get_method_argument_count(&"begin")))
 
 
 ## 05 §4: a random valid cell of the new level, facing open floor.
