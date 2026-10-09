@@ -139,6 +139,20 @@ Still (50 each); its one `stuck` is an Offices door leaf. The glowstick case (bo
   (Offices; 5 explorer timeouts and 1 cautious stuck in the after sweep). Doors owner item in
   `open_items.md`.
 
+## R20 crank ruling (M3 review S2): explorer intensity before and after
+
+The crank row now counts only in Build, Peak and Pursuit (10 §2, CHANGELOG 2026-10-09). Explorer only, `--descent --profiles explorer --max-seconds 600 --csv`, seeds 21 to 29 (9 Descents, 21 levels each side; "before" is the same tree with the old `on_crank`). Read from the per-level Director CSVs (one row a second).
+
+| | before | after |
+|---|---|---|
+| time at intensity ≥ 0.96 | 3,331 s of 6,003 (55%) | 3,300 s of 6,260 (53%) |
+| longest stretch at ≥ 0.96 in one level | 384 s (Offices, seed 22 d3) | 405 s (seed 24 d3) |
+| intensity on entering Build (mean of 59 / 54 entries) | 0.60 | 0.37 |
+| Build entered already at ≥ 0.8 (the wake threshold) | 20 of 59 | 0 of 54 |
+| mean intensity in Calm and Relief | 0.49 | 0.32 |
+
+Reading: the ruling does what it says. Calm and Relief stay low, and no Build starts at the wake threshold. The plateau inside a long Build is still there (about half of an explorer level at ≥ 0.96, stretches of 3 to 7 minutes). Build itself saturates: the time row, the crank inside Build and the nearest-hunter row reach 1.0 within a minute or two, and Build has no exit but a chase. Relief can still climb back high from events (sprint steps away from a hunter at 1 to 3 m, the breaker; seed 21 d1 went 0.64 → 1.0 in Relief). This is the review's second step (S2: re-arm the 0.8 wake after Build holds ≥ 0.95 for 60 s with no chase). It waits for cp-12's human answer to "does dread sit at the top?" Runs are not bit-identical between processes, so read the rows as distributions.
+
 ## What the cp-12 human runs must confirm
 
 1. The Substrate at 10/s: of the 5 human runs, how many reach the Threshold, how many die to
