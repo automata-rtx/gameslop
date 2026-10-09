@@ -7,7 +7,11 @@ extends SceneTree
 ##   godot --headless --fixed-fps 60 --path game --script tests/sim/sim_run.gd -- \
 ##         [--seeds 3] [--from 1] [--profiles direct,explorer,cautious] [--depths 1,2]
 ##         [--max-seconds 600] [--stop-after-relief] [--linger] [--no-linger] [--csv <dir>]
-##         [--json <file>] [--no-audio-guard]
+##         [--json <file>] [--no-audio-guard] [--descent]
+## --descent (R18, review S6) plays one chained Descent per seed and profile instead of one
+## level: depths 1 to 6 on one run, Coherence and the belt carried through the real exit,
+## Landing and arrival (SimDescent). --max-seconds is then per level. It prints three tables
+## (per run, per level, per profile) and --json writes the results.
 ## --linger makes every profile visit more rooms and dead ends before its objective; the
 ## explorer lingers by default (M2.7), --no-linger turns that off.
 ## With --csv, each run's Director telemetry is written as
@@ -28,6 +32,7 @@ var _linger: bool = false
 var _no_linger: bool = false
 var _csv_dir: String = ""
 var _json_path: String = ""
+var _descent: bool = false
 
 
 func _initialize() -> void:
@@ -59,6 +64,8 @@ func _initialize() -> void:
 				_csv_dir = next
 			"--json":
 				_json_path = next
+			"--descent":
+				_descent = true
 			"--no-audio-guard":
 				AudioMixGuard.enabled = false  # RCA1 A/B: reopens the engine audio race
 	_main.call_deferred()
@@ -76,6 +83,9 @@ func _main() -> void:
 	var bot_script: GDScript = load("res://tests/sim/sim_bot.gd")
 	var results: Array = []
 	var wall0 := Time.get_ticks_msec()
+	if _descent:
+		await _descents(host, results, wall0, load("res://tests/sim/sim_descent.gd"))
+		return
 	for depth in _depths:
 		for profile in _profiles:
 			for s in range(_from, _from + _seeds):
@@ -101,6 +111,31 @@ func _main() -> void:
 			f.store_string(SUMMARY_HEADER + "\n" + "\n".join(PackedStringArray(table.map(func(row: Array) -> String:
 				return ",".join(PackedStringArray(row.map(func(v: Variant) -> String: return str(v))))))) + "\n")
 			f.close()
+	if not _json_path.is_empty():
+		var j := FileAccess.open(_json_path, FileAccess.WRITE)
+		if j != null:
+			j.store_string(JSON.stringify(results))
+			j.close()
+	quit(0)
+
+
+## R18: the chained Descents, then the three tables.
+func _descents(host: Node, results: Array, wall0: int, script: GDScript) -> void:
+	for profile in _profiles:
+		for s in range(_from, _from + _seeds):
+			var d: Variant = script.new()
+			d.tree = self
+			d.host = host
+			d.profile = profile
+			d.max_seconds = _max_s
+			d.linger = _linger
+			var r: Dictionary = await d.call(&"play", s)
+			results.append(r)
+			print("sim-descent %s" % JSON.stringify(r))
+	print("sim-descent (%d runs, %.0f s wall)" % [results.size(), (Time.get_ticks_msec() - wall0) / 1000.0])
+	print("per run:\n" + script.call(&"format_table", script.get(&"RUN_HEADER"), script.call(&"run_rows", results)))
+	print("per level:\n" + script.call(&"format_table", script.get(&"LEVEL_HEADER"), script.call(&"level_rows", results)))
+	print("per profile:\n" + script.call(&"format_table", script.get(&"SUMMARY_HEADER"), script.call(&"summary_rows", results)))
 	if not _json_path.is_empty():
 		var j := FileAccess.open(_json_path, FileAccess.WRITE)
 		if j != null:
