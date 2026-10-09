@@ -78,7 +78,12 @@ func test_crossing_the_threshold_plays_the_ending_then_the_summary() -> void:
 	assert_false(AudioManager.music.threshold_in_view)
 	# Through the door.
 	run.player.global_position = door.walk_in_point()
-	assert_true(await _until(func() -> bool: return run.phase == Run.PHASE_ENDED, 10.0), "the run ends at the door")
+	# Under load the router can swap the run for the ending before a frame sees PHASE_ENDED.
+	var run_ref: WeakRef = weakref(run)
+	var ended := func() -> bool:
+		var r: Run = run_ref.get_ref() as Run
+		return r == null or r.phase == Run.PHASE_ENDED
+	assert_true(await _until(ended, 10.0), "the run ends at the door")
 	assert_eq(GameState.last_cause(), &"threshold")
 	assert_false(GameState.is_run_active())
 	# 13 §3 Ending: written before the ending plays.
