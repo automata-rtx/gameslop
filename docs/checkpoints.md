@@ -95,3 +95,17 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Tuned from sims (M3.4):** 60 simulated Descents before and after (`docs/qa/descent_sim.md`). Null's core drains 10/s (was 12); a death names the largest loss within 0.25 s. Threshold reached: direct 8 → 16, cautious 8 → 11, explorer 0 → 0 of 20. Most of the old Null lethality was the sim bot walking rooms cell by cell.
 - **The 5 human runs must confirm:** (1) the Substrate is hard but winnable at 10/s, and whether players route around Null with the unrender view or walk through its core; (2) Still's counter works for a human: keeping it lit in view and backing away, or hiding, ends its chase at depths 2 and 5 (the sims record 3 Still evasions in 279 levels, so no Still number was changed); (3) a new player reaches depth 2 within three attempts and early deaths take 5 to 10 minutes; (4) the Offices light dilemma reads as a choice (breaker and flashlight against dark, the glowstick as the answer); (5) how much noclip a human spends and the Coherence at depth 6 arrival (sims: 90+); (6) the sawtooth by ear: a long Build while exploring should not feel like constant maximum dread (R20: the crank row now counts only in Build, Peak and Pursuit). **Landing gain decision rule (R20, M3 review S1, pre-agreed):** if the human runs arrive at depths 3 to 6 averaging 90 or more Coherence, cp-13 halves the Landing gain to 10; below 70 it stays 20. Record per run: depth reached, cause, Coherence at each arrival, Null core time if any.
 
+
+## cp-13-rc — 2026-10-09 (commit 4b131df) — **release candidate, needs a clean-machine run**
+- **Works:** everything in cp-12, plus the release pipeline:
+  - **Builds:** export presets per 16, icons generated from `noclip.svg`, `export.sh`, `verify_release.sh` and `smoke.sh`. The zips contain README, LICENSES and SHA256SUMS, and nothing from the debug benches or the F3 overlay ships in release.
+  - **Credits:** a root `CREDITS.md`.
+  - **Steam:** templates and `tools/steam/upload.sh`, which refuses placeholder IDs and never sets a build live.
+  - **Store page:** `docs/release/store_page.md`, checked by the text gate.
+  - **Release checklist:** filled in (`docs/qa/release_checklist.md`).
+  - **Landings and Archive:** stairwell Landings for Pools and Server, and Polaroid thumbnails in the Archive.
+  - **Checkpoint:** `tools/ci/checkpoint.sh` green, with 1,423 tests (budgets enforced), the validator, both exports verified and the Linux smoke.
+- **Builds:** `build/NOCLIP-1.0.0-windows.zip` and `build/NOCLIP-1.0.0-linux.zip` are not committed; rebuild them with `tools/ci/export.sh`. Check them against the SHA256SUMS file that ships with the zip.
+- **Pending human data:** the cp-12 tuning decisions (the Landing gain rule first). See the table in `docs/qa/human_check_M4.md`.
+- **Not verified here:** the Windows smoke, SmartScreen or antivirus prompts, real GPU frame times, and audio.
+- **Tester (needed for cp-14):** `docs/qa/human_check_M4.md` on a clean Windows machine, about 20 minutes, with notes in `docs/qa/notes_cp-13.md`. Then cp-14 applies the fixes from the cp-12 and cp-13 notes, and uploads to Steam with `tools/steam/README.md`.
