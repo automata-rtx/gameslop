@@ -114,6 +114,10 @@ var csv_path: String = ""
 var stop_after_relief: bool = false
 ## Any profile visits the explorer's rooms before its objective (longer levels).
 var linger: bool = false
+## R18: play one level of a run that already exists (`run` set by SimDescent, which owns the
+## run's setup and teardown): the bot neither starts a run nor tears it down, and it reports
+## `threshold` when the level's exit ended the Descent.
+var chain: bool = false
 
 var _rng: RandomNumberGenerator
 var _t: float = 0.0
@@ -186,16 +190,17 @@ func play(run_seed: int) -> Dictionary:
 	_rng = Seeds.rng(Seeds.derive(run_seed, "simbot:%s" % profile))
 	Engine.time_scale = 1.0
 	var meta := GameState.meta
-	GameState.meta = MetaState.new()
-	GameState.meta.first_descent_done = true
-	GameState.start_run(Tuning.MODE_DESCENT, &"faller", run_seed)
-	if depth > 1:
-		GameState.run.depth = depth
-		GameState.run.max_depth = depth
-	run = (load(RUN_SCENE) as PackedScene).instantiate() as Run
-	run.capture_mouse = false
-	run.landing_time = 0.5
-	host.add_child(run)
+	if not chain:
+		GameState.meta = MetaState.new()
+		GameState.meta.first_descent_done = true
+		GameState.start_run(Tuning.MODE_DESCENT, &"faller", run_seed)
+		if depth > 1:
+			GameState.run.depth = depth
+			GameState.run.max_depth = depth
+		run = (load(RUN_SCENE) as PackedScene).instantiate() as Run
+		run.capture_mouse = false
+		run.landing_time = 0.5
+		host.add_child(run)
 	var result := {&"seed": run_seed, &"profile": profile, &"depth": depth, &"outcome": &"error", &"time_s": 0.0}
 	var t0 := Time.get_ticks_msec()
 	while run.phase != Run.PHASE_PLAYING and Time.get_ticks_msec() - t0 < 60000:
@@ -204,7 +209,8 @@ func play(run_seed: int) -> Dictionary:
 	director = level.find_child("Director", true, false) as Director if level != null else null
 	if director == null:
 		result[&"error"] = "no Director on the level"
-		await _teardown(meta)
+		if not chain:
+			await _teardown(meta)
 		return result
 	result[&"stratum"] = GameState.stratum_for(depth)
 	result[&"nav_wait_s"] = snappedf(await _wait_navigation(), 0.1)
@@ -216,7 +222,8 @@ func play(run_seed: int) -> Dictionary:
 	EventBus.item_used.connect(on_item)
 	run.player.noclip_committed.connect(on_noclip)
 	var cause: Array[String] = [""]
-	run.player.dissolved.connect(func(c: StringName) -> void: cause[0] = String(c))
+	var on_dissolved := func(c: StringName) -> void: cause[0] = String(c)
+	run.player.dissolved.connect(on_dissolved)
 	var max_i := 0.0
 	var outcome := &"timeout"
 	while _t < max_seconds:
@@ -227,6 +234,9 @@ func play(run_seed: int) -> Dictionary:
 		nul.tick(_t, dt)
 		max_i = maxf(max_i, director.intensity)
 		_watch_peaks()
+		if run.phase == Run.PHASE_ENDED and GameState.last_cause() == GameState.WIN_CAUSE:
+			outcome = &"threshold"
+			break
 		if run.phase == Run.PHASE_DISSOLVING or run.phase == Run.PHASE_ENDED:
 			outcome = &"dissolved"
 			break
@@ -255,6 +265,8 @@ func play(run_seed: int) -> Dictionary:
 	EventBus.item_used.disconnect(on_item)
 	if is_instance_valid(run.player) and run.player.noclip_committed.is_connected(on_noclip):
 		run.player.noclip_committed.disconnect(on_noclip)
+	if is_instance_valid(run.player) and run.player.dissolved.is_connected(on_dissolved):
+		run.player.dissolved.disconnect(on_dissolved)
 	_scare_results(result)
 	nul.results(result)
 	result[&"cause"] = cause[0]
@@ -297,7 +309,8 @@ func play(run_seed: int) -> Dictionary:
 		result[&"stuck_at"] = _stuck_report()
 	if not csv_path.is_empty():
 		director.telemetry.dump_csv(csv_path)
-	await _teardown(meta)
+	if not chain:
+		await _teardown(meta)
 	return result
 
 
@@ -486,8 +499,9 @@ func _watch_errors() -> void:
 func _plan_profile() -> void:
 	var p := run.player
 	if profile != PROFILE_DIRECT:
-		# Light on: one press of the flashlight key.
-		_tap(&"flashlight")
+		# Light on: one press of the flashlight key (a chained level may arrive with it on).
+		if not p.flashlight.on:
+			_tap(&"flashlight")
 	if profile == PROFILE_EXPLORER or linger:
 		_targets = _explore_targets(LINGER_ROOMS if linger else EXPLORE_ROOMS, LINGER_DEAD_ENDS if linger else EXPLORE_DEAD_ENDS)
 		_sprint_next = _rng.randf_range(10.0, SPRINT_BURST_EVERY)
