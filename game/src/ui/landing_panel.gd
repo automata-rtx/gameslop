@@ -3,8 +3,9 @@ extends Control
 ## The Landing's two-item panel (05 §4, 09 §5 "Landing panel", GLOSSARY): printed in-world on
 ## the cabin wall (the cabin renders this Control in a SubViewport). Each row is labelled with
 ## the `item_1` / `item_2` binding, the item's glyph and name; the panel also prints
-## `COHERENCE +20` (applied on arrival) and, the first time, `CHOOSE ONE`. Choosing is
-## optional and happens once. Readout style (04 §1): black, monospace, accent for "act".
+## `COHERENCE +n`, the gain the arrival applies (at most 20, omitted at 0; R20), and, the
+## first time, `CHOOSE ONE`. Choosing is optional and happens once. Readout style (04 §1):
+## black, monospace, accent for "act".
 
 signal chosen(kind: StringName)
 
@@ -79,9 +80,26 @@ func setup(choice_kinds: Array[StringName], gain: float, hint: bool) -> void:
 		_names.append(name_label)
 	if _gain != null:
 		_gain.queue_free()
-	_gain = _label(&"AccentLabel", Strings.MSG_COHERENCE_GAIN.replace("{amount}", str(roundi(gain))))
-	_list.add_child(_gain)
+		_gain = null
+	# The gain the arrival applies (R20): none at full Coherence, so no line (01 §6 rule 5).
+	var shown := gain_text(gain)
+	if shown != "":
+		_gain = _label(&"AccentLabel", shown)
+		_list.add_child(_gain)
 	_refresh()
+
+
+## The panel's Coherence line for `gain`, or "" when the arrival adds nothing. A fractional
+## gain rounds, never below +1 (a gain that applies is printed).
+static func gain_text(gain: float) -> String:
+	if gain <= 0.0 or is_zero_approx(gain):
+		return ""
+	return Strings.MSG_COHERENCE_GAIN.replace("{amount}", str(maxi(1, roundi(gain))))
+
+
+## The Coherence line as shown ("" when omitted).
+func gain_line() -> String:
+	return _gain.text if _gain != null else ""
 
 
 ## Takes slot `index` (0 or 1). Once per Landing; returns false when refused.

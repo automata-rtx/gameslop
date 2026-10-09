@@ -131,12 +131,14 @@ Walk into the open exit.
 **The Landing (the cabin).**
 - What did the cabin feel like: relief, a pause, a loading screen? Did the 6 seconds feel too short or too long?
 - Did you understand the item choice at once (`CHOOSE ONE`, `[1]` and `[2]`)? How did you decide between the two? What did you pick?
-- Did you notice the Coherence you gained (`+20`) arriving? Did it feel like a reward?
+- The panel prints the Coherence the arrival will add (`COHERENCE +7` means you were at 93; no line at all means you were already full). Did you notice it arriving? Did it feel like a reward?
+- What was your Coherence when you entered each cabin, and did the world look less real at any point before depth 6? (M3 review S1: this decides the Landing gain, below.)
 - How did the door opening onto the next level feel?
 
 **The sawtooth (pillar 3).** From now to the end, keep a rough line in the notes: write the time whenever you felt dread rising, a peak (a chase, a contact, a near thing) and relief (the quiet after). Three words each is enough.
 - Was there a stretch of two minutes or more where nothing happened and it still felt tense? (Good.) Was there a stretch where you were bored? (Note when and where.)
 - After a chase or a contact: did the game give you room to recover, and did you feel it (sound thinning, the music dropping, the vignette easing)? How long did relief last before dread began again?
+- Did intensity (music, vignette) ever stay at its height for minutes with nothing happening, for example on a level you explored slowly after cranking at the start? (M3 review S2: since R20 cranking in the quiet phases adds no dread.)
 - Was any moment a **startle** (a jump-scare, a loud sudden sound with no build)? Which one, and did it feel earned or cheap?
 
 ### Stage 5. Depths 2 and 3: new strata, new errors `[8:00 to about 20:00]`
@@ -280,6 +282,7 @@ The machines rendered these on a CPU renderer; only a GPU on a real display sett
 - **The unrender halo at 1080p.** When Null is within 12 m: the edge between the drawn world and the lines on black. Clean, or does it shimmer, crawl or leave a halo?
 - **The Null wake pop.** Watch the moment Null wakes after the calm. Does anything visibly pop, appear or move in a way that gives the repositioning away?
 - **Credits readability.** The ending bench, the credits lines over the corridor: legible at 1080p, in your seat?
+- **T5 and T6 (the machines judged these by eye on CPU frames, `docs/qa/visual_targets_by_eye.md`).** T5: in any Descent, pause in a corridor of each stratum you reach and ask yourself whether you could name the stratum from that one picture alone, without the HUD. T6: with the flashlight off, from about 15 m (some twenty walking steps), could you tell Static (a grey grainy veil), Still (a black column), Flicker (a stuttering light group) apart, and was any of them invisible?
 - **Also, if you have a minute:** Pools' rising bubbles under TAA; the Substrate's 1 px drifting pixels (do they shimmer or vanish?); the title's corridor (smooth, or heavy?); the burning flare (Items bench, `J` for items, Right Mouse to strike: a flame, or a blocky white mass?); the Cycled exit's display in the Server legible.
 
 ---
@@ -290,8 +293,9 @@ The M3.4 tuning left five questions for human runs (`docs/checkpoints.md`, `docs
 
 - **Still evasion (the sims saw 3 in 279 levels).** `-- --seed 1 --depth 2 --stratum garage`, then `--seed 2 --depth 2 --stratum garage`, then `-- --seed 7 --depth 5 --stratum server`. Find Still. Try each counter in turn and note whether the chase ended: (a) flashlight on, Still in view in the light, back away; (b) break line of sight and hide (under a car, a locker, a rack gap); (c) noclip through a wall. Which worked every time, which sometimes, which never? Did you ever see it lose you (an evasion)?
 - **The Offices light dilemma.** `-- --seed 3 --depth 4 --stratum offices`. Some fixture groups are dark until the breaker. Did the choice between light (breaker, flashlight; Still sees you) and dark (Flicker cannot) read as a choice? In a direct launch the belt is empty, so the Glowstick half only exists in a real Descent: if one of your fixture-save Descents reaches Offices holding a Glowstick, use it and write what it solved.
-- **Noclip budget.** In any real Descent: count your walls and your drops, and the Coherence on arrival at each depth (the Landing adds 20). Was it more or less than you expected? (The sims spent almost none.) Note the Coherence at depth 6 arrival.
+- **Noclip budget.** In any real Descent: count your walls and your drops, and the Coherence on arrival at each depth (the Landing adds up to 20, never past 100). Was it more or less than you expected? (The sims spent almost none.) Note the Coherence at depth 6 arrival.
 - **Null again.** `--seed 2`, `--seed 12` and `--seed 17` at `--depth 6 --stratum substrate`. Which route did you take, and did it differ from seed 1?
+- **Decision rule for the Landing gain (pre-agreed, R20; M3 review S1).** If the human runs arrive at depths 3 to 6 averaging 90 or more Coherence (with fewer than 2 noclips a level), cp-13 halves the Landing gain from 20 to 10 (05 §4, 06 §9, `tuning.gd` and `test_tuning.gd` together, CHANGELOG with the data). If they arrive below 70, it stays 20. Between 70 and 90 the orchestrator decides from the notes. This is why the arrival Coherence at every depth matters.
 - **Telemetry.** Play one Descent with `$GODOT_BIN --path game -- --telemetry` and hand back the CSVs in `<user folder>/run_telemetry/`.
 
 ---

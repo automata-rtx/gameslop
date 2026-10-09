@@ -98,3 +98,20 @@ Deferred work found during production. Each line names the task that should abso
 - M3.3: occlusion covers Errors and Interact only (03 §3). Fixture hums and fans (Ambience) and footsteps are never muffled by walls; that is the design, flag it at L3 if it sounds wrong.
 - Intermittent (seen in the M3.3 full gate, errors owner): `sim/test_errors_r9.gd::test_still_wander_retargets_at_once_on_an_immediate_hint` failed once in a 1,272-test gate under load (no assertion text in the log); it passes 3/3 alone and its file passes whole. Same family as the navigation-map warm-up note in the test.
 - M4 (release): 04 §2 names a root CREDITS.md listing the font license; it does not exist yet (the in-game credits and LICENSES.txt carry it). Add it with the release files.
+
+## M3 cohesion review (M3.8): scheduled by R20
+
+R20 closed S1(a) (the Landing panel prints the real gain), S2's first step (crank row only in Build, Peak and Pursuit), S5 (mirror test), S7 (05 text), S4(a) (the arena's 15 m T6 frames) and S4(c)/(d) (T5/T6 by-eye record, `docs/qa/visual_targets_by_eye.md`). S6 is R19's. The rest, each with an owner milestone:
+
+- **M4** (Landing owner): the stairwell Landing for Pools and Server (05 §4; review N2, M2 review S12). Both still use the elevator cabin. Not trivial: a new themed shell, lights and door for two strata, with tour frames.
+- **M4** (Archive owner): Polaroid thumbnails in the Archive (13 §5; review N2, M2 review N10). Polaroids show as a count. Not trivial: needs a capture path for the in-world photo and a thumbnail grid page.
+- **M4** (doors owner): an open door leaf (95°) can trap a body in the pocket between the leaf and the wall on its hinge side (review N2; item above, M3.4).
+- **M4** (errors owner): the contact hit plays twice on an Echo or Flicker contact, and two `[contact]` captions show (review N2; items above, M3.3 and M2.12).
+- **cp-12 decides, then cp-13** (tuning): the Landing gain. If the human runs arrive at depths 3 to 6 averaging 90 or more Coherence, halve it to 10 (rule pre-agreed in R20, `human_check_M3.md` Part T). S2's second step (re-arm the 0.8 wake after Build holds ≥ 0.95 for 60 s with no chase) only if cp-12's humans still report a flat top.
+- **M4** (sim owner, test code): the sim bots hoard Polaroids; the "use below 55" rule did not fire for the explorer (review S1(c), `tests/sim/sim_bot_items.gd`). Fix before the next sweep.
+- **M4** (tour owner): keep the M2 review's N1 closed by a check, not by seed luck: the Substrate `null_8m` frame must differ from its `spawn_c100` in more than 25% of pixels (`tour_check.py`), else move the pose (review S4(b)). Also the Server soft-wall shimmer is NOCOV at seed 1: pick a pose or seed with a soft wall in reach.
+- **M4** (errors owner): Static notices still inflate (review N3; item above): confirm the re-arm after 5 s outside or an evasion is the only path, or count Static encounters on evasion.
+- **M4** (each owner, when next touched): scripts over 400 lines (review N4): `director_spawn.gd`, `hud.gd`, `exit.gd`, `archive_menu.gd`, `landing.gd`, `error_base.gd`, `run.gd`.
+- **M4** (design owner): the walk step's dust stir (11 §2, `player_locomotion.gd` TODO) and the Interact-hold Image/Readout widget (review N5).
+- **cp-12** (orchestrator): say in `notes_cp-12.md` which five runs are the tuning sample (review N6).
+- **M4** (orchestrator): prune `open_items.md` (review N1: done items, the duplicated M2.8/M2.9 follow-ups).

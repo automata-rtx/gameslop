@@ -11,11 +11,13 @@ extends Node3D
 ## The log shows the errors' script time per physics frame (ErrorTiming.MONITOR, also in the
 ## Performance custom monitors / F3), refreshed 4 times a second.
 ##   -- --shots <dir>   capture still_lit_6m, still_dark, still_tick, static_outside,
-##                      static_inside, echo_4m_halls into <dir> (relative to the repository)
-##                      and quit. With `--stratum pools` the arena is a Pools level and the
-##                      shots are echo_4m_pools only; with `--stratum offices` they are
+##                      static_inside, static_15m, echo_4m_halls into <dir> (relative to the
+##                      repository) and quit. With `--stratum pools` the arena is a Pools level
+##                      and the shots are echo_4m_pools only; `--stratum garage`: still_15m
+##                      and echo_4m_garage; with `--stratum offices` they are
 ##                      Flicker's: flicker_stutter_a/_b (a stuttering group), flicker_lunge_flash,
-##                      flicker_lunge_dark, flicker_attached_on/_off (the stuttering beam);
+##                      flicker_lunge_dark, flicker_attached_on/_off (the stuttering beam),
+##                      flicker_15m_a/_b. The *_15m frames are T6's (02 §2, ArenaFarShots);
 ##                      with `--stratum substrate` (a depth-6 level) they are Null's: null_20m,
 ##                      null_8m (the unrender), null_core (ArenaNullShots).
 ##   -- --stratum <id>  the arena's stratum (default halls).
@@ -277,6 +279,7 @@ func _capture_all(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(abs_dir)
 	if _stratum == &"offices":
 		await ArenaFlickerShots.capture(self, abs_dir)
+		await ArenaFarShots.flicker_15m(self, abs_dir)
 		print("error_arena: shots in ", abs_dir)
 		return
 	if _stratum == Tuning.STRATUM_SUBSTRATE:
@@ -284,6 +287,8 @@ func _capture_all(dir: String) -> void:
 		print("error_arena: shots in ", abs_dir)
 		return
 	if _stratum != &"halls":
+		if _stratum == &"garage":
+			await ArenaFarShots.still_15m(self, abs_dir)
 		await _echo_shot(abs_dir)
 		print("error_arena: shots in ", abs_dir)
 		return
@@ -318,6 +323,7 @@ func _capture_all(dir: String) -> void:
 	st.wake()
 	await _shot(abs_dir, "static_inside")
 	free_error(st)
+	await ArenaFarShots.static_15m(self, abs_dir)
 	await _echo_shot(abs_dir)
 	print("error_arena: shots in ", abs_dir)
 

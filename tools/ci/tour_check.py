@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Checks the screenshot tour (docs/design/02 section 13, 14 section 9) against T1, T3 and T4.
+"""Checks the screenshot tour (docs/design/02 section 13, 14 section 9) against T1, T3 and T4,
+and prints the by-eye record of T5 and T6 (docs/qa/visual_targets_by_eye.md) beside them.
 
 Usage: tools/ci/tour_check.py [tour_dir]          (default build/tour; reads manifest.json)
        tools/ci/tour_check.py --selftest          (PNG decoder against files it writes itself)
@@ -347,6 +348,43 @@ def check_soft(img_a, img_b, rect):
     return ("PASS" if ok else "FAIL"), detail
 
 
+# T5 and T6 have no measurement: they are judged by eye from the tour's corridor frames (T5)
+# and the error arena's 15 m frames (T6), and recorded in BY_EYE (M3 review S4, R20). The
+# record is printed beside the measured targets: MANUAL for a recorded pass, FAIL for a
+# recorded failure, OPEN where the row says open or nothing is recorded (OPEN does not fail).
+BY_EYE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "docs", "qa", "visual_targets_by_eye.md")
+T6_ERRORS = ("static", "still", "flicker", "echo", "null")
+
+
+def read_by_eye(path=BY_EYE):
+    """Rows of the record's table: {(target, subject): (result, frame, note)}."""
+    out = {}
+    if not os.path.exists(path):
+        return out
+    for line in open(path, encoding="utf-8"):
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 5 or cells[0] not in ("T5", "T6"):
+            continue
+        out[(cells[0], cells[1])] = (cells[2], cells[3], cells[4])
+    return out
+
+
+def by_eye_rows(strata, path=BY_EYE):
+    record = read_by_eye(path)
+    rows = []
+    subjects = [("T5", s) for s in strata if s in ("halls", "pools", "garage", "offices", "server", "substrate")]
+    subjects += [("T6", e) for e in T6_ERRORS]
+    for target, subject in subjects:
+        if (target, subject) not in record:
+            rows.append((subject, target + " by eye", "OPEN", "not recorded in docs/qa/visual_targets_by_eye.md"))
+            continue
+        result, frame, note = record[(target, subject)]
+        key = result.lower()
+        status = "FAIL" if key.startswith("fail") else ("OPEN" if key.startswith("open") else "MANUAL")
+        rows.append((subject, target + " by eye", status, "%s: %s (%s)" % (result, note, frame)))
+    return rows
+
+
 def run(tour_dir):
     path = os.path.join(tour_dir, "manifest.json")
     if not os.path.exists(path):
@@ -412,6 +450,9 @@ def run(tour_dir):
             rows.append((stratum, "frame " + name, "PASS" if name in entries else "MISSING",
                          entries[name]["file"] if name in entries else "not captured"))
             failed |= name not in entries
+    for row in by_eye_rows(list(manifest["strata"].keys())):
+        rows.append(row)
+        failed |= row[2] == "FAIL"
     width = max(len(r[1]) for r in rows)
     print("%-10s %-*s %-6s %s" % ("stratum", width, "check", "result", "detail"))
     for stratum, check, status, detail in rows:
@@ -502,6 +543,19 @@ def selftest():
     ok &= check_soft(base, swung(0.02), rect)[0] == "PASS"
     ok &= check_soft(base, base, rect)[0] == "FAIL"
     ok &= check_soft(base, swung(0.2), rect)[0] == "FAIL"
+    # The by-eye record (T5, T6): a pass is MANUAL, a fail FAIL, a missing row OPEN; the real
+    # record parses and names every stratum and every error.
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+        f.write("| target | subject | result | frame | note |\n|---|---|---|---|---|\n")
+        f.write("| T5 | halls | pass | corridor_c100 | yellow |\n| T6 | still | fail | still_15m | lost in fog |\n")
+        tmp = f.name
+    eye = {(r[0], r[1]): r[2] for r in by_eye_rows(["halls", "pools"], tmp)}
+    os.unlink(tmp)
+    ok &= eye.get(("halls", "T5 by eye")) == "MANUAL" and eye.get(("still", "T6 by eye")) == "FAIL"
+    ok &= eye.get(("pools", "T5 by eye")) == "OPEN" and eye.get(("echo", "T6 by eye")) == "OPEN"
+    real = by_eye_rows(["halls", "pools", "garage", "offices", "server", "substrate"])
+    ok &= len(real) == 11 and all(r[2] != "FAIL" for r in real)
     print("tour_check selftest: %s" % ("ok" if ok else "FAILED"))
     return 0 if ok else 1
 
