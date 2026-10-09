@@ -94,8 +94,9 @@ static func darken_exit_room(level: Level, data: LevelData) -> Array[Fixture]:
 
 ## The breaker was thrown: every dark fixture lights in walking-distance order from the
 ## breaker (02 §6), and the exit powers when the wave reaches it. Returns the seconds until
-## the exit powers.
-static func run_power_wave(level: Level, data: LevelData, exit: Exit, breaker_pos: Vector3) -> float:
+## the exit powers. The fixtures it lights are appended to `lit` (cut_power takes them back).
+static func run_power_wave(level: Level, data: LevelData, exit: Exit, breaker_pos: Vector3,
+		lit: Array[Fixture] = []) -> float:
 	var from := data.grid.cell_of(breaker_pos)
 	if not data.grid.is_walkable(from):
 		from = data.breaker_cell
@@ -110,16 +111,40 @@ static func run_power_wave(level: Level, data: LevelData, exit: Exit, breaker_po
 	var delays := Breaker.wave_delays(data.grid, from, positions)
 	for i in dark.size():
 		dark[i].power_on_wave(delays[i])
+	lit.append_array(dark)
 	var exit_delay := delays[delays.size() - 1] if exit != null else 0.0
 	if exit != null:
-		var tw := exit.create_tween()
-		tw.tween_interval(exit_delay)
-		tw.tween_callback(exit.power)
+		exit.power_after(exit_delay)
 	# The pool re-lends lights as fixtures come on.
 	var pool_tw := level.light_pool.create_tween()
 	pool_tw.tween_interval(exit_delay + Tuning.LIGHT_BREAKER_SETTLE_MS / 1000.0)
 	pool_tw.tween_callback(level.light_pool.reevaluate)
 	return exit_delay
+
+
+## 06 §9: Cycle 2 and later, the Substrate drains 0.2 Coherence per second (cause
+## `substrate`, DISSOLVED BY THE SUBSTRATE). Player.apply_coherence ignores it in its
+## NO_LOSS_STATES (the drop and the Landing). Returns the amount asked (0 elsewhere).
+static func substrate_drain(p: Player, built_stratum: StringName, depth: int, dt: float) -> float:
+	if p == null or built_stratum != Tuning.STRATUM_SUBSTRATE or GameState.cycle_for(depth) < 2:
+		return 0.0
+	var amount := Tuning.COHERENCE_LOSS_CYCLE2_SUBSTRATE_PER_S * dt
+	p.apply_coherence(-amount, Player.CAUSE_SUBSTRATE)
+	return amount
+
+
+## 08 §5 Variant B: the fuse pulled after the throw unpowers every fixture the wave lit
+## (`lit`, pending ignitions cancelled) and seals a Powered exit back to EXIT: POWERED.
+## Flicker's habitat follows (an unpowered group is not habitable). Clears `lit`.
+static func cut_power(level: Level, exit: Exit, lit: Array[Fixture]) -> void:
+	for f in lit:
+		if is_instance_valid(f):
+			f.set_powered(false)
+	lit.clear()
+	if exit != null:
+		exit.unpower()
+	if level != null:
+		level.light_pool.reevaluate()
 
 
 # --- pure rules --------------------------------------------------------------------------

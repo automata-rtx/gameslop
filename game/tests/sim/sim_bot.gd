@@ -1032,7 +1032,8 @@ func _drive(move: Vector3, look: Vector3, sprint: bool) -> void:
 	_key(&"move_back", f < -MOVE_KEY_DOT)
 	_key(&"move_right", r > MOVE_KEY_DOT)
 	_key(&"move_left", r < -MOVE_KEY_DOT)
-	_key(&"sprint", sprint and f > MOVE_KEY_DOT)
+	# A player lets go of sprint during the stamina lockout (12 §7 auto-sprint off by default).
+	_key(&"sprint", sprint and f > MOVE_KEY_DOT and not p.locomotion.stamina.is_locked_out())
 
 
 ## Stands still (optionally facing `look`); resets the stuck window.

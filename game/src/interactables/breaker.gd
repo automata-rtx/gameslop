@@ -4,14 +4,18 @@ extends Node3D
 ## the lever animates 0.3 s, the clunk, a 25 m `mech` noise, EventBus.breaker_thrown(pos).
 ## The run answers the bus event with the power wave (wave_delays below) and the exit.
 ## Variant B (07 §6, unlock #4): an empty fuse socket; the player inserts a carried fuse
-## (0.8 s) before the lever can be thrown, and can pull it back out (0.8 s) until the lever is
-## thrown: a small socket collider (%Socket, %SocketInteractable) offers `[HOLD E] PULL FUSE`
-## while the fuse is in and the belt can take it.
+## (0.8 s) before the lever can be thrown, and can pull it back out (0.8 s) at any time: a
+## small socket collider (%Socket, %SocketInteractable) offers `[HOLD E] PULL FUSE` while the
+## fuse is in and the belt can take it. 08 §5: pulling it after the throw trips the breaker
+## (the lever springs back up, `power_cut`: the run unpowers the floor and seals the exit);
+## inserting it again re-runs the throw (lever, 25 m `mech` noise, the power wave).
 ## Scene contract: %Pivot (lever hinge), %Lamp (indicator), %Body (StaticBody3D on world +
 ## interactable) with %Interactable, %Socket (StaticBody3D, layer set here) with
 ## %SocketInteractable.
 
 signal thrown(pos: Vector3)
+## Variant B: the fuse was pulled after the throw (08 §5). The run cuts the wave's power.
+signal power_cut(pos: Vector3)
 
 const VARIANT_A := &"a"
 const VARIANT_B := &"b"
@@ -32,6 +36,8 @@ const LAMP_ON := 3.0
 
 var is_thrown: bool = false
 var fuse_in: bool = true
+## Variant B: the fuse was pulled after a throw; inserting it re-runs the throw (08 §5).
+var tripped: bool = false
 var _lamp_mat: ShaderMaterial
 var _fuse_model: Node3D
 
@@ -92,6 +98,7 @@ func _on_interacted(player: Node) -> void:
 
 
 ## 09 §2: puts the carried fuse in the socket (Variant B). Returns false without one.
+## After a trip (08 §5) the breaker throws again by itself.
 func insert_fuse(player: Node) -> bool:
 	if fuse_in or is_thrown:
 		return false
@@ -102,37 +109,54 @@ func insert_fuse(player: Node) -> bool:
 	AudioManager.play_3d(&"fuse_insert", global_position + Vector3(0.0, 1.2, -0.3))
 	_refresh_prompt(player)
 	_sync_socket()
+	if tripped:
+		tripped = false
+		throw_breaker()
 	return true
 
 
-## 09 §2: pulls the fuse back out onto the belt (before the lever is thrown). False when it is
-## not in, the lever is thrown, or the belt cannot take it.
+## 09 §2, 08 §5: pulls the fuse back out onto the belt. False when it is not in or the belt
+## cannot take it. After the throw it trips the breaker: the lever springs back up, the lamp
+## goes out and `power_cut` asks the run to unpower the floor and seal the exit.
 func pull_fuse(player: Node) -> bool:
-	if variant != VARIANT_B or not fuse_in or is_thrown:
+	if variant != VARIANT_B or not fuse_in:
 		return false
 	var inv := Inventory.of(player)
 	if inv == null or inv.add(FUSE, 1) <= 0:
 		return false
 	fuse_in = false
 	AudioManager.play_3d(&"fuse_pull", global_position + Vector3(0.0, 1.2, -0.3))
+	if is_thrown:
+		_trip()
 	_refresh_prompt(player)
 	_sync_socket()
 	return true
 
 
+func _trip() -> void:
+	is_thrown = false
+	tripped = true
+	interactable.enabled = true
+	var tw := create_tween().set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	tw.tween_property(pivot, ^"rotation:x", deg_to_rad(LEVER_UP_DEG), Tuning.BREAKER_LEVER_TIME)
+	if _lamp_mat != null:
+		_lamp_mat.set_shader_parameter(&"emission_strength", LAMP_OFF)
+	power_cut.emit(global_position)
+
+
 func _socket_offers(player: Node) -> bool:
 	var inv := Inventory.of(player) if player != null else null
-	return variant == VARIANT_B and fuse_in and not is_thrown and inv != null and inv.can_accept(FUSE)
+	return variant == VARIANT_B and fuse_in and inv != null and inv.can_accept(FUSE)
 
 
 func _on_socket_interacted(player: Node) -> void:
 	pull_fuse(player)
 
 
-## The socket collider answers only a Variant B box whose lever is not thrown; the fuse shows
+## The socket collider answers only a Variant B box (thrown or not, 08 §5); the fuse shows
 ## while it is in.
 func _sync_socket() -> void:
-	var live := variant == VARIANT_B and not is_thrown
+	var live := variant == VARIANT_B
 	socket.collision_layer = PlayerLayers.INTERACTABLE_MASK if live else 0
 	_fuse_model.visible = variant == VARIANT_B and fuse_in
 

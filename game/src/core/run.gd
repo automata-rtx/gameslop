@@ -60,6 +60,8 @@ var _task: int = -1
 var _generated: LevelData
 var _prepared: bool = false
 var _loading: bool = false
+## Fixtures the breaker's power wave lit on this level (08 §5: a pulled fuse unpowers them).
+var _wave_lit: Array[Fixture] = []
 
 
 static func new_seed() -> int:
@@ -72,6 +74,8 @@ func _ready() -> void:
 		GameState.start_run(Tuning.MODE_DESCENT, &"faller", new_seed())
 	var kit := DataRegistry.loadout(GameState.run.loadout)
 	player.reset_for_run(GameState.run.coherence)
+	# 05 §7 Lightbearer: the loadout's crank rate (x1.5) reaches the flashlight (R15 B1).
+	player.flashlight.lightbearer = GameState.run.crank_rate_mult > 1.0
 	player.inventory.reset(kit.start_items if kit != null else {})
 	# No body until the first level stands under it (and no contact, 06 readings).
 	player.state_machine.transition_to(PlayerStateMachine.LANDING)
@@ -165,6 +169,9 @@ func _load_level() -> void:
 	breaker = setup[&"breaker"]
 	if exit != null:
 		exit.entering.connect(_on_exit_entering)
+	_wave_lit.clear()
+	if breaker != null:
+		breaker.power_cut.connect(_on_power_cut)
 	_prepared = true
 	_loading = false
 
@@ -180,6 +187,7 @@ func _free_level(holder: Node3D) -> void:
 	level = null
 	exit = null
 	breaker = null
+	_wave_lit.clear()
 
 
 ## 14 §5: the player at the arrival point, HUD bound, level_entered, the Director.
@@ -254,6 +262,12 @@ func _process(_delta: float) -> void:
 	if landing != null and is_instance_valid(landing):
 		landing.level_walkable = _prepared
 		landing.level_built = _prepared and level != null and level.is_ready()
+
+
+func _physics_process(delta: float) -> void:
+	if phase == PHASE_PLAYING and data != null:
+		RunLevelSetup.substrate_drain(player, data.stratum, GameState.run.depth, delta)
+
 
 
 # --- proper exit and the Landing (05 §4) --------------------------------------------------
@@ -359,9 +373,16 @@ func commit_drop() -> void:
 func _on_breaker_thrown(pos: Vector3) -> void:
 	if level == null or breaker == null or phase != PHASE_PLAYING:
 		return
-	RunLevelSetup.run_power_wave(level, data, exit, pos)
+	RunLevelSetup.run_power_wave(level, data, exit, pos, _wave_lit)
 	# 11 §3 Breaker thrown by player: 0.3 trauma.
 	player.rig.add_trauma(Tuning.FEEDBACK_BREAKER_TRAUMA)
+
+
+## 08 §5 Variant B: the fuse was pulled after the throw; the floor goes dark, the exit seals.
+func _on_power_cut(_pos: Vector3) -> void:
+	if level == null or phase != PHASE_PLAYING:
+		return
+	RunLevelSetup.cut_power(level, exit, _wave_lit)
 
 
 ## 01 §8 the win: the door has opened outward (threshold_open); the run ends with cause
