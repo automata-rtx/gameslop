@@ -7,8 +7,10 @@ extends Node3D
 ## after 6 s and the navigation bake, or 3 s later with walkable geometry at least.
 ## The run owns the player and the level; it feeds `level_walkable` / `level_built` and
 ## awaits `finished` (signals up, calls down).
-## Halls, Garage, Offices use the elevator cabin; the stairwell and white pocket of 05 §4
-## are later strata's (M2).
+## Halls, Garage, Offices use the elevator cabin. M3.2 (review S12): a Landing into the
+## Substrate is its lit white pocket, the same shell drawn with the Substrate's materials
+## (lines on black at u_floor 0.55) and lit by one studio light instead of the cabin's lights
+## (`apply_theme`). The stairwell landing for Pools and Server is still the cabin.
 
 signal choice_made(kind: StringName)
 signal door_opened
@@ -45,6 +47,15 @@ const PANEL_SHADER := "res://shaders/landing_panel.gdshader"
 const METAL := "res://data/materials/halls/prop_metal.tres"
 const BLACK := "res://data/materials/halls/prop_black.tres"
 const EMISSIVE := "res://data/materials/halls/fixture_emissive.tres"
+## 02 §7 Substrate pocket (M3.2): the shell's surface and the studio light's rig.
+const SUBSTRATE_SURFACE := "res://data/materials/substrate/surface.tres"
+const STUDIO_HOUSING := "res://data/materials/substrate/studio_housing.tres"
+const STUDIO_EMISSIVE := "res://data/materials/substrate/studio_emissive.tres"
+## The studio light stands in the back corner opposite the panel, its head aimed at the
+## door wall (the panel and the door take its light; it is behind the player at the start).
+const STUDIO_STAND := Vector3(-0.68, 0.0, 0.68)
+const STUDIO_HEAD_Y := 2.05
+const STUDIO_AIM := Vector3(0.3, 1.3, -1.0)
 
 ## Seconds the cabin holds (Tuning.LANDING_TIME; tests shorten it).
 var landing_time: float = Tuning.LANDING_TIME
@@ -62,6 +73,13 @@ var _panel_quad: MeshInstance3D
 var _rippled: bool = false
 var _hum: AudioLoop
 var _player: Node3D
+## The stratum the cabin is drawn for (`apply_theme`); empty until begin() or a bench sets it.
+var theme: StringName = &""
+## The cabin's own lights and lit meshes (the ceiling panel, the door lamp), which a themed
+## Landing replaces.
+var _cabin_lights: Array[Light3D] = []
+var _cabin_lamps: Array[MeshInstance3D] = []
+var studio_light: OmniLight3D
 
 
 func _init() -> void:
@@ -84,14 +102,97 @@ static func door_may_open(t: float, hold: float, built: bool, walkable: bool) ->
 ## Starts the Landing with `player` standing in the cabin (the run re-parents it here).
 func begin(player: Node3D, choices: Array[StringName], hint: bool) -> void:
 	_player = player
+	if theme == &"":
+		apply_theme(next_stratum())
 	panel.setup(choices, Tuning.COHERENCE_GAIN_PROPER_EXIT, hint)
 	elapsed = 0.0
 	running = true
 	set_process(true)
-	_hum = AudioManager.loop(&"fixture_hum_halls")
+	# The cabin's fixture hum; the Substrate's studio lights are silent (03, M2.3).
+	if theme != Tuning.STRATUM_SUBSTRATE:
+		_hum = AudioManager.loop(&"fixture_hum_halls")
 	if _hum != null:
 		_hum.start(0.3)
 	AudioManager.play_2d(&"exit_latch")
+
+
+## The stratum the door opens onto: the run's current depth (the run descends before it
+## opens the Landing). Empty outside a run.
+static func next_stratum() -> StringName:
+	if GameState.run == null:
+		return &""
+	return GameState.stratum_for(GameState.run.depth)
+
+
+## 05 §4 stratum-themed Landing. The Substrate (02 §7): every shell surface takes the
+## Substrate surface (lines on black, u_floor 0.55), the cabin's lights and lamps go out, and
+## one studio light (white, 0.6, 15 m, no shadows) stands in the pocket. The item panel is
+## unchanged. Other strata keep the elevator cabin.
+func apply_theme(stratum: StringName) -> void:
+	theme = stratum
+	if stratum != Tuning.STRATUM_SUBSTRATE:
+		return
+	var surface := load(SUBSTRATE_SURFACE) as Material
+	for c in geometry.get_children():
+		var mi := c as MeshInstance3D
+		if mi == null or mi == _panel_quad:
+			continue
+		if _cabin_lamps.has(mi):
+			mi.visible = false
+		else:
+			mi.material_override = surface
+	for l in _cabin_lights:
+		l.visible = false
+	_build_studio_light()
+
+
+## The pocket's studio light (the level's rig, 02 §7): a stand, a tilted head with a white
+## emissive face, and its unshadowed white omni at the head.
+func _build_studio_light() -> void:
+	var rig := Node3D.new()
+	rig.name = "StudioLight"
+	rig.position = STUDIO_STAND + Vector3(0.0, STUDIO_HEAD_Y, 0.0)
+	geometry.add_child(rig)
+	var aim := STUDIO_AIM - rig.position
+	rig.basis = Basis(Vector3.UP, atan2(-aim.x, -aim.z))
+	var housing := load(STUDIO_HOUSING) as Material
+	var head := Node3D.new()
+	head.rotation = Vector3(-atan2(rig.position.y - STUDIO_AIM.y, Vector2(aim.x, aim.z).length()), 0.0, 0.0)
+	rig.add_child(head)
+	_part(head, _box_mesh(Vector3(0.62, 0.46, 0.22)), Vector3.ZERO, housing)
+	_part(head, _box_mesh(Vector3(0.56, 0.4, 0.012)), Vector3(0.0, 0.0, -0.112), load(STUDIO_EMISSIVE) as Material)
+	_part(rig, _box_mesh(Vector3(0.7, 0.03, 0.03)), Vector3(0.0, -0.26, 0.0), housing)
+	var pole := CylinderMesh.new()
+	pole.top_radius = 0.018
+	pole.bottom_radius = 0.022
+	pole.height = STUDIO_HEAD_Y - 0.26
+	pole.radial_segments = 8
+	pole.rings = 1
+	_part(rig, pole, Vector3(0.0, -0.26 - pole.height * 0.5, 0.0), housing)
+	studio_light = OmniLight3D.new()
+	studio_light.name = "StudioOmni"
+	studio_light.light_color = Color.WHITE
+	studio_light.light_energy = Tuning.SUBSTRATE_STUDIO_LIGHT_ENERGY
+	studio_light.omni_range = Tuning.SUBSTRATE_STUDIO_LIGHT_RANGE
+	studio_light.shadow_enabled = false
+	studio_light.position = Vector3(0.0, 0.0, -0.3)
+	rig.add_child(studio_light)
+
+
+static func _box_mesh(sz: Vector3) -> BoxMesh:
+	var bm := BoxMesh.new()
+	bm.size = sz
+	return bm
+
+
+static func _part(parent: Node3D, mesh: Mesh, pos: Vector3, mat: Material) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.position = pos
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	return mi
 
 
 ## Where the player stands, facing the door and the panel.
@@ -225,13 +326,13 @@ func _build_cabin() -> void:
 	if lamp != null:
 		lamp.set_shader_parameter(&"emission", Color(Tuning.LANDING_KEY_COLOR))
 		lamp.set_shader_parameter(&"emission_strength", DOOR_LAMP_EMISSION)
-	_box(Vector3(0.36, 0.05, 0.03), Vector3(DOOR_X, DOOR_HEIGHT + JAMB + 0.1, -hd + 0.015), lamp, false)
+	_cabin_lamps.append(_box(Vector3(0.36, 0.05, 0.03), Vector3(DOOR_X, DOOR_HEIGHT + JAMB + 0.1, -hd + 0.015), lamp, false))
 	# Handrail and the ceiling light panel.
 	_box(Vector3(0.04, 0.04, CABIN_SIZE.z * 0.8), Vector3(hw - 0.06, 0.95, 0), black, false)
 	var lit := (load(EMISSIVE) as Material).duplicate() as ShaderMaterial
 	if lit != null:
 		lit.set_shader_parameter(&"emission_strength", CEILING_EMISSION)
-	_box(Vector3(1.2, 0.03, 1.2), Vector3(0, h - 0.015, 0), lit, false)
+	_cabin_lamps.append(_box(Vector3(1.2, 0.03, 1.2), Vector3(0, h - 0.015, 0), lit, false))
 	var light := OmniLight3D.new()
 	light.name = "CabinLight"
 	light.position = Vector3(0, h - 0.3, 0)
@@ -239,6 +340,7 @@ func _build_cabin() -> void:
 	light.light_energy = LIGHT_ENERGY
 	light.light_color = Color(1.0, 0.94, 0.78)
 	geometry.add_child(light)
+	_cabin_lights.append(light)
 	# The warm key: from the ceiling behind the player, down onto the door wall and panel.
 	var key := SpotLight3D.new()
 	key.name = "CabinKey"
@@ -251,6 +353,7 @@ func _build_cabin() -> void:
 	key.light_energy = Tuning.LANDING_KEY_ENERGY
 	key.light_color = Color(Tuning.LANDING_KEY_COLOR)
 	key.shadow_enabled = true
+	_cabin_lights.append(key)
 
 
 ## A world-shader steel of `albedo`: brushed panels when `pattern` is 6 (02 §7 cabin).

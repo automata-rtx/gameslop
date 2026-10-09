@@ -59,7 +59,7 @@ func _ready() -> void:
 	# points along the camera's view axis, not the model's slight inward tilt.
 	beam.basis = held.basis.inverse()
 	beam.spot_range = Tuning.FLASH_RANGE
-	beam.spot_attenuation = Tuning.FLASH_ATTENUATION_ANGLE
+	beam.spot_angle_attenuation = Tuning.FLASH_ATTENUATION_ANGLE
 	beam.shadow_enabled = true
 	_beam_color = beam.light_color
 	hand_light.omni_range = Tuning.FLASH_HAND_LIGHT_RANGE

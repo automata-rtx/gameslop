@@ -205,14 +205,31 @@ static func _longest_run_from(g: LevelGrid, c: Vector2i) -> Vector2i:
 	return best
 
 
-## Vector4i(x, z, dir, cells) of the longest straight run of corridor cells (E or S).
+## Vector4i(x, z, dir, cells) of the longest straight run of corridor cells (E or S). M3.2:
+## the head (where corridor_long stands) is not beside a parked car when any head is not, as
+## for the Garage deck pose (M2.13a: a car body a metre off fills the frame's corner with its
+## unlit flank; the pose is about the corridor's floor and air).
 static func _longest_corridor(g: LevelGrid) -> Vector4i:
+	var clear := _longest_corridor_from(g, true)
+	return clear if clear.w > 0 else _longest_corridor_from(g, false)
+
+
+## True when a prop fills a cell in the 3 x 3 around c.
+static func beside_prop(g: LevelGrid, c: Vector2i) -> bool:
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			if prop_cell(g, c + Vector2i(dx, dz)):
+				return true
+	return false
+
+
+static func _longest_corridor_from(g: LevelGrid, clear_head: bool) -> Vector4i:
 	var best := Vector4i(0, 0, LevelGrid.E, 0)
 	for i in g.cell_count():
 		var c := g.cell_at(i)
 		if g.kind(c) != LevelGrid.FLOOR:
 			continue
-		if prop_cell(g, c):
+		if prop_cell(g, c) or (clear_head and beside_prop(g, c)):
 			continue
 		for d: int in [LevelGrid.E, LevelGrid.S]:
 			# Only start at the head of a run.

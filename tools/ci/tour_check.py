@@ -11,18 +11,30 @@ T1  Readability of the floor. At Coherence 100, flashlight off, every floor read
     tour took (2..12 m ahead, 2..6 m in Server and Substrate) is above 8% luminance. In the
     dark strata (manifest `flashlight`: Server, Substrate) the frames are taken with the
     flashlight on and T3's dark threshold does not apply (02 section 2 ruling, 2026-10-08).
-Extra entries (manifest `extra`: the Cycle 2 sample) take T1 and T3 only; their T1 is
-    reported as INFO (02 section 7 darkens a quarter of Cycle 2 fixtures on purpose).
-Monochrome strata (manifest `monochrome`: the Substrate, lines on black) report T4 as
-    MANUAL: CA paints colour onto white lines as Coherence falls and sparse lines swing the
-    vignette ratio, so the three measures do not order its frames; check them by eye.
+Extra entries (manifest `extra`: the Cycle 2 sample) take T1 and T3 only. Cycle 2 frames
+    are taken with the flashlight on (manifest `flashlight`; CHANGELOG 2026-10-08 Cycle 2 T1
+    ruling: a quarter of its fixtures are dead on purpose) and their T1 binds; an extra entry
+    shot without the flashlight reports T1 as INFO.
+Monochrome strata (manifest `monochrome`: the Substrate, lines on black) order T4 by two
+    measures built for lines on black (M3.2; saturation, whole-frame grain and the mean
+    vignette do not order them: CA paints colour onto white lines, the lines' own edges
+    swamp the grain residual, and black corners hold no vignette): the film grain in the
+    flat black away from every line (rises at every step) and the share of line pixels in
+    the border against the centre that stay bright (falls as the vignette and CA eat the
+    border lines: it never moves back by more than its tolerance and falls by
+    MONO_LINES_TOTAL from Coherence 100 to 10; at 60 the vignette has barely begun).
 T3  No flat black, no flat white. At Coherence 100 the darkest 1% of a frame is above 2%
     luminance (fog in the shadow) and bright clipped pixels stay under 2% of the frame
     (the brightest fixture blooms but is not a white slab).
 T4  Coherence is visible without the HUD. For each pose the four frames (100, 60, 30, 10)
     must be orderable by measurement: between consecutive frames at least two of saturation
     (falls), grain (rises) and vignette (corner-to-centre brightness falls) move the right
-    way, and none moves the wrong way by more than its tolerance.
+    way, and none moves the wrong way by more than its tolerance. In a dark frame (the
+    Coherence 100 border under T4_DARK_BORDER luma: the Garage, the Server) the post's
+    luminance grain, clamped at black, lifts the corners as its amount rises (its mean
+    under the clamp grows wherever the image is darker than the grain amplitude), against
+    the vignette: there a vignette that moves back is not held against the frame (it still
+    counts when it moves the right way), so two of the three must still move (M3.2).
 Soft wall (02 section 5). The band on the soft wall changes the wall between soft_wall_c100
     and soft_wall_c100_t1 (1 s of world time apart, grain held) by SOFT_MIN_DELTA..SOFT_MAX_DELTA
     luma, at least SOFT_CONTROL_RATIO times the change elsewhere in the frame.
@@ -44,6 +56,7 @@ T4_SAT_STEP = 0.01
 T4_NOISE_STEP = 0.0005
 T4_VIG_STEP = 0.01
 T4_WRONG_WAY = 0.5   # fraction of the step above which a reversed feature counts as wrong
+T4_DARK_BORDER = 0.18  # 02 section 4: the grain amplitude at full drain; below it the clamp biases the corners
 # 02 section 5 soft walls: the band's temporal contrast between two frames 1 s apart (half a
 # 0.5 Hz period), as mean |delta luma| of 8 px block means on the wall. Below the minimum the
 # shimmer is not there to read; above the maximum it is garish (it must stay "faint").
@@ -51,6 +64,13 @@ SOFT_BLOCK_PX = 8
 SOFT_MIN_DELTA = 0.008
 SOFT_MAX_DELTA = 0.05
 SOFT_CONTROL_RATIO = 3
+# Monochrome T4 (the Substrate): a line pixel is brighter than MONO_LINE_LUMA; flat black is
+# farther than MONO_LINE_CLEAR px from any line pixel; per-step minimum movements.
+MONO_LINE_LUMA = 0.25
+MONO_LINE_CLEAR = 3
+MONO_GRAIN_STEP = 0.002
+MONO_LINES_STEP = 0.01
+MONO_LINES_TOTAL = 0.03
 
 
 # ---------------------------------------------------------------- PNG reading
@@ -208,14 +228,22 @@ def check_t3(entry, img):
     return dark, p01, white, frac
 
 
+def border_luma(img):
+    y = luma(img)
+    h, w = y.shape
+    bh, bw = max(h // 10, 1), max(w // 10, 1)
+    return float(np.concatenate([y[:bh].ravel(), y[-bh:].ravel(), y[:, :bw].ravel(), y[:, -bw:].ravel()]).mean())
+
+
 def features(img):
-    return {"sat": saturation(img), "grain": grain(img), "vig": vignette(img)}
+    return {"sat": saturation(img), "grain": grain(img), "vig": vignette(img), "border": border_luma(img)}
 
 
 def check_t4(feats):
     """feats: list of feature dicts at Coherence 100, 60, 30, 10. Returns (status, detail)."""
     worst = "PASS"
     notes = []
+    dark = feats[0].get("border", 1.0) < T4_DARK_BORDER
     for i in range(len(feats) - 1):
         a, b = feats[i], feats[i + 1]
         moves = {
@@ -224,11 +252,67 @@ def check_t4(feats):
             "vig": (a["vig"] - b["vig"], T4_VIG_STEP),
         }
         good = [k for k, (d, step) in moves.items() if d >= step]
-        wrong = [k for k, (d, step) in moves.items() if d <= -step * T4_WRONG_WAY]
+        wrong = [k for k, (d, step) in moves.items() if d <= -step * T4_WRONG_WAY and not (dark and k == "vig")]
         if len(good) < 2 or wrong:
             worst = "FAIL"
             notes.append("step %d: good=%s wrong=%s" % (i + 1, ",".join(good) or "-", ",".join(wrong) or "-"))
-    return worst, "; ".join(notes) if notes else "sat/grain/vig ordered"
+    if notes:
+        return worst, "; ".join(notes)
+    return worst, "ordered (dark frame: a vignette moving back is not held against it)" if dark else "sat/grain/vig ordered"
+
+
+def _dilate(mask, r):
+    out = mask.copy()
+    h, w = mask.shape
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            shifted = np.zeros_like(mask)
+            shifted[max(-dy, 0):h + min(-dy, 0), max(-dx, 0):w + min(-dx, 0)] = \
+                mask[max(dy, 0):h + min(dy, 0), max(dx, 0):w + min(dx, 0)]
+            out |= shifted
+    return out
+
+
+def mono_features(img):
+    """Lines on black: grain = std of the 3x3 residual over flat black (away from lines);
+    lines = border line pixels over centre line pixels (the border is the outer 10%, the centre
+    the middle half, as for `vignette`): the vignette and CA dim the border lines first."""
+    y = luma(img)
+    bright = y > MONO_LINE_LUMA
+    flat = ~_dilate(bright, MONO_LINE_CLEAR)
+    pad = np.pad(y, 1, mode="edge")
+    blur = sum(pad[dy:dy + y.shape[0], dx:dx + y.shape[1]] for dy in range(3) for dx in range(3)) / 9.0
+    res = (y - blur)[flat]
+    h, w = y.shape
+    bh, bw = max(h // 10, 1), max(w // 10, 1)
+    border = np.zeros_like(bright)
+    border[:bh] = True
+    border[-bh:] = True
+    border[:, :bw] = True
+    border[:, -bw:] = True
+    centre = np.zeros_like(bright)
+    centre[h // 4:3 * h // 4, w // 4:3 * w // 4] = True
+    n_centre = int((bright & centre).sum())
+    return {"grain": float(res.std()) if res.size else 0.0,
+            "lines": float((bright & border).sum()) / max(n_centre, 1)}
+
+
+def check_t4_mono(feats):
+    """feats: mono_features at Coherence 100, 60, 30, 10: grain rises at every step; the border
+    lines never move back by more than half a step and fall by MONO_LINES_TOTAL overall."""
+    notes = []
+    for i in range(len(feats) - 1):
+        a, b = feats[i], feats[i + 1]
+        bad = []
+        if b["grain"] - a["grain"] < MONO_GRAIN_STEP:
+            bad.append("grain")
+        if b["lines"] - a["lines"] > MONO_LINES_STEP * T4_WRONG_WAY:
+            bad.append("lines back")
+        if bad:
+            notes.append("step %d: %s" % (i + 1, ",".join(bad)))
+    if feats[0]["lines"] - feats[-1]["lines"] < MONO_LINES_TOTAL:
+        notes.append("border lines fall %.3f (< %.2f)" % (feats[0]["lines"] - feats[-1]["lines"], MONO_LINES_TOTAL))
+    return ("FAIL" if notes else "PASS"), ("; ".join(notes) if notes else "flat grain/border lines ordered")
 
 
 def block_luma(img, block=SOFT_BLOCK_PX):
@@ -275,7 +359,7 @@ def run(tour_dir):
     for stratum, sdata in manifest["strata"].items():
         entries = sdata["shots"]
         status, detail = check_t1(entries, sdata["t1_limit_m"])
-        if sdata.get("extra") and status == "FAIL":
+        if sdata.get("extra") and not sdata.get("flashlight") and status == "FAIL":
             status = "INFO"
         rows.append((stratum, "T1 floor", status, detail))
         failed |= status == "FAIL"
@@ -283,7 +367,9 @@ def run(tour_dir):
         for name, e in entries.items():
             if e.get("kind") == "pose" and e["coherence"] == 100:
                 imgs[name] = decode_png(os.path.join(tour_dir, e["file"]))
-        lit_by_player = bool(sdata.get("flashlight", False))
+        # The dark strata waive T3's dark threshold (the player brings the light); Cycle 2 keeps
+        # it (its live fixtures and fog still light the shadows).
+        lit_by_player = bool(sdata.get("flashlight", False)) and not sdata.get("extra")
         for name, e in sorted(entries.items()):
             if name not in imgs:
                 continue
@@ -295,18 +381,22 @@ def run(tour_dir):
             failed |= dark == "FAIL" or white == "FAIL"
         poses = sorted({e["pose"] for e in entries.values() if e.get("kind") == "pose" and e["coherence"] != 100})
         for pose in poses:
+            mono = bool(sdata.get("monochrome"))
             feats = []
             for c in steps:
                 key = "%s_c%03d" % (pose, int(c))
                 if key not in entries:
                     break
-                feats.append(features(decode_png(os.path.join(tour_dir, entries[key]["file"]))))
+                img = decode_png(os.path.join(tour_dir, entries[key]["file"]))
+                feats.append(mono_features(img) if mono else features(img))
             if len(feats) == len(steps):
-                status, detail = check_t4(feats)
-                if sdata.get("monochrome") and status == "FAIL":
-                    status = "MANUAL"
-                shown = " ".join("%.2f/%.4f/%.2f" % (f["sat"], f["grain"], f["vig"]) for f in feats)
-                rows.append((stratum, "T4 order " + pose, status, "%s  [sat/grain/vig %s]" % (detail, shown)))
+                if mono:
+                    status, detail = check_t4_mono(feats)
+                    shown = "[grain/lines " + " ".join("%.4f/%.3f" % (f["grain"], f["lines"]) for f in feats) + "]"
+                else:
+                    status, detail = check_t4(feats)
+                    shown = "[sat/grain/vig " + " ".join("%.2f/%.4f/%.2f" % (f["sat"], f["grain"], f["vig"]) for f in feats) + "]"
+                rows.append((stratum, "T4 order " + pose, status, "%s  %s" % (detail, shown)))
                 failed |= status == "FAIL"
         if sdata.get("extra"):
             continue
@@ -379,6 +469,29 @@ def selftest():
               {"sat": 0.5, "grain": 0.008, "vig": 0.6}, {"sat": 0.1, "grain": 0.012, "vig": 0.4}]
     flat = [dict(ladder[0]) for _ in range(4)]
     ok &= check_t4(ladder)[0] == "PASS" and check_t4(flat)[0] == "FAIL"
+    # A dark frame: a reversed vig is not held against it when sat and grain move,
+    # a frame that only desaturates fails, and a lit frame with a reversed vignette still fails.
+    dark = [dict(f, vig=0.4 + 0.02 * i, border=0.03) for i, f in enumerate(ladder)]
+    ok &= check_t4(dark)[0] == "PASS"
+    ok &= check_t4([dict(f, grain=0.002, vig=0.5, border=0.03) for f in ladder])[0] == "FAIL"
+    ok &= check_t4([dict(f, vig=0.4 + 0.02 * i) for i, f in enumerate(ladder)])[0] == "FAIL"
+    # Monochrome T4: lines on black with grain rising and border lines dimming passes; the
+    # same frame four times fails.
+    def lines_frame(grain_amp, k):
+        img = np.zeros((90, 160, 3), dtype=np.float32)
+        img[::5, :, :] = 0.9
+        img[:, ::8, :] = 0.9
+        if k:
+            kx = k * 16 // 9
+            img[:k] = 0.0
+            img[-k:] = 0.0
+            img[:, :kx] = 0.0
+            img[:, -kx:] = 0.0
+        noise = rng.random((90, 160)).astype(np.float32) * grain_amp
+        return np.clip(img + noise[:, :, None], 0.0, 1.0)
+    mono_ladder = [mono_features(lines_frame(g, k)) for g, k in ((0.01, 0), (0.05, 3), (0.1, 5), (0.15, 7))]
+    mono_flat = [mono_features(lines_frame(0.05, 0)) for _ in range(4)]
+    ok &= check_t4_mono(mono_ladder)[0] == "PASS" and check_t4_mono(mono_flat)[0] == "FAIL"
     # Soft wall shimmer: a 2% swing inside the rect passes, none fails, a 20% swing is garish.
     base = np.full((64, 96, 3), 0.4, dtype=np.float32)
     rect = [32, 16, 64, 48]
