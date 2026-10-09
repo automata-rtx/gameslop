@@ -75,6 +75,11 @@ func _landing_only() -> void:
 		cam.look_at_from_position(Vector3(0.4, 1.6, -0.6), Vector3(-0.6, 1.4, 0.8))
 		await _wait(1.0)
 		await _shot("landing_back" + suffix)
+	if LandingStairwell.is_stairwell(stratum):
+		# The half-flight: from beside the player's spot, down the steps to the back wall.
+		cam.look_at_from_position(Vector3(-0.3, 1.7, 0.0), Vector3(0.7, 0.1, 0.8))
+		await _wait(1.0)
+		await _shot("landing_stairs" + suffix)
 	get_tree().quit(0)
 
 

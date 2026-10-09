@@ -379,6 +379,11 @@ func _build_statistics() -> void:
 	body.add_child(MenuPage.leader_row(Strings.STAT_COHERENCE_SPENT, fmt.call(s.get("coherence_spent", 0))))
 	body.add_child(MenuPage.leader_row(Strings.STAT_NOTES_FOUND, fmt.call(GameState.meta.notes_found.size())))
 	body.add_child(MenuPage.leader_row(Strings.STAT_POLAROIDS_SEEN, fmt.call(GameState.meta.polaroids_seen.size())))
+	# 13 §5 / 09 §4: the photographs seen, as thumbnails (R22).
+	var thumbs := PolaroidThumbs.new()
+	thumbs.name = "PolaroidThumbs"
+	thumbs.setup(GameState.meta.polaroids_seen)
+	body.add_child(thumbs)
 
 
 func _build_unlocks(page: int) -> void:
