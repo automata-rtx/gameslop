@@ -22,7 +22,8 @@
     0.165021,
     0.171813,
     0.187583
-   ]
+   ],
+   "peak_db": -1.03
   },
   "foot_tile": {
    "group": "player",
@@ -42,7 +43,8 @@
     0.145229,
     0.137333,
     0.1315
-   ]
+   ],
+   "peak_db": -1.03
   },
   "foot_water": {
    "group": "player",
@@ -62,7 +64,8 @@
     0.234,
     0.247167,
     0.231021
-   ]
+   ],
+   "peak_db": -1.03
   },
   "foot_concrete": {
    "group": "player",
@@ -82,7 +85,8 @@
     0.136833,
     0.150729,
     0.130312
-   ]
+   ],
+   "peak_db": -2.56
   },
   "foot_raised_floor": {
    "group": "player",
@@ -102,7 +106,8 @@
     0.182292,
     0.186938,
     0.164125
-   ]
+   ],
+   "peak_db": -1.03
   },
   "foot_substrate": {
    "group": "player",
@@ -122,7 +127,8 @@
     0.099542,
     0.104521,
     0.106146
-   ]
+   ],
+   "peak_db": -3.98
   },
   "sprint_breath_loop": {
    "group": "player",
@@ -135,6 +141,7 @@
    "length_s": [
     4.444417
    ],
+   "peak_db": -12.24,
    "loop_frames": [
     213331
    ]
@@ -153,7 +160,8 @@
     0.4275,
     0.441396,
     0.442833
-   ]
+   ],
+   "peak_db": -4.41
   },
   "crouch": {
    "group": "player",
@@ -171,7 +179,8 @@
     0.153167,
     0.155188,
     0.163958
-   ]
+   ],
+   "peak_db": -4.32
   },
   "flashlight_toggle": {
    "group": "player",
@@ -189,7 +198,8 @@
     0.052,
     0.052,
     0.052
-   ]
+   ],
+   "peak_db": -5.0
   },
   "crank_loop": {
    "group": "player",
@@ -202,6 +212,7 @@
    "length_s": [
     1.000021
    ],
+   "peak_db": -1.03,
    "loop_frames": [
     48000
    ]
@@ -217,6 +228,7 @@
    "length_s": [
     1.000021
    ],
+   "peak_db": -20.61,
    "loop_frames": [
     48000
    ],
@@ -240,7 +252,8 @@
     0.162,
     0.162,
     0.162
-   ]
+   ],
+   "peak_db": -6.0
   },
   "noclip_charge": {
    "group": "player",
@@ -253,6 +266,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -10.7,
    "loop_frames": [
     96000
    ],
@@ -277,6 +291,7 @@
     0.452,
     0.452
    ],
+   "peak_db": -1.03,
    "runtime": {
     "caption": "CAPTION_NOCLIP_COMMIT"
    }
@@ -295,7 +310,8 @@
     1.25,
     1.25,
     1.25
-   ]
+   ],
+   "peak_db": -13.9
   },
   "noclip_fail": {
    "group": "player",
@@ -311,7 +327,8 @@
     0.16,
     0.16,
     0.16
-   ]
+   ],
+   "peak_db": -9.65
   },
   "noclip_cancel": {
    "group": "player",
@@ -327,7 +344,8 @@
     0.12,
     0.12,
     0.12
-   ]
+   ],
+   "peak_db": -7.26
   },
   "drop_arrival": {
    "group": "player",
@@ -343,7 +361,8 @@
     1.0,
     1.0,
     1.0
-   ]
+   ],
+   "peak_db": -6.68
   },
   "coherence_loss_tick": {
    "group": "player",
@@ -359,7 +378,8 @@
     0.014,
     0.014,
     0.014
-   ]
+   ],
+   "peak_db": -12.0
   },
   "coherence_gain": {
    "group": "player",
@@ -375,7 +395,8 @@
     0.75,
     0.75,
     0.75
-   ]
+   ],
+   "peak_db": -6.83
   },
   "heartbeat": {
    "group": "player",
@@ -391,7 +412,8 @@
     0.32,
     0.32,
     0.32
-   ]
+   ],
+   "peak_db": -1.84
   },
   "error_contact_hit": {
    "group": "player",
@@ -408,6 +430,7 @@
     1.152,
     1.152
    ],
+   "peak_db": -1.03,
    "runtime": {
     "caption": "CAPTION_CONTACT"
    }
@@ -426,7 +449,8 @@
     1.5,
     1.5,
     1.5
-   ]
+   ],
+   "peak_db": -2.25
   },
   "ui_move": {
    "group": "ui",
@@ -444,7 +468,8 @@
     0.01,
     0.01,
     0.01
-   ]
+   ],
+   "peak_db": -14.0
   },
   "ui_confirm": {
    "group": "ui",
@@ -460,7 +485,8 @@
     0.062,
     0.062,
     0.062
-   ]
+   ],
+   "peak_db": -8.02
   },
   "ui_back": {
    "group": "ui",
@@ -476,7 +502,8 @@
     0.062,
     0.062,
     0.062
-   ]
+   ],
+   "peak_db": -9.25
   },
   "ui_slider_step": {
    "group": "ui",
@@ -493,6 +520,7 @@
     0.022,
     0.022
    ],
+   "peak_db": -14.0,
    "runtime": {
     "pitch_min": 0.75,
     "pitch_max": 1.5,
@@ -513,7 +541,8 @@
     0.13,
     0.13,
     0.13
-   ]
+   ],
+   "peak_db": -3.44
   },
   "ui_title_boot": {
    "group": "ui",
@@ -529,7 +558,8 @@
     2.0,
     2.0,
     2.0
-   ]
+   ],
+   "peak_db": -12.96
   },
   "ui_unlock": {
    "group": "ui",
@@ -545,7 +575,8 @@
     0.3,
     0.3,
     0.3
-   ]
+   ],
+   "peak_db": -12.86
   },
   "ui_summary_stamp": {
    "group": "ui",
@@ -561,7 +592,8 @@
     0.302,
     0.302,
     0.302
-   ]
+   ],
+   "peak_db": -1.03
   },
   "ui_shutter": {
    "group": "ui",
@@ -577,7 +609,8 @@
     0.07,
     0.07,
     0.07
-   ]
+   ],
+   "peak_db": -20.0
   },
   "ui_type": {
    "group": "ui",
@@ -595,7 +628,8 @@
     0.01,
     0.01,
     0.01
-   ]
+   ],
+   "peak_db": -26.0
   },
   "ui_hold_tick": {
    "group": "ui",
@@ -611,7 +645,8 @@
     0.022,
     0.022,
     0.022
-   ]
+   ],
+   "peak_db": -16.0
   },
   "noclip_pass_wall": {
    "group": "player",
@@ -627,7 +662,8 @@
     0.3,
     0.3,
     0.3
-   ]
+   ],
+   "peak_db": -4.08
   },
   "noclip_pass_soft": {
    "group": "player",
@@ -643,7 +679,8 @@
     0.3,
     0.3,
     0.3
-   ]
+   ],
+   "peak_db": -9.52
   },
   "room_tone_halls": {
    "group": "ambience",
@@ -656,6 +693,7 @@
    "length_s": [
     8.000021
    ],
+   "peak_db": -19.27,
    "loop_frames": [
     384000
    ],
@@ -674,6 +712,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -21.79,
    "loop_frames": [
     96000
    ]
@@ -689,6 +728,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -15.94,
    "loop_frames": [
     96000
    ]
@@ -704,6 +744,7 @@
    "length_s": [
     8.000021
    ],
+   "peak_db": -20.39,
    "loop_frames": [
     384000
    ],
@@ -722,6 +763,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -21.7,
    "loop_frames": [
     96000
    ]
@@ -737,6 +779,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -15.65,
    "loop_frames": [
     96000
    ]
@@ -752,6 +795,7 @@
    "length_s": [
     6.000021
    ],
+   "peak_db": -17.54,
    "loop_frames": [
     288000
    ],
@@ -776,6 +820,7 @@
     0.322,
     0.322
    ],
+   "peak_db": -12.0,
    "runtime": {
     "max_distance": 18.0
    }
@@ -791,6 +836,7 @@
    "length_s": [
     8.000021
    ],
+   "peak_db": -18.85,
    "loop_frames": [
     384000
    ],
@@ -809,6 +855,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -20.23,
    "loop_frames": [
     96000
    ]
@@ -824,6 +871,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -14.2,
    "loop_frames": [
     96000
    ]
@@ -839,6 +887,7 @@
    "length_s": [
     8.000021
    ],
+   "peak_db": -20.07,
    "loop_frames": [
     384000
    ],
@@ -857,6 +906,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -19.62,
    "loop_frames": [
     96000
    ]
@@ -872,6 +922,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -16.54,
    "loop_frames": [
     96000
    ]
@@ -887,6 +938,7 @@
    "length_s": [
     8.000021
    ],
+   "peak_db": -18.47,
    "loop_frames": [
     384000
    ],
@@ -905,6 +957,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -23.96,
    "loop_frames": [
     96000
    ]
@@ -920,6 +973,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -23.14,
    "loop_frames": [
     96000
    ]
@@ -935,6 +989,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -11.42,
    "loop_frames": [
     96000
    ],
@@ -957,6 +1012,7 @@
     0.422,
     0.422
    ],
+   "peak_db": -11.52,
    "runtime": {
     "pitch_hash": 0.05,
     "caption": "CAPTION_POWER_WAVE"
@@ -976,7 +1032,8 @@
     0.438625,
     0.397313,
     0.432021
-   ]
+   ],
+   "peak_db": -3.98
   },
   "door_close": {
    "group": "world",
@@ -992,7 +1049,8 @@
     0.419646,
     0.452854,
     0.441
-   ]
+   ],
+   "peak_db": -8.0
   },
   "door_slam": {
    "group": "world",
@@ -1009,6 +1067,7 @@
     0.902,
     0.902
    ],
+   "peak_db": -1.5,
    "runtime": {
     "caption": "CAPTION_DOOR_SLAM"
    }
@@ -1028,6 +1087,7 @@
     0.502,
     0.502
    ],
+   "peak_db": -2.0,
    "runtime": {
     "caption": "CAPTION_BREAKER"
    }
@@ -1046,7 +1106,8 @@
     1.902,
     1.902,
     1.902
-   ]
+   ],
+   "peak_db": -2.72
   },
   "exit_open_door": {
    "group": "world",
@@ -1062,7 +1123,8 @@
     1.802,
     1.802,
     1.802
-   ]
+   ],
+   "peak_db": -4.0
   },
   "exit_open_drain": {
    "group": "world",
@@ -1078,7 +1140,8 @@
     1.802,
     1.802,
     1.802
-   ]
+   ],
+   "peak_db": -4.24
   },
   "exit_open_hatch": {
    "group": "world",
@@ -1094,7 +1157,8 @@
     1.702,
     1.702,
     1.702
-   ]
+   ],
+   "peak_db": -1.37
   },
   "exit_latch": {
    "group": "world",
@@ -1110,7 +1174,8 @@
     0.302,
     0.302,
     0.302
-   ]
+   ],
+   "peak_db": -6.0
   },
   "exit_tone": {
    "group": "world",
@@ -1127,6 +1192,7 @@
     3.0,
     3.0
    ],
+   "peak_db": -11.59,
    "runtime": {
     "max_distance": 60.0,
     "through_walls": true
@@ -1143,6 +1209,7 @@
    "length_s": [
     4.000021
    ],
+   "peak_db": -11.73,
    "loop_frames": [
     192000
    ],
@@ -1163,6 +1230,7 @@
    "length_s": [
     3.000021
    ],
+   "peak_db": -12.47,
    "loop_frames": [
     144000
    ],
@@ -1186,6 +1254,7 @@
     0.016,
     0.016
    ],
+   "peak_db": -14.0,
    "runtime": {
     "caption": "CAPTION_STILL_TICK"
    }
@@ -1204,7 +1273,8 @@
     2.0,
     2.0,
     2.0
-   ]
+   ],
+   "peak_db": -9.08
   },
   "echo_breath": {
    "group": "errors",
@@ -1220,7 +1290,8 @@
     1.332958,
     1.415375,
     1.45925
-   ]
+   ],
+   "peak_db": -10.32
   },
   "item_pickup": {
    "group": "player",
@@ -1236,7 +1307,8 @@
     0.142,
     0.142,
     0.142
-   ]
+   ],
+   "peak_db": -9.0
   },
   "note_pickup": {
    "group": "player",
@@ -1252,7 +1324,8 @@
     0.243271,
     0.265792,
     0.262875
-   ]
+   ],
+   "peak_db": -12.0
   },
   "polaroid_charge": {
    "group": "player",
@@ -1268,7 +1341,8 @@
     0.362,
     0.362,
     0.362
-   ]
+   ],
+   "peak_db": -12.0
   },
   "polaroid_shutter": {
    "group": "player",
@@ -1284,7 +1358,8 @@
     0.202,
     0.202,
     0.202
-   ]
+   ],
+   "peak_db": -4.0
   },
   "glowstick_crack": {
    "group": "world",
@@ -1300,7 +1375,8 @@
     0.402,
     0.402,
     0.402
-   ]
+   ],
+   "peak_db": -6.0
   },
   "glowstick_fizz": {
    "group": "world",
@@ -1313,6 +1389,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -33.37,
    "loop_frames": [
     96000
    ],
@@ -1334,7 +1411,8 @@
     0.142,
     0.142,
     0.142
-   ]
+   ],
+   "peak_db": -8.0
   },
   "chalk_mark": {
    "group": "world",
@@ -1350,7 +1428,8 @@
     0.362,
     0.362,
     0.362
-   ]
+   ],
+   "peak_db": -9.0
   },
   "flare_ignite": {
    "group": "world",
@@ -1366,7 +1445,8 @@
     1.102,
     1.102,
     1.102
-   ]
+   ],
+   "peak_db": -6.0
   },
   "flare_burn": {
    "group": "world",
@@ -1379,6 +1459,7 @@
    "length_s": [
     3.000021
    ],
+   "peak_db": -17.78,
    "loop_frames": [
     144000
    ],
@@ -1400,7 +1481,8 @@
     0.202,
     0.202,
     0.202
-   ]
+   ],
+   "peak_db": -7.0
   },
   "radio_static": {
    "group": "world",
@@ -1413,6 +1495,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -15.5,
    "loop_frames": [
     96000
    ],
@@ -1435,6 +1518,7 @@
     0.092,
     0.092
    ],
+   "peak_db": -9.0,
    "runtime": {
     "max_distance": 14.0
    }
@@ -1453,7 +1537,8 @@
     0.752,
     0.752,
     0.752
-   ]
+   ],
+   "peak_db": -7.0
   },
   "fuse_pull": {
    "group": "world",
@@ -1469,7 +1554,8 @@
     0.552,
     0.552,
     0.552
-   ]
+   ],
+   "peak_db": -7.0
   },
   "keycard_accept": {
    "group": "world",
@@ -1485,7 +1571,8 @@
     0.162,
     0.162,
     0.162
-   ]
+   ],
+   "peak_db": -9.0
   },
   "keycard_reject": {
    "group": "world",
@@ -1501,7 +1588,8 @@
     0.402,
     0.402,
     0.402
-   ]
+   ],
+   "peak_db": -9.0
   },
   "vending_hum": {
    "group": "world",
@@ -1514,6 +1602,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -26.24,
    "loop_frames": [
     96000
    ],
@@ -1536,6 +1625,7 @@
     1.402,
     1.402
    ],
+   "peak_db": -6.0,
    "runtime": {
     "max_distance": 14.0
    }
@@ -1555,6 +1645,7 @@
     2.002,
     2.002
    ],
+   "peak_db": -6.0,
    "runtime": {
     "max_distance": 40.0,
     "through_walls": true,
@@ -1576,6 +1667,7 @@
     2.002,
     2.002
    ],
+   "peak_db": -17.1,
    "runtime": {
     "max_distance": 12.0
    }
@@ -1594,7 +1686,8 @@
     0.302,
     0.302,
     0.302
-   ]
+   ],
+   "peak_db": -9.0
   },
   "hide_under_car": {
    "group": "world",
@@ -1610,7 +1703,8 @@
     0.702,
     0.702,
     0.702
-   ]
+   ],
+   "peak_db": -9.0
   },
   "hide_under_desk": {
    "group": "world",
@@ -1626,7 +1720,8 @@
     0.502,
     0.502,
     0.502
-   ]
+   ],
+   "peak_db": -9.0
   },
   "hide_pump_corner": {
    "group": "world",
@@ -1642,7 +1737,8 @@
     0.702,
     0.702,
     0.702
-   ]
+   ],
+   "peak_db": -9.0
   },
   "hide_rack_gap": {
    "group": "world",
@@ -1658,7 +1754,8 @@
     0.502,
     0.502,
     0.502
-   ]
+   ],
+   "peak_db": -9.0
   },
   "flicker_stutter": {
    "group": "errors",
@@ -1671,6 +1768,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -14.12,
    "loop_frames": [
     96000
    ],
@@ -1690,6 +1788,7 @@
    "length_s": [
     2.000021
    ],
+   "peak_db": -14.02,
    "loop_frames": [
     96000
    ],
@@ -1715,6 +1814,7 @@
     0.302,
     0.302
    ],
+   "peak_db": -8.0,
    "runtime": {
     "max_distance": 30.0,
     "caption": "CAPTION_FLICKER_JUMP"
@@ -1735,6 +1835,7 @@
     0.132,
     0.132
    ],
+   "peak_db": -6.5,
    "runtime": {
     "max_distance": 40.0,
     "caption": "CAPTION_FLICKER_LUNGE"
@@ -1759,6 +1860,7 @@
     0.471813,
     0.487583
    ],
+   "peak_db": -1.03,
    "runtime": {
     "caption": "CAPTION_ECHO_FOOTSTEP"
    }
@@ -1782,6 +1884,7 @@
     0.437333,
     0.4315
    ],
+   "peak_db": -1.03,
    "runtime": {
     "caption": "CAPTION_ECHO_FOOTSTEP"
    }
@@ -1805,6 +1908,7 @@
     0.547167,
     0.531021
    ],
+   "peak_db": -1.03,
    "runtime": {
     "caption": "CAPTION_ECHO_FOOTSTEP"
    }
@@ -1828,6 +1932,7 @@
     0.450729,
     0.430312
    ],
+   "peak_db": -2.56,
    "runtime": {
     "caption": "CAPTION_ECHO_FOOTSTEP"
    }
@@ -1851,6 +1956,7 @@
     0.486938,
     0.464125
    ],
+   "peak_db": -1.03,
    "runtime": {
     "caption": "CAPTION_ECHO_FOOTSTEP"
    }
@@ -1874,6 +1980,7 @@
     0.404521,
     0.406146
    ],
+   "peak_db": -3.98,
    "runtime": {
     "caption": "CAPTION_ECHO_FOOTSTEP"
    }
@@ -1893,6 +2000,7 @@
     12.000021,
     12.000021
    ],
+   "peak_db": -17.76,
    "loop_frames": [
     576000,
     576000,
@@ -1917,6 +2025,7 @@
     12.000021,
     12.000021
    ],
+   "peak_db": -20.04,
    "loop_frames": [
     576000,
     576000,
@@ -1941,6 +2050,7 @@
     12.000021,
     12.000021
    ],
+   "peak_db": -21.14,
    "loop_frames": [
     576000,
     576000,
@@ -1961,6 +2071,7 @@
    "length_s": [
     8.000021
    ],
+   "peak_db": -14.17,
    "loop_frames": [
     384000
    ]
@@ -1976,6 +2087,7 @@
    "length_s": [
     8.000021
    ],
+   "peak_db": -20.08,
    "loop_frames": [
     384000
    ],
@@ -1994,6 +2106,7 @@
    "length_s": [
     8.000021
    ],
+   "peak_db": -22.42,
    "loop_frames": [
     384000
    ],
@@ -2016,6 +2129,7 @@
     0.702,
     0.702
    ],
+   "peak_db": -14.13,
    "runtime": {
     "pitch_hash": 0.05,
     "max_distance": 40.0
@@ -2035,7 +2149,8 @@
     1.802,
     1.802,
     1.802
-   ]
+   ],
+   "peak_db": -8.19
   },
   "threshold_tone": {
    "group": "player",
@@ -2051,7 +2166,8 @@
     1.4,
     1.4,
     1.4
-   ]
+   ],
+   "peak_db": -7.94
   }
  }
 }

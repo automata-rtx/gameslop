@@ -971,7 +971,7 @@ def build_manifest(data: dict, out: Path) -> dict:
     sr = int(data["format"]["rate"])
     for rid, rec in data["recipes"].items():
         group = data["groups"][rec["group"]]
-        files, lengths, loop_frames = [], [], []
+        files, lengths, loop_frames, peaks = [], [], [], []
         for v in range(1, variants_of(rec, data) + 1):
             rel = f"{group['dir']}/{file_name(rid, v)}"
             p = out / rel
@@ -983,6 +983,7 @@ def build_manifest(data: dict, out: Path) -> dict:
                 loop_frames.append(int(w["loop"][1]))
             files.append(res_path(out, rel))
             lengths.append(round(frames / sr, 6))
+            peaks.append(peak_db(w["pcm"].astype(np.float64) / 32767.0))
         entry = {
             "group": rec["group"],
             "bus": rec.get("bus", group["bus"]),
@@ -990,6 +991,9 @@ def build_manifest(data: dict, out: Path) -> dict:
             "channels": int(rec.get("channels", group.get("channels", 1))),
             "files": files,
             "length_s": lengths,
+            # The loudest sample of any variant (dBFS): AudioManager keeps the Errors bus
+            # under 03 §6 rule 2 with it (AudioMix.errors_headroom_db).
+            "peak_db": round(max(peaks), 2),
         }
         if rec.get("loop"):
             entry["loop_frames"] = loop_frames

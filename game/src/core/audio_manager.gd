@@ -4,15 +4,15 @@ extends Node
 ## how it is mixed. Ids are the manifest's (game/assets/audio/manifest.json).
 ##
 ## Mix rules (03 §6): 1 walk steps play at their rendered -14 dB and the Footsteps bus is
-## never ducked on its own; 2 the Errors bus is limited at -6 dBFS (AudioBuses); 3 the room
-## tone never ducks below -40 dB (-46 dB in Still's silence, -inf in a silence()); 4 fades
-## are baked by the synth; 5 one-shots play through AudioStreamRandomizer at +-4% pitch.
-## noise_emitted: `step` noises play the footstep for the current surface here (06 §6, a
-## noise and its sound are one event); every other kind is played by its emitter.
-## M2.14: the MusicDirector child (`music`); the Null grid tone (GeneratorLayers) fed from
-## CoherenceRenderer's g_null_pos and the listener, with the 2 m core muting everything
-## else; the heartbeat locked to CoherenceRenderer.heartbeat_phase(); Echo's footsteps
-## played as their echo_foot_* variants (the 20 ms extra reverb); occlusion decided at play.
+## never ducked on its own; 2 a one-shot on Errors plays no louder than its manifest peak
+## and distance allow under -6 dBFS (AudioMix.errors_headroom_db; the bus limiter is the
+## backstop); 3 the room tone never ducks below -40 dB (-46 dB in Still's silence, -inf in
+## a silence()); 4 fades are baked by the synth; 5 one-shots play through
+## AudioStreamRandomizer at +-4% pitch. noise_emitted: `step` noises play the footstep for
+## the current surface here (06 §6); every other kind is played by its emitter.
+## M2.14: the MusicDirector child (`music`); the Null grid tone fed from CoherenceRenderer
+## and the listener (the 2 m core mutes the rest); the heartbeat on the renderer's beat;
+## Echo's steps as echo_foot_* (the 20 ms extra reverb); occlusion decided at play.
 
 const STEP_SURFACE: Dictionary = {   # 03 §4 footstep table: the surface a stratum walks on
 	&"halls": &"carpet", &"pools": &"tile", &"garage": &"concrete",
@@ -128,20 +128,19 @@ func play_2d(id: StringName, volume_db: float = 0.0, pitch: float = 1.0) -> Audi
 ## A positional one-shot from the pool of 32. `bus` empty = the manifest's bus (Echo plays
 ## footsteps with bus &"Errors"). Returns the player or null.
 func play_3d(id: StringName, pos: Vector3, bus: StringName = &"", volume_db: float = 0.0, pitch: float = 1.0) -> AudioStreamPlayer3D:
+	var to_bus := bus if bus != &"" else library.bus(id)
+	id = library.on_bus(id, to_bus)  # 03 Echo: a step on Errors is its 20 ms reverb variant
 	var s := _one_shot_stream(id)
 	if s == null:
 		return null
 	var p := pool.take_3d()
 	p.stream = s
-	p.bus = bus if bus != &"" else library.bus(id)
-	if p.bus == &"Errors" and String(id).begins_with("foot_"):
-		# 03 Echo: the player's own step, 20 ms extra reverb (echo_foot_<surface>).
-		var echo_id := StringName("echo_" + String(id))
-		var es := _one_shot_stream(echo_id) if library.has(echo_id) else null
-		if es != null:
-			id = echo_id
-			p.stream = es
+	p.bus = to_bus
 	p.global_position = pos
+	var l := listener_node()
+	if to_bus == &"Errors" and l != null:  # 03 §6 rule 2: under -6 dBFS before the limiter
+		var head := AudioMix.errors_headroom_db(library.peak_db(id), l.global_position.distance_to(pos), p.max_db)
+		volume_db = minf(volume_db, head)
 	var rt := library.runtime(id)
 	p.max_distance = float(rt.get("max_distance", 0.0))
 	p.set_meta(AudioOcclusion.META_THROUGH, bool(rt.get("through_walls", false)))
@@ -150,7 +149,6 @@ func play_3d(id: StringName, pos: Vector3, bus: StringName = &"", volume_db: flo
 		pitch *= AudioMix.hashed_pitch(pos, float(rt["pitch_hash"]))
 	p.pitch_scale = maxf(pitch, 0.01)
 	var captioned := pool.start(p, id, volume_db, _clock)
-	var l := listener_node()
 	if l != null and AudioOcclusion.wants_check(p):
 		AudioOcclusion.apply_now(p, AudioOcclusion.is_occluded(p, l.global_position))
 	_after_play(id, pos, p.bus, captioned)
