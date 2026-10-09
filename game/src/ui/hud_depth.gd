@@ -162,15 +162,20 @@ func exit_color() -> Color:
 
 
 static func format_time(seconds: float) -> String:
-	var s := ceili(maxf(0.0, seconds) - 0.0001)
+	var s := shown_seconds(seconds)
 	return "%02d:%02d" % [floori(s / 60.0), s % 60]
+
+
+## The whole seconds format_time() shows (R21: advance compares these, not two strings).
+static func shown_seconds(seconds: float) -> int:
+	return ceili(maxf(0.0, seconds) - 0.0001)
 
 
 func advance(dt: float) -> void:
 	if timer > 0.0:
-		var before := format_time(timer)
+		var before := shown_seconds(timer)
 		timer = maxf(0.0, timer - dt)
-		if format_time(timer) != before:
+		if shown_seconds(timer) != before:
 			_render_exit()
 
 

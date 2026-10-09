@@ -31,6 +31,16 @@ func _process(delta: float) -> void:
 		advance(delta)
 
 
+## R21: a shutter processes only while it has something to advance (a hidden menu's dozen
+## idle shutters cost a call each every frame otherwise). advance() is unchanged.
+func _wants_process() -> bool:
+	return is_moving()
+
+
+func _update_processing() -> void:
+	set_process(_wants_process())
+
+
 ## Starts revealing. Re-entrant: an opening shutter keeps going; a closing one turns
 ## around from the coverage it had reached (11 §5: interruptible).
 func shutter_in() -> void:
@@ -42,6 +52,7 @@ func shutter_in() -> void:
 		_:
 			_t = 0.0
 	phase = Phase.OPENING
+	_update_processing()
 	visible = true
 	_play_sound()
 	queue_redraw()
@@ -56,6 +67,7 @@ func shutter_out() -> void:
 		_:
 			_t = 0.0
 	phase = Phase.CLOSING
+	_update_processing()
 	_play_sound()
 	queue_redraw()
 
@@ -69,6 +81,7 @@ func reshutter() -> void:
 ## Snaps to open or closed without motion (initial states, gallery).
 func show_now(on: bool) -> void:
 	phase = Phase.OPEN if on else Phase.CLOSED
+	_update_processing()
 	_t = 0.0
 	visible = on
 	queue_redraw()
@@ -93,9 +106,11 @@ func advance(dt: float) -> void:
 	if UiMotion.shutter_done(_t):
 		if phase == Phase.OPENING:
 			phase = Phase.OPEN
+			_update_processing()
 			opened.emit()
 		else:
 			phase = Phase.CLOSED
+			_update_processing()
 			visible = false
 			closed.emit()
 		_t = 0.0
@@ -125,7 +140,9 @@ func _draw() -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_SORT_CHILDREN:
+	if what == NOTIFICATION_READY:
+		_update_processing()
+	elif what == NOTIFICATION_SORT_CHILDREN:
 		for c in get_children():
 			if c is Control and not (c as Control).top_level:
 				fit_child_in_rect(c as Control, Rect2(Vector2.ZERO, size))

@@ -25,6 +25,9 @@ var cur: int = 0
 var variation: int = 0
 var xfade: float = 1.0           # 0..1 progress of the crossfade into players[cur]
 var swap_left: float = 0.0
+## R21: the volume_db last written to each player (NAN: none). A write to a playing player
+## retires its bus block (RCA1); a steady drone wrote the same level every frame.
+var _written_db: PackedFloat64Array = PackedFloat64Array([NAN, NAN])
 
 
 ## "A2", "Bb1", "C#4" -> Hz (A4 = 440).
@@ -107,5 +110,11 @@ func drive(delta: float, rng: RandomNumberGenerator, trem: float) -> void:
 	if xfade >= 1.0 and old.playing:
 		old.stop()
 	var g := gain * trem
-	players[cur].volume_db = linear_to_db(maxf(g * sqrt(xfade), FLOOR_GAIN)) + db
-	old.volume_db = linear_to_db(maxf(g * sqrt(1.0 - xfade), FLOOR_GAIN)) + db
+	_set_db(cur, linear_to_db(maxf(g * sqrt(xfade), FLOOR_GAIN)) + db)
+	_set_db(1 - cur, linear_to_db(maxf(g * sqrt(1.0 - xfade), FLOOR_GAIN)) + db)
+
+
+func _set_db(i: int, v: float) -> void:
+	if v != _written_db[i]:
+		_written_db[i] = v
+		players[i].volume_db = v

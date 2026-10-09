@@ -122,7 +122,7 @@ static func lit_near(fixtures: Array[Fixture], grid: LevelGrid, anchor_of: Calla
 	var out: Array[Fixture] = []
 	var d: Array[float] = []
 	for f in fixtures:
-		if not f.is_lit() or (group >= 0 and f.group_id != group):
+		if (group >= 0 and f.group_id != group) or not f.is_lit():
 			continue
 		var dist := flat_dist(f.global_position, pos)
 		if dist > radius:

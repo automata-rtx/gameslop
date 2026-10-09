@@ -37,29 +37,33 @@ func poll(locked: bool = false) -> void:
 	var now: Dictionary = {}
 	for a in EDGE_ACTIONS:
 		now[a] = (not locked) and InputMap.has_action(a) and Input.is_action_pressed(a)
-	var just := func(a: StringName) -> bool: return bool(now[a]) and not bool(_prev.get(a, false))
 	if locked:
 		move = Vector2.ZERO
 	else:
 		# 06 §3: digital keys, no curves; diagonal normalised; strafe equals forward.
 		var raw := Vector2(_axis(&"move_left", &"move_right"), _axis(&"move_back", &"move_forward"))
 		move = raw.normalized() if raw.length() > 1.0 else raw
-	if just.call(&"sprint"):
+	if _just(now, &"sprint"):
 		_sprint_latched = not _sprint_latched
-	if just.call(&"crouch"):
+	if _just(now, &"crouch"):
 		_crouch_latched = not _crouch_latched
 	if _sprint_held_off and not bool(now[&"sprint"]):
 		_sprint_held_off = false
 	sprint = _sprint_latched if _mode(SETTING_SPRINT_MODE) == MODE_TOGGLE else bool(now[&"sprint"]) and not _sprint_held_off
 	crouch = _crouch_latched if _mode(SETTING_CROUCH_MODE) == MODE_TOGGLE else bool(now[&"crouch"])
 	interact_held = now[&"interact"]
-	interact_pressed = just.call(&"interact")
-	flashlight_pressed = just.call(&"flashlight")
+	interact_pressed = _just(now, &"interact")
+	flashlight_pressed = _just(now, &"flashlight")
 	crank = now[&"crank"]
 	noclip = now[&"noclip"]
-	use_item_pressed = just.call(&"use_item")
+	use_item_pressed = _just(now, &"use_item")
 	use_item_held = now[&"use_item"]
 	_prev = now
+
+
+## A press edge: down this frame, not the last (R21: a method, not a lambda per frame).
+func _just(now: Dictionary, a: StringName) -> bool:
+	return bool(now[a]) and not bool(_prev.get(a, false))
 
 
 ## Toggle sprint ends when stamina runs out, so it does not resume by itself (12 §7).

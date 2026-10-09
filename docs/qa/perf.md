@@ -91,6 +91,41 @@ Readings: 2026-10-09, the same container, `uptime` load 0.75 at the start of eac
 
 Still open (filed in `docs/qa/open_items.md`): the arrival frame is 6.5 to 10.5 ms headless. After a drop (its black) and a proper exit (the glitch transition) it is covered; at a start (the first level of a Descent) it is the first frame the level shows. Its largest shares are other owners' `level_entered` listeners (SettingsManager's whole-tree graphics walk, the HUD).
 
+## R21: the cp-12 script regression (2026-10-09)
+
+Main (`30cd6c1`) read the Server peak at 2.94 to 3.07 ms script (budget 3.0). Bisect, the perf bench (`--stratum server --seconds 20`) on snapshots of each point, interleaved, twice each, `uptime` load 0.2 to 0.7:
+
+| Point | Script ms (two runs) | Errors ms |
+|---|---|---|
+| `53ce14a` (M3.5's own branch tip, before M3.1 was merged in) | 2.96, 3.06 | 0.91, 0.93 |
+| `3ce4273` (M3.5 merged, with M3.1's proximity crossing) | 2.98, 2.96 | 0.89, 0.87 |
+| `007f9a5` (R20) | 2.81, 2.88 | 0.84, 0.87 |
+| `30cd6c1` (R19, main) | 2.92, 2.98 (later: 2.89 to 3.03 over 10 runs) | 0.84 to 0.93 |
+
+No commit added the cost: M3.5's own code reads the same today. Its recorded 2.65 ms is not reproducible on this container now; the gap is the machine, plus a bench that is not deterministic: Flicker spends 300 to 575 of 1,200 frames Satiated depending on timing, which moves its share between 0.13 and 0.22 ms. The 2.65 was one good reading of the same code. M3.1's crossing check (an Array built per error per frame) cost too little to resolve against that noise, but it was removed anyway.
+
+So R21 bought headroom with changes that keep every answer (`tests/perf/test_r21_equivalence.gd` runs each against its old form), found with the local debugger's script profiler (`godot -d`, `EngineDebugger.profiler_enable("scripts", true)`) on a 90 s Server peak:
+
+| Change | Where | Effect (bench band) |
+|---|---|---|
+| Hidden UI idles: a shutter processes only while it moves (a note sheet while shown), a menu row only while its flash runs (the pause and settings menus had 49 idle `_process` calls a frame) | `ui/ui_shutter.gd`, `ui/note_sheet.gd`, `ui/menu_row.gd` | other 0.19 → 0.12 |
+| The ducker applies only when a duck, slider or the room tone changed (version + bus count), and filters its list only on the frame a duck expires; `has` without a lambda | `audio/audio_ducker.gd` | audio 0.45 → 0.38 (with the next row) |
+| A pad voice writes `volume_db` only when the level moves (a write to a playing player retires a bus block) | `audio/music_voice.gd` | in the row above |
+| Echo's trail: `resolve` runs only when an unresolved step was added; `target_index` is kept for the trail version and delay | `errors/echo_trail.gd` | Echo about -0.02 |
+| The proximity crossing is two comparisons, not an Array per error per frame; Still's column scale and Flicker's stutter emitter are written only on a change | `errors/error_base.gd`, `still_present.gd`, `error_flicker.gd` | errors about -0.03 |
+| Lit-fixture queries test the group before the lit state and read a bucket with one lookup; the input poll builds no lambda; the exit timer compares whole seconds, not two strings | `lighting/fixture_groups.gd`, `fixture_index.gd`, `player/player_input.gd`, `ui/hud_depth.gd` | small |
+
+`NOCLIP_FULL_TESTS=1 tools/ci/test.sh --filter test_perf_peak`, budgets enforced, three runs (load 0.22, 0.42, 0.48):
+
+| | Before (`30cd6c1`) | After R21 |
+|---|---|---|
+| Server script | 2.89 to 3.07 (mean of 10 bench runs 2.96) | 2.80, 2.65, 2.73 (bench runs 2.58 to 2.94, mean 2.73) |
+| Server errors | 0.84 to 0.93 | 0.85, 0.80, 0.83 |
+| Garage script | 2.77 | 2.52, 2.52, 2.61 |
+| Garage errors | 0.76 | 0.66, 0.69, 0.70 |
+
+Headroom under 3.0 ms: the Garage 0.39 to 0.48 ms; the Server 0.20 to 0.35 (mean 0.27), so the 0.3 ms target is met on average only in the Garage. Not done (each would change what is heard or seen, or is engine time): the Coherence static bed renders its noise in GDScript (about 65 µs a frame at Coherence 40, two `randf_range` calls a sample), the errors' `move_and_slide` and navigation agents, the player's interact ray. The bed is the next candidate if the Server needs more (a cached noise table changes the sample stream, so it needs an audio sign-off).
+
 ## Not measured here
 
 Real GPU frame times, render ms, VRAM at 1080p, Medium versus High, and startup to title need a machine with a graphics card: `docs/qa/perf_checklist.md` (Part P of the cp-12 play script). The CPU renderer's own frame times (130 ms a frame at 960x540) say nothing about a GPU.

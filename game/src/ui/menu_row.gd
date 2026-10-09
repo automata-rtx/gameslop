@@ -17,8 +17,12 @@ var selected: bool = false:
 	set(v):
 		selected = v
 		refresh()
-## Seconds left of the 2 s ui_accent flash (12 §5: swapped bindings).
-var flash: float = 0.0
+## Seconds left of the 2 s ui_accent flash (12 §5: swapped bindings). R21: the row
+## processes only while it counts down.
+var flash: float = 0.0:
+	set(v):
+		flash = v
+		set_process(flash > 0.0)
 var label: Label
 var leader: Panel
 var value_box: HBoxContainer
@@ -56,6 +60,7 @@ func apply_row_height() -> void:
 
 
 func _ready() -> void:
+	set_process(flash > 0.0)
 	leader.visible = has_value()
 	refresh()
 
