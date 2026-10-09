@@ -194,6 +194,47 @@ static func begin_director(lvl: Level, player: Player, kind: StringName, staged:
 	d.callv(&"begin", args.slice(0, d.get_method_argument_count(&"begin")))
 
 
+## The LevelGenerator options of the run (moved from Run._begin_generation for the 400-line
+## rule, R19): the unlocked item pool, Variant B once the Fuse is earned (M2.9: 05 §6; Daily
+## ignores unlocks, 05 §8), Endless.
+static func generation_options(meta: MetaState, mode: StringName) -> Dictionary:
+	var daily := mode == Tuning.MODE_DAILY
+	return {&"item_pool": item_pool(meta, daily), &"fuse_unlocked": fuse_unlocked(meta, daily),
+		&"endless": mode == Tuning.MODE_ENDLESS}
+
+
+## 07 §6 Variant B: Powered exits may need a fuse once the Fuse unlock is earned (or always in
+## Daily Descent, which ignores unlock state like the item pool does).
+static func fuse_unlocked(meta: MetaState, daily: bool = false) -> bool:
+	return daily or (meta != null and meta.is_unlocked(&"fuse"))
+
+
+## 05 §4: a drop lands on a random valid cell of `level`, facing open floor (Run.drop_transform).
+static func drop_transform(level: Level, data: LevelData) -> Transform3D:
+	var errs: Array[Vector3] = []
+	for e in level.get_tree().get_nodes_in_group(&"errors"):
+		if e is Node3D and level.is_ancestor_of(e):
+			errs.append((e as Node3D).global_position)
+	var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_DROP))
+	var c := pick_drop_cell(data, rng, errs)
+	if c == LevelData.NO_CELL:
+		return level.spawn_transform()
+	var d := open_dir(data.grid, c)
+	return Transform3D(Basis(Vector3.UP, LevelData.yaw_facing(maxi(d, 0))), data.grid.world_of(c))
+
+
+## The Landing's offer at the run's current depth (05 §4): {choices, hint}. Two kinds drawn
+## from the item pool with the depth's Landing seed; `hint` (05 §10) shows CHOOSE ONE the first
+## time a player reaches depth 2 (this run's count is 1).
+static func landing_offer(inventory: Inventory) -> Dictionary:
+	var depth := GameState.run.depth
+	var rng := Seeds.rng(Seeds.derive(GameState.run.run_seed, "%s:%d" % [Tuning.SEED_LABEL_LANDING, depth]))
+	var pool := item_pool(GameState.meta, GameState.run.mode == Tuning.MODE_DAILY)
+	var choices := landing_choices(pool, inventory.can_accept, inventory.count_of, rng)
+	var counts: Dictionary = GameState.meta.stats.get("depth_reached_counts", {})
+	return {&"choices": choices, &"hint": depth == 2 and int(counts.get("2", 0)) <= 1}
+
+
 # --- pure rules --------------------------------------------------------------------------
 
 ## 05 §6, 09 §2: the kinds the pool may offer this run. A kind needs a world scene (every belt

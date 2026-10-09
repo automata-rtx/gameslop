@@ -132,12 +132,7 @@ func _begin_generation() -> void:
 	var run_seed := GameState.run.run_seed
 	var first := not GameState.meta.first_descent_done
 	var cycle := 1 + (depth - 1) / Tuning.RUN_CYCLE_LENGTH
-	var options := {
-		&"item_pool": RunLevelSetup.item_pool(GameState.meta, GameState.run.mode == Tuning.MODE_DAILY),
-		# M2.9: Variant B once unlock #4 (Fuse) is earned (05 §6); Daily ignores unlocks (05 §8).
-		&"fuse_unlocked": fuse_unlocked(GameState.meta, GameState.run.mode == Tuning.MODE_DAILY),
-		&"endless": GameState.run.mode == Tuning.MODE_ENDLESS,
-	}
+	var options := RunLevelSetup.generation_options(GameState.meta, GameState.run.mode)
 	options.merge(generation_overrides, true)
 	_generated = null
 	_prepared = false
@@ -145,10 +140,9 @@ func _begin_generation() -> void:
 		_generated = LevelGenerator.generate(build, depth, run_seed, first, cycle, options), false, "LevelGenerator")
 
 
-## 07 §6 Variant B: Powered exits may need a fuse once the Fuse unlock is earned (or always in
-## Daily Descent, which ignores unlock state like the item pool does).
+## 07 §6 Variant B (RunLevelSetup.fuse_unlocked; kept here for its callers).
 static func fuse_unlocked(meta: MetaState, daily: bool = false) -> bool:
-	return daily or (meta != null and meta.is_unlocked(&"fuse"))
+	return RunLevelSetup.fuse_unlocked(meta, daily)
 
 
 ## Waits for the generation, builds the level, prepares it once walkable. Sets _prepared.
@@ -243,16 +237,7 @@ func _arrive(kind: StringName, drop_xf: Variant = null) -> void:
 
 ## 05 §4: a random valid cell of the new level, facing open floor.
 func drop_transform() -> Transform3D:
-	var errs: Array[Vector3] = []
-	for e in get_tree().get_nodes_in_group(&"errors"):
-		if e is Node3D and level.is_ancestor_of(e):
-			errs.append((e as Node3D).global_position)
-	var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_DROP))
-	var c := RunLevelSetup.pick_drop_cell(data, rng, errs)
-	if c == LevelData.NO_CELL:
-		return level.spawn_transform()
-	var d := RunLevelSetup.open_dir(data.grid, c)
-	return Transform3D(Basis(Vector3.UP, LevelData.yaw_facing(maxi(d, 0))), data.grid.world_of(c))
+	return RunLevelSetup.drop_transform(level, data)
 
 
 func _process(_delta: float) -> void:
@@ -310,15 +295,9 @@ func _open_landing() -> void:
 	_free_level(landing)
 	player.global_transform = landing.player_transform()
 	player.rig.fov_hold(0.0, 0.0, EXIT_FOV_KEY)
-	var depth := GameState.run.depth
-	var rng := Seeds.rng(Seeds.derive(GameState.run.run_seed, "%s:%d" % [Tuning.SEED_LABEL_LANDING, depth]))
-	var pool := RunLevelSetup.item_pool(GameState.meta, GameState.run.mode == Tuning.MODE_DAILY)
-	var choices := RunLevelSetup.landing_choices(pool, player.inventory.can_accept, player.inventory.count_of, rng)
-	# 05 §10: CHOOSE ONE the first time a player reaches depth 2 (this run's count is 1).
-	var counts: Dictionary = GameState.meta.stats.get("depth_reached_counts", {})
-	var hint := depth == 2 and int(counts.get("2", 0)) <= 1
+	var offer := RunLevelSetup.landing_offer(player.inventory)
 	landing.choice_made.connect(_on_landing_choice)
-	landing.begin(player, choices, hint)
+	landing.begin(player, offer[&"choices"], offer[&"hint"])
 	player.rig.add_trauma(Tuning.FEEDBACK_LANDING_TRAUMA)
 	_set_phase(PHASE_LANDING)
 	_load_level()
