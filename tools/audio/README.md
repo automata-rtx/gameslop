@@ -21,3 +21,5 @@
 **Derived recipes:** `"from": "<one-shot id>"` with optional `"tail"` (s of silence appended) and an `fx` chain renders each variant of the source (same files the game plays) through the chain; no `layers`, `dur`, `variants` or `loop`. Norm `{"gain_db": x}` applies a fixed gain through the limiter instead of a loudness target. Used for `echo_foot_<surface>` (03 Echo: the player's own steps with 20 ms extra reverb).
 
 **Music (M2.14):** `music_pad_a1/a2/a3` are the 03 §5 pad stems an octave apart (runtime `note_hz`); MusicDirector pitches the nearest one to each chord note. They are rendered open (LP 1.8 kHz); the Music bus low-pass is the live 600 Hz / 1.8 kHz filter.
+
+**Measure (M3.3):** `python3 tools/audio/measure.py [--bus Errors] [--json out.json]` reads the rendered files and prints peak, momentary loudness (400 ms), 50 ms RMS and 50 ms K-weighted RMS per sound and bus (every variant), then checks 03 §6 rules 1 to 3 and Echo's dry level; exit 1 on a failed check. The manifest carries each sound's `peak_db` (the loudest variant), which AudioManager uses to keep the Errors bus under -6 dBFS at play time.

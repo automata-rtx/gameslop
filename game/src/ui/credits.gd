@@ -47,7 +47,7 @@ static func entries() -> Array[Dictionary]:
 	_add(out, "", STYLE_GAP)
 	_add(out, Strings.CREDITS_HEADING_ENGINE, STYLE_HEADING)
 	_add(out, Strings.CREDITS_GODOT, STYLE_LINE)
-	for l in godot_license_lines():
+	for l in license_paragraphs():
 		_add(out, l, STYLE_SMALL)
 	_add(out, "", STYLE_GAP)
 	_add(out, Strings.CREDITS_HEADING_COMPONENTS, STYLE_HEADING)
@@ -93,6 +93,25 @@ static func godot_license_lines() -> Array[String]:
 		var s := l.strip_edges()
 		if not s.is_empty():
 			out.append(s)
+	return out
+
+
+## The engine's MIT notice as paragraphs (M3.6): the text arrives hard-wrapped at 80
+## columns, which a narrower column would wrap again into ragged pairs; each copyright line
+## stays its own paragraph. Every original line is a substring of its paragraph.
+static func license_paragraphs() -> Array[String]:
+	var out: Array[String] = []
+	var current := ""
+	for l in Engine.get_license_text().split("\n"):
+		var s := l.strip_edges()
+		if s.is_empty() or s.begins_with("Copyright"):
+			if not current.is_empty():
+				out.append(current)
+			current = s
+			continue
+		current = s if current.is_empty() else current + " " + s
+	if not current.is_empty():
+		out.append(current)
 	return out
 
 

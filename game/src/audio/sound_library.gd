@@ -61,6 +61,23 @@ func is_loop(id: StringName) -> bool:
 	return bool(entry(id).get("loop", false))
 
 
+## The id actually played for `id` on `bus`: a player footstep sent to Errors is Echo's,
+## played as its echo_foot_<surface> variant with the 20 ms extra reverb (03 Echo) when the
+## manifest has it.
+func on_bus(id: StringName, bus: StringName) -> StringName:
+	if bus == &"Errors" and String(id).begins_with("foot_"):
+		var echo_id := StringName("echo_" + String(id))
+		if has(echo_id):
+			return echo_id
+	return id
+
+
+## The loudest sample of any variant in dBFS (manifest `peak_db`, M3.3); 0 when unknown,
+## which is the safe answer for the Errors headroom.
+func peak_db(id: StringName) -> float:
+	return float(entry(id).get("peak_db", 0.0))
+
+
 func runtime(id: StringName) -> Dictionary:
 	var r: Variant = entry(id).get("runtime", {})
 	return r if r is Dictionary else {}
