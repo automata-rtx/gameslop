@@ -18,6 +18,8 @@ const MODEL_NAMES := "(?i)\\b(sonnet|opus|haiku|gpt-?[0-9]|gemini|llama|fable|cl
 const AI_PHRASE := "an AI (Claude, Anthropic)"
 const STORE_SCOPE_FILE := "../docs/design/16_release_and_steam.md"
 const README_FILE := "../tools/ci/README.txt.in"
+## The page of store facts the human pastes into Steamworks (M4.2). Scanned like the 16 section 5 extract.
+const STORE_PAGE_FILE := "../docs/release/store_page.md"
 
 static var _forbidden_re: RegEx
 static var _model_re: RegEx
@@ -153,6 +155,21 @@ static func file_corpus() -> Array[Dictionary]:
 	var design := FileAccess.get_file_as_string(root.path_join(STORE_SCOPE_FILE))
 	var store := store_page_facts(design)
 	out.append({"src": "store page facts (16 §5)", "text": store, "kind": "store" if not store.is_empty() else "missing"})
+	var page := FileAccess.get_file_as_string(root.path_join(STORE_PAGE_FILE))
+	out.append({"src": "store_page.md", "text": page, "kind": "store" if not page.is_empty() else "missing"})
+	return out
+
+
+## Every rule that applies to store page text, as readable lines: forbidden words ("liminal"
+## allowed), punctuation (no spacing rule: the page has tables and lists) and model names.
+static func store_hits(text: String) -> PackedStringArray:
+	var out: PackedStringArray = []
+	for w in forbidden_hits(text, true):
+		out.append("forbidden word '%s'" % w)
+	for h in style_hits(text, false):
+		out.append(h)
+	for h in model_hits(text):
+		out.append("model name: " + h)
 	return out
 
 

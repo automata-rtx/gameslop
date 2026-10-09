@@ -1,0 +1,13 @@
+"DepotBuildConfig"
+{
+	"DepotID" "{DEPOT_WIN}"
+	"contentroot" "{BUILD_DIR}/windows"
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"recursive" "1"
+	}
+	"FileExclusion" "*.pdb"
+	"FileExclusion" "SHA256SUMS.txt"
+}

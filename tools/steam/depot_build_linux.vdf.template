@@ -1,0 +1,13 @@
+"DepotBuildConfig"
+{
+	"DepotID" "{DEPOT_LINUX}"
+	"contentroot" "{BUILD_DIR}/linux"
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"recursive" "1"
+	}
+	"FileExclusion" "*.pdb"
+	"FileExclusion" "SHA256SUMS.txt"
+}

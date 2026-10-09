@@ -1,0 +1,8 @@
+PLANTED STORE PAGE (M4.2). A test fixture, never shipped: store_hits must catch every tagged line and spare the clean ones.
+[page] An entity hunts you through the Backrooms.
+[page] Wait... it is behind you
+[page] Buy it now!
+[page] Built by Claude Sonnet 5.5.
+[page] Written by Claude.
+[clean] Descend through generated liminal floors.
+[clean] Designed and built by an AI (Claude, Anthropic) using the Godot Engine.

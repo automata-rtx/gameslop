@@ -6,6 +6,7 @@ extends TestCase
 const Gate := preload("res://tests/text_gate.gd")
 const PLANTED := "res://tests/fixtures/text_gate_planted.txt"
 const PLANTED_CODE := "res://tests/fixtures/text_gate_planted_code.txt"
+const PLANTED_STORE := "res://tests/fixtures/text_gate_planted_store.txt"
 
 var _ui: Array[Dictionary] = []
 var _map: Dictionary = {}
@@ -102,6 +103,36 @@ func test_store_scope_extraction() -> void:
 	assert_eq(Gate.store_page_facts("nothing"), "")
 
 
+func test_store_page_rules_fire_on_the_planted_page() -> void:
+	var lines := FileAccess.get_file_as_string(PLANTED_STORE).split("\n")
+	var pages := 0
+	var cleans := 0
+	for line in lines:
+		if line.begins_with("[page] "):
+			pages += 1
+			assert_gt(Gate.store_hits(line.substr(7)).size(), 0, "caught: " + line)
+		elif line.begins_with("[clean] "):
+			cleans += 1
+			assert_eq(Gate.store_hits(line.substr(8)).size(), 0, line)
+	assert_eq(pages, 5, "five planted store lines")
+	assert_eq(cleans, 2, "two clean store lines (liminal and the AI phrase pass)")
+	var all := "\n".join(lines)
+	var hits := ",".join(Gate.store_hits(all))
+	for expect in ["entity", "backrooms", "ellipsis", "exclamation mark", "Claude outside the AI phrase"]:
+		assert_true(hits.contains(expect), "the planted page trips '%s': %s" % [expect, hits])
+
+
+func test_store_page_is_in_the_scanned_corpus_and_clean() -> void:
+	var found := false
+	for f in Gate.file_corpus():
+		if f["src"] == "store_page.md":
+			found = true
+			assert_eq(f["kind"], "store")
+			var hits := Gate.store_hits(f["text"])
+			assert_eq(hits.size(), 0, "store_page.md: %s" % [hits])
+	assert_true(found, "docs/release/store_page.md is scanned by the gate")
+
+
 # ------------------------------------------------------------------- the shipped text is clean
 
 func test_corpus_is_complete() -> void:
@@ -180,8 +211,6 @@ func test_no_model_identifier_in_anything_that_ships() -> void:
 		for h in Gate.model_hits(e["text"]):
 			fail("%s: %s" % [e["src"], h])
 	for f in Gate.file_corpus():
-		if f["kind"] == "store":
-			continue
 		for h in Gate.model_hits(f["text"]):
 			fail("%s: %s" % [f["src"], h])
 	for path in Gate.shipped_files(["gd", "tscn", "tres"]):
