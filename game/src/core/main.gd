@@ -36,6 +36,10 @@ func _ready() -> void:
 
 
 func _run_smoke() -> void:
+	# 16 §2/§3: the release build has no debug features. smoke.sh requires "release" and
+	# "no overlay" from the exported binary.
+	print("smoke: build=%s overlay=%s" % ["debug" if OS.is_debug_build() else "release",
+			"yes" if has_node("DebugOverlay") else "no"])
 	await _smoke_generate_depth_1()
 	# Process time, not wall time: the smoke test measures that frames keep flowing.
 	await get_tree().create_timer(SMOKE_WAIT_S).timeout

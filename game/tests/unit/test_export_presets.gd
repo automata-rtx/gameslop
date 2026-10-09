@@ -51,6 +51,7 @@ func test_common_options() -> void:
 		var exclude := _filters(str(cfg.get_value(sec, "exclude_filter", "")))
 		assert_contains(exclude, "tests/*", "%s: tests excluded (16 §2)" % name)
 		assert_contains(exclude, "scenes/debug/*", "%s: debug benches excluded (16 §2)" % name)
+		assert_contains(exclude, "scenes/ui/menu_gallery.tscn", "%s: the menu gallery bench is excluded" % name)
 		# FileAccess-read files that are not resources must be named explicitly.
 		var include := _filters(str(cfg.get_value(sec, "include_filter", "")))
 		assert_contains(include, "*.json", "%s: the audio manifest ships" % name)
@@ -112,3 +113,14 @@ func _filters(s: String) -> PackedStringArray:
 		if not f.strip_edges().is_empty():
 			out.append(f.strip_edges())
 	return out
+
+
+func test_credits_md_lists_the_font_license() -> void:
+	# 04 §2 / 16 §6: the repo root CREDITS.md (the project folder is game/, so one level up).
+	var path := ProjectSettings.globalize_path("res://").path_join("../CREDITS.md").simplify_path()
+	var text := FileAccess.get_file_as_string(path)
+	assert_false(text.is_empty(), "CREDITS.md exists at the repo root")
+	assert_true(text.contains("an AI (Claude, Anthropic)"), "the AI line, exactly")
+	assert_true(text.contains("SIL Open Font License"), "the font license")
+	assert_true(text.contains("JetBrains Mono"), "the font name")
+	assert_true(text.contains("Thank you for looking."), "the closing line")
