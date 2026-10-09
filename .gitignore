@@ -5,7 +5,9 @@ game/export_presets.cfg.secret
 # toolchain and builds
 tools/godot/bin/
 tools/godot/templates/
-build/
+build/*
+!build/NOCLIP-*.zip
+!build/NOCLIP-*-SHA256SUMS.txt
 # python
 __pycache__/
 *.pyc
