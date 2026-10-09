@@ -72,3 +72,8 @@ One entry per tag, newest last. Format: tag, date, what works, what is stubbed, 
 - **Stubbed:** the title's live corridor (M3).
 - **Known issues:** as cp-10; see `docs/qa/open_items.md`.
 - **Tester (optional, 30–45 minutes, needs a GPU):** `docs/qa/human_check_M2.md` with the save fixture `docs/qa/fixtures/meta_m2_mid_save.json`.
+
+## cp-12-cohesion — pending (M3.4 tuning notes for the human runs)
+- **Tuned from sims (M3.4):** 60 simulated Descents before and after (`docs/qa/descent_sim.md`). Null's core drains 10/s (was 12); a death names the largest loss within 0.25 s. Threshold reached: direct 8 → 16, cautious 8 → 11, explorer 0 → 0 of 20. Most of the old Null lethality was the sim bot walking rooms cell by cell.
+- **The 5 human runs must confirm:** (1) the Substrate is hard but winnable at 10/s, and whether players route around Null with the unrender view or walk through its core; (2) Still's counter works for a human: keeping it lit in view and backing away, or hiding, ends its chase at depths 2 and 5 (the sims record 3 Still evasions in 279 levels, so no Still number was changed); (3) a new player reaches depth 2 within three attempts and early deaths take 5 to 10 minutes; (4) the Offices light dilemma reads as a choice (breaker and flashlight against dark, the glowstick as the answer); (5) how much noclip a human spends and the Coherence at depth 6 arrival (sims: 90+); (6) the sawtooth by ear: a long Build while exploring should not feel like constant maximum dread. Record per run: depth reached, cause, Coherence at each arrival, Null core time if any.
+

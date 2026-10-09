@@ -135,7 +135,7 @@ func _tick(delta: float) -> void:
 	global_position = global_position.move_toward(player.global_position, speed() * delta)
 	_feed()
 	if in_core():
-		# The cost: 12 per second in the core (not a contact).
+		# The cost: 10 per second in the core (not a contact).
 		var loss := Tuning.NULL_DRAIN_PER_S * delta
 		core_time += delta
 		drained += loss

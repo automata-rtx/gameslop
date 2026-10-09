@@ -78,6 +78,8 @@ var water_depth: float = 0.0
 
 var _stun_left: float = 0.0
 var _last_damage_source: StringName = &""
+## M3.4: recent death-cause losses [physics frame, source, amount] within DEATH_CAUSE_WINDOW.
+var _recent_losses: Array = []
 var _light_queries: Array[Callable] = []
 
 
@@ -113,6 +115,7 @@ func _ready() -> void:
 func reset_for_run(start_coherence: float = Tuning.COHERENCE_MAX) -> void:
 	coherence = clampf(start_coherence, 0.0, Tuning.COHERENCE_MAX)
 	_last_damage_source = &""
+	_recent_losses = []
 	_stun_left = 0.0
 	locomotion.reset()
 	light.reset()  # silent: a new run is not a toggle
@@ -204,7 +207,7 @@ func apply_coherence(delta: float, source: StringName) -> void:
 	if is_zero_approx(applied) and coherence > 0.0:
 		return
 	if applied < 0.0 and is_death_cause(source):
-		_last_damage_source = source
+		_last_damage_source = _frame_cause(source, -applied)
 	_feed_coherence()
 	coherence_changed.emit(coherence, applied, source)
 	if applied < 0.0:
@@ -224,15 +227,35 @@ func loss_ticks_pending() -> int:
 	return sounds.loss_ticks_pending()
 
 
+## M3.4 (06 §9 reading): the death-cause source that took the most within the last
+## DEATH_CAUSE_WINDOW (physics frames), counting `amount` just lost to `source`. Drains that
+## overlap (Null's core and a Static field) are one moment, so the order the errors process in
+## within a frame no longer picks the cause.
+func _frame_cause(source: StringName, amount: float) -> StringName:
+	var now := Engine.get_physics_frames()
+	var window := roundi(Tuning.DEATH_CAUSE_WINDOW * Engine.physics_ticks_per_second)
+	while not _recent_losses.is_empty() and now - int(_recent_losses[0][0]) >= window:
+		_recent_losses.pop_front()
+	_recent_losses.append([now, source, amount])
+	var sums := {}
+	for e: Array in _recent_losses:
+		sums[e[1]] = float(sums.get(e[1], 0.0)) + float(e[2])
+	var best := source
+	for k: StringName in sums:
+		if float(sums[k]) > float(sums[best]):
+			best = k
+	return best
+
+
 ## 06 §9: an error id or the Substrate. Noclip is never a cause (06 §8 TOO THIN).
 static func is_death_cause(source: StringName) -> bool:
 	return source in Tuning.ERROR_IDS or source == CAUSE_SUBSTRATE
 
 
 func death_cause(source: StringName) -> StringName:
-	if is_death_cause(source):
-		return source
-	return _last_damage_source if _last_damage_source != &"" else source
+	if _last_damage_source != &"":
+		return _last_damage_source
+	return source
 
 
 ## 06 §9 contact rules (PlayerContact): cost (at most COHERENCE_MAX_SINGLE_HIT), 1.2 s

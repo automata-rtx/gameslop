@@ -16,7 +16,7 @@ const FULL_SEEDS := 10
 const FULL_PROFILES := "direct,explorer,cautious"
 const MAX_LEVEL_SECONDS := 600.0
 const JSON_PATH := "user://descent_gate_%d.json"
-const PENDING_REASON := "no profile reached the Threshold in this sample; Null's final lethality is M3.4 (docs/qa/open_items.md); game numbers are untouched"
+const PENDING_REASON := "no profile reached the Threshold in this sample; see the M3.4 tables in docs/qa/descent_sim.md before touching a number"
 
 
 func _run_sims(seeds: int, profiles: String) -> Array:
@@ -53,6 +53,13 @@ func _check_chain(results: Array) -> void:
 		for i in levels.size():
 			var e: Dictionary = levels[i]
 			assert_eq(int(e.get("depth", 0)), i + 1, "%s: depths advance one at a time" % tag)
+			# M3.4 telemetry: every level reports its losses per source and its phase intensity;
+			# a dissolve names a source that took Coherence on that level.
+			assert_true(e.get("losses") is Dictionary and e.get("phase_intensity") is Dictionary,
+				"%s: depth %d carries the tuning telemetry" % [tag, i + 1])
+			if String(e.get("outcome", "")) == "dissolved":
+				assert_true((e.get("losses", {}) as Dictionary).has(String(e.get("cause", ""))),
+					"%s: the cause (%s) took Coherence on its level" % [tag, e.get("cause", "")])
 			if i == 0:
 				assert_approx(float(e.get("arrive_coh", 0.0)), 100.0, 0.05, "%s: depth 1 starts at 100 Coherence" % tag)
 				continue

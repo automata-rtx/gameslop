@@ -15,7 +15,8 @@ extends SceneTree
 ## --linger makes every profile visit more rooms and dead ends before its objective; the
 ## explorer lingers by default (M2.7), --no-linger turns that off.
 ## With --csv, each run's Director telemetry is written as
-## <dir>/<profile>_d<depth>_seed<n>.csv and the summary table as <dir>/summary.csv.
+## <dir>/<profile>_d<depth>_seed<n>.csv and the summary table as <dir>/summary.csv (with
+## --descent: <dir>/<profile>_seed<n>_d<depth>.csv per level, M3.4).
 ## With --json, every result is written as one JSON array (the gate test reads it).
 ## Depths beyond 1 start the run there (`RunState.depth`); strata without a grammar
 ## generate as Halls (M1.9).
@@ -129,6 +130,7 @@ func _descents(host: Node, results: Array, wall0: int, script: GDScript) -> void
 			d.profile = profile
 			d.max_seconds = _max_s
 			d.linger = _linger
+			d.csv_dir = _csv_dir
 			var r: Dictionary = await d.call(&"play", s)
 			results.append(r)
 			print("sim-descent %s" % JSON.stringify(r))
