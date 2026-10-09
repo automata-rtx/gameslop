@@ -56,7 +56,7 @@ var _hop_after_dark: bool = false
 var _retreat_from: Vector3 = Vector3.INF
 var _flicker_group: int = -1
 var _present_rng: RandomNumberGenerator = Seeds.rng(0)
-var _beam_state: Array = [true, 0.0]
+var _beam_state: Array = Fixture.new_stutter_state()
 var _flash_frame: int = -1
 var _flash_usec: int = -1
 ## The stutter's sound emitter (the group centroid, or the beam while attached).

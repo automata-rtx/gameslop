@@ -395,6 +395,41 @@ func _scan(dir: String, out: Array[String]) -> void:
 		_scan(dir.path_join(d), out)
 
 
+# --- 12 §6 Flicker intensity: the slow pulse (R16) ---------------------------------------------------------
+
+func test_intensity_0_3_pulses_its_group_and_beam_only() -> void:
+	var saved: Variant = SettingsManager.get_value(&"flicker_intensity")
+	SettingsManager.set_value(&"flicker_intensity", 0.3)
+	var e := _flicker(0)
+	var f0 := _pool.group(0)[0]
+	var lo := INF
+	var hi := -INF
+	var others_steady := true
+	for i in 90:
+		await get_tree().physics_frame
+		lo = minf(lo, f0.intensity)
+		hi = maxf(hi, f0.intensity)
+		for g in [1, 2, 3]:
+			for f in _pool.group(g):
+				others_steady = others_steady and not f.is_flickering() and f.intensity == 1.0
+	assert_gt(lo, 0.7 - 0.01, "the group pulses no deeper than 0.3")
+	assert_lt(lo, 0.85, "and visibly (the tell stays)")
+	assert_gt(hi, 0.95)
+	assert_true(others_steady, "the pulse runs only on Flicker's group")
+	# Attached: the beam pulses the same way.
+	_p.flashlight.set_on(true, true)
+	_place(Vector3(2, 0, 3.0))
+	await _until(2.0, func() -> bool: return e.is_attached())
+	assert_true(e.is_attached())
+	var blo := INF
+	for i in 40:
+		await get_tree().physics_frame
+		blo = minf(blo, _p.flashlight.stutter)
+	assert_gt(blo, 0.7 - 0.01, "the beam's pulse is 0.3 deep too")
+	assert_lt(blo, 0.85, "and visible")
+	SettingsManager.set_value(&"flicker_intensity", saved)
+
+
 # --- determinism ----------------------------------------------------------------------------------------------
 
 func test_hops_are_deterministic_per_seed() -> void:

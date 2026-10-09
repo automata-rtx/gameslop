@@ -56,7 +56,7 @@ static func attach(e: ErrorFlicker) -> void:
 	FlickerPresent.spark(e, e.light_pool.group_centroid(e.current_group))
 	e._set_group(-1)
 	e.attach_time = 0.0
-	e._beam_state = [true, 0.0]
+	e._beam_state = Fixture.new_stutter_state()
 	e.transition_to(Tuning.ERROR_STATE_ATTACHED, "beam on near it %.1f s" % Tuning.FLICKER_ATTACH_TIME)
 	if e.state == Tuning.ERROR_STATE_ATTACHED:
 		e._notice()

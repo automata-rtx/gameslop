@@ -35,7 +35,8 @@ var light_profile: Dictionary = {}
 var _lit_material: Material
 var _flickering: bool = false
 var _flick_on: bool = true
-var _flick_left: float = 0.0
+## The stutter gate (stutter_step).
+var _stutter: Array = new_stutter_state()
 ## 08 §5: Flicker's stutter rate (8 Hz resident, rising to 20 Hz as its charge builds).
 var _flick_hz: float = Tuning.FLICKER_STUTTER_MIN_HZ
 ## Flicker's lunge (08 §5, 02 §8): the 2-frame white flash, then dark for 1.5 s. Neither
@@ -154,7 +155,7 @@ func set_flicker(on: bool) -> void:
 		_rng = RandomNumberGenerator.new()
 		_rng.seed = hash(Vector3i(global_position.round()))
 	_flick_on = true
-	_flick_left = 0.0
+	_stutter = new_stutter_state()
 	if not on:
 		intensity = 1.0 if powered else 0.0
 	_update_process()
@@ -231,22 +232,89 @@ func _process(delta: float) -> void:
 		return
 	if not _flickering or _dark:
 		return
-	_flick_left -= delta
-	if _flick_left > 0.0:
-		return
-	# 02 §8: random on/off at 8 to 20 Hz, around Flicker's current rate (08 §5).
-	_flick_on = not _flick_on
-	_flick_left = 1.0 / _rng.randf_range(_flick_hz, minf(_flick_hz * Tuning.LIGHT_FLICKER_RATE_SPREAD, Tuning.FLICKER_STUTTER_MAX_HZ))
-	intensity = (1.0 if _flick_on else 1.0 - flicker_depth()) if powered else 0.0
-	_apply_visual()
+	var m := stutter_step(_stutter, _flick_hz, delta, _rng)
+	_flick_on = bool(_stutter[0])
+	var want := m if powered else 0.0
+	if want != intensity:
+		intensity = want
+		_apply_visual()
 
 
 ## 12 §6 Flicker intensity (0.3..1): how deep an off instant goes (1: fully dark).
 static func flicker_depth() -> float:
+	return clampf(flicker_setting(), Tuning.SETTINGS_FLICKER_INTENSITY_MIN, 1.0)
+
+
+## The 12 §6 Flicker intensity setting (1.0 without the settings autoload).
+static func flicker_setting() -> float:
 	if not is_instance_valid(SettingsManager):
 		return 1.0
 	var v: Variant = SettingsManager.get_value(&"flicker_intensity")
 	return clampf(float(v), Tuning.SETTINGS_FLICKER_INTENSITY_MIN, 1.0) if v != null else 1.0
+
+
+## 12 §6 blend 0..1 from the slow pulse (setting 0.3) to the full stutter (setting 1.0).
+static func stutter_blend(setting: float) -> float:
+	return clampf(inverse_lerp(Tuning.SETTINGS_FLICKER_INTENSITY_MIN, 1.0, setting), 0.0, 1.0)
+
+
+## The stutter's on/off cycle rate in Hz for a toggle rate `hz` (08 §5, 8..20 toggles a
+## second) under the 12 §6 setting: at 1.0 the stutter's own cycle (hz / 2); at 0.3 the
+## 2 Hz slow pulse; linear in the setting between.
+static func stutter_cycle_hz(setting: float, hz: float) -> float:
+	var full := clampf(hz, Tuning.FLICKER_STUTTER_MIN_HZ, Tuning.FLICKER_STUTTER_MAX_HZ) * 0.5
+	return lerpf(Tuning.SETTINGS_FLICKER_REDUCED_PULSE_HZ, full, stutter_blend(setting))
+
+
+## A fresh stutter gate: [on, seconds to the next toggle, pulse phase 0..1, cycle Hz].
+static func new_stutter_state() -> Array:
+	return [true, 0.0, 0.0, 0.0]
+
+
+## Advances a stutter gate (the fixture's, or the attached beam's) by `delta` at Flicker's
+## toggle rate `hz` and returns the light multiplier (1 lit .. 1 - depth). At setting 1.0:
+## random on/off toggles every 1 / random(hz, 1.5 hz) s (02 §8). Below 1.0 (12 §6) the
+## square stutter blends toward a sine pulse: rate and depth interpolate to 2 Hz and 0.3 at
+## the 0.3 setting, and the random spread fades with the blend. `rng` is presentation only.
+static func stutter_step(state: Array, hz: float, delta: float, rng: RandomNumberGenerator) -> float:
+	var setting := flicker_setting()
+	var depth := flicker_depth()
+	if setting >= 1.0:
+		state[1] = float(state[1]) - delta
+		if float(state[1]) <= 0.0:
+			state[0] = not bool(state[0])
+			var lo := clampf(hz, Tuning.FLICKER_STUTTER_MIN_HZ, Tuning.FLICKER_STUTTER_MAX_HZ)
+			state[1] = 1.0 / rng.randf_range(lo, minf(lo * Tuning.LIGHT_FLICKER_RATE_SPREAD, Tuning.FLICKER_STUTTER_MAX_HZ))
+		return 1.0 if bool(state[0]) else 1.0 - depth
+	var t := stutter_blend(setting)
+	var cycle := float(state[3])
+	if cycle <= 0.0:
+		cycle = _pulse_cycle(setting, hz, t, rng)
+	var phase := float(state[2]) + delta * cycle
+	if phase >= 1.0:
+		phase = fmod(phase, 1.0)
+		cycle = _pulse_cycle(setting, hz, t, rng)
+	state[2] = phase
+	state[3] = cycle
+	var off := pulse_shape(phase, t)
+	state[0] = off < 0.5
+	return 1.0 - depth * off
+
+
+## The pulse's off amount 0..1 at `phase`: a sine (blend 0) blended into the square on/off
+## (blend 1).
+static func pulse_shape(phase: float, blend: float) -> float:
+	var sine := 0.5 - 0.5 * cos(TAU * phase)
+	var square := 1.0 if phase >= 0.5 else 0.0
+	return lerpf(sine, square, blend)
+
+
+## One pulse cycle's rate: the blended rate, with the stutter's random spread scaled by the
+## blend (none at 0.3), never past the stutter's 20 Hz toggles.
+static func _pulse_cycle(setting: float, hz: float, blend: float, rng: RandomNumberGenerator) -> float:
+	var base := stutter_cycle_hz(setting, hz)
+	var spread := lerpf(1.0, rng.randf_range(1.0, Tuning.LIGHT_FLICKER_RATE_SPREAD), blend)
+	return minf(base * spread, maxf(base, Tuning.FLICKER_STUTTER_MAX_HZ * 0.5))
 
 
 func _apply_visual() -> void:

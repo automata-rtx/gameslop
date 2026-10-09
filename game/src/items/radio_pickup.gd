@@ -2,7 +2,7 @@ class_name RadioPickup
 extends ItemPickup
 ## A radio in the world (09 §2). Lying off, it is an ordinary pickup. Set down on (RadioItem
 ## holds use_item 0.5 s) it keeps playing: its static is positional, its LED is lit, and it
-## emits the 10 m `mech` noise every second until its charge runs out (the Echo lure, 08 §6).
+## emits the 10 m `radio` noise every second until its charge runs out (the Echo lure, 08 §6).
 ## `[E] PICK UP` takes it back with what is left of the charge, switched off. A spent radio is
 ## a dead prop and cannot be taken.
 
