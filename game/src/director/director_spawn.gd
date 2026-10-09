@@ -144,6 +144,76 @@ static func null_cell_ok(data: LevelData, player_pos: Vector3, used: Array[Vecto
 	return flat_dist(data.grid.world_of(c), player_pos) >= Tuning.NULL_SPAWN_MIN_DIST
 
 
+## R14 (10 §2, 07 §5.6): on Pursuit entry a dormant Null within 20 m (straight line, XZ)
+## of the player is re-placed before it wakes (it draws nothing while Dormant, so the move
+## is invisible).
+static func null_needs_replace(null_pos: Vector3, player_pos: Vector3) -> bool:
+	return flat_dist(null_pos, player_pos) < Tuning.NULL_SPAWN_MIN_DIST
+
+
+## R14 / R14b: where the Pursuit re-places a dormant Null that is too near the player.
+## 1. The critical-path cell between the player and the Threshold (a shorter walk to the
+##    Threshold than the player's cell) that is >= 20 m (XZ) from the player and whose path
+##    index is nearest the 55% point (ties: the earlier index).
+## 2. Else (R14b, 08 §7: a player past the 55% point has gained the far side) the walkable
+##    cell behind the player (a longer walk to the Threshold than the player's cell) that is
+##    >= 20 m from the player and nearest the 20 m ring.
+## 3. Else the walkable cell farthest (XZ) from the player.
+## Never in the Threshold pocket (the exit room). Pure and deterministic (scan order breaks
+## ties; no random draw). NO_CELL only when no walkable cell lies outside the pocket.
+static func null_pursuit_cell(data: LevelData, player_pos: Vector3) -> Vector2i:
+	var grid := data.grid
+	var path := data.critical_path
+	var to_exit := PackedInt32Array()
+	var pc := grid.cell_of(player_pos)
+	var player_w := -1
+	if path.size() >= 2:
+		to_exit = grid.distance_field(path[path.size() - 1])
+		if grid.in_bounds(pc):
+			player_w = to_exit[grid.idx(pc)]
+	var min_d := Tuning.NULL_SPAWN_MIN_DIST
+	var k55 := roundi((path.size() - 1) * Tuning.NULL_SPAWN_PATH_FRACTION)
+	var best := -1
+	for i in path.size():
+		var c := path[i]
+		if not grid.in_bounds(c) or not grid.is_walkable(c) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+			continue
+		var w := to_exit[grid.idx(c)]
+		# Between the player and the Threshold: nearer the Threshold (walking) than the player.
+		# A player off the reachable grid (mid-pass) counts as at the path's start.
+		if w < 0 or (player_w >= 0 and w >= player_w):
+			continue
+		if flat_dist(grid.world_of(c), player_pos) < min_d:
+			continue
+		if best < 0 or absi(i - k55) < absi(best - k55):
+			best = i
+	if best >= 0:
+		return path[best]
+	var out := LevelData.NO_CELL
+	if player_w >= 0:
+		var ring := INF
+		for i in grid.cell_count():
+			var c := grid.cell_at(i)
+			if not grid.is_walkable(c) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM) or to_exit[i] <= player_w:
+				continue
+			var d := flat_dist(grid.world_of(c), player_pos)
+			if d >= min_d and d < ring:
+				ring = d
+				out = c
+		if out != LevelData.NO_CELL:
+			return out
+	var far_d := -1.0
+	for i in grid.cell_count():
+		var c := grid.cell_at(i)
+		if not grid.is_walkable(c) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+			continue
+		var d := flat_dist(grid.world_of(c), player_pos)
+		if d > far_d:
+			far_d = d
+			out = c
+	return out
+
+
 ## One cell for `id` from `cells` (not `used`): the native hunter prefers 35% to 65% of
 ## the critical path, the others side branches. NO_CELL when none is eligible.
 static func _pick_one(data: LevelData, id: StringName, native: StringName, cells: Array[Vector2i], off_path: Dictionary,
