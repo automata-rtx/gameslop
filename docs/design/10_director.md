@@ -107,7 +107,7 @@ Every rule is a unit-testable function in `Director` with a deterministic clock 
 
 ## Interfaces
 
-- `Director` (per-level node, created by the level scene): `begin(level: LevelData, depth, stratum, arrival: StringName)`, `end()`, `intensity: float`, `phase: StringName`, `aggression: float`, `threat: float`, `try_contact(error) -> bool`, `spawn_error(id, spawn_point)`, `request_scare()`.
+- `Director` (per-level node, created by the level scene): `begin(level: Level, player: Player, arrival: StringName)` (depth, stratum and Cycle come from `level.data` and `GameState`; amended R17, CHANGELOG 2026-10-09), `end()`, `intensity: float`, `phase: StringName`, `aggression: float`, `threat: float`, `try_contact(error) -> bool`, `spawn_error(id, spawn_point)`, `request_scare()`.
 - Listens to: `EventBus.noise_emitted`, `Player.coherence_changed`, `ErrorBase.state_changed/lost_player/contacted_player`, `EventBus.exit_status_changed`, `EventBus.note_found`, `EventBus.hide_state`.
 - Emits: `EventBus.director_phase(phase)`, `EventBus.threat_changed(threat)`.
 

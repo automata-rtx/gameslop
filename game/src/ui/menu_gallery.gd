@@ -2,8 +2,8 @@ class_name MenuGallery
 extends Control
 ## Bench for screenshot review of every menu (04 §11, M2.11): title (DESCEND with loadout
 ## cards, DAILY), each settings tab, the key bindings page and its rebinding prompt, the
-## KEEP / REVERT countdown, pause and its confirmation, the four Archive sections and the run
-## summary. Uses a sample Archive in memory and never writes settings.cfg or meta.json.
+## KEEP / REVERT countdown, the LICENSES item and page (engine, a components page), pause and
+## its confirmation, the four Archive sections and the run summary. Uses a sample Archive in memory and never writes settings.cfg or meta.json.
 ## Flags after `--`:
 ##   --menu-state NAME   show one state
 ##   --menu-shots DIR    save every state as DIR/menu_<state>_<w>x<h>.png, then quit
@@ -11,7 +11,8 @@ extends Control
 const STATES: Array[StringName] = [
 	&"title", &"title_daily", &"settings_display", &"settings_graphics", &"settings_audio",
 	&"settings_controls", &"settings_accessibility", &"settings_gameplay", &"bindings",
-	&"bindings_capture", &"settings_revert", &"pause", &"pause_abandon", &"archive_notes",
+	&"bindings_capture", &"settings_revert", &"settings_licenses", &"licenses_engine",
+	&"licenses_components", &"pause", &"pause_abandon", &"archive_notes",
 	&"archive_errors", &"archive_statistics", &"archive_unlocks", &"summary",
 ]
 const NOTES_FOUND: Array[StringName] = [&"H1", &"H2", &"H3", &"H4", &"P1", &"P3", &"G2", &"O1", &"S4", &"U1"]
@@ -72,14 +73,15 @@ func show_state(state: StringName) -> void:
 				t.page.on_open()
 				t.menu.select_id(TitlePage.ITEM_DAILY)
 		&"settings_display", &"settings_graphics", &"settings_audio", &"settings_controls", \
-				&"settings_accessibility", &"settings_gameplay", &"settings_revert":
-			var shell := _shell_with(&"settings", SettingsMenu.new())
+				&"settings_accessibility", &"settings_gameplay", &"settings_revert", &"settings_licenses":
+			var shell := _shell_with(&"settings", _title_settings())
 			var s := shell.current() as SettingsMenu
 			var tab := StringName(String(state).trim_prefix("settings_"))
 			if state == &"settings_revert":
 				tab = SettingsSchema.TAB_DISPLAY
 			s.list.select_id(tab)
-			s.focus_rows()
+			if state != &"settings_licenses":
+				s.focus_rows()
 			match state:
 				&"settings_display":
 					s.rows.select_id(&"brightness")
@@ -96,6 +98,12 @@ func show_state(state: StringName) -> void:
 			b.rows.select_id(&"sprint")
 			if state == &"bindings_capture":
 				b.begin_capture(&"crouch", 0)
+		&"licenses_engine", &"licenses_components":
+			var shell := _shell_with(&"settings", _title_settings())
+			shell.open(SettingsMenu.PAGE_LICENSES)
+			var lm := shell.current() as LicensesMenu
+			if state == &"licenses_components":
+				lm.list.select_id(LicensesMenu.component_section(0))
 		&"pause", &"pause_abandon":
 			_pause_backdrop()
 			var pm := PauseMenu.new()
@@ -129,8 +137,16 @@ func _shell_with(id: StringName, p: MenuPage) -> MenuShell:
 	shell.register(id, p)
 	if id == &"settings":
 		shell.register(&"bindings", BindingsMenu.new())
+		shell.register(SettingsMenu.PAGE_LICENSES, LicensesMenu.new())
 	shell.open_root(id)
 	return shell
+
+
+## The settings page as the title opens it (with LICENSES, 16 §6).
+static func _title_settings() -> SettingsMenu:
+	var s := SettingsMenu.new()
+	s.show_licenses = true
+	return s
 
 
 ## A stand-in for the frozen frame under the pause overlay: the HUD over a warm field.

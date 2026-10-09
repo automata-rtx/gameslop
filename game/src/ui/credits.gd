@@ -1,12 +1,16 @@
 class_name Credits
 extends RefCounted
-## The credits (16 §6; CHANGELOG 2026-10-07: they live in Strings): the AI disclosure, the
-## Godot Engine with its MIT notice in full, every third-party component the engine carries
-## (name and license, from Engine.get_copyright_info(), the notices tools/ci/licenses.gd
-## writes into LICENSES.txt), the bundled typeface with its copyright line, the sound (all
-## synthesized; no CC0 recording is used, so none is listed, 03 §1), where the full license
-## texts are, and "Thank you for looking." Shown by the ending (CreditsRoll); the Archive can
-## show the same entries. Pure data: no nodes.
+## The credits (16 §6; CHANGELOG 2026-10-07: they live in Strings). Two readings (R17,
+## CHANGELOG 2026-10-09, superseding the M2.15 roll content):
+## - roll_entries(): what the ending rolls over the corridor (01 §8 step 4): 16 §6's lines
+##   only: the AI disclosure, `Godot Engine. MIT license.`, the typeface line and its
+##   copyright, the sound line (all synthesized; no CC0 recording is used, 03 §1), where the
+##   full license texts are, and "Thank you for looking."
+## - entries(): the full list for the LICENSES submenu (title settings, 16 §6) and the
+##   Archive: the same lines plus the engine's MIT notice in full and every third-party
+##   component the engine carries (name and license, from Engine.get_copyright_info(), the
+##   notices tools/ci/licenses.gd writes into LICENSES.txt).
+## Pure data: no nodes.
 
 const STYLE_LINE := &"line"
 const STYLE_HEADING := &"heading"
@@ -18,7 +22,25 @@ const STYLE_THANKS := &"thanks"
 const ENGINE_ENTRY := "Godot Engine"
 
 
-## The credits in order: [{text, style}]. Gaps carry an empty text.
+## The ending's roll in order (16 §6's lines only): [{text, style}]. Gaps carry an empty text.
+static func roll_entries() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	_add(out, Strings.CREDITS_AI, STYLE_LINE)
+	_add(out, "", STYLE_GAP)
+	_add(out, Strings.CREDITS_GODOT, STYLE_LINE)
+	_add(out, "", STYLE_GAP)
+	_add(out, Strings.CREDITS_FONT, STYLE_LINE)
+	_add(out, Strings.CREDITS_FONT_COPYRIGHT, STYLE_SMALL)
+	_add(out, "", STYLE_GAP)
+	_add(out, Strings.CREDITS_SOUND, STYLE_LINE)
+	_add(out, "", STYLE_GAP)
+	_add(out, Strings.CREDITS_LICENSES_NOTE, STYLE_SMALL)
+	_add(out, "", STYLE_GAP)
+	_add(out, Strings.CREDITS_THANKS, STYLE_THANKS)
+	return out
+
+
+## The full credits in order (the LICENSES submenu, the Archive): [{text, style}].
 static func entries() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	_add(out, Strings.CREDITS_AI, STYLE_LINE)
@@ -45,10 +67,19 @@ static func entries() -> Array[Dictionary]:
 	return out
 
 
-## Every text the credits print, one per line (tests, the forbidden-words check).
+## Every text the full credits print, one per line (tests, the forbidden-words check).
 static func text() -> String:
+	return _join(entries())
+
+
+## Every text the ending's roll prints, one per line.
+static func roll_text() -> String:
+	return _join(roll_entries())
+
+
+static func _join(list: Array[Dictionary]) -> String:
 	var lines := PackedStringArray()
-	for e in entries():
+	for e in list:
 		if e["style"] != STYLE_GAP:
 			lines.append(String(e["text"]))
 	return "\n".join(lines)
@@ -69,6 +100,15 @@ static func godot_license_lines() -> Array[String]:
 ## parts, in order, without repeats).
 static func component_lines() -> Array[String]:
 	var out: Array[String] = []
+	for c in components():
+		out.append(Strings.CREDITS_COMPONENT_LINE.replace("{name}", c["name"]).replace("{license}", c["license"]))
+	return out
+
+
+## The engine's third-party components in its order: [{name, license}], the license being the
+## ids of its parts, in order, without repeats, joined by ", ".
+static func components() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	for info: Dictionary in Engine.get_copyright_info():
 		var n := String(info.get("name", ""))
 		if n.is_empty() or n == ENGINE_ENTRY:
@@ -78,7 +118,7 @@ static func component_lines() -> Array[String]:
 			var lic := String(part.get("license", ""))
 			if not lic.is_empty() and not licenses.has(lic):
 				licenses.append(lic)
-		out.append(Strings.CREDITS_COMPONENT_LINE.replace("{name}", n).replace("{license}", ", ".join(licenses)))
+		out.append({"name": n, "license": ", ".join(licenses)})
 	return out
 
 

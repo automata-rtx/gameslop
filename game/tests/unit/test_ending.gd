@@ -1,6 +1,6 @@
 extends TestCase
 ## M2.15 the ending (01 §8, 16 §6): the variant condition, the first-viewing rule, the
-## Coherence restore and the white cut's Reduce flashing fade; the credits carry the AI
+## Coherence restore and the white cut's Reduce flashing fade; the full credits (the LICENSES page, R17) carry the AI
 ## disclosure, the engine's MIT notice, every engine component with its license and the
 ## bundled font's copyright line; no ending text uses a forbidden word (01 §2); the
 ## sequence reaches the summary on its own, skips only after the first viewing, and the
@@ -185,7 +185,7 @@ func test_roll_prints_every_entry_and_finishes() -> void:
 	add_child(roll)
 	await await_frames(2)
 	var printed := roll.printed_text()
-	for e in Credits.entries():
+	for e in Credits.roll_entries():
 		if e["style"] != Credits.STYLE_GAP:
 			assert_contains(printed, String(e["text"]))
 	var done: Array = []
@@ -196,7 +196,7 @@ func test_roll_prints_every_entry_and_finishes() -> void:
 		roll.advance(0.1)
 		steps += 1
 	assert_eq(done.size(), 1, "finished once")
-	var thanks_y := roll.column.position.y + roll.thanks.position.y + roll.thanks.size.y * 0.5
+	var thanks_y := roll.column.position.y + roll.thanks_box.position.y + roll.thanks_box.size.y * 0.5
 	assert_approx(thanks_y, roll.size.y * 0.5, 2.0, "the last line stands at the centre")
 	roll.free()
 

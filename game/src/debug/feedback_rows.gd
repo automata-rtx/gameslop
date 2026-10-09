@@ -140,7 +140,8 @@ static func all() -> Array[Dictionary]:
 	rows.append(_row(&"dissolve", "Dissolve", "11 §3", "ISMR", {&"window": 36,
 			&"expect": {&"I": ["dissolve.", "pulse.dissolve", "cr.coherence", "post."], &"S": ["play.dissolve"],
 			&"R": ["Coherence"]}}))
-	rows.append(_row(&"threshold", "Threshold crossed", "11 §3", "ISR", {}, PENDING, "the ending scene lands with M2.15"))
+	rows.append(_row(&"threshold", "Threshold crossed", "11 §3", "ISR", {&"window": 20,
+			&"expect": {&"I": ["x.white"], &"S": ["play.threshold_tone"], &"R": [".vis"]}}))
 	return rows
 
 

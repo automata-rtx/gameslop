@@ -5,11 +5,16 @@ extends MenuPage
 ## ui_dim, `RESET TAB TO DEFAULTS` at the bottom. Every change applies at once through
 ## SettingsManager; window mode and resolution ask KEEP / REVERT with a 10 s countdown
 ## (12 §1). The Controls tab opens the key bindings page (`bindings`), so no list scrolls
-## past one screen (04 §7). Reachable from the title and from pause.
+## past one screen (04 §7). Reachable from the title and from pause. From the title
+## (`show_licenses`) the left column ends with LICENSES, which opens the `licenses` page
+## (16 §6, R17).
 
 const ROW_RESET := &"reset_tab"
 const ROW_BINDINGS := &"key_bindings"
 const PAGE_BINDINGS := &"bindings"
+const PAGE_LICENSES := &"licenses"
+## The left column's LICENSES item (not a tab).
+const ITEM_LICENSES := &"licenses"
 const ITEM_KEEP := &"keep"
 const ITEM_REVERT := &"revert"
 
@@ -20,15 +25,19 @@ var revert_box: VBoxContainer
 var revert_line: Label
 var revert_list: MenuList
 var tab: StringName = SettingsSchema.TAB_DISPLAY
+## Set before the page is built: the title's settings list LICENSES (16 §6).
+var show_licenses: bool = false
 
 
 func build() -> void:
 	title = Strings.MENU_SETTINGS
 	for i in SettingsSchema.TABS.size():
 		list.add_item(SettingsSchema.TABS[i], Strings.SETTINGS_TABS[i])
+	if show_licenses:
+		list.add_item(ITEM_LICENSES, Strings.MENU_LICENSES)
 	list.selection_changed.connect(func(id: StringName) -> void: show_tab(id))
-	list.activated.connect(func(_id: StringName) -> void: focus_rows())
-	list.advanced.connect(func(_id: StringName) -> void: focus_rows())
+	list.activated.connect(_on_list_entered)
+	list.advanced.connect(_on_list_entered)
 	rows = MenuRows.new()
 	rows.retreated.connect(focus_list)
 	rows.focus_taken.connect(func() -> void: list.active = false)
@@ -66,6 +75,13 @@ func handle_cancel() -> bool:
 	return false
 
 
+func _on_list_entered(id: StringName) -> void:
+	if id == ITEM_LICENSES:
+		open_requested.emit(PAGE_LICENSES)
+	else:
+		focus_rows()
+
+
 func focus_rows() -> void:
 	if rows.rows().is_empty():
 		return
@@ -86,6 +102,11 @@ func focus_list() -> void:
 ## Builds the rows of `tab_id` (12 §2 to §7 order).
 func show_tab(tab_id: StringName) -> void:
 	if tab_id == &"" or rows == null:
+		return
+	if tab_id == ITEM_LICENSES:
+		rows.clear_rows()
+		MenuPage.clear_children(extras)
+		description.text = Strings.LICENSES_DESCRIPTION
 		return
 	var keep := rows.current().id if rows.current() != null and tab_id == tab else &""
 	tab = tab_id
