@@ -223,11 +223,10 @@ func _sound() -> Dictionary:
 				var playing: bool = p.get(&"playing")
 				var id: StringName = p.get_meta(AudioPool.META_ID, &"")
 				var prev: Array = _audio_state.get(p, [false, -1.0])
-				# A start is a new META_STARTED stamp, whether or not the sample is still
-				# playing at this frame: a 40 ms tick that began and ended between two slow
-				# frames under load is still a sound that played (M3.1: interact_hold's tick).
-				var restarted := not is_equal_approx(float(prev[1]), float(started)) and float(started) >= 0.0
-				if (playing and not prev[0]) or restarted:
+				# A start is counted by its stamp, set the moment `play()` is called: `playing`
+				# turns true only when the audio thread picks the playback up, which lags under load.
+				var new_start: bool = float(started) >= 0.0 and not is_equal_approx(float(prev[1]), float(started))
+				if new_start:
 					_audio_counts[id] = int(_audio_counts.get(id, 0)) + 1
 				_audio_state[p] = [playing, started]
 	for id: Variant in _audio_counts:
