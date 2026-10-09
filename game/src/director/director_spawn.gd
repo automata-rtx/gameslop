@@ -425,22 +425,28 @@ static func static_cuts_path(grid: LevelGrid, centre: Vector3, radius: float, fr
 	if covered.has(to):
 		return true
 	covered.erase(from)
-	var seen: Dictionary = {from: true}
-	var queue: Array[Vector2i] = [from]
+	# M3.5: the search over cell indices and packed arrays (was ~5 ms per Static on a
+	# 580-cell level, three Statics in one Director tick); the same steps as can_step.
+	var shut := PackedByteArray()
+	shut.resize(grid.cell_count())
+	for c: Vector2i in covered:
+		shut[grid.idx(c)] = 1
+	var goal := grid.idx(to)
+	var w := grid.size.x
+	var steps := PackedInt32Array([-w, 1, w, -1])
+	shut[grid.idx(from)] = 1
+	var queue := PackedInt32Array([grid.idx(from)])
 	var head := 0
 	while head < queue.size():
-		var c := queue[head]
+		var i := queue[head]
 		head += 1
-		if c == to:
+		if i == goal:
 			return false
+		var m := grid.open_mask(i)
 		for d in 4:
-			if not grid.can_step(c, d):
-				continue
-			var n := c + LevelGrid.DIRS[d]
-			if seen.has(n) or covered.has(n):
-				continue
-			seen[n] = true
-			queue.append(n)
+			if (m & (1 << d)) != 0 and shut[i + steps[d]] == 0:
+				shut[i + steps[d]] = 1
+				queue.append(i + steps[d])
 	return true
 
 

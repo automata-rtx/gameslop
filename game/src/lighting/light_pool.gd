@@ -1,14 +1,11 @@
 class_name LightPool
 extends Node3D
 ## 02 §6 light pooling: only the N fixtures nearest the player have a light (24/16/10 by
-## preset), re-evaluated every 0.25 s; the nearest 4/2/0 of those cast shadows. A light
-## keeps its fixture while that fixture stays in the nearest set, so only the far edge of
-## the set swaps, and a re-assigned light ramps in (with distance_fade) to hide the swap.
-## Interface (02): register_fixture, set_group_flicker, power_wave. Also is_lit(pos) for
-## the player's observation light queries (06, 08 §4), and Flicker's group queries (08
-## Interfaces): group_centroid, groups_adjacent, is_group_lit, lit_fixtures_near, plus its
-## presentation hooks (stutter rate, lunge flash and dark). The stutter's sound is Flicker's
-## own loop (FlickerPresent), not the fixture hum.
+## preset), re-evaluated every 0.25 s; the nearest 4/2/0 cast shadows. A light keeps its
+## fixture while it stays in the nearest set (only the far edge swaps), and a re-assigned
+## light ramps in (with distance_fade) to hide the swap. Interface (02): register_fixture,
+## set_group_flicker, power_wave; is_lit(pos) (06, 08 §4); Flicker's group queries and hooks
+## (08 Interfaces). Its stutter's sound is its own loop (FlickerPresent), not the hum.
 
 ## The node the pool measures from (the player's camera or body). Null: the pool origin.
 var target: Node3D
@@ -50,7 +47,7 @@ var _topology: FixtureGroups
 var grid: LevelGrid:
 	set(g):
 		grid = g
-		_anchors.clear()
+		_clear_anchors()
 		_selector = LightSelector.new(g)
 		for f in _fixtures:
 			_selector.add(f.global_position)
@@ -58,6 +55,8 @@ var grid: LevelGrid:
 var _selector: LightSelector = LightSelector.new()
 ## Fixture -> its light's anchor (fixtures never move; cleared when the light fields change).
 var _anchors: Dictionary = {}
+var _by_pos: FixtureIndex  # M3.5 buckets over fixture positions and light anchors, rebuilt when stale
+var _by_anchor: FixtureIndex
 
 
 ## Reads the stratum's fixture light (02 §7) and the preset's pool size and shadow count.
@@ -70,7 +69,7 @@ func configure(data: StratumData, preset: StringName = Tuning.QUALITY_PRESET_DEF
 	light_kind = Tuning.LIGHT_FIXTURE_KIND.get(data.id, &"omni")
 	light_drop = float(Tuning.LIGHT_FIXTURE_DROP_STRATUM.get(data.id, Tuning.LIGHT_FIXTURE_DROP))
 	light_out = float(Tuning.LIGHT_FIXTURE_OUT_STRATUM.get(data.id, 0.0))
-	_anchors.clear()
+	_clear_anchors()
 	spot_angle = Tuning.LIGHT_SPOT_ANGLE
 	spot_attenuation = Tuning.LIGHT_SPOT_ANGLE_ATTENUATION
 	shadow_bias = data.shadow_bias
@@ -81,7 +80,7 @@ func configure(data: StratumData, preset: StringName = Tuning.QUALITY_PRESET_DEF
 
 ## Re-creates the pooled lights after a change to the light fields (tuning, preset).
 func rebuild_lights() -> void:
-	_anchors.clear()
+	_clear_anchors()
 	_make_lights(pool_size, shadowed)
 	reevaluate()
 
@@ -210,10 +209,17 @@ func is_group_lit(group_id: int) -> bool:
 	return false
 
 
-## Lit fixtures (powered, not in a lunge dark) within `radius` of `pos` in XZ whose light
-## has a clear grid sight line to `pos` (CHANGELOG 2026-10-08), nearest first.
-func lit_fixtures_near(pos: Vector3, radius: float) -> Array[Fixture]:
-	return FixtureGroups.lit_near(_fixtures, grid, anchor_of, pos, radius)
+## Lit fixtures (powered, not lunge-dark; of `group` when >= 0) within `radius` of `pos` in XZ
+## with a clear grid sight line to `pos` (CHANGELOG 2026-10-08), nearest first.
+func lit_fixtures_near(pos: Vector3, radius: float, group: int = -1) -> Array[Fixture]:
+	if _by_pos == null or _by_pos.size() != _fixtures.size():
+		_by_pos = FixtureIndex.of_fixtures(_fixtures)
+	return FixtureGroups.lit_near(_by_pos.pick(_fixtures, pos, radius), grid, anchor_of, pos, radius, group)
+
+
+func _clear_anchors() -> void:
+	_anchors.clear()
+	_by_anchor = null
 
 
 func _topo() -> FixtureGroups:
@@ -257,7 +263,9 @@ func power_wave(origin: Vector3) -> float:
 ## fixture has a clear grid sight line to it (pooled lights cast no shadows, so without the
 ## grid test they would light through 0.2 m walls; CHANGELOG 2026-10-08).
 func is_lit(pos: Vector3) -> bool:
-	for f in _fixtures:
+	if _by_anchor == null or _by_anchor.size() != _fixtures.size():
+		_by_anchor = FixtureIndex.of_anchors(_fixtures, anchor_of, light_range)
+	for f in _by_anchor.pick(_fixtures, pos, _by_anchor.reach):
 		if not f.powered:
 			continue
 		var r := float(f.light_value(&"range", light_range))

@@ -33,6 +33,7 @@ func _ready() -> void:
 	interactable.prompt = Strings.PROMPT_USE
 	interactable.interacted.connect(_on_interacted)
 	_hum = AudioManager.loop(SOUND_HUM, self).start()
+	AudioCull.mark(_hum)  # M3.5: silent beyond its max_distance
 
 
 func _on_interacted(_player: Node) -> void:

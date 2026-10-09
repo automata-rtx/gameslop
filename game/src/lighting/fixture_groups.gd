@@ -116,11 +116,13 @@ static func _cell_group(grid: LevelGrid, c: Vector2i, all: Array[Fixture], group
 
 ## LightPool.lit_fixtures_near: of `fixtures`, the lit ones (powered, not lunge-dark) within
 ## `radius` of `pos` in XZ whose light (`anchor_of`) has a clear grid line to it, nearest first.
-static func lit_near(fixtures: Array[Fixture], grid: LevelGrid, anchor_of: Callable, pos: Vector3, radius: float) -> Array[Fixture]:
+## `group` >= 0 keeps only that group's fixtures.
+static func lit_near(fixtures: Array[Fixture], grid: LevelGrid, anchor_of: Callable, pos: Vector3, radius: float,
+		group: int = -1) -> Array[Fixture]:
 	var out: Array[Fixture] = []
 	var d: Array[float] = []
 	for f in fixtures:
-		if not f.is_lit():
+		if not f.is_lit() or (group >= 0 and f.group_id != group):
 			continue
 		var dist := flat_dist(f.global_position, pos)
 		if dist > radius:

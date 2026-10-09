@@ -1,6 +1,6 @@
 class_name ErrorTiming
 extends RefCounted
-## Script cost of the errors (08 §2 processing budget, 14 BUDGET_ERRORS_SCRIPT_MS 0.3 ms):
+## Script cost of the errors (08 §2 processing budget, 14 BUDGET_ERRORS_SCRIPT_MS 1.0 ms):
 ## microseconds spent in every error's _physics_process during the last completed physics
 ## frame, in total and per error id. Exposed as the Performance custom monitor
 ## `noclip/errors_ms` (the debugger's monitors, F3, the error arena).

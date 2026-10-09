@@ -307,6 +307,7 @@ func tick(delta: float) -> void:
 		if l != null:
 			AudioOcclusion.tick(pool.players_3d, l.global_position)
 			AudioOcclusion.tick(_loops3d, l.global_position)
+			AudioCull.tick(_loops3d, l.global_position)  # M3.5: silent far prop loops stop
 	feeds.tick(_threat, _coherence)
 
 

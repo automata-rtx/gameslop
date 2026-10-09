@@ -8,12 +8,18 @@ extends RefCounted
 ## step 0.25 m"). Collision for both is one sloped convex shape per cell (BuildCollision):
 ## the slope runs through the middle of every riser.
 
-var plan: BuildPlan
+## The plan that owns this helper, held weakly: the plan holds its BuildSlopes, so a strong
+## reference back was a cycle that kept every level's plan (its mesh arrays, about 5 MB)
+## alive after the level was freed (M3.5, 14 §10 memory growth per level).
+var plan: BuildPlan:
+	get:
+		return _plan.get_ref() as BuildPlan if _plan != null else null
 var grid: LevelGrid
+var _plan: WeakRef
 
 
 func _init(p: BuildPlan) -> void:
-	plan = p
+	_plan = weakref(p)
 	grid = p.grid
 
 

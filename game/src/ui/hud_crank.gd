@@ -38,8 +38,17 @@ func _ready() -> void:
 
 
 func set_charge(v: float) -> void:
+	var before := _shown(charge)
 	charge = clampf(v, 0.0, Tuning.FLASH_CHARGE_MAX)
-	_render()
+	# M3.5: the charge drains every frame; repaint only when what the gauge shows changes
+	# (a theme override is a relayout).
+	if _shown(charge) != before:
+		_render()
+
+
+## What the gauge shows for `c`: the whole percent, below 15%, at 100%.
+static func _shown(c: float) -> Vector3i:
+	return Vector3i(roundi(c), int(c < Tuning.CRANK_GAUGE_DANGER_BELOW), int(c >= Tuning.FLASH_CHARGE_MAX))
 
 
 func set_light(on: bool) -> void:

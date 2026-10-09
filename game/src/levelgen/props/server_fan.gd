@@ -18,6 +18,19 @@ func _ready() -> void:
 	if AudioManager.has_sound(&"fan_loop"):
 		_loop = AudioManager.loop(&"fan_loop", self)
 		_loop.start(0.5)
+		AudioCull.mark(_loop)
+	_cull_spin()
+
+
+## M3.5: the rotor animates only while the grille is on screen (a Server level hangs ~36;
+## off screen nobody sees the spin). The enabler disables the AnimationPlayer's processing
+## until the renderer reports the grille visible.
+func _cull_spin() -> void:
+	var en := VisibleOnScreenEnabler3D.new()
+	en.name = "SpinOnScreen"
+	en.aabb = AABB(Vector3(-0.45, -0.1, -0.45), Vector3(0.9, 0.2, 0.9))
+	en.enable_node_path = NodePath("../" + String(get_path_to(anim)))
+	add_child(en)
 
 
 func _exit_tree() -> void:
