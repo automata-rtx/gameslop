@@ -46,7 +46,7 @@ func play(run_seed: int) -> Dictionary:
 		await tree.process_frame
 	var levels: Array = result[&"levels"]
 	var played := 0
-	while _run.phase == Run.PHASE_PLAYING and played < max_levels:
+	while is_instance_valid(_run) and _run.phase == Run.PHASE_PLAYING and played < max_levels:
 		var depth := GameState.run.depth
 		var entry := {&"depth": depth, &"stratum": _run.data.stratum, &"arrive_coh": snappedf(_run.player.coherence, 0.1),
 			&"arrive_items": belt(_run.player.inventory)}
@@ -94,7 +94,7 @@ func play(run_seed: int) -> Dictionary:
 			result[&"outcome"] = &"error"
 			result[&"error"] = "no arrival after the Landing at depth %d" % depth
 			break
-	if _run.phase == Run.PHASE_PLAYING and played >= max_levels:
+	if is_instance_valid(_run) and _run.phase == Run.PHASE_PLAYING and played >= max_levels:
 		result[&"outcome"] = &"limit"
 	result[&"spent"] = snappedf(GameState.run.coherence_spent, 0.1)
 	result[&"proper_exits"] = GameState.run.proper_exits
