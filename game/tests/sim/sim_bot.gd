@@ -172,6 +172,8 @@ var _dark_for_flicker: bool = false
 var _flicker_goal: Vector3 = Vector3.INF
 ## Seconds the inserted step-around waypoints are kept (no periodic repath meanwhile).
 var _sidestep_left: float = 0.0
+## R14: soft-wall crossings in the current plan (near cell -> direction), Pursuit only.
+var _soft_cross: Dictionary = {}
 
 
 ## Plays `run_seed` at `depth` (first Descent off, so depth 1 carries a hunter).
@@ -773,6 +775,13 @@ func _objective() -> Vector3:
 func _follow(goal: Vector3, dt: float, sprint: bool, look: Vector3 = Vector3.ZERO) -> void:
 	var p := run.player
 	var grid := run.data.grid
+	if nul.soft_active():
+		# R14: a soft-wall crossing under way (SimBotNull holds noclip facing the wall).
+		_halt()
+		if nul.soft_tick(dt):
+			return
+		_clear_path()
+		_soft_cross = {}
 	_repath_left -= dt
 	# No periodic repath inside a doorway: the cell under the body flips at the edge.
 	var in_doorway := not _tight.is_empty() and _tight[0]
@@ -792,6 +801,19 @@ func _follow(goal: Vector3, dt: float, sprint: bool, look: Vector3 = Vector3.ZER
 		_halt()
 		return
 	_field_wait = 0.0
+	var here := grid.cell_of(p.global_position)
+	if _soft_cross.has(here) and not _waypoints.is_empty() \
+			and grid.cell_of(_waypoints[0]) == here + LevelGrid.DIRS[int(_soft_cross[here])] \
+			and DirectorSpawn.flat_dist(p.global_position, grid.world_of(here)) < SimBotNull.SOFT_AT:
+		# R14: at the near cell's centre: noclip through the soft wall.
+		if nul.soft_allowed():
+			_decide("noclip_soft")
+			nul.begin_soft(here, int(_soft_cross[here]))
+			_halt()
+			nul.soft_tick(dt)
+			return
+		_soft_cross = {}
+		_clear_path()
 	var waiting := run.exit != null and goal.is_equal_approx(_exit_point()) and not run.exit.is_open()
 	if _waypoints.is_empty() or (waiting and _waypoints.size() <= 1):
 		_halt()
@@ -830,21 +852,33 @@ func _plan_path(goal: Vector3) -> void:
 	var prev := grid.cell_of(p.global_position)
 	var cells := ErrorStatic.cell_path(grid, prev, grid.cell_of(goal))
 	_field_cells = {}
+	_soft_cross = {}
 	if profile != PROFILE_DIRECT:
 		# Static's counter is to go around (08 §3): take a detour when one exists, else
-		# wait outside the field for it to drift (_follow).
+		# wait outside the field for it to drift (_follow). R14: in the Pursuit, soft walls
+		# count as steps when the bot can pay for them (the shorter way wins).
+		var soft := nul.soft_allowed()
 		var fields := _static_cells()
 		var both := fields.duplicate()
 		both.merge(nul.cells(grid))
-		var around := _path_avoiding(prev, grid.cell_of(goal), both)
+		var around := _path_avoiding(prev, grid.cell_of(goal), both, soft)
 		if around.is_empty() and both.size() != fields.size():
-			around = _path_avoiding(prev, grid.cell_of(goal), fields)
+			around = _path_avoiding(prev, grid.cell_of(goal), fields, soft)
 		if not around.is_empty():
 			cells = around
 		else:
 			_field_cells = fields
+			_soft_cross = {}
+	if not _soft_cross.is_empty() and _soft_cross.has(prev):
+		# The first crossing is from the bot's own cell: walk to its centre first.
+		_push_wp(grid.world_of(prev), false)
 	for c in cells:
 		var dir := LevelGrid.DIRS.find(c - prev)
+		if dir >= 0 and int(_soft_cross.get(prev, -1)) == dir:
+			# A soft wall (R14): from the near cell's centre straight through (no doorway pair).
+			_push_wp(grid.world_of(c), false)
+			prev = c
+			continue
 		if dir >= 0 and grid.in_bounds(prev) and grid.wall(prev, dir) != LevelGrid.NONE:
 			var a := grid.world_of(prev)
 			var b := grid.world_of(c)
@@ -878,11 +912,15 @@ func _static_cells() -> Dictionary:
 
 ## BFS over the grid that never enters `blocked` (except the goal), but may leave it when
 ## it starts inside (the way out of a field first); empty when there is no such path.
-func _path_avoiding(from: Vector2i, to: Vector2i, blocked: Dictionary) -> Array[Vector2i]:
+## With `soft` (R14) a soft wall between walkable cells is a step too; the crossings the
+## path takes are recorded in `_soft_cross`.
+func _path_avoiding(from: Vector2i, to: Vector2i, blocked: Dictionary, soft: bool = false) -> Array[Vector2i]:
 	var g := run.data.grid
 	var out: Array[Vector2i] = []
-	if blocked.is_empty() or not g.in_bounds(from) or not g.in_bounds(to):
+	_soft_cross = {}
+	if (blocked.is_empty() and not soft) or not g.in_bounds(from) or not g.in_bounds(to):
 		return out
+	var via_soft := {}
 	var prev := {from: from}
 	var escaping := {from: blocked.has(from)}
 	var queue: Array[Vector2i] = [from]
@@ -893,7 +931,8 @@ func _path_avoiding(from: Vector2i, to: Vector2i, blocked: Dictionary) -> Array[
 		if c == to:
 			break
 		for d in 4:
-			if not g.can_step(c, d):
+			var through := soft and SimBotNull.soft_edge(g, c, d, nul.bad_soft)
+			if not through and not g.can_step(c, d):
 				continue
 			var n := c + LevelGrid.DIRS[d]
 			if prev.has(n):
@@ -901,6 +940,8 @@ func _path_avoiding(from: Vector2i, to: Vector2i, blocked: Dictionary) -> Array[
 			if blocked.has(n) and n != to and not bool(escaping[c]):
 				continue
 			prev[n] = c
+			if through:
+				via_soft[n] = d
 			escaping[n] = bool(escaping[c]) and blocked.has(n)
 			queue.append(n)
 	if not prev.has(to) or from == to:
@@ -908,6 +949,8 @@ func _path_avoiding(from: Vector2i, to: Vector2i, blocked: Dictionary) -> Array[
 	var k := to
 	while k != from:
 		out.push_front(k)
+		if via_soft.has(k):
+			_soft_cross[prev[k]] = via_soft[k]
 		k = prev[k]
 	return out
 

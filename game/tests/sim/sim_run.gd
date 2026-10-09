@@ -16,7 +16,7 @@ extends SceneTree
 ## Depths beyond 1 start the run there (`RunState.depth`); strata without a grammar
 ## generate as Halls (M1.9).
 
-const SUMMARY_HEADER := "profile,depth,seed,stratum,outcome,time_s,calm,build,peak,peak_chased,relief,max_intensity,contacts,unchased,relief_contacts,refused,chases,sent_away,violations,stuck_events,coherence,hunter,static,spawned,scares,scare_contacts,decisions,dpm,max_gap_s,hides,items_used,pickups,cause,null_woke_s,null_core_s,null_drained"
+const SUMMARY_HEADER := "profile,depth,seed,stratum,outcome,time_s,calm,build,peak,peak_chased,relief,max_intensity,contacts,unchased,relief_contacts,refused,chases,sent_away,violations,stuck_events,coherence,hunter,static,spawned,scares,scare_contacts,decisions,dpm,max_gap_s,hides,items_used,pickups,cause,null_woke_s,null_core_s,null_drained,null_wake_dist,soft_passes"
 
 var _seeds: int = 3
 var _from: int = 1
@@ -126,7 +126,8 @@ static func summary_rows(results: Array) -> Array:
 			r.get(&"scares", 0), r.get(&"scare_contacts", 0), r.get(&"decisions", 0), r.get(&"dpm", 0.0),
 			r.get(&"max_decision_gap_s", 0.0), r.get(&"hides", 0),
 			_sum((r.get(&"items_used", {}) as Dictionary).values()), r.get(&"pickups", 0),
-			r.get(&"cause", ""), r.get(&"null_woke_s", -1.0), r.get(&"null_core_s", 0.0), r.get(&"null_drained", 0.0)])
+			r.get(&"cause", ""), r.get(&"null_woke_s", -1.0), r.get(&"null_core_s", 0.0), r.get(&"null_drained", 0.0),
+			r.get(&"null_wake_dist", -1.0), r.get(&"soft_passes", 0)])
 	return out
 
 

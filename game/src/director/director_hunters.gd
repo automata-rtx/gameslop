@@ -25,6 +25,8 @@ var pending: Array[StringName] = []
 ## Hunters that arrived in Search after a drop (05 §3), and chasers sent away by the cap.
 var awake: Array[ErrorBase] = []
 var cap_retreats: int = 0
+## Dormant Nulls re-placed on Pursuit entry for being within 20 m of the player (R14).
+var null_replaced: int = 0
 ## Flicker instance id -> Director seconds of its last respawn (10 §4: once per 60 s).
 var _respawned_at: Dictionary = {}
 
@@ -274,11 +276,19 @@ func act(a: StringName) -> void:
 
 
 ## 10 §2 Pursuit entry (after the Substrate's Calm): Null wakes through `ErrorNull.pursue()`.
+## R14: a dormant Null within 20 m of the player is first re-placed at
+## `DirectorSpawn.null_pursuit_cell` (it draws nothing while Dormant: the move is unseen).
 func wake_null() -> int:
 	var n := 0
 	for h in _hunters():
 		if h.error_id != &"null":
 			continue
+		if h.is_dormant() and _player_ok() and _grid() != null \
+				and DirectorSpawn.null_needs_replace(h.global_position, director.player.global_position):
+			var c := DirectorSpawn.null_pursuit_cell(director.data, director.player.global_position)
+			if c != LevelData.NO_CELL:
+				h.global_position = _grid().world_of(c)
+				null_replaced += 1
 		if h.has_method(&"pursue"):
 			h.call(&"pursue")
 		elif h.has_method(&"wake"):

@@ -85,6 +85,7 @@ func test_spawned_dormant_and_woken_only_by_pursuit() -> void:
 	_advance(0.2)
 	assert_eq(_d.phase, DirectorPacing.PURSUIT)
 	assert_eq(n.state, Tuning.ERROR_STATE_CHASE, "Pursuit wakes it")
+	assert_eq(_d.hunters.null_replaced, 0, "20 m or more away at Pursuit entry: not moved (R14)")
 	var at := n.global_position
 	await await_physics_frames(30)
 	assert_approx(n.global_position.distance_to(at), Tuning.NULL_SPEED_CYCLE1 * 0.5, 0.02, "walks at 2.4 m/s")
@@ -94,6 +95,34 @@ func test_spawned_dormant_and_woken_only_by_pursuit() -> void:
 		_advance(1.0)
 	assert_eq(_d.hunters.cap_retreats, 0, "the cap never sends Null away")
 	assert_eq(n.state, Tuning.ERROR_STATE_CHASE)
+
+
+## R14: the player walked up to the dormant Null during Calm; Pursuit re-places it (it
+## draws nothing yet) at DirectorSpawn.null_pursuit_cell, 20 m or more away, then wakes it.
+func test_pursuit_re_places_a_dormant_null_within_20_m() -> void:
+	_d.begin(_level, _p, Tuning.RUN_ARRIVE_START)
+	var n := _null()
+	assert_not_null(n)
+	if n == null:
+		return
+	var g := _level.data.grid
+	var path := _level.data.critical_path
+	# 8 m before Null's cell on the critical path: walked up to it during Calm.
+	var near := path[maxi(path.find(g.cell_of(n.global_position)) - 4, 0)]
+	_p.global_position = g.world_of(near) + Vector3.UP * 0.05
+	await await_physics_frames(2)
+	var before := DirectorSpawn.flat_dist(n.global_position, _p.global_position)
+	assert_true(DirectorSpawn.null_needs_replace(n.global_position, _p.global_position), "set up within 20 m")
+	var want := DirectorSpawn.null_pursuit_cell(_level.data, _p.global_position)
+	_advance(30.1)
+	assert_eq(_d.phase, DirectorPacing.PURSUIT)
+	assert_eq(_d.hunters.null_replaced, 1)
+	assert_eq(g.cell_of(n.global_position), want, "at the R14 cell")
+	assert_true(path.has(want) and path.find(want) > path.find(near), "on the critical path, Threshold side")
+	assert_gt(DirectorSpawn.flat_dist(n.global_position, _p.global_position), before, "farther than it was")
+	assert_eq(n.state, Tuning.ERROR_STATE_CHASE, "then woken")
+	_p.global_transform = _level.spawn_transform()
+	await await_physics_frames(2)
 
 
 func test_not_awake_after_a_drop() -> void:
