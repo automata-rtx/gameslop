@@ -221,6 +221,39 @@ func test_a_lure_pulls_it() -> void:
 	assert_eq(e.last_heard, lure)
 
 
+func test_mech_noise_is_not_a_lure() -> void:
+	# R16 (M2.17 review S3): 08 §6 lists `impact` and `radio`. A stopped player who cranks or
+	# clicks the flashlight (both `mech`, at the player) keeps Echo frozen where it stood.
+	var e := await _following()
+	await _seconds(1.0)  # the player stands; Echo stands at its target
+	var at := e.body_position()
+	var mechs: Array[int] = [0]
+	var count := func(_pos: Vector3, _r: float, kind: StringName) -> void:
+		if kind == Tuning.NOISE_KIND_MECH:
+			mechs[0] += 1
+	EventBus.noise_emitted.connect(count)
+	_p.flashlight.set_charge(0.0)
+	Input.action_press(&"crank")
+	await _seconds(4.0)
+	Input.action_release(&"crank")
+	for i in 2:
+		Input.action_press(&"flashlight")
+		await await_physics_frames(2)
+		Input.action_release(&"flashlight")
+		await _seconds(0.2)
+	EventBus.noise_emitted.disconnect(count)
+	assert_gt(mechs[0], 4, "the crank ticked and the light clicked (mech noises at the player)")
+	assert_eq(e.lure, Vector3.INF, "no lure")
+	assert_eq(e.state, Tuning.ERROR_STATE_FOLLOW, "still frozen in Follow")
+	assert_lt(ErrorFixture.flat(e.body_position(), at), 0.05, "it did not move")
+	# An impact still lures it.
+	var lure := e.body_position() + Vector3(6.0, 0, 1.0)
+	EventBus.noise_emitted.emit(lure, Tuning.ECHO_LURE_IMPACT_RADIUS * 1.5, Tuning.NOISE_KIND_IMPACT)
+	assert_eq(e.lure, lure)
+	assert_false(ErrorEcho.LURE_KINDS.has(Tuning.NOISE_KIND_MECH))
+	assert_true(ErrorEcho.LURE_KINDS.has(Tuning.NOISE_KIND_RADIO))
+
+
 # --- contact, notice, evasion, Satiated -------------------------------------------------------------
 
 func test_contact_only_through_the_gate() -> void:

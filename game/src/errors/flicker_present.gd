@@ -75,17 +75,15 @@ static func silence() -> void:
 	AudioManager.silence(Tuning.FLICKER_SILENCE_BUS, Tuning.FLICKER_DARK_TIME)
 
 
-## Attached (08 §5): the beam stutters at `hz` (an on/off gate stepped by `rng`, a
-## presentation rng). `state` holds [on, seconds to the next toggle].
+## Attached (08 §5): the beam stutters at `hz` through the fixtures' stutter gate
+## (Fixture.stutter_step, so the 12 §6 Flicker intensity setting and its slow pulse apply
+## to the beam too). `state` is a Fixture.new_stutter_state(); `rng` is presentation only.
 static func beam_stutter(f: Flashlight, state: Array, hz: float, delta: float, rng: RandomNumberGenerator) -> void:
 	if f == null:
 		return
-	state[1] = float(state[1]) - delta
-	if float(state[1]) <= 0.0:
-		state[0] = not bool(state[0])
-		var lo := clampf(hz, Tuning.FLICKER_STUTTER_MIN_HZ, Tuning.FLICKER_STUTTER_MAX_HZ)
-		state[1] = 1.0 / rng.randf_range(lo, minf(lo * Tuning.LIGHT_FLICKER_RATE_SPREAD, Tuning.FLICKER_STUTTER_MAX_HZ))
-		f.stutter = (1.0 if bool(state[0]) else 1.0 - Fixture.flicker_depth())
+	var m := Fixture.stutter_step(state, hz, delta, rng)
+	if m != f.stutter:
+		f.stutter = m
 		f.refresh()
 
 

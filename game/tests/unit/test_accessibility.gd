@@ -37,7 +37,7 @@ func _hud() -> Hud:
 func test_every_accessibility_option_is_covered_here() -> void:
 	for key in SettingsSchema.keys_for(SettingsSchema.TAB_ACCESSIBILITY):
 		if key == &"flicker_intensity":
-			continue  # owned by the fixtures and Flicker (02 §6, 08 §4); see the M2.12 report
+			continue  # owned by the fixtures and Flicker (02 §6, 08 §5): unit/test_flicker_intensity.gd
 		assert_contains(KEYS, key, "12 §6 option %s has an end-to-end test" % key)
 
 

@@ -257,7 +257,7 @@ const CAUSE_LINES: Dictionary = {
 const CAUSE_EXPLANATIONS: Dictionary = {
 	&"static": "Coherence drained while you stood inside the hum.",
 	&"still": "It closed the distance while nothing was looking at it.",
-	&"flicker": "It came out of a lit fixture while your light was on.",
+	&"flicker": "It came out of the lights you stood in.",
 	&"echo": "It arrived on your own footsteps, late.",
 	&"null": "Nothing was drawn where you stood.",
 	&"substrate": "The unfinished floor stopped drawing you.",
