@@ -87,6 +87,7 @@ var _tone_played: bool = false
 var _materials: Dictionary = {}
 var _doors: Tween
 var _pulse: Tween
+var _power_wave: Tween
 
 
 func _ready() -> void:
@@ -174,6 +175,32 @@ func seal() -> void:
 func power() -> void:
 	if lock == Tuning.LOCK_POWERED:
 		open()
+
+
+## The breaker's power wave reaches the exit in `delay` seconds (RunLevelSetup.run_power_wave).
+func power_after(delay: float) -> void:
+	if _power_wave != null:
+		_power_wave.kill()
+	_power_wave = create_tween()
+	_power_wave.tween_interval(maxf(delay, 0.0))
+	_power_wave.tween_callback(power)
+
+
+## 08 §5 Variant B: the fuse was pulled after the throw. A Powered exit loses its power: any
+## wave still on its way is cancelled, and an open exit seals back to EXIT: POWERED (the latch,
+## the doors close, dark and dead as before the throw).
+func unpower() -> void:
+	if _power_wave != null:
+		_power_wave.kill()
+		_power_wave = null
+	if lock != Tuning.LOCK_POWERED:
+		return
+	var was_open := is_open()
+	powered = false
+	_set_status(Tuning.EXIT_STATUS_POWERED)
+	_apply_closed(DOOR_OPEN_TIME if was_open else 0.0)
+	if was_open:
+		AudioManager.play_3d(SOUND_LATCH, sight_point.global_position)
 
 
 ## Seconds left in the Cycled phase the status names (0 for every other lock).

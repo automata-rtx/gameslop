@@ -197,8 +197,11 @@ func apply_coherence(delta: float, source: StringName) -> void:
 		return
 	var before := coherence
 	coherence = clampf(coherence + delta, 0.0, Tuning.COHERENCE_MAX)
+	# A slow drain (0.2/s, R15) leaves float residue near 0; a loss that reaches it is 0.
+	if delta < 0.0 and is_zero_approx(coherence):
+		coherence = 0.0
 	var applied := coherence - before
-	if is_zero_approx(applied):
+	if is_zero_approx(applied) and coherence > 0.0:
 		return
 	if applied < 0.0 and is_death_cause(source):
 		_last_damage_source = source

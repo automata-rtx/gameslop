@@ -29,7 +29,6 @@ Deferred work found during production. Each line names the task that should abso
 - (M2.14 done: `Director._tick` calls `MusicDirector.set_intensity` at 10 Hz, guarded.)
 - (M2.7 done: explorer lingers by default; cautious hides, uses its items' counters and plays Flicker's and Echo's counters; see the M2.7 report for the sim matrix.)
 - Player owner: player.gd is 421 lines (limit 400, 14 §6); split it in the next player task.
-- Player/run owner: apply `RunState.crank_rate_mult` (player crank) and `flicker_attract_mult` (Flicker, M2.5); update `RunState.distance_m` from player movement.
 - (M2.10 done: custom user dir, note recording, strata_reached, score via Clock.)
 
 - M1.12 feedback gaps: closed by M2.12 (the HUD caption stack subscribes to `audio_cue`; `Still within 8 m` and `Echo at 4 m` are implemented rows; the bench pins captions on and hints off while it runs).

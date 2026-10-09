@@ -27,6 +27,9 @@ var use_item_held: bool = false
 var _prev: Dictionary = {}
 var _sprint_latched: bool = false
 var _crouch_latched: bool = false
+## 12 §7 auto-sprint off: after a stamina lockout the held sprint key reads released until
+## it is let go once.
+var _sprint_held_off: bool = false
 
 
 ## Reads the InputMap. When `locked` (dissolving, cinematic) everything reads released.
@@ -45,7 +48,9 @@ func poll(locked: bool = false) -> void:
 		_sprint_latched = not _sprint_latched
 	if just.call(&"crouch"):
 		_crouch_latched = not _crouch_latched
-	sprint = _sprint_latched if _mode(SETTING_SPRINT_MODE) == MODE_TOGGLE else bool(now[&"sprint"])
+	if _sprint_held_off and not bool(now[&"sprint"]):
+		_sprint_held_off = false
+	sprint = _sprint_latched if _mode(SETTING_SPRINT_MODE) == MODE_TOGGLE else bool(now[&"sprint"]) and not _sprint_held_off
 	crouch = _crouch_latched if _mode(SETTING_CROUCH_MODE) == MODE_TOGGLE else bool(now[&"crouch"])
 	interact_held = now[&"interact"]
 	interact_pressed = just.call(&"interact")
@@ -60,6 +65,11 @@ func poll(locked: bool = false) -> void:
 ## Toggle sprint ends when stamina runs out, so it does not resume by itself (12 §7).
 func clear_sprint_latch() -> void:
 	_sprint_latched = false
+
+
+## 12 §7 auto-sprint off: a held sprint key stops counting until it is released.
+func hold_sprint_until_release() -> void:
+	_sprint_held_off = true
 
 
 func clear_crouch_latch() -> void:

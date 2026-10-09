@@ -68,7 +68,7 @@ func test_insert_takes_the_fuse_and_arms_the_lever() -> void:
 	assert_true(b.throw_breaker())
 
 
-func test_pull_gives_the_fuse_back_until_the_lever_is_thrown() -> void:
+func test_pull_gives_the_fuse_back() -> void:
 	var b := _breaker(Breaker.VARIANT_B)
 	assert_false(b.socket_interactable.can_interact(_p), "an empty socket offers nothing to pull")
 	_inv.add(&"fuse")
@@ -85,8 +85,15 @@ func test_pull_gives_the_fuse_back_until_the_lever_is_thrown() -> void:
 	_inv.add(&"fuse")
 	b.insert_fuse(_p)
 	b.throw_breaker()
-	assert_false(b.pull_fuse(_p), "thrown: the fuse stays")
-	assert_eq(b.socket.collision_layer, 0)
+	# 08 §5 (R15 S1): the fuse can be pulled after the throw too; that trips the breaker.
+	assert_eq(b.socket.collision_layer & PlayerLayers.INTERACTABLE_MASK, PlayerLayers.INTERACTABLE_MASK)
+	assert_true(b.socket_interactable.can_interact(_p), "thrown: PULL FUSE still offered")
+	var cuts := []
+	b.power_cut.connect(func(pos: Vector3) -> void: cuts.append(pos))
+	assert_true(b.pull_fuse(_p), "thrown: the fuse comes out")
+	assert_eq(cuts.size(), 1, "pulling after the throw cuts the power")
+	assert_false(b.is_thrown, "the breaker trips")
+	assert_true(b.tripped)
 
 
 func test_pull_needs_room_on_the_belt() -> void:
@@ -207,3 +214,34 @@ func test_card_reader_stub_offers_swipe_or_no_card() -> void:
 	assert_true(_inv.keycard, "the reader does not take the card")
 	assert_false(r.interactable.can_interact(_p), "once")
 	assert_false(r.swipe(_p))
+
+
+## 08 §5 (R15 S1): re-inserting the fuse after a trip re-runs the throw: the bus event, the
+## 25 m `mech` noise and the lever; pulling it before any throw cuts nothing.
+func test_reinsert_after_a_trip_rethrows() -> void:
+	var b := _breaker(Breaker.VARIANT_B)
+	var cuts := []
+	b.power_cut.connect(func(pos: Vector3) -> void: cuts.append(pos))
+	_inv.add(&"fuse")
+	b.insert_fuse(_p)
+	assert_true(b.pull_fuse(_p))
+	assert_eq(cuts.size(), 0, "not thrown yet: nothing to cut")
+	assert_false(b.tripped)
+	b.insert_fuse(_p)
+	assert_true(b.throw_breaker())
+	assert_true(b.pull_fuse(_p))
+	assert_eq(cuts.size(), 1)
+	var thrown := []
+	var cb := func(pos: Vector3) -> void: thrown.append(pos)
+	EventBus.breaker_thrown.connect(cb)
+	var noises := []
+	var ncb := func(pos: Vector3, radius: float, kind: StringName) -> void: noises.append([radius, kind])
+	EventBus.noise_emitted.connect(ncb)
+	assert_true(b.insert_fuse(_p))
+	EventBus.breaker_thrown.disconnect(cb)
+	EventBus.noise_emitted.disconnect(ncb)
+	assert_true(b.is_thrown, "re-inserting re-runs the throw")
+	assert_false(b.tripped)
+	assert_eq(thrown.size(), 1, "breaker_thrown again (the run's power wave)")
+	assert_true(noises.has([Tuning.NOISE_BREAKER_RADIUS, Tuning.NOISE_KIND_MECH]), "the 25 m mech noise again")
+	assert_false(b.interactable.enabled, "the lever is down again")
