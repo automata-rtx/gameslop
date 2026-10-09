@@ -10,7 +10,9 @@ extends Node3D
 ## Halls, Garage, Offices use the elevator cabin. M3.2 (review S12): a Landing into the
 ## Substrate is its lit white pocket, the same shell drawn with the Substrate's materials
 ## (lines on black at u_floor 0.55) and lit by one studio light instead of the cabin's lights
-## (`apply_theme`). The stairwell landing for Pools and Server is still the cabin.
+## (`apply_theme`). R22: a Landing into Pools or Server is the stairwell (`LandingStairwell`):
+## the same shell in the stratum's materials, a half-flight going down, a handrail and one
+## wall-mounted fixture; the elevator's lamps and lights are gone.
 
 signal choice_made(kind: StringName)
 signal door_opened
@@ -80,6 +82,8 @@ var theme: StringName = &""
 var _cabin_lights: Array[Light3D] = []
 var _cabin_lamps: Array[MeshInstance3D] = []
 var studio_light: OmniLight3D
+## The stairwell's wall fixture light (Pools, Server); null in the other themes.
+var stair_light: OmniLight3D
 
 
 func _init() -> void:
@@ -138,6 +142,9 @@ static func next_stratum() -> StringName:
 ## unchanged. Other strata keep the elevator cabin.
 func apply_theme(stratum: StringName) -> void:
 	theme = stratum
+	if LandingStairwell.is_stairwell(stratum):
+		_apply_stairwell(stratum)
+		return
 	if stratum != Tuning.STRATUM_SUBSTRATE:
 		return
 	var surface := load(SUBSTRATE_SURFACE) as Material
@@ -152,6 +159,37 @@ func apply_theme(stratum: StringName) -> void:
 	for l in _cabin_lights:
 		l.visible = false
 	_build_studio_light()
+
+
+## 05 §4 stairwell (R22): the shell's walls and ceiling take the stratum's wall and ceiling
+## materials, the door leaves its door metal; the rubber floor slab, the cabin handrail, the
+## ceiling panel, the door lamp and both cabin lights go; `LandingStairwell` adds the landing
+## block, the half-flight, the rail and the wall fixture with its light.
+func _apply_stairwell(stratum: StringName) -> void:
+	var doomed: Array[Node] = []
+	for c in geometry.get_children():
+		var mi := c as MeshInstance3D
+		if mi == null or mi == _panel_quad:
+			continue
+		match mi.get_meta(&"role", &"") as StringName:
+			&"wall":
+				mi.material_override = LandingStairwell.material(stratum, &"wall")
+			&"ceiling":
+				mi.material_override = LandingStairwell.material(stratum, &"ceiling")
+			&"floor", &"rail":
+				mi.visible = false
+				if mi.has_meta(&"body"):
+					doomed.append(mi.get_meta(&"body") as Node)
+		if _cabin_lamps.has(mi):
+			mi.visible = false
+	for b in doomed:
+		geometry.remove_child(b)
+		b.free()
+	for leaf in [_door_l, _door_r]:
+		(leaf as MeshInstance3D).material_override = LandingStairwell.material(stratum, &"door")
+	for l in _cabin_lights:
+		l.visible = false
+	stair_light = LandingStairwell.build(geometry, stratum)
 
 
 ## The pocket's studio light (the level's rig, 02 §7): a stand, a tilted head with a white
@@ -309,17 +347,17 @@ func _build_cabin() -> void:
 	var hw := CABIN_SIZE.x * 0.5
 	var hd := CABIN_SIZE.z * 0.5
 	var h := CABIN_SIZE.y
-	_box(Vector3(CABIN_SIZE.x, WALL, CABIN_SIZE.z), Vector3(0, -WALL * 0.5, 0), rubber, true)
-	_box(Vector3(CABIN_SIZE.x, WALL, CABIN_SIZE.z), Vector3(0, h + WALL * 0.5, 0), steel, false)
-	_box(Vector3(WALL, h, CABIN_SIZE.z), Vector3(-hw - WALL * 0.5, h * 0.5, 0), steel, true)
-	_box(Vector3(WALL, h, CABIN_SIZE.z), Vector3(hw + WALL * 0.5, h * 0.5, 0), steel, true)
-	_box(Vector3(CABIN_SIZE.x, h, WALL), Vector3(0, h * 0.5, hd + WALL * 0.5), steel, true)
+	_box(Vector3(CABIN_SIZE.x, WALL, CABIN_SIZE.z), Vector3(0, -WALL * 0.5, 0), rubber, true, &"floor")
+	_box(Vector3(CABIN_SIZE.x, WALL, CABIN_SIZE.z), Vector3(0, h + WALL * 0.5, 0), steel, false, &"ceiling")
+	_box(Vector3(WALL, h, CABIN_SIZE.z), Vector3(-hw - WALL * 0.5, h * 0.5, 0), steel, true, &"wall")
+	_box(Vector3(WALL, h, CABIN_SIZE.z), Vector3(hw + WALL * 0.5, h * 0.5, 0), steel, true, &"wall")
+	_box(Vector3(CABIN_SIZE.x, h, WALL), Vector3(0, h * 0.5, hd + WALL * 0.5), steel, true, &"wall")
 	# Front wall around the door opening.
 	var left_w := DOOR_X - DOOR_WIDTH * 0.5 + hw
 	var right_w := hw - (DOOR_X + DOOR_WIDTH * 0.5)
-	_box(Vector3(left_w, h, WALL), Vector3(-hw + left_w * 0.5, h * 0.5, -hd - WALL * 0.5), steel, true)
-	_box(Vector3(right_w, h, WALL), Vector3(hw - right_w * 0.5, h * 0.5, -hd - WALL * 0.5), steel, true)
-	_box(Vector3(DOOR_WIDTH, h - DOOR_HEIGHT, WALL), Vector3(DOOR_X, (h + DOOR_HEIGHT) * 0.5, -hd - WALL * 0.5), steel, true)
+	_box(Vector3(left_w, h, WALL), Vector3(-hw + left_w * 0.5, h * 0.5, -hd - WALL * 0.5), steel, true, &"wall")
+	_box(Vector3(right_w, h, WALL), Vector3(hw - right_w * 0.5, h * 0.5, -hd - WALL * 0.5), steel, true, &"wall")
+	_box(Vector3(DOOR_WIDTH, h - DOOR_HEIGHT, WALL), Vector3(DOOR_X, (h + DOOR_HEIGHT) * 0.5, -hd - WALL * 0.5), steel, true, &"wall")
 	# The door: dark jambs and header proud of the wall, the black shaft behind the opening,
 	# two leaves with a seam between them, and a warm lamp over the opening.
 	var jz := -hd + JAMB * 0.5
@@ -336,7 +374,7 @@ func _build_cabin() -> void:
 		lamp.set_shader_parameter(&"emission_strength", DOOR_LAMP_EMISSION)
 	_cabin_lamps.append(_box(Vector3(0.36, 0.05, 0.03), Vector3(DOOR_X, DOOR_HEIGHT + JAMB + 0.1, -hd + 0.015), lamp, false))
 	# Handrail and the ceiling light panel.
-	_box(Vector3(0.04, 0.04, CABIN_SIZE.z * 0.8), Vector3(hw - 0.06, 0.95, 0), black, false)
+	_box(Vector3(0.04, 0.04, CABIN_SIZE.z * 0.8), Vector3(hw - 0.06, 0.95, 0), black, false, &"rail")
 	var lit := (load(EMISSIVE) as Material).duplicate() as ShaderMaterial
 	if lit != null:
 		lit.set_shader_parameter(&"emission_strength", CEILING_EMISSION)
@@ -378,8 +416,9 @@ func _steel(albedo: Color, pattern: int) -> ShaderMaterial:
 	return m
 
 
-func _box(sz: Vector3, pos: Vector3, mat: Material, solid: bool) -> MeshInstance3D:
+func _box(sz: Vector3, pos: Vector3, mat: Material, solid: bool, role: StringName = &"") -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
+	mi.set_meta(&"role", role)
 	var bm := BoxMesh.new()
 	bm.size = sz
 	mi.mesh = bm
@@ -397,6 +436,7 @@ func _box(sz: Vector3, pos: Vector3, mat: Material, solid: bool) -> MeshInstance
 		body.add_child(cs)
 		body.position = pos
 		geometry.add_child(body)
+		mi.set_meta(&"body", body)
 	return mi
 
 

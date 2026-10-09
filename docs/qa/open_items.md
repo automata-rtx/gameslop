@@ -104,8 +104,8 @@ Deferred work found during production. Each line names the task that should abso
 
 R20 closed S1(a) (the Landing panel prints the real gain), S2's first step (crank row only in Build, Peak and Pursuit), S5 (mirror test), S7 (05 text), S4(a) (the arena's 15 m T6 frames) and S4(c)/(d) (T5/T6 by-eye record, `docs/qa/visual_targets_by_eye.md`). S6 is R19's. The rest, each with an owner milestone:
 
-- **M4** (Landing owner): the stairwell Landing for Pools and Server (05 §4; review N2, M2 review S12). Both still use the elevator cabin. Not trivial: a new themed shell, lights and door for two strata, with tour frames.
-- **M4** (Archive owner): Polaroid thumbnails in the Archive (13 §5; review N2, M2 review N10). Polaroids show as a count. Not trivial: needs a capture path for the in-world photo and a thumbnail grid page.
+- ~~**M4** (Landing owner): the stairwell Landing for Pools and Server.~~ Done in R22 (`LandingStairwell`; frames: `run_bench -- --landing-only --landing-stratum pools|server`). Real GPU: check the Server stairwell's red light level and the half-flight's read from the player's eye.
+- ~~**M4** (Archive owner): Polaroid thumbnails in the Archive.~~ Done in R22 (`PolaroidThumbs` on the Statistics page, from the painted photographs; no capture path was needed).
 - **M4** (doors owner): an open door leaf (95°) can trap a body in the pocket between the leaf and the wall on its hinge side (review N2; item above, M3.4).
 - **M4** (errors owner): the contact hit plays twice on an Echo or Flicker contact, and two `[contact]` captions show (review N2; items above, M3.3 and M2.12).
 - **cp-12 decides, then cp-13** (tuning): the Landing gain. If the human runs arrive at depths 3 to 6 averaging 90 or more Coherence, halve it to 10 (rule pre-agreed in R20, `human_check_M3.md` Part T). S2's second step (re-arm the 0.8 wake after Build holds ≥ 0.95 for 60 s with no chase) only if cp-12's humans still report a flat top.

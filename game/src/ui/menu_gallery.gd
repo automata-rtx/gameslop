@@ -72,6 +72,7 @@ static func sample_archive() -> void:
 	m.stats["coherence_spent"] = 1180
 	m.stats["deaths_by"] = {"still": 4, "echo": 2, "flicker": 1, "static": 1, "null": 3, "substrate": 0}
 	m.notes_found = NOTES_FOUND.duplicate()
+	m.polaroids_seen.assign([0, 3, 4, 6])
 	m.codex = {"static": 5, "still": 3, "echo": 1, "flicker": 0, "null": 0}
 	for id: StringName in [&"glowstick", &"radio", &"flare", &"cartographer", &"lightbearer", &"daily", &"codex_still"]:
 		m.unlocks[String(id)] = true
