@@ -14,4 +14,4 @@ Copy of `docs/design/16_release_and_steam.md` §4, ticked per build.
 | Death by each error and the win write meta.json | | | |
 | Ending, credits, Endless | | | |
 | Daily locks after one attempt | | | |
-| Forbidden words grep clean | | | |
+| Forbidden words grep clean | | | Automated by tests/unit/test_text_gate.gd; re-read the store page text by hand |

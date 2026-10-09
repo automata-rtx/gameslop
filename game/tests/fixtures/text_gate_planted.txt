@@ -1,0 +1,14 @@
+PLANTED HITS FOR THE TEXT GATE (M3.7). This file is a test fixture, never shipped.
+Each line below must be caught by exactly the rule named in its tag.
+[forbidden] An entity stands in the Backrooms.
+[forbidden] Almond water, a smiler and a partygoer. Bacteria. A Monster. The enemy. Level 0.
+[forbidden] Many entities and many enemies.
+[style] Run!
+[style] Wait... what was that
+[style] Wait… what was that
+[style] Two  spaces.
+[model] Built by Claude Sonnet 5.5.
+[model] Written with claude-3 and Opus.
+[model] The AI is Claude.
+[clean] A person who is becoming less real. The identity of the builder. Level 03.
+[clean] an AI (Claude, Anthropic)

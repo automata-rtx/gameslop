@@ -265,7 +265,7 @@ const CAUSE_EXPLANATIONS: Dictionary = {
 	&"flicker": "It came out of the lights you stood in.",
 	&"echo": "It arrived on your own footsteps, late.",
 	&"null": "Nothing was drawn where you stood.",
-	&"substrate": "The unfinished floor stopped drawing you.",
+	&"substrate": "Coherence drained away on the unfinished floor.",
 	&"abandoned": "The Descent was left unfinished.",
 	&"threshold": "The front door opened onto daylight.",   # the win (01 §8); M2.15
 }
