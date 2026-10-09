@@ -12,15 +12,17 @@ extends ErrorBase
 ## straight line; when the player stops it reaches the target and freezes. No heard step for
 ## the trail-loss timeout (6 s to 4 s by aggression; a `tear` keeps it) -> Search at the last
 ## heard point, never the point itself nor its cell; 10 s, then Wander (an evasion). Lures:
-## an impact, radio or mech noise nearer than the current trail point redirects it until a
+## an impact or radio noise nearer than the current trail point redirects it until a
 ## newer step is heard. Contact within 1.0 m through the gates; Satiated walks back along
 ## its own steps. Contact comes only from Follow; a Relief hint ends a Follow (R12).
 ## Scene contract: %Body (CharacterBody3D, layer 3) holding %Shimmer
 ## (MeshInstance3D, echo_shimmer shader) and %Agent (NavigationAgent3D); %Senses.
 
-## Lure kinds (08 §6): a thrown glowstick or flare lands as `impact`; the radio is `radio`
-## (08) and emits `mech` (09), so both count.
-const LURE_KINDS: Array[StringName] = [Tuning.NOISE_KIND_IMPACT, &"radio", Tuning.NOISE_KIND_MECH]
+## Lure kinds (08 §6): a thrown glowstick or flare lands as `impact`; the radio emits
+## `radio` (09 §2). Nothing else lures: a loud `mech` noise (crank, flashlight toggle,
+## breaker, vending) acts through suspicion only (Search toward it from Wander, 08 §2), so a
+## stopped player who cranks or clicks the light does not pull a frozen Echo off its trail.
+const LURE_KINDS: Array[StringName] = [Tuning.NOISE_KIND_IMPACT, Tuning.NOISE_KIND_RADIO]
 
 @onready var body: CharacterBody3D = %Body
 @onready var agent: NavigationAgent3D = %Agent
