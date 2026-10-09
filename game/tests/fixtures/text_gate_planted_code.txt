@@ -1,0 +1,7 @@
+extends Node
+# a comment that says entity! and is ignored
+func f() -> void:
+	label.text = "An entity waits!"   # trailing comment with monster
+	other.text = 'Wait... here'
+	var ok := "DEPTH 03 \"quoted\" # not a comment"
+	var mark := "!"
