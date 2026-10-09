@@ -43,6 +43,17 @@ static func clamp_ambience(duck_db: float, room_tone_db: float, room_floor: Floo
 	return maxf(duck_db, ambience_floor_db(room_tone_db, room_floor))
 
 
+## 03 §6 rule 2: the most a sound may be played at on the Errors bus so its peak stays at or
+## under -6 dBFS before the limiter. `peak_db` is the file's peak (manifest), `distance` the
+## emitter's distance to the listener; the attenuation follows AudioStreamPlayer3D's inverse
+## model (unit size `unit_size`) capped at the player's `max_db`, and panning is taken at its
+## loudest (one channel at full), so the bound holds for any direction. Returns a dB offset
+## (may be positive: a quiet or distant sound is never turned up by it, callers take the min).
+static func errors_headroom_db(peak_db: float, distance: float, max_db: float = 3.0, unit_size: float = Tuning.AUDIO_UNIT_SIZE) -> float:
+	var att := minf(linear_to_db(unit_size / maxf(distance, 0.001)), max_db)
+	return Tuning.AUDIO_ERRORS_BUS_MAX_DB - peak_db - att
+
+
 ## Coherence (0..100) to drain (0..1).
 static func drain_from_coherence(coherence: float) -> float:
 	return clampf(1.0 - coherence / 100.0, 0.0, 1.0)
