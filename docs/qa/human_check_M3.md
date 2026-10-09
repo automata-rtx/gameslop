@@ -90,7 +90,7 @@ Notice:
 
 ### Stage 2. Depth 1: Halls `[2:00 to 8:00]`
 
-The first Descent has Static only, placed away from the main route. The exit is Open or Powered.
+The first Descent has Static only, drifting near the main route between the breaker and the exit. The exit is Powered: it needs the breaker.
 
 **The place (pillars 4 and 5).**
 - Name the first thing that felt wrong about the Halls (scale, repetition, light, absence). Was it subtle or obvious?
