@@ -42,12 +42,14 @@ Fill this in while you play `docs/qa/human_check_M3.md`. Short answers; `could n
 ## Stage 4. Landing and the sawtooth
 - Cabin: relief, pause or loading; length:
 - Item choice understood; picked; why:
-- +20 Coherence noticed:
+- Coherence gain noticed (the panel prints the real gain; none at full):
+- Coherence entering each cabin (depth 1 / 2 / 3 / 4 / 5); world looked less real before depth 6 (when):
 - Sawtooth log (time, dread / peak / relief, three words):
   -
   -
   -
 - Any dull stretch (when, where):
+- Intensity stuck at its height for minutes with nothing happening (when, where, after cranking?):
 - Any startle; earned or cheap:
 
 ## Stage 5. Depths 2 and 3
@@ -131,6 +133,7 @@ Fill this in while you play `docs/qa/human_check_M3.md`. Short answers; `could n
 - Null wake pop:
 - Credits readability:
 - Also (Pools bubbles, Substrate pixels, title corridor, flare, Cycled display):
+- T5 (stratum named from one frame) / T6 (Static, Still, Flicker at 15 m, flashlight off):
 
 ## Part T. Targeted runs
 | Run (launch line) | Depth | Outcome | Coherence start / end | Notes |

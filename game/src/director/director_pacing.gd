@@ -100,7 +100,12 @@ func on_sprint_step() -> void:
 	add(Tuning.INTENSITY_NOISE_SPRINT_STEP)
 
 
+## The crank row counts only where the time input runs (Build, Peak, Pursuit). In Calm and
+## Relief cranking is recovery and adds nothing, not even an input that stops decay (R20, S2:
+## the sawtooth must fall).
 func on_crank() -> void:
+	if not crank_input_applies():
+		return
 	add(Tuning.INTENSITY_NOISE_CRANK)
 
 
@@ -189,6 +194,11 @@ func step(dt: float, nearest_hunter_d: float = INF, chasing: int = 0, hunters: i
 ## (its row decays at −0.03/s), so the time input rests there (cp-04 reading, M1.13 ruling).
 func time_input_applies() -> bool:
 	return phase != CALM and phase != RELIEF
+
+
+## 10 §2 crank row: the phases where the time input runs (R20).
+func crank_input_applies() -> bool:
+	return time_input_applies()
 
 
 ## The nearest-hunter row: every phase but Relief (M1.13 ruling).

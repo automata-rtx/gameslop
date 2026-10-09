@@ -21,7 +21,7 @@ The Director is **macro** (hints, aggression, spawns, scares). Errors remain **h
 | Source | Contribution |
 |---|---|
 | Time on level after the calm window | +0.010 per second |
-| Player noise: sprint step / crank (per 0.5 s) / noclip commit / breaker | +0.02 / +0.10 / +0.20 / +0.25 |
+| Player noise: sprint step / crank (per 0.5 s; Build, Peak and Pursuit only) / noclip commit / breaker | +0.02 / +0.10 / +0.20 / +0.25 |
 | Nearest hunter distance (Still, Echo, Flicker group, Null) | +`clamp((20 − d) / 20, 0, 1) × 0.05` per second |
 | A hunter in `Chase`/`Follow`/`Stalk` | +0.15 per second (cap 1.0) |
 | Coherence below 30 | +0.10 once, when crossing |
@@ -37,10 +37,10 @@ The Director is **macro** (hints, aggression, spawns, scares). Errors remain **h
 
 | Phase | Enter when | Director behaviour | Leave when |
 |---|---|---|---|
-| **Calm** | Level entered | No hunter may be in `Chase`. Hunters dormant or `Wander` far (≥ 30 m). No scares. Static drifts. | 30 s elapsed (drop arrival: 15 s) |
+| **Calm** | Level entered | No hunter may be in `Chase`. Hunters dormant or `Wander` far (≥ 30 m). No scares. Static drifts. Cranking adds no intensity (recovery, not noise). | 30 s elapsed (drop arrival: 15 s) |
 | **Build** | After Calm or Relief | Hints hunters toward the player's region (a random walkable cell 15 to 30 m from the player, re-hinted every 20 s). Scares allowed. Aggression = base + awake + time pressure. When intensity reaches 0.8 the Director wakes the nearest dormant hunter and hints it to 12 m; the phase stays Build. | A hunter enters `Chase`/`Follow`/`Stalk` (Peak begins only with a chase) |
 | **Peak** | A chase is on | No new hunters woken. No scares. Music drops (`03` §5). The threat vignette follows the nearest hunter. Max duration 45 s, after which the Director retreats the chasing hunter (`retreat(20)`) if no contact has happened: a chase that does not resolve is exhausting, not scary. | Evasion, contact, or the 45 s cap |
-| **Relief** | After Peak | Duration 20 to 40 s (longer after contact: 40 s). On entry intensity is clamped to ≤ 0.5 and every hunter is hinted away (≥ 25 m) at once (Wander and Search re-target immediately), then again every 20 s. Static hinted off the critical path. No scares. The time and nearest-hunter inputs stop; intensity decays at −0.03 per second. The player's Coherence and crank state are not touched (relief is space, not gifts). | Timer ends |
+| **Relief** | After Peak | Duration 20 to 40 s (longer after contact: 40 s). On entry intensity is clamped to ≤ 0.5 and every hunter is hinted away (≥ 25 m) at once (Wander and Search re-target immediately), then again every 20 s. Static hinted off the critical path. No scares. The time, crank and nearest-hunter inputs stop (cranking is recovery); intensity decays at −0.03 per second. The player's Coherence and crank state are not touched (relief is space, not gifts). | Timer ends |
 
 Depth 6 (Substrate) runs a different schedule: Calm 30 s, then Null wakes and the phase is **Pursuit** until the Threshold: no relief, Static hinted across the critical path every 60 s, intensity floor 0.6. The Substrate is the designed crescendo and the only level without a sawtooth.
 
@@ -126,4 +126,5 @@ Every rule is a unit-testable function in `Director` with a deterministic clock 
 - R14b (2026-10-08): `DirectorSpawn.null_pursuit_cell`'s second choice is the walkable cell behind the player (`to_exit` walk longer than the player's cell) ≥ 20 m away and nearest the 20 m ring; the third is the walkable cell farthest from the player; no choice is in the exit room (NO_CELL only when no walkable cell lies outside it). Sim bot: `SimBot._kept_route(here, goal, fresh, fields)` and `SimBotNull.ROUTE_SWITCH` 0.8 (route hysteresis in the Pursuit), `SimBotNull.in_core(floor_pos)`.
 - M3.4 (test code, additive): `SimBotTelemetry` adds per-level sim result keys `losses` (Coherence lost per source), `last_losses`, `contact_light`, `evasions`, `breaker_s`, `phase_intensity` (mean intensity and seconds per phase); `SimDescent` keeps them in each `levels` entry (`TELEMETRY_KEYS`) and `sim_run.gd --descent --csv <dir>` writes the Director telemetry per level. `SimBotNull.straighten()` / `walk_clear(grid, a, b, avoid)`: straight walking across open floor in the Pursuit. No Director rule changed in M3.4.
 - R19 (14 §10; no rule or number changed): `Director.staged` (the run sets it through `RunLevelSetup.begin_director(..., staged = true)`) spreads `begin`'s roster work over the frames after arrival within the 4 ms build slice (`DirectorArrival`); the clock, Calm, listeners and the arrival pose are taken in `begin`, and anything left runs before the first tick, so the cells, draws and first tick are those of an unstaged `begin`. `Director.is_arriving()`. `DirectorSpawn.pick_cells(..., ctx)`, `off_path_mask`, `off_path_cell(..., mask)`: the same answers, cheaper (Relief entry). Details in 14 Interfaces (R19).
+- R20 (M3 review S2, 2026-10-09): the crank row counts only in the phases where the time input runs (Build, Peak, Pursuit; R8). In Calm and Relief a `crank_tick` adds nothing and is not an input for the tick, so the decay rows still apply. `DirectorPacing.crank_input_applies() -> bool` (same phases as `time_input_applies()`); `on_crank()` returns early outside them. No number changed.
 - Not yet wired: `EventBus.hide_state` (no Director rule reads it in 10 §2 to §7), Null's own wake entry point (M2.6; the Director calls `pursue()` or `wake()`).
