@@ -4,17 +4,17 @@ Copy of `docs/design/16_release_and_steam.md` §4, ticked per build.
 
 | Check | Windows | Linux | Notes |
 |---|---|---|---|
-| Clean-machine launch | | | |
-| First-run flow (title → depth 2 within 3 attempts) | | | |
-| Settings persist; AZERTY key names | | | |
-| Alt-tab mouse capture; mute when unfocused | | | |
-| 10 levels, memory flat | | | |
-| Tour matches visual targets | | | |
-| Feedback Contract complete | | | |
-| Death by each error and the win write meta.json | | | |
-| Ending, credits, Endless | | | |
-| Daily locks after one attempt | | | |
-| Forbidden words grep clean | | | Automated by tests/unit/test_text_gate.gd; re-read the store page text by hand |
+| Clean-machine launch (no Godot installed; 1080p and 1440p, windowed and fullscreen) | human | human (smoke ok) | Machine: `tools/ci/smoke.sh` boots the exported Linux binary headless, direct to a level, to the title and rendered on lavapipe (M4.3 run below). Human: `docs/qa/human_check_M4.md` Parts 1 to 3 and 9 |
+| First-run flow (title → depth 2 within 3 attempts) | human | human | Machine: `tests/sim/test_run_flow.gd` (depth 1 to 2 to summary to title), `tests/unit/test_hud_guidance.gd` (hints, retire at depth 3). Human: `human_check_M4.md` Part 5 and 6 |
+| Settings persist; AZERTY key names | human | human | Machine: `tests/unit/test_settings.gd::test_persistence_round_trip` (physical keycodes stored), `test_rebind_*`. Names go through `DisplayServer.keyboard_get_keycode_from_physical` (`src/ui/ui_keys.gd`), which headless cannot exercise. Human: `human_check_M4.md` Part 5 and 8 (rebind one key, relaunch); AZERTY: add the French layout in the OS and check that the CONTROLS tab shows Z Q S D |
+| Alt-tab mouse capture; mute when unfocused | human | human | Machine: `tests/unit/test_settings_effects.gd::test_mute_when_unfocused` (the bus rule only). Human: `human_check_M4.md` Part 10 |
+| 10 levels, memory flat | ok (machine) | ok (machine) | `tests/perf/test_memory_levels.gd`: 8 levels in the gate, 13 under `NOCLIP_FULL_TESTS=1` (checkpoint.sh); orphans and static MB flat over a Cycle. Process RSS on a real GPU is not measured: human glance at Task Manager during Part 6 |
+| Tour matches visual targets | ok (CPU renderer) | ok (CPU renderer) | `tools/ci/tour_check.py` and `tests/levelgen/test_screenshot_tour.gd`; `docs/qa/visual_targets_by_eye.md` for T5/T6. Real GPU and display: `human_check_M3.md` Part G (cp-12), not repeated here |
+| Feedback Contract complete | ok (machine) | ok (machine) | `docs/qa/feedback_checklist.md` (47 rows ticked); `tests/unit/test_feedback_rows.gd::test_the_checklist_lists_every_row_ticked`, `tests/sim/test_feedback_bench.gd` |
+| Death by each error and the win write meta.json | ok (machine, partial) | ok (machine, partial) | `tests/unit/test_game_state_meta.gd::test_stats_flushed_at_transitions_and_run_end` (cause, `deaths_by`, `last_run` on disk), `tests/sim/test_ending_flow.gd` (the win: `wins`, `cycle_unlocked`, `unlocks.endless` read back from disk), `tests/unit/test_save_meta.gd`. Each error's own kill is in `tests/sim/test_errors_all_strata.gd` and the per-error sim tests. Human: the file is written after your own death in `human_check_M4.md` Part 7 |
+| Ending, credits, Endless | ok (machine); look and timing human | ok (machine); look and timing human | `tests/unit/test_ending.gd` (roll prints every entry, skip rules, AI line), `tests/sim/test_ending_flow.gd`, `tests/unit/test_game_state_meta.gd::test_endless_after_crossing_the_threshold`. Human: `human_check_M3.md` Part G (credits readability) |
+| Daily locks after one attempt | human | human | Machine: `tests/unit/test_game_state_meta.gd::test_daily_uses_faller_and_one_attempt_per_day`, `tests/unit/test_menus.gd::test_summary_items_and_spent_daily`. Human: `human_check_M4.md` Part 9 (including after a relaunch) |
+| Forbidden words grep clean | ok | ok | Automated by `tests/unit/test_text_gate.gd`; M4.3 re-run below. Re-read the store page text by hand |
 
 ## M4.1 export pipeline (build 1.0.0, Linux container, Godot 4.7.2 release templates, Xvfb + lavapipe, shaders baked)
 
@@ -57,3 +57,20 @@ Ticked by the agent where a machine can do it; the rows marked "human" need Stea
 | Eight screenshots captured at 1920 x 1080 from the listed frames and looked at | human | `docs/release/store_page.md` §13; frame 8 is Coherence 10, not 15 (tour steps) |
 | Capsule art made from the title background, NOCLIP only | human | No capture helper yet |
 | Store page, AI disclosure, content survey, price entered in Steamworks | human | The suggested price is USD 2.99 |
+
+## M4.3 evidence (rerun of the automation; export of the M4.2 merge, Linux container, Godot 4.7.2, Xvfb + lavapipe, shaders baked)
+
+Run from a clean worktree. `build/` is not committed. The byte sizes and hashes below are from this run; an export on another day gives other hashes, so the human check compares against the `SHA256SUMS.txt` that ships with the zips they were handed, not against this table.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `tools/ci/export.sh` | ok | both presets exported, baker ran; `NOCLIP-1.0.0-windows.zip` 57,223,965 B sha256 `22163b69...e9912b9`, `NOCLIP-1.0.0-linux.zip` 40,822,040 B sha256 `ea4b1fd5...36402a9` (full values in `build/NOCLIP-1.0.0-SHA256SUMS.txt`) |
+| `tools/ci/verify_release.sh` | ok | "OK (NOCLIP 1.0.0)": zip contents, inner and outer checksums, README and LICENSES lines, exe is a GUI-subsystem PE, no tests or debug scenes in either PCK |
+| `tools/ci/smoke.sh` | ok | "Linux build OK": headless smoke, direct level, title, rendered Forward+ on lavapipe, `user://` created, release build with no F3 overlay |
+| Filtered tests | ok | `test_save_meta` 12/12, `test_settings` 37/37, `test_game_state_meta` 23/23, `test_text_gate` 23/23, `test_ending` 17/17, `test_hud_guidance` 18/18, `test_settings_effects` 6/6, `test_memory_levels` 1/1, `test_store_and_steam` 10/10, `test_export_presets` 6/6 |
+| Stale build warning | note | The `build/` of the main checkout predates the `menu_gallery.tscn` fix: `verify_release.sh` fails on it ("holds files the release must exclude"). Only hand the human a zip from a fresh `export.sh` that `verify_release.sh` accepted |
+| Windows smoke, console window, SmartScreen, antivirus | human | `human_check_M4.md` Part 3. The exe is unsigned, so a SmartScreen prompt is expected; record it |
+| Frame times, shader stutter on a first launch, real GPU | human | `human_check_M4.md` Part 6 asks for a feel judgement only; numbers are Part P of `human_check_M3.md` |
+| Upload, install through Steam, Steam page | human | See the M4.2 table above; none of it is part of cp-13 |
+
+The cp-13 human run is the sign-off for every "human" cell in the first table. Windows and Linux columns are filled from `docs/qa/notes_cp-13.md` when it comes back.
