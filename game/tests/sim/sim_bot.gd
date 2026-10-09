@@ -31,6 +31,11 @@ extends RefCounted
 ## field by the nearest clear cell. `linger` (the explorer's default in sim_run since M2.7)
 ## makes a profile visit more rooms and dead ends before its objective (7 and 3, up to 360 s;
 ## without it the explorer visits 4 and 2), so every phase of the sawtooth is met.
+## M3.4: every profile uses a Polaroid below 55 Coherence when nothing hunts within 20 m;
+## the explorer's targets are cells it can walk to (open strata top up with spread cells off
+## the path); in the Pursuit every profile walks straight across open floor (SimBotNull
+## `straighten`) and walks into the Threshold door from its face; SimBotTelemetry adds the
+## per-level tuning keys (losses, contact light, breaker, phase intensity, evasions).
 ## Doors (M2.7): only a closed door the next waypoints pass through is opened; a stuck bot
 ## also closes an open door off its path whose leaf stands in its corridor.
 ## The bot never moves the player by hand: when it makes no progress for 2 s it records a
@@ -610,6 +615,12 @@ func _think(dt: float) -> void:
 		_follow(_goal_now(), dt, nul.near(SimBotNull.PRESS))
 		return
 	if profile != PROFILE_DIRECT and _flicker_counter(dt):
+		return
+	if profile != PROFILE_CAUTIOUS and chaser == null and items.maybe_polaroid(_hunter_within(HIDE_CHASE_DIST)):
+		# M3.4: every profile holds up a Polaroid when low and nothing hunts near (the cautious
+		# bot does it in its own branch); before, the explorer and the direct bot died with
+		# one to three unused in the belt.
+		_halt()
 		return
 	match profile:
 		PROFILE_EXPLORER:
