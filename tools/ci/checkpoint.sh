@@ -14,6 +14,7 @@ python3 "$ROOT/tools/audio/measure.py" | tail -n 1
 "$GODOT_BIN" --headless --path "$ROOT/game" -- --smoke
 if [[ "${1:-}" != "--no-export" ]]; then
   "$ROOT/tools/ci/export.sh"
+  "$ROOT/tools/ci/verify_release.sh"
   "$ROOT/tools/ci/smoke.sh"
 fi
 echo "checkpoint.sh: all green"
