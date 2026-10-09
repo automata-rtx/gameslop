@@ -152,7 +152,7 @@ func test_licenses_page_shows_the_notice_and_every_component_a_page_at_a_time() 
 	var typeface := page.section_text(LicensesMenu.SECTION_TYPEFACE)
 	assert_contains(typeface, Strings.CREDITS_FONT)
 	assert_contains(typeface, Strings.CREDITS_FONT_COPYRIGHT)
-	assert_contains(page.section_text(LicensesMenu.SECTION_SOUND), Strings.CREDITS_SOUND)
+	assert_contains(page.section_text(LicensesMenu.SECTION_AUDIO_CREDITS), Strings.CREDITS_SOUND)
 	assert_eq(page.footer.text, Strings.CREDITS_LICENSES_NOTE)
 	page.free()
 

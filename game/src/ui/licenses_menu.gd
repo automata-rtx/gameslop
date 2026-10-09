@@ -10,7 +10,7 @@ extends MenuPage
 
 const SECTION_ENGINE := &"engine"
 const SECTION_TYPEFACE := &"typeface"
-const SECTION_SOUND := &"sound"
+const SECTION_AUDIO_CREDITS := &"audio_credits"
 const COMPONENTS_PREFIX := "components_"
 ## Component rows per page: 30 rows of 24 px fit the detail column at 1080p with the footer.
 const COMPONENTS_PER_PAGE := 30
@@ -28,7 +28,7 @@ func build() -> void:
 		list.add_item(component_section(i), Strings.LICENSES_COMPONENTS_PAGE
 				.replace("{page}", str(i + 1)).replace("{pages}", str(pages)))
 	list.add_item(SECTION_TYPEFACE, Strings.CREDITS_HEADING_TYPEFACE)
-	list.add_item(SECTION_SOUND, Strings.CREDITS_HEADING_SOUND)
+	list.add_item(SECTION_AUDIO_CREDITS, Strings.CREDITS_HEADING_SOUND)
 	list.selection_changed.connect(show_section)
 	body = VBoxContainer.new()
 	body.add_theme_constant_override(&"separation", UiTokens.GRID)
@@ -63,7 +63,7 @@ func show_section(id: StringName) -> void:
 		SECTION_TYPEFACE:
 			body.add_child(_line(Strings.CREDITS_FONT))
 			body.add_child(MenuPage.description_label(Strings.CREDITS_FONT_COPYRIGHT))
-		SECTION_SOUND:
+		SECTION_AUDIO_CREDITS:
 			body.add_child(_line(Strings.CREDITS_SOUND))
 		_:
 			var s := String(id)
