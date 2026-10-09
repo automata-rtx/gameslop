@@ -198,12 +198,23 @@ func _on_row_selected(row: MenuRow) -> void:
 	_update_extras(row)
 
 
+## The tab's live helper. DISPLAY keeps the brightness strip's space on every row and shows
+## the strip only on BRIGHTNESS, so the column never changes height (and scale, UiFitBox)
+## while the selection moves (M3.6).
 func _update_extras(row: MenuRow) -> void:
 	MenuPage.clear_children(extras)
-	if row != null and row.id == &"brightness":
-		extras.add_child(SettingsExtras.brightness_strip())
+	if tab == SettingsSchema.TAB_DISPLAY:
+		var strip := SettingsExtras.brightness_strip()
+		strip.modulate.a = 1.0 if row != null and row.id == &"brightness" else 0.0
+		extras.add_child(strip)
 	elif tab == SettingsSchema.TAB_CONTROLS:
 		extras.add_child(SettingsExtras.sensitivity_test())
+
+
+## True while the brightness test strip shows (12 §2).
+func brightness_strip_shown() -> bool:
+	return extras != null and extras.get_child_count() > 0 and tab == SettingsSchema.TAB_DISPLAY \
+			and (extras.get_child(0) as CanvasItem).modulate.a > 0.5
 
 
 # --- KEEP / REVERT (12 §1) ----------------------------------------------------------------
@@ -230,6 +241,7 @@ func _build_revert_box() -> void:
 
 func _begin_revert() -> void:
 	revert_box.visible = true
+	extras.visible = false   # M3.6: KEEP / REVERT takes the test strip's place
 	rows.active = false
 	revert_list.active = true
 	revert_list.selected = 0
@@ -241,6 +253,7 @@ func _end_revert() -> void:
 	if revert_box == null or not revert_box.visible:
 		return
 	revert_box.visible = false
+	extras.visible = true
 	revert_list.active = false
 	rows.active = true
 	refresh_rows()

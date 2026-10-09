@@ -13,9 +13,15 @@ signal closed
 
 ## Margin of the frame at 1080p (8 px grid, outside the 32 px safe area).
 const MARGIN := UiTokens.GRID * 8
+## M3.6: below COMPACT_HEIGHT logical pixels (UI scale above 1.0 at 1080p, any scale at
+## 720p) the frame keeps only the 32 px safe area (04 §4).
+const MARGIN_COMPACT := UiTokens.SAFE_MARGIN
+const COMPACT_HEIGHT := UiTokens.COMPACT_HEIGHT
 const HEADER_GAP := UiTokens.GRID * 3
 ## The pause overlay starts below the HUD's top readouts (Coherence, depth) it dims.
 const OVERLAY_TOP := UiTokens.GRID * 16
+## Compact: the HUD's top readouts end 82 px down (32 px margin, two lines).
+const OVERLAY_TOP_COMPACT := UiTokens.GRID * 12
 
 ## Pause: the frozen frame shows through a 70% black (04 §7). Otherwise full black.
 var overlay: bool = false:
@@ -23,8 +29,7 @@ var overlay: bool = false:
 		overlay = v
 		if _bg != null:
 			_bg.color = UiTokens.PAUSE_OVERLAY if v else UiTokens.UI_BG
-		if _frame != null:
-			_frame.add_theme_constant_override(&"margin_top", OVERLAY_TOP if v else MARGIN)
+		_apply_margins()
 var pages: Dictionary = {}
 var stack: Array[StringName] = []
 
@@ -49,9 +54,9 @@ func _init() -> void:
 	_frame = frame
 	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for side in [&"margin_left", &"margin_top", &"margin_right", &"margin_bottom"]:
-		frame.add_theme_constant_override(side, MARGIN)
 	add_child(frame)
+	_apply_margins()
+	resized.connect(_apply_margins)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override(&"separation", HEADER_GAP)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -74,12 +79,43 @@ func _init() -> void:
 	visible = false
 
 
+## M3.6: the colour of the shell's background (UI_BG; the title's live corridor shows through
+## MENU_TITLE_BACKDROP_ALPHA black). `overlay` sets it too.
+func set_backdrop(color: Color) -> void:
+	if _bg != null:
+		_bg.color = color
+
+
+## True while the logical viewport is short enough for the compact frame (M3.6).
+func is_compact() -> bool:
+	return size.y > 0.0 and size.y < COMPACT_HEIGHT
+
+
+func _apply_margins() -> void:
+	if _frame == null:
+		return
+	if size.y > 0.0 and is_compact() != UiTokens.compact:
+		UiTokens.compact = is_compact()
+		for id: StringName in pages:
+			(pages[id] as MenuPage).apply_compact()
+	var m := MARGIN_COMPACT if is_compact() else MARGIN
+	for side in [&"margin_left", &"margin_right", &"margin_bottom"]:
+		_frame.add_theme_constant_override(side, m)
+	var top := m
+	if overlay:
+		top = OVERLAY_TOP_COMPACT if is_compact() else OVERLAY_TOP
+	_frame.add_theme_constant_override(&"margin_top", top)
+
+
 ## Registers `page` under `id` (it becomes a hidden child of the body).
 func register(id: StringName, page: MenuPage) -> void:
 	var sh := UiShutter.new()
 	sh.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_body.add_child(sh)
-	sh.add_child(page)
+	# M3.6: a page wider or taller than the frame (UI scale 1.5 on a 5:4 screen) scales down.
+	var fit := UiFitBox.new()
+	sh.add_child(fit)
+	fit.add_child(page)
 	pages[id] = page
 	_shutters[id] = sh
 	page.open_requested.connect(open)

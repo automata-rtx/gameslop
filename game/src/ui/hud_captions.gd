@@ -15,6 +15,9 @@ extends Control
 
 var _stack: VBoxContainer
 var _entries: Array[Entry] = []
+## M3.6: the stack's bottom never sits lower than this (local y; INF: no limit). The HUD sets
+## it to the note sheet's top while a sheet shows, so a note never covers the captions.
+var _floor: float = INF
 
 
 class Entry extends RefCounted:
@@ -148,10 +151,19 @@ func _on_closed(e: Entry) -> void:
 	_layout.call_deferred()
 
 
-## Bottom-centred on this control's position, growing upward.
+## M3.6: limits the stack's bottom to `y` (this control's space) less a grid unit of gap.
+func set_floor(y: float) -> void:
+	var f := y - UiTokens.GRID if y < INF else INF
+	if is_equal_approx(f, _floor) or (is_inf(f) and is_inf(_floor)):
+		return
+	_floor = f
+	_layout()
+
+
+## Bottom-centred on this control's position (or above the floor), growing upward.
 func _layout() -> void:
 	if not is_instance_valid(_stack):
 		return
 	var s := _stack.get_combined_minimum_size()
 	_stack.size = s
-	_stack.position = Vector2(-s.x * 0.5, -s.y).round()
+	_stack.position = Vector2(-s.x * 0.5, minf(0.0, _floor) - s.y).round()

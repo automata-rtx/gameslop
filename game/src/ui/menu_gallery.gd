@@ -7,29 +7,51 @@ extends Control
 ## Flags after `--`:
 ##   --menu-state NAME   show one state
 ##   --menu-shots DIR    save every state as DIR/menu_<state>_<w>x<h>.png, then quit
+##   --menu-states A,B   with --menu-shots: only these states
+##   --ui-scale V        12 §2 UI scale for the shots (not saved; the file name gains _uiV)
+##   --text-size V       12 §6 Text size for the shots (not saved; _tsV)
 
 const STATES: Array[StringName] = [
 	&"title", &"title_daily", &"settings_display", &"settings_graphics", &"settings_audio",
 	&"settings_controls", &"settings_accessibility", &"settings_gameplay", &"bindings",
 	&"bindings_capture", &"settings_revert", &"settings_licenses", &"licenses_engine",
 	&"licenses_components", &"pause", &"pause_abandon", &"archive_notes",
-	&"archive_errors", &"archive_statistics", &"archive_unlocks", &"summary",
+	&"archive_errors", &"archive_statistics", &"archive_unlocks", &"archive_credits",
+	&"credits_intro", &"credits_components", &"summary",
 ]
+## M3.6: the title over its live corridor (04 §7), and mid-flicker. Shots only (they build a
+## level); the layout test runs STATES.
+const CORRIDOR_STATES: Array[StringName] = [&"title_corridor", &"title_flicker"]
 const NOTES_FOUND: Array[StringName] = [&"H1", &"H2", &"H3", &"H4", &"P1", &"P3", &"G2", &"O1", &"S4", &"U1"]
 
+## False when a test drives show_state() itself (no arguments read, no sample Archive, the
+## save folder left alone).
+var auto_run: bool = true
 var _current: Node = null
+var _suffix: String = ""
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	if not auto_run:
+		return
 	SettingsManager.persist = false
 	# The summary state ends a sample run; its meta.json goes to a scratch folder.
 	SaveManager.directory = "user://menu_gallery"
 	DirAccess.make_dir_recursive_absolute(SaveManager.directory)
-	_sample_archive()
+	sample_archive()
 	var args := OS.get_cmdline_user_args()
 	var shots := _arg(args, "--menu-shots")
 	var one := _arg(args, "--menu-state")
+	_suffix = ""
+	var us := _arg(args, "--ui-scale")
+	var ts := _arg(args, "--text-size")
+	if not us.is_empty():
+		SettingsManager.set_value(&"ui_scale", float(us))
+		_suffix += "_ui%s" % us
+	if not ts.is_empty():
+		SettingsManager.set_value(&"text_size", float(ts))
+		_suffix += "_ts%s" % ts
 	if not shots.is_empty():
 		_shots.call_deferred(shots)
 	else:
@@ -37,7 +59,7 @@ func _ready() -> void:
 
 
 ## A believable Archive: a dozen runs, one win, some notes and codex entries.
-static func _sample_archive() -> void:
+static func sample_archive() -> void:
 	var m := GameState.meta
 	m.first_descent_done = true
 	m.stats["runs"] = 12
@@ -62,7 +84,19 @@ func show_state(state: StringName) -> void:
 		_current = null
 		await get_tree().process_frame
 	GameState.meta.daily.erase(GameState.today_key())
+	Title.live_corridor = 1 if state in CORRIDOR_STATES else 0
 	match state:
+		&"title_corridor", &"title_flicker":
+			Title.booted = true
+			var tc := (load("res://scenes/title.tscn") as PackedScene).instantiate() as Title
+			_mount(tc)
+			if tc.corridor != null and not tc.corridor.is_started():
+				await tc.corridor.started
+			for i in 30:   # let the light pool and fog settle
+				await get_tree().process_frame
+			if state == &"title_flicker":
+				tc.corridor.set_process(false)
+				tc.corridor.hold_flicker(0.5)
 		&"title", &"title_daily":
 			if state == &"title_daily":
 				GameState.meta.daily[GameState.today_key()] = {"score": 2310, "depth": 3, "cause": "still"}
@@ -111,13 +145,19 @@ func show_state(state: StringName) -> void:
 			pm.shell.open_root(PauseMenu.PAGE_PAUSE)
 			if state == &"pause_abandon":
 				pm.shell.open(PauseMenu.PAGE_ABANDON)
-		&"archive_notes", &"archive_errors", &"archive_statistics", &"archive_unlocks":
+		&"archive_notes", &"archive_errors", &"archive_statistics", &"archive_unlocks", &"archive_credits":
 			var shell := _shell_with(&"archive", ArchiveMenu.new())
 			var a := shell.current() as ArchiveMenu
 			a.list.select_id(StringName(String(state).trim_prefix("archive_")))
 			if state == &"archive_notes":
 				a.focus_grid()
 				a.move_cursor_to(Vector2i(0, 2))
+		&"credits_intro", &"credits_components":
+			var shell := _shell_with(&"archive", ArchiveMenu.new())
+			shell.open(ArchiveMenu.PAGE_CREDITS)
+			var cm := shell.current() as CreditsMenu
+			if state == &"credits_components":
+				cm.list.select(2)
 		&"summary":
 			GameState.start_run(Tuning.MODE_DESCENT, &"faller", 1)
 			GameState.run.depth = 3
@@ -138,6 +178,8 @@ func _shell_with(id: StringName, p: MenuPage) -> MenuShell:
 	if id == &"settings":
 		shell.register(&"bindings", BindingsMenu.new())
 		shell.register(SettingsMenu.PAGE_LICENSES, LicensesMenu.new())
+	elif id == &"archive":
+		shell.register(ArchiveMenu.PAGE_CREDITS, CreditsMenu.new())
 	shell.open_root(id)
 	return shell
 
@@ -173,7 +215,13 @@ func _mount_extra(n: Node) -> void:
 func _shots(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	UiMotion.manual_clock = true
-	for state in STATES:
+	var states: Array[StringName] = STATES + CORRIDOR_STATES
+	var only := _arg(OS.get_cmdline_user_args(), "--menu-states")
+	if not only.is_empty():
+		states = []
+		for s in only.split(","):
+			states.append(StringName(s))
+	for state in states:
 		await show_state(state)
 		for i in 3:
 			await get_tree().process_frame
@@ -182,7 +230,7 @@ func _shots(dir: String) -> void:
 			await get_tree().process_frame
 		var img := get_viewport().get_texture().get_image()
 		var sz := get_viewport().get_visible_rect().size
-		var path := dir.path_join("menu_%s_%dx%d.png" % [state, img.get_width(), img.get_height()])
+		var path := dir.path_join("menu_%s_%dx%d%s.png" % [state, img.get_width(), img.get_height(), _suffix])
 		img.save_png(path)
 		print("menu_gallery: %s (%dx%d logical)" % [path, sz.x, sz.y])
 	get_tree().quit(0)

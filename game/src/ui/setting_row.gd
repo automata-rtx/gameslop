@@ -28,7 +28,7 @@ func _init(key: StringName = &"") -> void:
 	if is_slider():
 		var o := SettingsSchema.option(key)
 		slider = HSlider.new()
-		slider.custom_minimum_size = Vector2(UiTokens.SLIDER_TRACK_WIDTH, UiTokens.MENU_ROW_HEIGHT)
+		slider.custom_minimum_size = Vector2(UiTokens.SLIDER_TRACK_WIDTH, UiTokens.row_height())
 		slider.min_value = float(o[&"min"])
 		slider.max_value = float(FPS_UNLIMITED_SLOT if key == &"max_fps" else o[&"max"])
 		slider.step = float(o[&"step"])
@@ -52,6 +52,12 @@ func _init(key: StringName = &"") -> void:
 		value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		value_box.add_child(value_label)
 	refresh()
+
+
+func apply_row_height() -> void:
+	super.apply_row_height()
+	if slider != null:
+		slider.custom_minimum_size.y = UiTokens.row_height()
 
 
 func has_value() -> bool:

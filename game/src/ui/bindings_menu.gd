@@ -32,7 +32,7 @@ func build() -> void:
 		head.add_child(l)
 	detail.add_child(head)
 	rows = MenuRows.new()
-	rows.max_height_ratio = 0.76   # 19 actions and the reset line fit at UI scale 1.0
+	rows.max_height_ratio = _rows_ratio()   # 19 actions and the reset line fit at UI scale 1.0
 	rows.active = true
 	rows.row_activated.connect(_on_row_activated)
 	detail.add_child(rows)
@@ -44,6 +44,17 @@ func build() -> void:
 	help = MenuPage.description_label(Strings.CONTROLS_HELP)
 	detail.add_child(help)
 	SettingsManager.bindings_changed.connect(_on_bindings_changed)
+
+
+## M3.6: the rows' share of a compact screen leaves room for the header line and the help.
+static func _rows_ratio() -> float:
+	return 0.6 if UiTokens.compact else 0.72
+
+
+func apply_compact() -> void:
+	super.apply_compact()
+	rows.max_height_ratio = _rows_ratio()
+	rows.fit_height()
 
 
 func on_open() -> void:
