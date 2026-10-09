@@ -169,18 +169,18 @@ Groups: `errors`, `fixtures`, `doors`, `interactables`, `chalk`, `gameplay` (nod
 
 | Budget | Limit |
 |---|---|
-| Frame time | 16.6 ms; render ≤ 10, physics ≤ 2, script ≤ 2.5, rest headroom |
+| Frame time | 16.6 ms; render ≤ 10, physics ≤ 1.5, script ≤ 3, rest headroom |
 | Draw calls | ≤ 1,500 (merged chunk meshes; props instanced; particles few) |
 | Active lights | ≤ 24 (pool), shadowed ≤ 4 (+ flashlight) |
 | Nodes in a level | ≤ 3,000 |
-| Errors' per-frame script | ≤ 0.3 ms total |
+| Errors' per-frame script | ≤ 1.0 ms total at the largest roster (Cycle 2 depth 5: three Statics, Still, Echo, Flicker), as `ErrorTiming` reads it |
 | Level build slice | ≤ 4 ms per frame |
 | Navigation bake | ≤ 2 s on a worker thread for the largest level |
 | VRAM | ≤ 1.5 GB; noise textures ≤ 1024² |
 | Startup to title | ≤ 4 s |
 | Memory growth per level | 0 after 10 levels (no leaks: `queue_free` and pools) |
 
-Profiling: the `godot-debugging-profiling` skill's approach; the debug overlay's frame split is the first stop; `--print-fps` in headless for script-only budgets.
+Profiling: the `godot-debugging-profiling` skill's approach; the debug overlay's frame split is the first stop; `--print-fps` in headless for script-only budgets. M3.5: the perf bench (`scenes/debug/perf_bench.tscn`, `PerfBench` + `PerfProbe`) holds the Garage or the Server at its worst-case peak and reads every budget above per frame (script per system by process-priority bands, the physics step, nodes, drawn lights and shadows, and with `tools/ci/render.sh` draw calls, objects and VRAM); `tests/perf/` enforces them in `tools/ci/checkpoint.sh`; the frame times that need a GPU are the cp-12 human checklist `docs/qa/perf_checklist.md`; the readings are in `docs/qa/perf.md`.
 
 ## 11. Global shader parameters
 
@@ -206,5 +206,6 @@ Every system document's "Interfaces" section is the contract; this document owns
 - `CoherenceRenderer` (R3): `set_noclip_target(pos, normal)`, `set_noclip_invalid(on)`, `set_static(amount)`, pulse kinds `ripple` and `drop` (`drop` fired at the floor commit and again on the drop arrival), `heartbeat_phase()` and `heartbeat_bpm()` (AudioManager should lock the heartbeat sample to the phase), `apply_texture_detail(level)` (listens to the `texture_detail` setting), `register_viewport(vp)` / `unregister_viewport(vp)` / `registered_viewports()`. Viewports: the globals reach world shaders in every viewport already; the post stack grades only the main viewport, and a registered SubViewport (monitor, Polaroid) is only recorded for now. Grading SubViewport cameras is future work. The scene pass quad is visible only while Null is present. `SettingsManager.DEFAULTS` gains `reduce_visual_noise` and `reduce_flashing` (both false).
 - Rendering helpers (M1.5): `StratumEnvironment.build(data, preset) -> Environment`, `StratumEnvironment.apply_viewport_preset(viewport, preset)`, `DustMotes.create(particle_scale)` with `follow` (`game/src/lighting/`). Halls materials in `game/data/materials/halls/`.
 - M1.9 `Run` (`scenes/run.tscn`, `src/core/run.gd`): `phase` (`loading`, `playing`, `entering`, `landing`, `dropping`, `dissolving`, `ended`), `level`, `data`, `exit`, `breaker`, `landing`, `arrival`, `commit_drop()`, `drop_transform()`, signals `phase_changed(phase)`, `level_ready(depth)`. It connects `floor_drop_committed()` by name on the Player or its `noclip_targeting`, and calls a level's Director (a node named `Director` or in group `director`) as `begin(level, player, arrival)` with as many arguments as `begin` takes. `RunLevelSetup` (static): `prepare`, `run_power_wave`, `item_pool`, `landing_choices`, `pick_drop_cell`, `is_drop_cell`, `open_dir`. `Landing` (`scenes/landing.tscn`): `begin(player, kinds, hint)`, `door_may_open(t, hold, built, walkable)`, signals `choice_made`, `door_opened`, `finished`. `GlitchTransition` (`src/ui/glitch_transition.gd`) is installed by `main.gd` as `SceneRouter.transition`; `main.gd` routes to `scenes/title.tscn` by default. `DissolveGrid` draws the 48 × 27 dissolve. Bench: `scenes/debug/run_bench.tscn -- --shots <dir>`.
+- M3.5 performance pass: `PerfBench` (`src/debug/perf_bench.gd`, `scenes/debug/perf_bench.tscn`: `stratum`, `depth`, `seconds`, `warmup`, `measure() -> Dictionary`, signal `finished(result)`, `seed_for(stratum, depth)`) and `PerfProbe` (`src/debug/perf_probe.gd`: `roots`, `level`, `harness_ms`, `start()`, `stop()`, `summary()`, `stats(values)`). `LightPool.lit_fixtures_near(pos, radius, group = -1)` (an optional group filter) and `FixtureGroups.lit_near(..., group = -1)`; the pool answers its queries from `FixtureIndex` buckets (`src/lighting/fixture_index.gd`). `AudioCull` (`src/audio/audio_cull.gd`): `mark(loop)`, `tick(players, listener_pos)`, `is_culled(p)`; AudioManager runs it with the occlusion pass, ServerFan and Vending mark their loops. `Level.fade_small_lights(root)`, `Level.is_drawn(light, from)`, `Level.light_counts(root, from = INF)` (with `from`, only lights not past their distance fade); the F3 overlay's first lines read FPS, FRAME (1000 / fps), PROCESS and PHYS (the engine's worst step over the last second), then GPU, RENDER CPU and VRAM. `BuildSlopes.plan` is a weak reference (the plan owns it).
 - M2.15 `SceneRouter.change_to(path, with_transition = true)`: false swaps without the glitch transition (the Threshold's cut to white is its own transition). `run.gd` routes the win to `scenes/ending.tscn`, which routes to the summary (or, in the variant, to the next run).
 

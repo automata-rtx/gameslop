@@ -22,9 +22,8 @@ static func habitable(pool: LightPool, group: int) -> bool:
 static func in_lit_area(pool: LightPool, group: int, pos: Vector3) -> bool:
 	if pool == null or group < 0:
 		return false
-	for f in pool.lit_fixtures_near(pos, Tuning.FLICKER_LIT_AREA_DIST):
-		if f.group_id == group:
-			return true
+	if not pool.lit_fixtures_near(pos, Tuning.FLICKER_LIT_AREA_DIST, group).is_empty():
+		return true
 	var centre := pos
 	if pool.grid != null:
 		var c := pool.grid.cell_of(pos)
@@ -39,10 +38,7 @@ static func in_lit_area(pool: LightPool, group: int, pos: Vector3) -> bool:
 static func near_lit_fixture(pool: LightPool, group: int, pos: Vector3, radius: float) -> bool:
 	if pool == null or group < 0:
 		return false
-	for f in pool.lit_fixtures_near(pos, radius):
-		if f.group_id == group:
-			return true
-	return false
+	return not pool.lit_fixtures_near(pos, radius, group).is_empty()
 
 
 ## XZ distance from `pos` to the nearest fixture of `group` (INF when none). The lunge range.

@@ -62,10 +62,21 @@ func _refresh() -> void:
 ## The overlay text; public so tests can read it headless.
 func text() -> String:
 	var lines: PackedStringArray = []
-	lines.append("FPS %d   FRAME %.1f ms   PHYS %.1f ms" % [
-		Engine.get_frames_per_second(),
+	var fps := Engine.get_frames_per_second()
+	# PROCESS and PHYS are the engine's worst step over the last second (Performance monitors).
+	lines.append("FPS %d   FRAME %.1f ms   PROCESS %.1f ms   PHYS %.1f ms" % [fps,
+		1000.0 / fps if fps > 0 else 0.0,
 		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0])
+	# M3.5 (docs/qa/perf_checklist.md): the viewport's measured render times, CPU and GPU.
+	var vp := get_viewport().get_viewport_rid() if is_inside_tree() else RID()
+	if vp.is_valid():
+		RenderingServer.viewport_set_measure_render_time(vp, visible)
+		lines.append("GPU %.2f ms   RENDER CPU %.2f ms   VRAM %d MB   MEM %d MB" % [
+			RenderingServer.viewport_get_measured_render_time_gpu(vp),
+			RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu(),
+			int(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0),
+			int(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0)])
 	lines.append("DRAW CALLS %d   OBJECTS %d   NODES %d" % [
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),

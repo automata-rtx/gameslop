@@ -54,6 +54,7 @@ static func prepare(level: Level, data: LevelData) -> Dictionary:
 				m.queue_free()
 	var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_ITEMS))
 	out[&"pickups"] = ItemSpawner.populate(level.content, data, rng)
+	Level.fade_small_lights(level.content)  # M3.5: the pickups' glints (14 §10 active lights)
 	return out
 
 

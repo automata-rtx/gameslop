@@ -40,6 +40,10 @@ static func refresh_volume(p: Node) -> void:
 
 
 static func set_part(p: Node, key: StringName, db: float) -> void:
+	# M3.5: an unchanged part is no volume change (every volume_db write retires the
+	# player's bus block, RCA1; Static sets its band every frame).
+	if p.has_meta(key) and float(p.get_meta(key)) == db:
+		return
 	p.set_meta(key, db)
 	refresh_volume(p)
 
@@ -73,6 +77,7 @@ func stop(fade_s: float = 0.0) -> void:
 	if not is_valid():
 		return
 	_kill_fade()
+	player.set_meta(AudioCull.META_CULLED, false)  # the owner's stop holds, out of reach or not
 	if fade_s > 0.0 and player.get(&"playing"):
 		_fade_to(float(player.get_meta(META_FADE, 0.0)), Tuning.AUDIO_SLIDER_MUTE_DB, fade_s)
 		_fade.tween_callback(player.stop)

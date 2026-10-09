@@ -363,7 +363,7 @@ func test_two_fields_share_one_renderer_state() -> void:
 
 
 ## Review item 18: the headless script cost of one Static (inside its field, drifting),
-## printed for the report; the 14 budget is 0.3 ms for every error together.
+## printed for the report; the 14 budget is 1.0 ms for every error together (M3.5).
 func test_script_cost() -> void:
 	var s := _static_at(Vector3(1.0, 0, 0))
 	s.clear_hint()
