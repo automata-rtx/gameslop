@@ -55,8 +55,7 @@ var grid: LevelGrid:
 var _selector: LightSelector = LightSelector.new()
 ## Fixture -> its light's anchor (fixtures never move; cleared when the light fields change).
 var _anchors: Dictionary = {}
-## M3.5: bucket indices over fixture positions and light anchors (rebuilt when stale).
-var _by_pos: FixtureIndex
+var _by_pos: FixtureIndex  # M3.5 buckets over fixture positions and light anchors, rebuilt when stale
 var _by_anchor: FixtureIndex
 
 
@@ -218,7 +217,6 @@ func lit_fixtures_near(pos: Vector3, radius: float, group: int = -1) -> Array[Fi
 	return FixtureGroups.lit_near(_by_pos.pick(_fixtures, pos, radius), grid, anchor_of, pos, radius, group)
 
 
-## The light fields or the grid changed: anchors move.
 func _clear_anchors() -> void:
 	_anchors.clear()
 	_by_anchor = null
