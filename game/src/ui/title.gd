@@ -2,8 +2,8 @@ class_name Title
 extends Control
 ## The title screen (04 §7). A background hook (%Background: the live Halls corridor of 04 §7
 ## arrives in M3 through set_background), the MenuShell with the title page, SETTINGS (and
-## its key bindings page) and the ARCHIVE. Boot: on the first title of a session, 1.2 s of
-## black with the typed line `rendering`, then the shutter reveals the title; skippable once
+## its key bindings page and the LICENSES page, 16 §6) and the ARCHIVE. Boot: on the first
+## title of a session, 1.2 s of black with the typed line `rendering`, then the shutter reveals the title; skippable once
 ## the player has a Descent behind them. The title asks GameState whether a mode or loadout is
 ## available before it starts a run (05 §8), and shows SaveManager's reset notice once.
 
@@ -13,6 +13,7 @@ const PAGE_TITLE := &"title"
 const PAGE_SETTINGS := &"settings"
 const PAGE_BINDINGS := &"bindings"
 const PAGE_ARCHIVE := &"archive"
+const PAGE_LICENSES := SettingsMenu.PAGE_LICENSES
 ## Kept for callers of the M1.9 title.
 const ITEM_DESCEND := TitlePage.ITEM_DESCEND
 const ITEM_SETTINGS := TitlePage.ITEM_SETTINGS
@@ -47,7 +48,10 @@ func _ready() -> void:
 	page = TitlePage.new()
 	page.reset_notice = SaveManager.consume_reset_notice()
 	shell.register(PAGE_TITLE, page)
-	shell.register(PAGE_SETTINGS, SettingsMenu.new())
+	var settings := SettingsMenu.new()
+	settings.show_licenses = true   # 16 §6: LICENSES from the title's settings
+	shell.register(PAGE_SETTINGS, settings)
+	shell.register(PAGE_LICENSES, LicensesMenu.new())
 	shell.register(PAGE_BINDINGS, BindingsMenu.new())
 	shell.register(PAGE_ARCHIVE, ArchiveMenu.new())
 	page.ensure_built()

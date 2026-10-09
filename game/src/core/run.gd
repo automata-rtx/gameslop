@@ -50,6 +50,8 @@ var stratum: StringName = &""
 var landing_time: float = Tuning.LANDING_TIME
 var drop_fall_time: float = Tuning.DROP_FALL_TIME
 var dissolve_time: float = Tuning.COHERENCE_DISSOLVE_TIME
+## The Threshold's next scene; the Feedback bench clears it to stay on the run (R17).
+var threshold_scene: String = ENDING_SCENE
 var capture_mouse: bool = true
 ## Last arrival kind (&"start", &"proper", &"drop").
 var arrival: StringName = &""
@@ -366,13 +368,15 @@ func _on_breaker_thrown(pos: Vector3) -> void:
 
 ## 01 §8 the win: the door has opened outward (threshold_open); the run ends with cause
 ## `threshold` (Endless and Cycle 2 earned and saved, 13 §3), the screen cuts to white with the
-## single low tone (11 §3, Reduce flashing fades it), and the ending scene takes the white up
-## without the glitch transition (14 §5: ending.tscn, then the summary).
+## single low tone and the HUD gone (11 §3, Reduce flashing fades the white), and the ending
+## scene takes the white up without the glitch transition (14 §5: ending.tscn, then the summary).
 func _cross_threshold() -> void:
 	_set_phase(PHASE_ENDED)
 	Ending.cut_to_white(self)
+	hud.visible = false
 	GameState.end_run(GameState.WIN_CAUSE)
-	SceneRouter.change_to(ENDING_SCENE, false)
+	if not threshold_scene.is_empty():
+		SceneRouter.change_to(threshold_scene, false)
 
 
 # --- dissolve (06 §9, 11 §3) ---------------------------------------------------------------------

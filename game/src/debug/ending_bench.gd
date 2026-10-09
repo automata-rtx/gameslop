@@ -27,7 +27,7 @@ func _ready() -> void:
 		out_dir = args[i + 1]
 	live = i == -1
 	variant = args.has("--variant")
-	DirAccess.make_dir_recursive_absolute(_abs(out_dir))
+	DirAccess.make_dir_recursive_absolute(abs_dir(out_dir))
 	SaveManager.directory = "user://bench"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SaveManager.directory))
 	_host = Node.new()
@@ -37,7 +37,10 @@ func _ready() -> void:
 	_run.call_deferred()
 
 
-func _abs(rel: String) -> String:
+## `--shots` as given when absolute, else under the repository (as every bench).
+static func abs_dir(rel: String) -> String:
+	if rel.is_absolute_path():
+		return rel
 	return ProjectSettings.globalize_path("res://").path_join("..").path_join(rel)
 
 
@@ -53,7 +56,7 @@ func _until(cond: Callable, seconds: float = 120.0) -> void:
 
 func _shot(shot_name: String) -> void:
 	await RenderingServer.frame_post_draw
-	var path := _abs(out_dir).path_join(("variant_" if variant else "") + shot_name + ".png")
+	var path := abs_dir(out_dir).path_join(("variant_" if variant else "") + shot_name + ".png")
 	get_viewport().get_texture().get_image().save_png(path)
 	print("ending_bench: saved %s" % path)
 
@@ -114,7 +117,7 @@ func _run() -> void:
 	e.time_scale = 1.0
 	await _until(func() -> bool: return e.phase == Ending.PHASE_CREDITS)
 	e.time_scale = 0.0
-	e.credits.scrolled = 1400.0
+	e.credits.scrolled = e.credits.stop_scroll() * 0.6
 	e.credits.advance(0.0)
 	e.credits.running = true
 	e.time_scale = 0.001

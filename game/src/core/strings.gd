@@ -488,3 +488,9 @@ const CREDITS_HEADING_COMPONENTS := "THIRD-PARTY COMPONENTS OF THE GODOT ENGINE"
 const CREDITS_HEADING_TYPEFACE := "TYPEFACE"
 const CREDITS_HEADING_SOUND := "SOUND"
 const CREDITS_COMPONENT_LINE := "{name} · {license}"
+## The LICENSES submenu (16 §6: reachable from the title's settings; R17). Its left column:
+## the engine (the MIT notice in full), the engine's components a page at a time, the
+## typeface, the sound.
+const MENU_LICENSES := "LICENSES"
+const LICENSES_DESCRIPTION := "The engine's license in full, its third-party components, the typeface and the sound."
+const LICENSES_COMPONENTS_PAGE := "COMPONENTS {page}/{pages}"

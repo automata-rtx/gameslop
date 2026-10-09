@@ -56,9 +56,20 @@ func test_pending_rows_are_the_unbuilt_features_only() -> void:
 	for r in _results:
 		if r[&"status"] == FeedbackRows.PENDING:
 			ids.append(r[&"id"])
-	for id in [&"threshold"]:
-		assert_contains(ids, id)
-	assert_eq(ids.size(), 1)
+	assert_eq(ids.size(), 0, "R17: the Threshold row is built; nothing is pending: %s" % [ids])
+
+
+## R17 (review S9): the Threshold crossed row reads the white cut, the low tone and the HUD
+## going, through the run's own crossing.
+func test_threshold_row_cuts_to_white_with_the_tone_and_no_hud() -> void:
+	var r := _row(&"threshold")
+	assert_eq(r[&"status"], FeedbackRows.IMPLEMENTED)
+	assert_true(r[&"ok"], FeedbackBench.format_line(r))
+	var ch: Dictionary = r[&"channels"]
+	assert_eq(String((ch.get(&"I", {}) as Dictionary).get(&"key", "")), "x.white")
+	assert_eq(String((ch.get(&"S", {}) as Dictionary).get(&"key", "")), "play.threshold_tone")
+	assert_false((ch.get(&"R", {}) as Dictionary).is_empty(), "the HUD went")
+	assert_false(_bench.run.hud.visible)
 
 
 ## The sparse rows stay as sparse as the table: they are held to their own count, not lowered.

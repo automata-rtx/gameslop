@@ -44,7 +44,7 @@ Direct launches (Stratum) drop you into a built level with the Director running 
 Start with no `meta.json` and no `settings.cfg` in the user directory.
 
 **A1. The title.** Launch the Game.
-Expect: a black screen, the word `rendering` typing itself with a block cursor, a shutter, then the title: NOCLIP, a menu with `DESCEND`, `DAILY DESCENT` (dimmed), `ARCHIVE`, `SETTINGS`, `QUIT`, and the line `v1.0.0 · MADE BY AN AI · SEED OF THE DAY <date>`. A live corridor flickers behind the menu. `ENDLESS` is not listed. Up and Down move the `▸` marker with a tick sound.
+Expect: a black screen, the word `rendering` typing itself with a block cursor, a shutter, then the title: NOCLIP, a menu with `DESCEND`, `DAILY DESCENT` (dimmed), `ARCHIVE`, `SETTINGS`, `QUIT`, and the line `v1.0.0 · MADE BY AN AI · SEED OF THE DAY <date>`. A live corridor flickers behind the menu (M3: not yet built; the background is black today). `ENDLESS` is not listed. Up and Down move the `▸` marker with a tick sound.
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **A2. The detail column.** Move onto each item and read the column beside it.
@@ -52,11 +52,11 @@ Expect: DESCEND shows BEST DEPTH 0, RUNS 0, WINS 0 and LAST CAUSE OF DEATH with 
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **A3. Settings tabs.** Open SETTINGS. Go through the six tabs: DISPLAY, GRAPHICS, AUDIO, CONTROLS, ACCESSIBILITY, GAMEPLAY (Left and Right or click).
-Expect: each tab lists its options with a one-line description under the selected row; `RESET TAB TO DEFAULTS` at the bottom of each; Esc goes back one page; the whole screen is readable at your resolution.
+Expect: each tab lists its options with a one-line description under the selected row; `RESET TAB TO DEFAULTS` at the bottom of each; Esc goes back one page; the whole screen is readable at your resolution. Under the six tabs, `LICENSES` (title only, 16 §6) opens a page: ENGINE prints `Godot Engine. MIT license.` and the MIT text in full, COMPONENTS 1/4 to 4/4 list the engine's components as `name ………… license` rows, then TYPEFACE and SOUND; nothing scrolls.
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **A4. Display options apply live.** On DISPLAY drag FIELD OF VIEW from 90 to 110 and back, then BRIGHTNESS; read the test strip text.
-Expect: the title's live corridor changes its field of view at once; the darkest bar of the brightness strip is barely visible at the default. Change WINDOW MODE to WINDOWED: a `KEEP` / `REVERT` prompt appears with `REVERTING IN 10`; choose REVERT and the old mode returns; choose it again and KEEP, and it stays.
+Expect: the title's live corridor changes its field of view at once (M3: not yet built; skip this clause); the darkest bar of the brightness strip is barely visible at the default. Change WINDOW MODE to WINDOWED: a `KEEP` / `REVERT` prompt appears with `REVERTING IN 10`; choose REVERT and the old mode returns; choose it again and KEEP, and it stays.
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **A5. Graphics presets.** On GRAPHICS set PRESET to LOW, then HIGH, then change one option (SHADOW QUALITY).
@@ -276,7 +276,7 @@ Expect, in order: a hard cut to white for 1.2 s with one low tone (a soft fade w
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **G2. The card and the credits.** Walk toward the window.
-Expect: within about 4 m of the wall, small text `DEPTH 0`, then a console title card `NOCLIP` typing itself; then the credits roll over the corridor, including the line that an AI (Claude, Anthropic) made the game and every licence; the last line holds, centred; then the Run Summary with `THRESHOLD CROSSED · DEPTH 06`, the unlock list naming `ENDLESS AND CYCLE 2`, and the buttons.
+Expect: within about 4 m of the wall, small text `DEPTH 0`, then a console title card `NOCLIP` typing itself; then the credits roll over the corridor with no panel behind them, each line on its own thin dark backing: the line that an AI (Claude, Anthropic) made the game, `Godot Engine. MIT license.`, the typeface and its copyright, the sound line, the LICENSES.txt line; the corridor stays visible and the text stays readable over the daylight; the last line holds, centred; then the Run Summary with `THRESHOLD CROSSED · DEPTH 06`, the unlock list naming `ENDLESS AND CYCLE 2`, and the buttons.
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **G3. The variant.** Launch the Ending with `-- --variant`.
