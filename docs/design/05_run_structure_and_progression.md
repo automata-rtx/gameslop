@@ -46,7 +46,7 @@ The Director (`10`) spawns from this roster; "native" is the stratum's teaching 
 
 | Depth | Roster | Director aggression base |
 |---|---|---|
-| 1 | Static ×1 (first Descent ever: Static only, placed far from the critical path) | 0.25 |
+| 1 | Static ×1 (first Descent ever: Static only, placed within 6 m of the critical path between the breaker and the exit, drifting there; R10) | 0.25 |
 | 2 | Static ×1, native ×1 | 0.35 |
 | 3 | Static ×1, native ×1 | 0.45 |
 | 4 | Static ×1, native ×1, plus one of the hunters already met this run (Still or Echo) | 0.55 |
@@ -61,7 +61,7 @@ The Director (`10`) spawns from this roster; "native" is the stratum's teaching 
 ### Proper exit (the Landing)
 1. The player enters the exit volume (elevator car, stairwell door, pool drain hatch, ramp gate; `07` §6). The HUD prints `DESCENDING`.
 2. A 6 s **Landing** interstitial: the player stands in a small enclosed cabin scene (stratum-themed: elevator for Halls, Garage, Offices; stairwell landing for Pools, Server; a lit white pocket for Substrate), the camera is free, the cabin shudders, the world shader unrender ripples once, and the next level generates in a thread (`07` §8).
-3. Rewards, presented in-world on the cabin wall as a two-item panel (labelled with the `item_1` and `item_2` bindings, `[1]` and `[2]` by default, glyph and name, choose with keys or click): one of two items from the current item pool, weighted by what the player lacks. Choosing is optional; the cabin opens after 6 s regardless. The panel also prints `COHERENCE +20`, applied on arrival with the gain pulse.
+3. Rewards, presented in-world on the cabin wall as a two-item panel (labelled with the `item_1` and `item_2` bindings, `[1]` and `[2]` by default, glyph and name, choose with keys or click): one of two items from the current item pool, weighted by what the player lacks. Choosing is optional; the cabin opens after 6 s regardless. The panel also prints the Coherence the arrival will actually add, `COHERENCE +20` or less (`min(20, 100 − Coherence)`, e.g. `COHERENCE +7`), applied on arrival with the gain pulse; at full Coherence the gain is 0 and the line is omitted.
 4. The cabin door opens onto the next level's spawn room. Depth label shutters in.
 
 ### Drop
@@ -132,7 +132,7 @@ Daily Descent always uses Faller.
 
 ## 10. The first Descent (scripted guarantees for a new save)
 
-- Depth 1 contains: note H1 within 10 m of spawn, a soft wall on the critical path within 60 s of walking, a Powered exit with the breaker room on the critical path, one Polaroid, and Static placed off the critical path with its drift bounded to a side loop.
+- Depth 1 contains: note H1 within 10 m of spawn, a soft wall on the critical path within 60 s of walking, a Powered exit with the breaker room on the critical path, one Polaroid, and Static placed within 6 m of the critical path between the breaker and the exit, drifting there (R10, CHANGELOG 2026-10-08).
 - No hunter at depth 1 on the first Descent. From the second Descent on, depth 1 may add a dormant Still or Echo at aggression 0.2 (so depth 1 is never fully safe again).
 - The first time the player reaches depth 2, the Landing shows the item choice with the hint `CHOOSE ONE` once.
 

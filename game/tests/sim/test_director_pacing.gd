@@ -185,6 +185,8 @@ func test_intensity_inputs_and_clamps() -> void:
 	p.on_exit_seen()
 	p.on_exit_seen()
 	assert_approx(p.intensity, 0.35, 0.0001, "exit seen −0.15 once")
+	# The crank row counts in Build (R20): the noclip hold is checked there.
+	p._enter(DirectorPacing.BUILD)
 	p.on_noclip_broke_los()
 	assert_approx(p.intensity, 0.15, 0.0001)
 	p.on_crank()
@@ -332,3 +334,41 @@ func test_events_suppress_the_tick_decay() -> void:
 	assert_approx(p.intensity, 0.4, 0.0001, "−0.10 note and no decay on that tick")
 	p.step(DT)
 	assert_approx(p.intensity, 0.399, 0.0001, "the next quiet tick decays")
+
+
+## R20 (M3 review S2): the crank row counts only where the time input runs (Build, Peak,
+## Pursuit). In Calm and Relief cranking is recovery: it adds nothing and does not stop decay.
+func test_crank_counts_only_in_build_peak_and_pursuit() -> void:
+	for ph: StringName in [DirectorPacing.CALM, DirectorPacing.BUILD, DirectorPacing.PEAK,
+			DirectorPacing.RELIEF, DirectorPacing.PURSUIT]:
+		var p := DirectorPacing.new(11)
+		p.phase = ph
+		p.intensity = 0.3
+		p.on_crank()
+		var counts := ph != DirectorPacing.CALM and ph != DirectorPacing.RELIEF
+		assert_eq(p.crank_input_applies(), counts, "%s: crank row applies" % ph)
+		assert_eq(p.crank_input_applies(), p.time_input_applies(), "%s: same phases as the time row" % ph)
+		var want := 0.3 + (Tuning.INTENSITY_NOISE_CRANK if counts else 0.0)
+		assert_approx(p.intensity, want, 0.0001, "%s: one crank tick" % ph)
+
+
+func test_cranking_through_calm_and_relief_lets_intensity_fall() -> void:
+	# Calm: a 4 s crank from the arrival (8 ticks) leaves intensity where it was.
+	var c := DirectorPacing.new(12, Tuning.RUN_ARRIVE_PROPER)
+	for i in 40:
+		if i % 5 == 0:
+			c.on_crank()
+		c.step(DT)
+	assert_eq(c.phase, DirectorPacing.CALM)
+	assert_approx(c.intensity, 0.0, 0.0001, "cranking in Calm adds nothing")
+	# Relief: cranking all through it, intensity still decays at the Relief rate.
+	var r := DirectorPacing.new(12)
+	r._enter(DirectorPacing.RELIEF, 20.0)
+	r.intensity = 0.5
+	for i in 100:
+		if i % 5 == 0:
+			r.on_crank()
+		r.step(DT, INF, 0, 1)
+	assert_eq(r.phase, DirectorPacing.RELIEF)
+	assert_approx(r.intensity, 0.5 + Tuning.INTENSITY_DECAY_RELIEF_PER_S * 10.0, 0.002,
+		"10 s of cranking in Relief: the sawtooth falls at -0.03/s")

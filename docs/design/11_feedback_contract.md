@@ -58,7 +58,7 @@ The tables below are the contract. An agent implementing an action implements it
 | Exit seen | exit prefab's light pulses once | long tone (Cycled) or latch (others) | — | `EXIT: …` status shutters in, −0.15 intensity |
 | Exit unlocked | exit light goes steady warm | latch and hiss | — | status to `OPEN` in `ui_fg`, `EXIT UNLOCKED` notification |
 | Enter exit | 0.6 s entering tween into the cabin | hydraulic hiss | FOV −3° | `DESCENDING` |
-| Landing | cabin shudder, one unrender ripple | cabin hum, latch | 0.3 trauma at start and end | item panel, `COHERENCE +20` |
+| Landing | cabin shudder, one unrender ripple | cabin hum, latch | 0.3 trauma at start and end | item panel, `COHERENCE +n` (the gain the arrival applies, at most 20; omitted at 0) |
 | Arrival (proper) | cabin door opens | door | — | depth label shutters in |
 | Arrival (drop) | black and grain to the world over 400 ms | sub settle | 0.3 trauma | `DROPPED · THEY ARE AWAKE` |
 | Note found | sheet shutters in, types | paper slide | — | `ARCHIVE: NOTE X` |

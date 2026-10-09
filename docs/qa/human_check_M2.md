@@ -164,7 +164,7 @@ Expect: near-black room, rows of racks with columns of tiny green, red and blue 
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **C6. Substrate.** `-- --stratum substrate --depth 6 --seed 1`
-Expect: wireframe, unlit geometry with magenta-and-black placeholder surfaces, bare studio lights, a pocket of finished room, a warm strip of light far off (the Threshold). After the calm window (about 30 s) a low tone rises: Null is awake. Within 12 m of it the walls draw as lines on black and you can see through them. Walking away from it works; being within 2 m of its core drains Coherence (about 12 a second) with a black screen and a grid.
+Expect: wireframe, unlit geometry with magenta-and-black placeholder surfaces, bare studio lights, a pocket of finished room, a warm strip of light far off (the Threshold). After the calm window (about 30 s) a low tone rises: Null is awake. Within 12 m of it the walls draw as lines on black and you can see through them. Walking away from it works; being within 2 m of its core drains Coherence (about 10 a second) with a black screen and a grid.
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **C7. Cycle 2.** `-- --stratum halls --depth 7 --seed 1`
@@ -194,7 +194,7 @@ Expect: the tubes of that group stutter at about 8 Hz (only Flicker makes lights
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **D5. Null (button 5).** Press `5`.
-Expect: at once a rising grid tone; within 12 m the world around you becomes lines on black; it walks straight at you at 2.4 m/s through walls, slower than you walk (3.2 m/s); inside 2 m your Coherence falls about 12 a second and the screen goes black with a grid; walking out of it works. The tone and the unrender go away when you press `K`.
+Expect: at once a rising grid tone; within 12 m the world around you becomes lines on black; it walks straight at you at 2.4 m/s through walls, slower than you walk (3.2 m/s); inside 2 m your Coherence falls about 10 a second and the screen goes black with a grid; walking out of it works. The tone and the unrender go away when you press `K`.
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **D6. The same errors elsewhere.** Close the Arena and launch it again with `-- --stratum pools`, `-- --stratum offices` and `-- --stratum substrate`; press `3` in Pools, `4` in Offices, `5` in Substrate.

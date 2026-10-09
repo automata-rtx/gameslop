@@ -104,7 +104,10 @@ func begin(player: Node3D, choices: Array[StringName], hint: bool) -> void:
 	_player = player
 	if theme == &"":
 		apply_theme(next_stratum())
-	panel.setup(choices, Tuning.COHERENCE_GAIN_PROPER_EXIT, hint)
+	# 05 §4 (R20, M3 review S1): the panel prints the gain the arrival will apply.
+	var coh: Variant = player.get(&"coherence") if player != null else null
+	var gain := gain_for(float(coh)) if coh != null else Tuning.COHERENCE_GAIN_PROPER_EXIT
+	panel.setup(choices, gain, hint)
 	elapsed = 0.0
 	running = true
 	set_process(true)
@@ -114,6 +117,11 @@ func begin(player: Node3D, choices: Array[StringName], hint: bool) -> void:
 	if _hum != null:
 		_hum.start(0.3)
 	AudioManager.play_2d(&"exit_latch")
+
+
+## The Coherence a proper-exit arrival adds from `coherence`: +20, capped at full (0 at 100).
+static func gain_for(coherence: float) -> float:
+	return clampf(Tuning.COHERENCE_MAX - coherence, 0.0, Tuning.COHERENCE_GAIN_PROPER_EXIT)
 
 
 ## The stratum the door opens onto: the run's current depth (the run descends before it

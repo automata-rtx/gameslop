@@ -57,7 +57,7 @@ Use these exact words in code identifiers, UI strings, and documents. The code c
 | Loadout | Faller, Cartographer, Lightbearer, Diver. | `LoadoutData`, `&"faller"` `&"cartographer"` `&"lightbearer"` `&"diver"` |
 | Daily Descent | The date-seeded mode. | `&"daily"` |
 | Endless | Post-win mode continuing past depth 6. | `&"endless"` |
-| Archive | The meta screen: notes, errors codex, statistics, unlocks. | `archive.tscn` |
+| Archive | The meta screen: notes, errors codex, statistics, unlocks, credits. | `archive.tscn` |
 | Descent Score | The run score. | `compute_score` |
 | Coherence renderer | The post stack and global shader params tied to Coherence. | `CoherenceRenderer` |
 | World shader | The single surface shader for level geometry and props. | `world_surface.gdshader` |

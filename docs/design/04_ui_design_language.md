@@ -85,8 +85,11 @@ Layout at 1920 × 1080 (grid-snapped; positions scale with UI scale and anchor t
 
 All menus share one scene (`ui/menu_shell.tscn`): black background, a title line at the top-left (28 px Bold), a 1 px rule under it, a left column list (22 px, 40 px row height, `ui_accent` selected item with a `▸` prefix), and a right column detail area. Keyboard navigation (arrows, Enter, Esc) and mouse both work; the selected item follows the hovered item. The list never scrolls more than one screen; use submenus instead.
 
+**Compact menus (M3.6 ruling).** The UI scale sets the logical height to 1080 / scale; below 1000 logical px (scale above 1.08) menus are compact: rows 32 px (40), frame margin 32 px (64), pause overlay 96 px down (128), title wordmark 112 px (160) over a halved gap, title list 320 px wide, run summary 32 px in (128), Archive unlocks in one column on two pages, LICENSES and CREDITS component pages of 18 rows (30). Always: the detail column is 640 to 960 px wide, loadout cards 192 px, note cells 120 px, Archive unlock entries 464 px; a page still too large scales down as one, never off screen.
+
 ### Title screen
 - Background: a live, slowly moving camera through a generated Halls corridor (seed 0, no errors), fog up 30%, the Coherence renderer at 85 so there is faint grain. Every 25 to 40 s a 200 ms unrender flicker ripples through the corridor.
+- The corridor (M3.6, `Tuning.MENU_TITLE_*`): the camera strolls at 0.6 m/s along a seeded walk of 240 corridor cells joined by open edges, corners rounded over ±1.5 m, looking 4 m ahead, then cuts back to the start; the flicker is the noclip preview sphere (never Null's, so no grid tone) running 14 m down the walk; the menu's black drops to 55% over the corridor. Reduce flashing turns the flicker off.
 - Wordmark `NOCLIP` centred-left at 160 px, with a 1 px grid of 8 px cells behind the letters that only renders where the wordmark's letters are not. Beneath, in `ui_dim` 18 px: `v1.0.0 · MADE BY AN AI · SEED OF THE DAY 20261007`.
 - Menu: `DESCEND`, `DAILY DESCENT`, `ENDLESS` (shown only after a win), `ARCHIVE`, `SETTINGS`, `QUIT`. Detail column shows for DESCEND: best depth, runs, wins, last cause of death, loadout selector (`05`).
 - Boot: on launch, 1.2 s of black with the typed line `rendering…` then the shutter reveals the title. Skippable after the first launch.

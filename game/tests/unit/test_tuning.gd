@@ -474,6 +474,90 @@ func test_budgets_and_layers() -> void:
 	_eq("LAYER_THROWN", 8)
 	_eq("AUDIO_PLAYER_POOL_SIZE", 32)
 
+# --- M3 rulings (M3 review S5, R20): every number an M3 ruling moved or added, pinned to its
+# document so a tuning task cannot change one side only (CLAUDE.md: change both or neither).
+
+func test_m3_4_death_cause_and_null() -> void:
+	_eq("DEATH_CAUSE_WINDOW", 0.25)          # 06 §9
+	_eq("NULL_DRAIN_PER_S", 10.0)            # 08 §1, §7
+	_eq("COHERENCE_LOSS_NULL_PER_S", 10.0)   # 06 §9, 11 §3
+
+func test_m3_5_frame_budgets() -> void:
+	# 14 §10: 16.6 ms frame; render ≤ 10, physics ≤ 1.5, script ≤ 3; errors ≤ 1.0 ms.
+	_eq("RENDER_FRAME_BUDGET_MS", 16.6)
+	_eq("BUDGET_RENDER_MS", 10.0)
+	_eq("BUDGET_PHYSICS_MS", 1.5)
+	_eq("BUDGET_SCRIPT_MS", 3.0)
+	_eq("BUDGET_ERRORS_SCRIPT_MS", 1.0)
+	_eq("BUDGET_SHADOWED_LIGHTS", 4)
+	_eq("BUDGET_NODES_PER_LEVEL", 3000)
+	_eq("BUDGET_VRAM_GB", 1.5)
+	_eq("BUDGET_STARTUP_S", 4.0)
+	_eq("LIGHT_SMALL_FADE_MAX_RANGE", 4.0)   # M3.5 CHANGELOG (the small-light fade)
+
+func test_m3_2_particles_fog_and_substrate_landing() -> void:
+	# 02 §10 Substrate pixels.
+	_eq("SUBSTRATE_PIXEL_PARTICLES", 240)
+	_eq("SUBSTRATE_PIXEL_PX", 1.0)
+	_eq("SUBSTRATE_PIXEL_ALPHA", 0.8)
+	_eq("SUBSTRATE_PIXEL_RISE_MIN", 0.06)
+	_eq("SUBSTRATE_PIXEL_RISE_MAX", 0.18)
+	# 02 §10 Pools bubbles.
+	_eq("POOLS_BUBBLE_STREAM_AREA", 12.0)
+	_eq("POOLS_BUBBLE_STREAMS_MAX", 3)
+	_eq("POOLS_BUBBLES_PER_STREAM", 14)
+	_eq("POOLS_BUBBLE_SOURCE_RADIUS", 0.06)
+	_eq("POOLS_BUBBLE_SIZE_MIN", 0.008)
+	_eq("POOLS_BUBBLE_SIZE_MAX", 0.018)
+	_eq("POOLS_BUBBLE_RISE", 0.22)
+	# 02 §7 Server fog emission 11 (M3.2, was 4.5); the Garage's 3.0 (M2.13a).
+	var fog: Dictionary = _t("RENDER_FOG_EMISSION_STRATUM")
+	assert_approx(float(fog.get(&"server", 0.0)), 11.0, 0.00001, "Server fog emission")
+	assert_approx(float(fog.get(&"garage", 0.0)), 3.0, 0.00001, "Garage fog emission")
+	# 02 §7 / 05 §4: the Substrate studio light the Landing reuses (white, 0.6, 15 m).
+	_eq("SUBSTRATE_STUDIO_LIGHT_ENERGY", 0.6)
+	_eq("SUBSTRATE_STUDIO_LIGHT_RANGE", 15.0)
+
+func test_m3_1_prompt_clearance_and_flicker_pulse() -> void:
+	_eq("HUD_PROMPT_CROSSHAIR_CLEAR", 40)          # 04 §8 (M3.1 ruling)
+	_eq("SETTINGS_FLICKER_REDUCED_PULSE_HZ", 2.0)  # 12 §6
+
+func test_m3_6_title_corridor() -> void:
+	# 04 §7 Title screen (M3.6).
+	_eq("MENU_TITLE_SEED", 0)
+	_eq("MENU_TITLE_FOG_BOOST", 0.3)
+	_eq("MENU_TITLE_COHERENCE", 85)
+	_eq("MENU_TITLE_FLICKER_MIN", 25.0)
+	_eq("MENU_TITLE_FLICKER_MAX", 40.0)
+	_eq("MENU_TITLE_FLICKER_MS", 200)
+	_eq("MENU_TITLE_GRID_CELL", 8)
+	_eq("MENU_TITLE_CAMERA_SPEED", 0.6)
+	_eq("MENU_TITLE_LOOK_AHEAD", 4.0)
+	_eq("MENU_TITLE_SMOOTH", 1.5)
+	_eq("MENU_TITLE_PATH_CELLS", 240)
+	_eq("MENU_TITLE_FLICKER_REACH", 14.0)
+	_eq("MENU_TITLE_BACKDROP_ALPHA", 0.55)
+
+func test_m3_6_compact_menus() -> void:
+	# 04 §7 compact menus (M3.6 ruling): these numbers live in the UI scripts, not Tuning.
+	assert_eq(UiTokens.COMPACT_HEIGHT, 1000.0, "compact below 1000 logical px")
+	assert_eq(UiTokens.MENU_ROW_HEIGHT_COMPACT, 32, "compact menu rows")
+	assert_eq(_t("UI_MENU_ROW_HEIGHT"), 40, "menu rows")
+	assert_eq(MenuShell.MARGIN, 64, "frame margin")
+	assert_eq(MenuShell.MARGIN_COMPACT, 32, "compact frame margin (the safe margin)")
+	assert_eq(MenuShell.OVERLAY_TOP, 128, "pause overlay top")
+	assert_eq(MenuShell.OVERLAY_TOP_COMPACT, 96, "compact pause overlay top")
+	assert_eq(UiTokens.FONT_WORDMARK, 160, "wordmark")
+	assert_eq(TitlePage.WORDMARK_COMPACT_PX, 112, "compact wordmark")
+	assert_eq(TitlePage.LIST_WIDTH_COMPACT, 320, "compact title list")
+	assert_eq(MenuPage.DETAIL_MIN_WIDTH, 640, "detail column min")
+	assert_eq(MenuPage.DETAIL_WIDTH, 960, "detail column max")
+	assert_eq(LoadoutCards.CARD_WIDTH, 192, "loadout cards")
+	assert_eq(ArchiveMenu.CELL_WIDTH, 120, "note cells")
+	assert_eq(ArchiveMenu.UNLOCK_ENTRY_WIDTH, 464, "unlock entries")
+	assert_eq(LicensesMenu.COMPONENTS_PER_PAGE, 30, "component rows")
+	assert_eq(LicensesMenu.COMPONENTS_PER_PAGE_COMPACT, 18, "compact component rows")
+
 func test_internal_consistency() -> void:
 	# Aliases and mirrored values agree wherever the design states one number twice.
 	assert_eq(_t("STILL_CONTACT_COST"), _t("COHERENCE_CONTACT_STILL"))
