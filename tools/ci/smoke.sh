@@ -11,6 +11,7 @@
 # user:// folder was created.
 # The Windows build cannot run in a Linux container (no Wine); its smoke runs on Windows:
 #   NOCLIP.exe --headless -- --smoke   (exit code 0; no console window opens).
+# Also asserts the binary is a release build with no F3 debug overlay (16 §2).
 # Usage: tools/ci/smoke.sh [build dir]   (default build/linux)
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -55,6 +56,8 @@ run() {  # $1 = label, $2 = timeout s, rest = the command (the binary and its ar
 
 run smoke "$SMOKE_TIMEOUT_S" "$BIN" --headless -- --smoke
 grep -q "^smoke: ok" "$LAST_LOG" || fail "smoke: no 'smoke: ok' line"
+# 16 §2: a release build has no F3 overlay (DebugOverlay is only added when OS.is_debug_build()).
+grep -q "^smoke: build=release overlay=no" "$LAST_LOG" || fail "smoke: not a release build without the debug overlay"
 # --max-fps keeps --quit-after a time budget: 300 frames at 60 fps is about 5 s.
 run direct-level 60 "$BIN" --headless --max-fps 60 --quit-after 300 -- --seed 1 --depth 1 --stratum halls
 run title 60 "$BIN" --headless --max-fps 60 --quit-after 180
