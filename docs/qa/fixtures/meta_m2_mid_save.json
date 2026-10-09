@@ -1,0 +1,80 @@
+{
+	"codex": {
+		"echo": 3,
+		"flicker": 3,
+		"null": 3,
+		"static": 6,
+		"still": 4
+	},
+	"created_at": "2026-10-08T23:52:34Z",
+	"cycle_unlocked": false,
+	"daily": {},
+	"endless_best_depth": 0,
+	"first_descent_done": true,
+	"hints_retired": true,
+	"hints_shown": [],
+	"last_run": {},
+	"notes_found": [
+		"H1",
+		"H2",
+		"H3",
+		"H4",
+		"H5",
+		"H6",
+		"P1",
+		"P2",
+		"P3",
+		"P4",
+		"P5",
+		"P6",
+		"G1",
+		"G2"
+	],
+	"notes_read": [
+		"H1",
+		"H2"
+	],
+	"polaroids_seen": [],
+	"stats": {
+		"best_depth": 5,
+		"best_score": 4210,
+		"breakers_thrown": 0,
+		"coherence_spent": 0.0,
+		"deaths_by": {
+			"echo": 0,
+			"flicker": 0,
+			"null": 0,
+			"static": 0,
+			"still": 0,
+			"substrate": 0
+		},
+		"depth_reached_counts": {},
+		"distance_walked_m": 0.0,
+		"evasions": 0,
+		"floors_dropped": 0,
+		"items_used": {},
+		"notes_total": 0,
+		"runs": 12,
+		"strata_reached": [],
+		"time_played_s": 0.0,
+		"walls_passed": 0,
+		"wins": 0
+	},
+	"unlocks": {
+		"cartographer": true,
+		"codex_echo": true,
+		"codex_flicker": true,
+		"codex_null": true,
+		"codex_still": true,
+		"daily": true,
+		"diver": true,
+		"endless": false,
+		"flare": true,
+		"fuse": true,
+		"glowstick": true,
+		"lightbearer": true,
+		"note_u6": false,
+		"radio": true
+	},
+	"version": 1
+}
