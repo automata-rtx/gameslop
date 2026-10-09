@@ -263,7 +263,9 @@ func _on_exit_entering(p: Node3D) -> void:
 	if not player.state_machine.transition_to(PlayerStateMachine.LANDING):
 		player.state_machine.reset()
 		player.state_machine.transition_to(PlayerStateMachine.LANDING)
-	# 11 §3 Enter exit: 0.6 s entering tween into the car, FOV −3°.
+	# 11 §3 Enter exit: 0.6 s entering tween into the car, FOV −3°, `DESCENDING` at once.
+	if hud != null:
+		hud.show_descending()
 	player.rig.fov_hold(Tuning.FEEDBACK_ENTER_EXIT_FOV_DEG, Tuning.FEEDBACK_FOV_TWEEN_MIN_MS, EXIT_FOV_KEY)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(player, ^"global_position", exit.entry_transform().origin, Tuning.EXIT_ENTER_TWEEN_TIME)

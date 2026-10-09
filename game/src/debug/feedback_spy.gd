@@ -20,6 +20,8 @@ const EPS := 0.0001
 ## Noise window: frames before the anchor looked at, and the changes that make a key noisy.
 const NOISE_FRAMES := 8
 const NOISE_CHANGES := 3
+## Frames of the noclip charge the collapse key looks back over.
+const CHARGE_RECENT := 6
 
 ## Set by the bench: the Run being watched (null before it exists).
 var run: Run
@@ -38,7 +40,7 @@ var _script_vars: Dictionary = {}
 ## The HUD prompt's hold bar: 11 §2 lists "underline fills on the prompt" as Image and "fill
 ## bar" as Readout for Interact hold; it is one widget, so it counts on both channels.
 var _underline: Dictionary = {}
-var _last_charge: float = 0.0
+var _charge_recent: Array[float] = []
 
 
 func clear_history() -> void:
@@ -113,10 +115,14 @@ func _image(tree: SceneTree) -> Dictionary:
 	var cr := CoherenceRenderer
 	d["cr.coherence"] = cr.coherence01
 	d["cr.noclip_charge"] = cr.noclip_charge
-	# The preview's direction (11 §2 noclip cancel: "preview collapses"): the charge value
-	# moves every frame while charging, so the turn from growing to collapsing is its own key.
-	d["cr.noclip_preview"] = signf(snappedf(cr.noclip_charge - _last_charge, 0.0001))
-	_last_charge = cr.noclip_charge
+	# The preview collapsing (11 §2 noclip cancel: "preview collapses 100 ms"): the charge
+	# is below its peak of the last few frames. A growing charge never is, so the key is
+	# still while charging and its own change is the cancel (the charge value itself moves
+	# every frame, so it is noise by the spy's own rule).
+	_charge_recent.append(cr.noclip_charge)
+	if _charge_recent.size() > CHARGE_RECENT:
+		_charge_recent.remove_at(0)
+	d["cr.noclip_preview_collapsing"] = cr.noclip_charge < _charge_recent.max() - 0.001
 	d["cr.noclip_commit"] = cr.noclip_commit
 	d["cr.noclip_invalid"] = cr.noclip_invalid
 	d["cr.noclip_target"] = cr.noclip_target

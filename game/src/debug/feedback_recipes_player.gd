@@ -26,16 +26,33 @@ func sprint_start(b: FeedbackBench) -> void:
 
 func sprint_stop(b: FeedbackBench) -> void:
 	await b.pose_sightline()
+	var p := b.player()
+	p.locomotion.stamina.value = Tuning.STAMINA_MAX  # a full bar: the 5 s of sprint cannot run out while the bench waits
 	b.press(&"move_forward")
 	b.press(&"sprint")
-	await b.until(func() -> bool: return b.player().locomotion.sprinting, 240)
-	# Past the breath's 2 s fade-in; teleport back along the corridor so a wall never ends it.
-	var start := b.player().global_position
-	for i in 7:
-		await b.ticks(20)
-		if b.player().global_position.distance_to(start) > 6.0:
-			b.player().global_position = start
-	b.anchor_on(b.player().sprint_changed, func(on: bool) -> bool: return not on)
+	if not await b.until(func() -> bool: return p.locomotion.sprinting, 600):
+		push_warning("sprint_stop: the player never started to sprint (stamina %s)" % p.locomotion.stamina.value)
+	# Root cause of the old flake (M3.1): the breath's 2 s fade-in is a tween on process time,
+	# the wait was a count of physics ticks, and under load the two drift apart; a fade-in
+	# still moving at the stop made the fade-out's volume key "noisy" and the sound was not
+	# credited. Wait for the loop itself to reach full level, then let the spy see it still.
+	# Teleport back along the corridor so a wall never ends the sprint.
+	var start := p.global_position
+	var breath: AudioLoop = p.sounds.get(&"_loops").get(PlayerAudio.LOOP_SPRINT_BREATH)
+	var level := func() -> bool:
+		return breath != null and breath.is_valid() \
+				and float(breath.player.get_meta(AudioLoop.META_FADE, Tuning.AUDIO_SLIDER_MUTE_DB)) >= -0.05
+	for i in 90:
+		await b.ticks(10)
+		p.locomotion.stamina.value = Tuning.STAMINA_MAX
+		if p.global_position.distance_to(start) > 6.0:
+			p.global_position = start
+		if bool(level.call()) and p.locomotion.sprinting:
+			break
+	if not (bool(level.call()) and p.locomotion.sprinting):
+		push_warning("sprint_stop: sprinting %s, breath at full level %s" % [p.locomotion.sprinting, bool(level.call())])
+	await b.frames(QUIET_FRAMES)
+	b.anchor_on(p.sprint_changed, func(on: bool) -> bool: return not on)
 	b.release(&"sprint")
 	await b.until(b.is_anchored, 240)
 
@@ -112,6 +129,7 @@ func item_select(b: FeedbackBench) -> void:
 	await b.pose_sightline()
 	b.player().inventory.select(0)
 	await b.ticks(40)
+	await settle_hand(b)
 	await b.arm()
 	b.anchor()
 	_action_event(&"item_2")
@@ -174,6 +192,27 @@ func _select(b: FeedbackBench, kind: StringName) -> void:
 	if inv.selected_kind() != kind:
 		inv.select(inv.slot_of(kind))
 		await b.ticks(40)
+	await settle_hand(b)
+
+
+## Waits (in process frames, the clock the held hand's tweens run on) until the held item
+## has stopped moving: a raise still under way when the use fires would make the hand's own
+## reaction "noisy" and the row would not credit it (the Radio row's old intermittent miss).
+func settle_hand(b: FeedbackBench) -> void:
+	var hand: HeldHand = b.player().inventory.get(&"_hand")
+	if hand == null or hand.root == null:
+		return
+	var still := 0
+	var last := Vector3.INF
+	for i in 400:
+		var pos: Vector3 = hand.root.position
+		if hand.model != null and is_instance_valid(hand.model):
+			pos += hand.model.position
+		still = still + 1 if pos.is_equal_approx(last) else 0
+		last = pos
+		if still >= FeedbackRecipesBase.QUIET_FRAMES:
+			return
+		await b.get_tree().process_frame
 
 
 func _action_event(action: StringName) -> void:
@@ -195,6 +234,31 @@ func interact_press(b: FeedbackBench) -> void:
 	await b.arm()
 	b.anchor()
 	await press_tap(b, &"interact", 2)
+
+
+## 11 §2 Interact press on an item ("item fly"): a chalk pickup on the floor ahead, taken with
+## the interact key through the ray: the model flies to the belt, the pickup tick, the nod,
+## the belt's count and the prompt shuttering out.
+func interact_pickup(b: FeedbackBench) -> void:
+	await b.pose_sightline()
+	var pk := (load("res://scenes/items/pickup_chalk.tscn") as PackedScene).instantiate() as ItemPickup
+	pk.kind = &"chalk"
+	b.run.level.content.add_child(pk)
+	var spot := ahead(b, 1.8)
+	pk.global_position = Vector3(spot.x, b.player().global_position.y, spot.z)
+	await b.ticks(4)
+	if not await face_interactable(b, pk.interactable, 0.1):
+		push_warning("interact_pickup: the pickup is not in reach")
+		pk.free()
+		return
+	var pid := pk.get_instance_id()
+	probe(b, &"I", "fly", func() -> Variant:
+		var n := instance_from_id(pid) as ItemPickup
+		return [n.picked, n.bob.scale] if n != null else "gone")
+	await b.arm()
+	b.anchor()
+	await press_tap(b, &"interact", 2)
+	await b.ticks(30)
 
 
 func interact_hold(b: FeedbackBench) -> void:
