@@ -44,14 +44,21 @@ func _shot(name: String) -> void:
 	print("run_bench: saved %s" % path)
 
 
-## `--landing-only`: the Landing cabin alone under the Halls environment (02 §7 cabin look,
-## the 2x item panel): from the player's eye, and from the side facing the door.
+## `--landing-only [--landing-stratum <id>]`: the Landing cabin alone under that stratum's
+## environment (default Halls; 02 §7 cabin look, the 2x item panel; `substrate` draws the
+## lit white pocket, 05 §4): from the player's eye, from the side facing the door, and
+## (themed) from the door looking back at the studio light. Files: landing_<shot>[_<id>].png.
 func _landing_only() -> void:
+	var args := OS.get_cmdline_user_args()
+	var i := args.find("--landing-stratum")
+	var stratum := StringName(args[i + 1]) if i != -1 and i + 1 < args.size() else &"halls"
+	var suffix := "" if stratum == &"halls" else "_" + String(stratum)
 	var world := WorldEnvironment.new()
-	world.environment = StratumEnvironment.build(load("res://data/strata/halls.tres") as StratumData)
+	world.environment = StratumEnvironment.build(load("res://data/strata/%s.tres" % stratum) as StratumData)
 	add_child(world)
 	var landing := (load("res://scenes/landing.tscn") as PackedScene).instantiate() as Landing
 	landing.landing_time = 600.0
+	landing.apply_theme(stratum)
 	add_child(landing)
 	var cam := Camera3D.new()
 	cam.fov = 75.0
@@ -60,10 +67,14 @@ func _landing_only() -> void:
 	cam.make_current()
 	landing.begin(cam, [&"glowstick", &"chalk"] as Array[StringName], true)
 	await _wait(2.0)
-	await _shot("landing_cabin")
+	await _shot("landing_cabin" + suffix)
 	cam.look_at_from_position(Vector3(0.6, 1.5, 0.7), Vector3(Landing.DOOR_X, 1.2, -1.0))
 	await _wait(1.0)
-	await _shot("landing_door")
+	await _shot("landing_door" + suffix)
+	if suffix != "":
+		cam.look_at_from_position(Vector3(0.4, 1.6, -0.6), Vector3(-0.6, 1.4, 0.8))
+		await _wait(1.0)
+		await _shot("landing_back" + suffix)
 	get_tree().quit(0)
 
 
