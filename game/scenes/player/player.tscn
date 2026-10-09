@@ -147,7 +147,7 @@ light_color = Color(1, 0.957, 0.878, 1)
 light_energy = 1.6
 shadow_enabled = true
 spot_range = 22.0
-spot_attenuation = 1.2
+spot_angle_attenuation = 1.2
 spot_angle = 19.0
 
 [node name="Wheel" type="Node3D" parent="CameraRig/Motion/Camera/Flashlight/Held"]

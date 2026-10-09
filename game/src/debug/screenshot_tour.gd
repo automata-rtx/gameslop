@@ -32,14 +32,22 @@ const T1_LIMIT_DARK_M := 6.0
 const DARK_STRATA: Array[StringName] = [&"server", &"substrate"]
 const SUBSTRATE_PATH := "res://data/strata/substrate.tres"
 ## Stratum poses beyond the three (StratumShots), photographed at Coherence 100 only (M2.3:
-## the Substrate's Threshold pocket, a studio light, an unfinished room).
-const EXTRA_POSES: Array[StringName] = [&"pocket", &"studio", &"checker"]
+## the Substrate's Threshold pocket, a studio light, an unfinished room; M3.2: a Pools basin,
+## where the bubble streams rise, 02 §10).
+const EXTRA_POSES: Array[StringName] = [&"pocket", &"studio", &"checker", &"basin"]
 ## M2.3 `cycle2` group: one Cycle 2 level (Halls at depth 7), its poses at Coherence 100.
+## M3.2: taken with the flashlight on, the Cycle 2 T1 ruling (CHANGELOG 2026-10-08: dead
+## fixtures are the corruption, T1 is read with the player's light as in the dark strata).
 const CYCLE2_STRATUM := &"halls"
 const CYCLE2_DEPTH := 7
 const CYCLE2_POSES: Array[StringName] = [&"spawn", &"corridor", &"corridor_long", &"patch"]
 ## The hand position of the tour's flashlight relative to the camera (02 §9: lower right).
 const FLASHLIGHT_OFFSET := Vector3(0.18, -0.22, -0.1)
+## M3.2 (CHANGELOG 2026-10-09): Cycle 2's frames (flashlight on) look this much further down
+## than the pose, the way a player carries a light along a dead stretch; level, the floor
+## between the hand light's 1.5 m and the beam's first touch (about 4.5 m) is the cone's
+## dark edge. The dark strata pass level and keep the level view.
+const FLASHLIGHT_CARRY_PITCH_DEG := 4.0
 
 var manifest: Dictionary = {}
 ## Iteration aid: `--tour-only poses,soft,noclip,null,cycle2` limits the frame groups and
@@ -282,8 +290,10 @@ func _tour_cycle2() -> void:
 	_camera = _shots.begin(_level)
 	_entries = {}
 	manifest[&"strata"][key] = {&"t1_limit_m": t1_limit(CYCLE2_STRATUM), &"shots": _entries,
-		&"depth": CYCLE2_DEPTH, &"cycle": d.data.cycle, &"extra": true}
+		&"depth": CYCLE2_DEPTH, &"cycle": d.data.cycle, &"extra": true, &"flashlight": true}
 	_place_exit(d.data)
+	var torch := make_flashlight()
+	_camera.add_child(torch)
 	var poses: Array[Dictionary] = LevelShots.poses(d.data)
 	var patch := StratumShotsM23.checker_pose(d.data)
 	if not patch.is_empty():
@@ -292,9 +302,10 @@ func _tour_cycle2() -> void:
 	for pose in poses:
 		if not CYCLE2_POSES.has(StringName(pose[&"name"])):
 			continue
-		_aim(pose[&"from"], pose[&"to"])
+		_aim(pose[&"from"], pose[&"to"], true)
 		await _frames(SETTLE_POSE)
 		_save("%s_c100" % pose[&"name"], {&"pose": pose[&"name"], &"coherence": 100.0, &"kind": &"pose"})
+	torch.queue_free()
 	_reset()
 	_shots.queue_free()
 	d.queue_free()
@@ -382,10 +393,23 @@ func _null_frame(poses: Array) -> void:
 	_reset()
 
 
-func _aim(from: Vector3, to: Vector3) -> void:
+func _aim(from: Vector3, to: Vector3, carried_light: bool = false) -> void:
 	_camera.global_position = from
 	_camera.look_at(to)
+	if carried_light:
+		_camera.rotate_object_local(Vector3.RIGHT, -deg_to_rad(FLASHLIGHT_CARRY_PITCH_DEG))
 	_level.light_pool.reevaluate()
+	# 02 §10 ambient particles (dust, the Substrate's pixels) are part of the look: the box
+	# moves to the camera and refills (preprocess) instead of trailing behind at the spawn.
+	if _level.dust != null:
+		_level.dust.follow = null
+		_level.dust.global_position = from
+		_level.dust.restart()
+	# The CPU renderer runs about 1 fps, so a drifting particle jumps several pixels a frame
+	# and TAA averages it away (a real GPU moves it a fraction of a pixel per frame). The tour
+	# holds the particles still where they are, as it pins world time for the soft wall.
+	for n in _level.find_children("*", "GPUParticles3D", true, false):
+		(n as GPUParticles3D).speed_scale = 0.0
 
 
 func _reset() -> void:
