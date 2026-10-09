@@ -1,0 +1,14 @@
+"appbuild"
+{
+	"appid" "{APP_ID}"
+	"desc" "{DESCRIPTION}"
+	"buildoutput" "{BUILD_DIR}/steam_output"
+	"contentroot" "{BUILD_DIR}"
+	"setlive" ""
+	"preview" "0"
+	"depots"
+	{
+		"{DEPOT_WIN}" "depot_build_windows.vdf"
+		"{DEPOT_LINUX}" "depot_build_linux.vdf"
+	}
+}
