@@ -66,9 +66,30 @@ Readings on the budgets that moved (CHANGELOG 2026-10-09, M3.5):
 
 ## Known spikes (not budget rows, written down for cp-12)
 
-- **The arrival frame.** The builder's last job (`finish`) emits `geometry_ready`; the run's listeners prepare the level and, on a start or a drop, arrive (the Director's `begin` spawns the roster). That one frame reads 40 to 80 ms headless here (Director.begin about 21 ms in the Server). It is the frame the level appears, under the glitch transition or the drop's black. The 4 ms slice budget holds for every other slice.
-- **Relief entry.** Hinting every hunter and Static away at once (10 §2) costs 10 to 16 ms in one Director tick in the Server; it happens at a contact, inside the 60 ms hitstop's aftermath.
-- **Offices at Cycle 2 depth 5** (not this task's strata): 3,097 nodes in the level (144 hide spots under desks at about 6 nodes each, 142 desks, 109 fixtures), over the 3,000 budget. Filed in `docs/qa/open_items.md`.
+R19 (2026-10-09) fixed the three M3.5 left open; the M3.5 readings are kept in the "before" column.
+
+| Spike | Before (M3.5 code) | After R19 | How |
+|---|---|---|---|
+| Offices at Cycle 2 depth 5, nodes in the level (budget 3,000) | 3,095 (seed 9: 142 under-desk hide spots at 6 nodes) | 2,409 to 2,858 over five seeds (seed 9: 2,665); every other stratum at its largest depth 413 to 1,309 | an under-desk hide spot is 3 nodes: the host is its own kneehole `StaticBody3D` with its shape and `Interactable`; every hide spot's view and exit points are transforms, not `Marker3D` nodes. Same scenes, same boxes, same layer, same world transforms (test) |
+| The frame a level appears: worst headless frame from the level walkable to 30 frames after arrival, start (Garage, depth 10) | 41 to 57 ms | 10 to 14 ms | see the steps below |
+| The same, a drop into the Server (depth 11, the full Cycle 2 roster) | 64 to 75 ms | 12 to 14 ms | |
+| Relief entry (`hint_away_now`: three hunters and three Statics hinted at once, one Director tick), mean of 10 (worst) | 12.2 to 13.3 ms (17 to 20) | 1.7 to 2.5 ms (2.4 to 4.8) | cached, not spread: the hint ring is scanned once for every hunter hinted from one spot in a frame; the Static's off-path cell reads a per-level mask and a walk cut at its 15-cell search radius; the Static's BFS path runs on cell indices. Every answer and rng draw is the old one (test). The chasers' retreat stays in the entry tick (test) |
+
+The arrival after R19, its main-thread ms per frame (drop into the Server, three runs; `Run.arrival_ms`, `Director.arrival_work.queue.frame_ms`):
+
+| Frame | ms | What runs |
+|---|---|---|
+| builder's last slice | within the slice | `finish`: the pool re-evaluated, `geometry_ready` (it also ran everything below, 40 to 80 ms) |
+| props | 1.3 to 2.8 | exit and breaker prefabs (their scenes loaded on a worker while the level built; unheld, they were read from disk here) |
+| pickups | 2.2 to 3.7 (worst frame) | items and notes, a 3 ms slice a frame, rng order kept |
+| audio | 1.0 to 1.8 (4.9 the first time a stratum's files load) | room tone and fixture hums into the library cache; the error scenes taken from the worker (each level's first spawn read its scene from disk: 3 to 7 ms) |
+| prelight | 3.7 to 6.9 | the light pool lent from the spawn's eye (16 lights and their hum players); behind the drop's black, before the first level at a start; skipped at a proper exit, whose arrival frame is under the transition |
+| arrive | 6.5 to 10.5 | the player placed, `level_entered` (its listeners: SettingsManager's graphics re-apply walks the tree, 2.5 to 3.5; the HUD 1.3; music and audio 0.5), `Director.begin` (clock, Calm, listeners, the pose) 0.7 |
+| roster, 5 to 8 frames | 1.6 to 3.8 each | the fair-cell context, the fair-cell scan in 64-cell chunks, the pick, one spawn a step, awake arrivals and Static bounds, the aggression; whatever is left runs before the first 0.1 s tick (it never had to) |
+
+Readings: 2026-10-09, the same container, `uptime` load 0.75 at the start of each set, rising to 1.6 while other agents' gates ran; "before" (HEAD `3ce4273` exported to a scratch copy) and "after" were run in turn, three times, on the same harness (a run starting at depth 10 and dropping into the Server at 11). Commands: `tools/ci/test.sh --filter perf/` prints the readings; `NOCLIP_FULL_TESTS=1` (checkpoint) enforces them: `tests/perf/test_level_nodes.gd`, `test_arrival_frames.gd` (each staged frame within the 4 ms slice, the prelight and arrival frames under 16.6 ms, Relief entry within the 3 ms script budget), `test_r19_equivalence.gd`. The full perf set passed with budgets enforced at load 1.8.
+
+Still open (filed in `docs/qa/open_items.md`): the arrival frame is 6.5 to 10.5 ms headless. After a drop (its black) and a proper exit (the glitch transition) it is covered; at a start (the first level of a Descent) it is the first frame the level shows. Its largest shares are other owners' `level_entered` listeners (SettingsManager's whole-tree graphics walk, the HUD).
 
 ## Not measured here
 

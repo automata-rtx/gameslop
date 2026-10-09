@@ -241,3 +241,22 @@ func test_fair_cells_and_pick_cells_match() -> void:
 				var b := DirectorSpawn.pick_cells(data, ids, &"still", pos, eye, fwd, half, r2, {}, ctx)
 				assert_eq(b, a, "%s pick_cells with the context made ahead" % data.stratum)
 				assert_eq(r2.state, r1.state, "%s: the same draws" % data.stratum)
+
+
+## Relief entry hints every hunter from one spot in one tick: one ring scan, a draw per
+## hunter, is the per-hunter scan and draw (the Director shares the scan within a frame).
+func test_one_ring_scan_for_every_hunter_draws_the_same_cells() -> void:
+	var rng := make_rng(23)
+	for data in _levels:
+		var g := data.grid
+		var cells := _walkable(g)
+		for k in 30:
+			var centre := _pose(g, cells[rng.randi_range(0, cells.size() - 1)], 0.0, rng)[0] as Vector3
+			var seed_value := rng.randi()
+			var r1 := make_rng(seed_value)
+			var r2 := make_rng(seed_value)
+			var scan := DirectorSpawn.ring(g, centre, Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST, Tuning.DIRECTOR_HINT_AWAY_MAX)
+			for h in 4:
+				assert_eq(DirectorSpawn.pick_in_ring(scan, r2),
+					_ring_old(g, centre, Tuning.DIRECTOR_RELIEF_HINT_AWAY_DIST, Tuning.DIRECTOR_HINT_AWAY_MAX, r1),
+					"%s hunter %d" % [data.stratum, h])

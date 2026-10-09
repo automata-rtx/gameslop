@@ -67,6 +67,7 @@ var _contact_frames: int = 0
 var _satiated_left: float = 0.0
 ## bind_level() was called: a freed level (compares equal to null) stops the error.
 var _level_bound: bool = false
+static var _scenes: Dictionary = {}
 
 
 ## Instances the scene for `id` (Director: spawn_error). Null for an unknown id.
@@ -74,7 +75,25 @@ static func create(id: StringName) -> ErrorBase:
 	if not SCENES.has(id):
 		push_error("ErrorBase.create: no scene for error %s" % id)
 		return null
-	return (load(SCENES[id]) as PackedScene).instantiate() as ErrorBase
+	return scene(id).instantiate() as ErrorBase
+
+
+## R19: the error scenes stay loaded once used (`_scenes`). Without a holder, the last level's
+## errors freeing their scene unloaded it, and each level's first spawn read it from disk
+## again (3 to 7 ms in one frame). `provide` takes one loaded on a worker (RunStaging).
+static func scene(id: StringName) -> PackedScene:
+	if not _scenes.has(id):
+		_scenes[id] = load(SCENES[id]) as PackedScene
+	return _scenes[id]
+
+
+static func has_scene(id: StringName) -> bool:
+	return _scenes.has(id)
+
+
+static func provide(id: StringName, packed: PackedScene) -> void:
+	if packed != null and not _scenes.has(id):
+		_scenes[id] = packed
 
 
 ## Seed label for the error's rng (Seeds.derive(level_seed, label)).

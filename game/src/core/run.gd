@@ -58,8 +58,8 @@ var arrival: StringName = &""
 ## Tests and benches only: extra LevelGenerator options merged over the run's (e.g. `lock`).
 var generation_overrides: Dictionary = {}
 ## R19 (14 §10 build slice): main-thread ms of the last level's arrival steps, each in a frame
-## of its own after the builder's last slice: `props`, `pickups` (its worst frame), `prelight`
-## (RunStaging), `arrive` (with Director.begin; its roster follows, Director.arrival_work).
+## of its own after the builder's last slice: `props`, `pickups` (its worst frame), `audio`,
+## `prelight` (RunStaging), `arrive` (with Director.begin; its roster follows, arrival_work).
 var arrival_ms: Dictionary = {}
 
 var _task: int = -1
@@ -167,13 +167,15 @@ func _load_level() -> void:
 	level = (load(LEVEL_SCENE) as PackedScene).instantiate() as Level
 	level.name = "Level%d" % GameState.run.depth
 	levels.add_child(level)
+	RunStaging.request_prefabs(data)
 	level.begin(data)
 	arrival_ms.clear()
 	var lvl := level
 	if not level.is_walkable_now():
 		await level.geometry_ready
 	# R19: the props, the pickups and the light pool in frames of their own (RunStaging).
-	var setup: Dictionary = await RunStaging.prepare(level, data, func() -> bool: return level == lvl, arrival_ms)
+	var setup: Dictionary = await RunStaging.prepare(level, data, func() -> bool: return level == lvl, arrival_ms,
+		phase != PHASE_LANDING)
 	if setup.is_empty():
 		_loading = false
 		return

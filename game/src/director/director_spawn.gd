@@ -391,6 +391,12 @@ static func breaker_exit_band(data: LevelData, near: float = Tuning.DIRECTOR_FD_
 ## 1,444-cell grid through cell_at, world_of and flat_dist); the same cells, order and draw.
 static func cell_in_ring(grid: LevelGrid, centre: Vector3, rmin: float, rmax: float, rng: RandomNumberGenerator,
 		filter: Callable = Callable()) -> Vector2i:
+	return pick_in_ring(ring(grid, centre, rmin, rmax, filter), rng)
+
+
+## cell_in_ring's scan without the draw: {pool, best}. R19: the Director scans once for every
+## hunter it hints from the same spot in one tick (Relief entry), then draws per hunter.
+static func ring(grid: LevelGrid, centre: Vector3, rmin: float, rmax: float, filter: Callable = Callable()) -> Dictionary:
 	var pool: Array[Vector2i] = []
 	var best := LevelData.NO_CELL
 	var best_err := INF
@@ -411,9 +417,15 @@ static func cell_in_ring(grid: LevelGrid, centre: Vector3, rmin: float, rmax: fl
 			if err < best_err:
 				best_err = err
 				best = c
+	return {&"pool": pool, &"best": best}
+
+
+## cell_in_ring's draw from a `ring` scan.
+static func pick_in_ring(r: Dictionary, rng: RandomNumberGenerator) -> Vector2i:
+	var pool: Array[Vector2i] = r[&"pool"]
 	if not pool.is_empty():
 		return pool[rng.randi_range(0, pool.size() - 1)]
-	return best
+	return r[&"best"]
 
 
 ## "A cell `d` m from the player" (wake hint 12 m, awake arrival 30 m), within one cell.

@@ -30,6 +30,9 @@ var null_replaced: int = 0
 ## Flicker instance id -> Director seconds of its last respawn (10 §4: once per 60 s).
 var _respawned_at: Dictionary = {}
 ## DirectorSpawn.off_path_mask of the level `_mask_of` (R19: made once per level).
+## The last hint ring scanned (R19: the hunters hinted from one spot in one frame share it).
+var _ring_key: Array = []
+var _ring: Dictionary = {}
 var _off_path_mask := PackedByteArray()
 var _mask_of: LevelData = null
 
@@ -333,7 +336,11 @@ func _hint_wake_ring(h: ErrorBase) -> void:
 func _hint_ring(h: ErrorBase, rmin: float, rmax: float, now: bool = false) -> void:
 	if not _player_ok() or _grid() == null:
 		return
-	var c := DirectorSpawn.cell_in_ring(_grid(), director.player.global_position, rmin, rmax, director.rng)
+	var key := [_grid(), director.player.global_position, rmin, rmax, Engine.get_process_frames(), Engine.get_physics_frames()]
+	if key != _ring_key:
+		_ring_key = key
+		_ring = DirectorSpawn.ring(_grid(), director.player.global_position, rmin, rmax)
+	var c := DirectorSpawn.pick_in_ring(_ring, director.rng)
 	if c == LevelData.NO_CELL:
 		return
 	h.hint(_grid().world_of(c), now)

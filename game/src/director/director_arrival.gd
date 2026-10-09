@@ -8,8 +8,8 @@ extends RefCounted
 ## pose and the arrival position are read at begin, and any step still waiting runs before
 ## the first 0.1 s tick, so every draw from the Director's rng keeps its order.
 
-## Cells per step of the fair-cell scan (each runs a grid sight test; about 2 ms at most).
-const FALLBACK_CHUNK_CELLS := 128
+## Cells per step of the fair-cell scan (each fair candidate runs a grid sight test).
+const FALLBACK_CHUNK_CELLS := 64
 
 var director: Director
 var queue := StepQueue.new()

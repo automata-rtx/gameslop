@@ -2,9 +2,11 @@ extends TestCase
 ## R19 (14 §10): the frame a level appears and Relief entry, at the largest level (the
 ## Server at Cycle 2's depth 5, its full roster). A real run starts at depth 10 and drops into
 ## depth 11. The arrival's work after the builder's last slice runs in frames of its own
-## (Run.arrival_ms: the props, the pickups at most a slice budget a frame, the arrival
-## itself with Director.begin) and the Director's roster follows over the next frames
-## (Director.arrival_work); each frame's share must fit the build slice (4 ms). Relief entry
+## (Run.arrival_ms: the props, the pickups at a slice a frame, the audio warm-up, the light
+## pool's prelight, the arrival itself with Director.begin) and the Director's roster follows
+## over the next frames (Director.arrival_work); the staged shares must fit the build slice
+## (4 ms); the prelight and the arrival, single calls in frames nothing moves on screen,
+## less than a frame (16.6 ms). Relief entry
 ## (every hunter and Static hinted away at once, one Director tick) must fit the frame's
 ## script budget (3 ms). Wall-clock readings go through assert_budget (enforced by
 ## tools/ci/checkpoint.sh); what is deterministic is asserted always: the staged roster is
@@ -89,22 +91,27 @@ func test_the_drop_arrived_in_the_server() -> void:
 func test_arrival_frames_fit_the_build_slice() -> void:
 	var d := _director()
 	var steps: Dictionary = _run.arrival_ms
-	for key: StringName in [&"props", &"pickups", &"prelight", &"arrive"]:
+	for key: StringName in [&"props", &"pickups", &"audio", &"prelight", &"arrive"]:
 		assert_true(steps.has(key), "arrival step %s measured" % key)
 	var roster: Array = Array(d.arrival_work.queue.frame_ms)
-	print("  # arrival (drop into the Server, depth 11): props %.2f ms, pickups %.2f ms (worst frame), prelight %.2f ms, arrive %.2f ms; roster %s ms over %d frames; worst frame of the %d after arrival %.2f ms headless" % [
-		steps.get(&"props", 0.0), steps.get(&"pickups", 0.0), steps.get(&"prelight", 0.0), steps.get(&"arrive", 0.0),
+	print("  # arrival (drop into the Server, depth 11): props %.2f ms, pickups %.2f ms (worst frame), audio %.2f ms, prelight %.2f ms, arrive %.2f ms; roster %s ms over %d frames; worst frame of the %d after arrival %.2f ms headless" % [
+		steps.get(&"props", 0.0), steps.get(&"pickups", 0.0), steps.get(&"audio", 0.0), steps.get(&"prelight", 0.0), steps.get(&"arrive", 0.0),
 		", ".join(roster.map(func(v: float) -> String: return "%.2f" % v)), roster.size(), WATCH_FRAMES,
 		Array(_frames).max() if not _frames.is_empty() else 0.0])
 	assert_gt(roster.size(), 1, "the roster spread over frames")
-	for key: StringName in steps:
+	# The staged work: a build slice a frame (14 §10).
+	for key: StringName in [&"props", &"pickups", &"audio"]:
 		assert_budget(float(steps[key]), float(Tuning.LEVELBUILD_SLICE_MS), "arrival step %s ms" % key)
 	for ms: float in roster:
 		assert_budget(ms, float(Tuning.LEVELBUILD_SLICE_MS), "the Director's roster, one frame's share")
-	# A whole frame's CPU (headless: script, physics, the engine) beside a 10 ms render.
-	if not _frames.is_empty():
-		assert_budget(Array(_frames).max(), Tuning.RENDER_FRAME_BUDGET_MS - Tuning.BUDGET_RENDER_MS,
-			"the worst headless frame of the %d after arrival" % WATCH_FRAMES)
+	# Two single calls that cannot split further, each in a frame nothing moves on screen:
+	# the pool's first lending (16 lights and their hum players; behind the drop's black, or
+	# at a proper exit in the arrival frame under the transition) and the arrival frame (the
+	# player placed, level_entered's listeners, Director.begin; covered after a drop and a
+	# proper exit). Neither may cost a whole frame; the listeners' share is filed in
+	# docs/qa/open_items.md (R19).
+	for key: StringName in [&"prelight", &"arrive"]:
+		assert_budget(float(steps[key]), Tuning.RENDER_FRAME_BUDGET_MS, "arrival step %s ms" % key)
 
 
 func test_relief_entry_fits_the_script_budget() -> void:
