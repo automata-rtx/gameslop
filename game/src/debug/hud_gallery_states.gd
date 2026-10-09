@@ -10,7 +10,7 @@ const STATES: Array[StringName] = [
 	&"full", &"low_coherence", &"coherence_gain", &"noclip_charging", &"noclip_floor_ready",
 	&"invalid", &"stunned", &"prompt_hold", &"notification_typing", &"hidden", &"cranking_low",
 	&"substrate_sealed", &"note_faller", &"note_builder", &"note_stray",
-	&"colorblind", &"captions_stack", &"first_run_hint", &"belt_live",
+	&"colorblind", &"captions_stack", &"first_run_hint", &"belt_live", &"note_captions",
 ]
 
 
@@ -160,6 +160,15 @@ static func apply(state: StringName, hud: Hud, fake: HudFakePlayer) -> void:
 			fake.noclip_state.emit(0.6, &"wall", true, &"")
 			EventBus.unlock_earned.emit(&"radio")
 			_step(hud, 0.6)
+		&"note_captions":
+			# M3.6: a note sheet and three captions at once; the stack ends above the sheet.
+			hud.show_note(DataRegistry.note(&"H1"))
+			var l := Transform3D.IDENTITY
+			for c: Array in [[Strings.CAPTION_STATIC, Vector3(-4, 0, 0)], [Strings.CAPTION_ECHO_FOOTSTEP, Vector3(0, 0, 4)]]:
+				hud.caption(AudioMix.format_caption(c[0], l, c[1]))
+				_step(hud, 0.2)
+			hud.caption(Strings.CAPTION_STILL_SILENCE)
+			_step(hud, 1.0)
 		&"note_stray":
 			var stray: NoteData = null
 			for n in DataRegistry.notes():

@@ -6,6 +6,9 @@ extends Node
 ## moved. Controls for the stratum (reverb and room tone), Coherence (the static bed),
 ## threat (the heartbeat), the Still silence and the noclip duck. Debug-only text: these
 ## labels are for review, not player text, so they do not live in strings.gd.
+## M3.3 (the cp-12 listen check, docs/qa/listen_check.md): ECHO PAIR plays the player's own
+## step under the listener then Echo's copy at the emitter 800 ms later; WALL drops a wall
+## between listener and emitter (occlusion); the meter line shows each bus's peak.
 
 const NON_SPATIAL_BUSES: Array[StringName] = [&"Player", &"Music", &"UI"]
 
@@ -13,6 +16,8 @@ var _loops: Dictionary = {}           # id -> AudioLoop
 var _buttons: Dictionary = {}         # id -> BaseButton
 var _dist: float = 5.0
 var _bearing_deg: float = 30.0
+var _wall: StaticBody3D
+var _meter: Label
 
 @onready var _listener: Camera3D = %Listener
 @onready var _emitter: Marker3D = %Emitter
@@ -90,7 +95,60 @@ func _build_controls() -> void:
 	_button(row, "TITLE MUSIC", func() -> void: AudioManager.music.play_title())
 	_button(row, "ENDING", func() -> void: AudioManager.music.play_ending())
 	_button(row, "LUNGE SILENCE", func() -> void: AudioManager.silence(&"World", Tuning.FLICKER_DARK_TIME))
+	_button(row, "ECHO PAIR", echo_pair)
+	var wall := CheckButton.new()
+	wall.text = "WALL"
+	wall.toggled.connect(set_wall)
+	row.add_child(wall)
+	_meter = Label.new()
+	_meter.theme_type_variation = &"HudLabel"
+	_content.add_child(_meter)
 	_place_emitter()
+
+
+func _process(_delta: float) -> void:
+	if _meter == null:
+		return
+	var parts: PackedStringArray = []
+	for bus: StringName in Tuning.AUDIO_BUSES:
+		var i := AudioServer.get_bus_index(bus)
+		var pk := maxf(AudioServer.get_bus_peak_volume_left_db(i, 0), AudioServer.get_bus_peak_volume_right_db(i, 0))
+		parts.append("%s %s" % [String(bus).to_upper(), "-" if pk < -79.0 else "%.0f" % pk])
+	_meter.text = "PEAK DB  " + "  ".join(parts)
+
+
+## The player's step (as the game plays it, at the feet under the camera), then Echo's at the
+## emitter, 800 ms late, on Errors at -3 dB (03 Echo).
+func echo_pair() -> void:
+	var foot := StringName("foot_%s" % AudioManager.step_surface())
+	AudioManager.play_3d(foot, _listener.global_position + Vector3.DOWN * Tuning.PLAYER_CAMERA_HEIGHT)
+	await get_tree().create_timer(Tuning.ECHO_TRAIL_DELAY).timeout
+	if is_inside_tree():
+		AudioManager.play_3d(foot, _emitter.global_position, &"Errors", Tuning.ECHO_STEP_PLAYBACK_DB)
+
+
+## A 6 x 4 m wall halfway between listener and emitter, on the `world` layer (03 §3 occlusion).
+func set_wall(on: bool) -> void:
+	if not on:
+		if _wall != null:
+			_wall.queue_free()
+		_wall = null
+		return
+	if _wall != null:
+		return
+	_wall = StaticBody3D.new()
+	_wall.collision_layer = 1
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(6.0, 4.0, 0.3)
+	shape.shape = box
+	_wall.add_child(shape)
+	add_child(_wall)
+	_place_emitter()
+
+
+func has_wall() -> bool:
+	return _wall != null
 
 
 func _add_section(bus: StringName, ids: Array) -> void:
@@ -144,6 +202,9 @@ func _set_loop_pitch(v: float) -> void:
 func _place_emitter() -> void:
 	var b := deg_to_rad(_bearing_deg)
 	_emitter.position = Vector3(sin(b) * _dist, 0.0, -cos(b) * _dist)
+	if _wall != null:
+		_wall.position = _emitter.position * 0.5
+		_wall.rotation = Vector3(0.0, -b, 0.0)
 
 
 func _stop_all() -> void:

@@ -18,6 +18,16 @@ const ITEM_ARCHIVE := &"archive"
 const ITEM_SETTINGS := &"settings"
 const ITEM_QUIT := &"quit"
 const LEFT_WIDTH := UiTokens.GRID * 100
+## M3.6 compact title (a logical height under 1000 px, UI scale above 1.08): the wordmark
+## prints at 112 px (its 0.18 em tracking kept) and the gap above the menu halves, so the
+## menu and the DESCEND column fit 720 logical px without scaling down.
+const WORDMARK_COMPACT_PX := UiTokens.GRID * 14
+## The menu row keeps the DESCEND column's height whatever is selected, so the wordmark never
+## moves with the selection (it has the tallest detail: stats, the loadout cards and help).
+const COLUMNS_HEIGHT := UiTokens.GRID * 52
+const COLUMNS_HEIGHT_COMPACT := UiTokens.GRID * 50
+## Compact: the list column narrows to what its longest item needs, for the four cards.
+const LIST_WIDTH_COMPACT := UiTokens.GRID * 40
 
 var wordmark: Label
 var subline: Label
@@ -25,6 +35,10 @@ var notice: Label
 var daily_line: Label
 var cards: LoadoutCards = null
 var info: VBoxContainer
+var _menu_gap: Control
+var _stack: VBoxContainer
+var _cols: HBoxContainer
+var _compact_font: FontVariation = null
 ## The archive reset notice (consumed once by the title).
 var reset_notice: String = ""
 
@@ -34,10 +48,10 @@ func build() -> void:
 	title = Strings.TITLE_WORDMARK
 	# The wordmark block spans the top; the list and the detail sit side by side beneath it.
 	remove_child(left)
-	remove_child(detail)
+	remove_child(detail_fit)
 	var stack := VBoxContainer.new()
+	_stack = stack
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override(&"separation", UiTokens.GRID * 2)
 	add_child(stack)
 	var top_space := Control.new()
 	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -51,21 +65,46 @@ func build() -> void:
 	stack.add_child(notice)
 	daily_line = _line(&"TitleSubline", "")
 	stack.add_child(daily_line)
-	var gap := Control.new()
-	gap.custom_minimum_size.y = UiTokens.GRID * 4
-	stack.add_child(gap)
+	_menu_gap = Control.new()
+	stack.add_child(_menu_gap)
 	var cols := HBoxContainer.new()
+	_cols = cols
 	cols.add_theme_constant_override(&"separation", COLUMN_GAP)
 	cols.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	cols.size_flags_stretch_ratio = 1.6
 	stack.add_child(cols)
 	cols.add_child(left)
-	cols.add_child(detail)
+	cols.add_child(detail_fit)
 	info = VBoxContainer.new()
 	info.add_theme_constant_override(&"separation", 0)
 	detail.add_child(info)
 	list.selection_changed.connect(func(_id: StringName) -> void: show_detail())
 	list.activated.connect(choose)
+	_apply_title_compact()
+
+
+func apply_compact() -> void:
+	super.apply_compact()
+	_apply_title_compact()
+
+
+func _apply_title_compact() -> void:
+	var c := UiTokens.compact
+	_stack.add_theme_constant_override(&"separation", UiTokens.GRID * (1 if c else 2))
+	_menu_gap.custom_minimum_size.y = UiTokens.GRID * (2 if c else 4)
+	_cols.custom_minimum_size.y = COLUMNS_HEIGHT_COMPACT if c else COLUMNS_HEIGHT
+	left.custom_minimum_size.x = LIST_WIDTH_COMPACT if c else LIST_WIDTH
+	if not UiTokens.compact:
+		wordmark.remove_theme_font_size_override(&"font_size")
+		wordmark.remove_theme_font_override(&"font")
+		return
+	if _compact_font == null:
+		var base := UiAccessibility.project_theme().get_font(&"font", &"Wordmark")
+		_compact_font = FontVariation.new()
+		_compact_font.base_font = base.base_font if base is FontVariation else base
+		_compact_font.spacing_glyph = UiTokens.tracking_px(WORDMARK_COMPACT_PX, UiTokens.TRACKING_WORDMARK_EM)
+	wordmark.add_theme_font_override(&"font", _compact_font)
+	wordmark.add_theme_font_size_override(&"font_size", WORDMARK_COMPACT_PX)
 
 
 func on_open() -> void:
@@ -113,7 +152,7 @@ func show_detail() -> void:
 			info.add_child(MenuPage.leader_row(Strings.TITLE_LABEL_WINS, _num(stats.get("wins", 0))))
 			info.add_child(MenuPage.leader_row(Strings.TITLE_LABEL_LAST_CAUSE, last_cause_text()))
 			if LoadoutCards.has_choice():
-				_gap(info, 4)
+				_gap(info, 2 if UiTokens.compact else 4)
 				var head := _line(&"DimLabel", Strings.TITLE_LABEL_LOADOUT)
 				info.add_child(head)
 				_gap(info, 1)

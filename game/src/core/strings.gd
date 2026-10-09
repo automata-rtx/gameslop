@@ -190,6 +190,11 @@ const ARCHIVE_ENCOUNTERS := "ENCOUNTERS {count}"
 const ARCHIVE_NOTES_HELP := "Select a found note to read it."
 const ARCHIVE_DISTANCE := "{value} M"
 const ARCHIVE_UNLOCKED_COUNT := "{earned} / {total}"
+const ARCHIVE_UNLOCKS_PAGE := "UNLOCKS {page}/{pages}"   # M3.6 compact menus
+## M3.6: the Archive's CREDITS item (16 §6) and the page it opens (CreditsMenu).
+const ARCHIVE_CREDITS := "CREDITS"
+const ARCHIVE_CREDITS_DESC := "Who built the game, and the licenses of what it is built with."
+const ARCHIVE_CREDITS_HELP := "ENTER OPEN"
 const NOTE_HEADER_FALLER := "NOTE {id} · HANDWRITTEN"
 const NOTE_HEADER_BUILDER := "RENDER NOTE {number}"
 const NOTE_HEADER_STRAY := "FOUND OBJECT"

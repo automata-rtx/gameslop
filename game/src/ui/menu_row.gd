@@ -29,7 +29,7 @@ func _init(row_id: StringName = &"", row_text: String = "", row_description: Str
 	text = row_text
 	description = row_description
 	add_theme_constant_override(&"separation", UiTokens.GRID)
-	custom_minimum_size.y = UiTokens.MENU_ROW_HEIGHT
+	custom_minimum_size.y = UiTokens.row_height()
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	label = Label.new()
 	label.theme_type_variation = &"MenuItemLabel"
@@ -48,6 +48,11 @@ func _init(row_id: StringName = &"", row_text: String = "", row_description: Str
 	add_child(value_box)
 	mouse_entered.connect(func() -> void: hovered.emit(self))
 	refresh()
+
+
+## Re-applies the row height after the compact flag changed (MenuShell, M3.6).
+func apply_row_height() -> void:
+	custom_minimum_size.y = UiTokens.row_height()
 
 
 func _ready() -> void:

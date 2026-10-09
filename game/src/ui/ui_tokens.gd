@@ -82,6 +82,11 @@ const PROMPT_OFFSET_Y := 120
 
 # --- 04 §7 menus, §8 note sheet ---------------------------------------------------------------
 const MENU_ROW_HEIGHT := 40
+## M3.6 compact menus: a logical viewport under COMPACT_HEIGHT px tall (the UI scale above
+## 1.08; the UI scale sets the logical height to 1080 / scale at every resolution) sets menu
+## rows 32 px apart, so a 1080p menu fits 720 logical px without scaling down.
+const MENU_ROW_HEIGHT_COMPACT := 32
+const COMPACT_HEIGHT := 1000.0
 const SLIDER_TRACK_WIDTH := 200
 const SENSITIVITY_TEST_SIZE := 200
 const NOTE_SHEET_WIDTH := 720
@@ -122,9 +127,20 @@ const GLYPHS: Array[StringName] = [
 static var colorblind: bool = false
 ## Text size: multiplies note and caption sizes only (12 §6).
 static var text_size: float = 1.0
+## Compact menus (M3.6): set by MenuShell from its logical height.
+static var compact: bool = false
+
+
+## The menu row height now (04 §7 40 px; 32 px compact).
+static func row_height() -> int:
+	return MENU_ROW_HEIGHT_COMPACT if compact else MENU_ROW_HEIGHT
 ## 12 §6 glyphs (marks, not words, so they live with the tokens rather than in Strings).
 const CB_DANGER_GLYPH := "!"
 const CB_COLD_GLYPH := "~"
+## M3.6 (open item from M2.12): on accent text smaller than this the 1 px colour-blind
+## outline is ui_bg, not ui_fg; a light outline round 18 px strokes turned the depth numeral
+## nearly white. Menu items (22 px) and larger keep the ui_fg outline.
+const CB_OUTLINE_LIGHT_MIN_PX := 20
 
 
 ## The accent colour now (04 §3 ui_accent, or the 12 §6 colour-blind safe accent).
@@ -133,15 +149,21 @@ static func accent() -> Color:
 
 
 ## Sets a label's font colour; with the colour-blind accent on, an accent-coloured label
-## also gets the 1 px ui_fg outline (12 §6), and any other colour loses it.
+## also gets the 1 px outline (12 §6; cb_outline_color), and any other colour loses it.
 static func paint(c: Control, color: Color) -> void:
 	c.add_theme_color_override(&"font_color", color)
 	if colorblind and color.is_equal_approx(UI_ACCENT_CB):
 		c.add_theme_constant_override(&"outline_size", LINE)
-		c.add_theme_color_override(&"font_outline_color", UI_FG)
+		c.add_theme_color_override(&"font_outline_color", cb_outline_color(c.get_theme_font_size(&"font_size")))
 	else:
 		c.remove_theme_constant_override(&"outline_size")
 		c.remove_theme_color_override(&"font_outline_color")
+
+
+## The colour-blind outline for accent text of `font_px` (M3.6): ui_fg from 20 px up, ui_bg
+## below, so small accent text keeps its hue.
+static func cb_outline_color(font_px: int) -> Color:
+	return UI_FG if font_px >= CB_OUTLINE_LIGHT_MIN_PX else UI_BG
 
 
 ## 12 §6: danger adds a `!` glyph, cold a `~` glyph, while the colour-blind accent is on.

@@ -23,11 +23,15 @@ const ITEM_QUIT := TitlePage.ITEM_QUIT
 static var open_on_enter: StringName = &""
 ## The boot line plays once per session.
 static var booted: bool = false
+## M3.6 live corridor: -1 auto (on with a display, off headless), 0 off, 1 on.
+static var live_corridor: int = -1
 
 var shell: MenuShell
 var page: TitlePage
 var menu: MenuList
 var background: Control
+## The live corridor behind the menu (04 §7), or null.
+var corridor: TitleCorridor = null
 var boot_line: UiTypedLabel = null
 var _boot_left: float = 0.0
 var _leaving: bool = false
@@ -54,6 +58,7 @@ func _ready() -> void:
 	shell.register(PAGE_LICENSES, LicensesMenu.new())
 	shell.register(PAGE_BINDINGS, BindingsMenu.new())
 	shell.register(PAGE_ARCHIVE, ArchiveMenu.new())
+	shell.register(ArchiveMenu.PAGE_CREDITS, CreditsMenu.new())
 	page.ensure_built()
 	menu = page.list
 	page.start_requested.connect(start)
@@ -64,18 +69,30 @@ func _ready() -> void:
 	if open_on_enter != &"":
 		shell.open(open_on_enter)
 		open_on_enter = &""
+	if wants_corridor():
+		corridor = TitleCorridor.new()
+		corridor.name = "TitleCorridor"
+		set_background(corridor)
 	if not booted:
 		booted = true
 		_begin_boot()
 
 
-## M3 hook (04 §7): the live corridor goes behind the menu; the shell's background turns to
-## the pause-style overlay so the corridor shows through.
+static func wants_corridor() -> bool:
+	if live_corridor >= 0:
+		return live_corridor == 1
+	return DisplayServer.get_name() != "headless"
+
+
+## The M3 hook (04 §7): the live corridor goes behind the menu, and the shell's black turns
+## to MENU_TITLE_BACKDROP_ALPHA so the corridor shows through (M3.6; the frame keeps its
+## title margins, unlike the pause overlay). null puts the black back.
 func set_background(node: Node) -> void:
 	for c in background.get_children():
 		c.queue_free()
-	background.add_child(node)
-	shell.overlay = node != null
+	if node != null:
+		background.add_child(node)
+	shell.set_backdrop(Color(UiTokens.UI_BG, Tuning.MENU_TITLE_BACKDROP_ALPHA) if node != null else UiTokens.UI_BG)
 
 
 ## `v1.0.0 · MADE BY AN AI · SEED OF THE DAY 20261008` (UTC date, 13 §4).

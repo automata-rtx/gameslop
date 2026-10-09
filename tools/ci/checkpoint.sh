@@ -7,6 +7,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GODOT_BIN="${GODOT_BIN:-$ROOT/tools/godot/bin/godot}"
 NOCLIP_FULL_TESTS=1 "$ROOT/tools/ci/test.sh"
+# 03 §2, §6: the audio files match their recipes, and the mix rules hold (M3.3).
+python3 "$ROOT/tools/audio/synth.py" --out "$ROOT/game/assets/audio" --verify | tail -n 5
+python3 "$ROOT/tools/audio/measure.py" | tail -n 1
 "$GODOT_BIN" --headless --path "$ROOT/game" -- --validate-levels 1000
 "$GODOT_BIN" --headless --path "$ROOT/game" -- --smoke
 if [[ "${1:-}" != "--no-export" ]]; then

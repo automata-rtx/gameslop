@@ -1458,6 +1458,14 @@ const MENU_TITLE_FLICKER_MIN := 25.0                # s between unrender flicker
 const MENU_TITLE_FLICKER_MAX := 40.0
 const MENU_TITLE_FLICKER_MS := 200
 const MENU_TITLE_GRID_CELL := 8                     # px grid behind the wordmark
+# M3.6 live corridor (04 §7 "slowly moving camera", seed 0, no errors; CHANGELOG 2026-10-09)
+const MENU_TITLE_SEED := 0                          # the corridor's Halls level seed (04 §7)
+const MENU_TITLE_CAMERA_SPEED := 0.6                # m/s along the corridor walk (a slow stroll)
+const MENU_TITLE_LOOK_AHEAD := 4.0                  # m: the camera looks at the walk this far ahead
+const MENU_TITLE_SMOOTH := 1.5                      # m: corners are rounded over this half-span
+const MENU_TITLE_PATH_CELLS := 240                  # cells of corridor walked before the loop cuts back
+const MENU_TITLE_FLICKER_REACH := 14.0              # m the unrender ripple travels down the corridor
+const MENU_TITLE_BACKDROP_ALPHA := 0.55             # menu backing over the corridor (ui_bg)
 const MENU_BOOT_TIME := 1.2                         # s of black with the typed line
 const MENU_SUMMARY_RESTART_MAX := 1.0               # s, Enter restarts within 1 s
 const ARCHIVE_NOTE_GRID := Vector2i(6, 6)           # columns (strata) x rows

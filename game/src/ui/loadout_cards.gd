@@ -9,7 +9,8 @@ extends VBoxContainer
 
 signal selection_changed(id: StringName)
 
-const CARD_WIDTH := UiTokens.GRID * 26
+## M3.6: 192 px, so four cards fit the compact title's detail column (832 px).
+const CARD_WIDTH := UiTokens.GRID * 24
 const GLYPH_PX := UiTokens.GLYPH_SIZE
 
 var ids: Array[StringName] = []
