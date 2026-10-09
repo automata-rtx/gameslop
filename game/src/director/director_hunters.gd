@@ -29,6 +29,9 @@ var cap_retreats: int = 0
 var null_replaced: int = 0
 ## Flicker instance id -> Director seconds of its last respawn (10 §4: once per 60 s).
 var _respawned_at: Dictionary = {}
+## DirectorSpawn.off_path_mask of the level `_mask_of` (R19: made once per level).
+var _off_path_mask := PackedByteArray()
+var _mask_of: LevelData = null
 
 
 func live() -> Array[ErrorBase]:
@@ -75,37 +78,28 @@ func _grid() -> LevelGrid:
 # --- spawning (10 §4) -------------------------------------------------------------------------
 
 ## Spawns every spawnable roster id Dormant at a distinct fair cell. Ids without a scene yet
-## are recorded in `director.skipped` (none since M2.6).
+## are recorded in `director.skipped` (none since M2.6). R19: the steps are DirectorArrival's.
 func spawn_roster(roster: Array[StringName]) -> void:
-	var d := director
-	var ids: Array[StringName] = []
-	for id in roster:
-		if DirectorRules.spawnable(id):
-			ids.append(id)
-		else:
-			d.skipped.append(id)
-	if ids.is_empty() or not _player_ok() or _grid() == null:
-		return
-	var band := DirectorSpawn.breaker_exit_band(d.data) if _first_descent_depth1() else {}
-	var cells := _pick(ids, band)
-	for i in ids.size():
-		if cells[i] == LevelData.NO_CELL:
-			# No fair cell from the arrival pose (an open hall in view): wait until the
-			# player moves or turns (M1.13: every level with a native slot has a hunter).
-			pending.append(ids[i])
-			continue
-		spawn(ids[i], _grid().world_of(cells[i]))
+	for step in DirectorArrival.roster_steps(director, roster):
+		step.call()
 
 
-## DirectorSpawn.pick_cells from the player's current pose.
-func _pick(ids: Array[StringName], band: Dictionary = {}) -> Array[Vector2i]:
+## The player's pose for a fair-cell pick: position, eye, camera forward, half FOV.
+func _pose() -> Dictionary:
 	var d := director
 	var cam := d.player.rig.camera
 	var vp_size := cam.get_viewport().get_visible_rect().size if cam.is_inside_tree() else Vector2(16, 9)
 	var aspect := maxf(vp_size.x / maxf(vp_size.y, 1.0), 16.0 / 9.0)
-	var fwd := -cam.global_transform.basis.z
-	return DirectorSpawn.pick_cells(d.data, ids, d.native, d.player.global_position, d.player.eye_position(),
-		fwd, DirectorSpawn.half_fov_h(cam.fov, aspect), d.rng, band)
+	return {&"pos": d.player.global_position, &"eye": d.player.eye_position(),
+		&"fwd": -cam.global_transform.basis.z, &"half_fov": DirectorSpawn.half_fov_h(cam.fov, aspect)}
+
+
+## DirectorSpawn.pick_cells from `pose` (`_pose()`; empty: the player's current pose), with
+## its rng-free parts `ctx` made ahead when given (DirectorArrival).
+func _pick(ids: Array[StringName], band: Dictionary = {}, pose: Dictionary = {}, ctx: Dictionary = {}) -> Array[Vector2i]:
+	var d := director
+	var p := pose if not pose.is_empty() else _pose()
+	return DirectorSpawn.pick_cells(d.data, ids, d.native, p[&"pos"], p[&"eye"], p[&"fwd"], p[&"half_fov"], d.rng, band, ctx)
 
 
 ## Once per second: spawns each pending hunter as soon as a fair cell exists (same rules as
@@ -170,9 +164,11 @@ func spawn(id: StringName, pos: Vector3) -> ErrorBase:
 
 ## 05 §3, 10 §4: after drops, one or two hunters (never Null, §7 rule 9) start in Search at
 ## a cell 30 m from the player (never the player's position); pending ones arrive Dormant.
-func awake_arrivals(count: int) -> void:
+func awake_arrivals(count: int, from: Vector3 = Vector3.INF) -> void:
 	if count <= 0 or not _player_ok() or _grid() == null or not director.wake_allowed():
 		return
+	# R19: the Director passes the arrival position when it spreads the roster over frames.
+	var at := from if from != Vector3.INF else director.player.global_position
 	var hs := _hunters()
 	var ids: Array[StringName] = []
 	for h in hs:
@@ -180,7 +176,7 @@ func awake_arrivals(count: int) -> void:
 	var picks := DirectorRules.awake_arrival_indices(ids, 2 if count >= 2 else 1)
 	for i in picks.slice(0, count):
 		var e := hs[i]
-		var c := DirectorSpawn.cell_at_distance(_grid(), director.player.global_position, Tuning.AWAKE_SEARCH_DIST, director.rng)
+		var c := DirectorSpawn.cell_at_distance(_grid(), at, Tuning.AWAKE_SEARCH_DIST, director.rng)
 		if c == LevelData.NO_CELL:
 			continue
 		var p := _grid().world_of(c)
@@ -346,13 +342,20 @@ func _hint_ring(h: ErrorBase, rmin: float, rmax: float, now: bool = false) -> vo
 func _hint_off_path(st: ErrorStatic, nudge: bool, now: bool = false) -> void:
 	if _grid() == null:
 		return
-	var c := DirectorSpawn.off_path_cell(_grid(), director.data.critical_path, st.global_position)
+	var c := DirectorSpawn.off_path_cell(_grid(), director.data.critical_path, st.global_position, _path_mask())
 	if c == LevelData.NO_CELL:
 		return
 	if nudge:
 		st.nudge(_grid().world_of(c))
 	else:
 		st.hint(_grid().world_of(c), now)
+
+
+func _path_mask() -> PackedByteArray:
+	if _mask_of != director.data:
+		_mask_of = director.data
+		_off_path_mask = DirectorSpawn.off_path_mask(_grid(), director.data.critical_path)
+	return _off_path_mask
 
 
 # --- fairness (10 §7) ---------------------------------------------------------------------------

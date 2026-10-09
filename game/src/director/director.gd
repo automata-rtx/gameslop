@@ -58,6 +58,10 @@ var inputs := DirectorInputs.new()
 var rng: RandomNumberGenerator = Seeds.rng(0)
 var hunters := DirectorHunters.new()
 var statics := DirectorStatics.new()
+## R19: true (the run sets it) spreads begin's roster work over the frames after arrival
+## within the build slice budget (DirectorArrival); false runs it inside begin.
+var staged: bool = false
+var arrival_work := DirectorArrival.new()
 
 var _active: bool = false
 var _game_time: float = 0.0
@@ -103,6 +107,7 @@ func begin(p_level: Level, p_player: Player, p_arrival: StringName = Tuning.RUN_
 	hunters.director = self
 	inputs.director = self
 	statics.director = self
+	arrival_work.director = self
 	var level_seed := data.level_seed if data != null else 0
 	scares = Scares.new(Seeds.derive(level_seed, Tuning.SEED_LABEL_SCARES))
 	scare_events = ScareEvents.new()
@@ -123,10 +128,14 @@ func begin(p_level: Level, p_player: Player, p_arrival: StringName = Tuning.RUN_
 					native = id
 					break
 		spawned_roster.assign(roster)
-		hunters.spawn_roster(spawned_roster)
-		hunters.awake_arrivals(DirectorRules.awake_hunters(drops_in_a_row))
-		statics.bound_statics_off_path()
-	_apply_aggression(true)
+		# The roster, the awake arrivals and the Static bounds (DirectorArrival), then the
+		# aggression: at once, or staged over the next frames (R19), before the first tick.
+		arrival_work.plan(spawned_roster)
+	if staged:
+		arrival_work.queue.append(_apply_aggression.bind(true))
+	else:
+		arrival_work.queue.run()
+		_apply_aggression(true)
 	EventBus.director_phase.emit(pacing.phase)
 
 
@@ -135,6 +144,7 @@ func end() -> void:
 	if not _active:
 		return
 	_active = false
+	arrival_work.queue.clear()
 	inputs.disconnect_all()
 	scare_events.stop_ongoing()
 	DirectorTelemetry.dump_debug(self)
@@ -195,9 +205,19 @@ func request_scare() -> bool:
 
 # --- time --------------------------------------------------------------------------------------
 
+func _process(_delta: float) -> void:
+	if _active and not arrival_work.queue.is_done():
+		arrival_work.queue.run(StepQueue.slice_budget_ms())
+
+
 func _physics_process(delta: float) -> void:
 	_game_time += delta
 	update()
+
+
+## True while begin's staged roster work is still waiting (R19).
+func is_arriving() -> bool:
+	return _active and not arrival_work.queue.is_done()
 
 
 ## Advances the model to `now()` in fixed 0.1 s steps.
@@ -205,6 +225,8 @@ func update() -> void:
 	if not _active:
 		return
 	var t := now()
+	if t - _last_tick >= Tuning.DIRECTOR_TICK - 0.000001 and not arrival_work.queue.is_done():
+		arrival_work.queue.run()  # R19: the first tick sees the whole roster, as without staging
 	while t - _last_tick >= Tuning.DIRECTOR_TICK - 0.000001:
 		_last_tick += Tuning.DIRECTOR_TICK
 		_tick(Tuning.DIRECTOR_TICK)

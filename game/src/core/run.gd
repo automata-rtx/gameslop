@@ -57,6 +57,10 @@ var capture_mouse: bool = true
 var arrival: StringName = &""
 ## Tests and benches only: extra LevelGenerator options merged over the run's (e.g. `lock`).
 var generation_overrides: Dictionary = {}
+## R19 (14 §10 build slice): main-thread ms of the last level's arrival steps, each in a frame
+## of its own after the builder's last slice: `props`, `pickups` (its worst frame), `prelight`
+## (RunStaging), `arrive` (with Director.begin; its roster follows, Director.arrival_work).
+var arrival_ms: Dictionary = {}
 
 var _task: int = -1
 var _generated: LevelData
@@ -164,9 +168,15 @@ func _load_level() -> void:
 	level.name = "Level%d" % GameState.run.depth
 	levels.add_child(level)
 	level.begin(data)
+	arrival_ms.clear()
+	var lvl := level
 	if not level.is_walkable_now():
 		await level.geometry_ready
-	var setup := RunLevelSetup.prepare(level, data)
+	# R19: the props, the pickups and the light pool in frames of their own (RunStaging).
+	var setup: Dictionary = await RunStaging.prepare(level, data, func() -> bool: return level == lvl, arrival_ms)
+	if setup.is_empty():
+		_loading = false
+		return
 	exit = setup[&"exit"]
 	breaker = setup[&"breaker"]
 	if exit != null:
@@ -193,15 +203,16 @@ func _free_level(holder: Node3D) -> void:
 
 
 ## 14 §5: the player at the arrival point, HUD bound, level_entered, the Director.
-func _arrive(kind: StringName) -> void:
+func _arrive(kind: StringName, drop_xf: Variant = null) -> void:
 	if level == null:
 		return
+	var t0 := Time.get_ticks_usec()
 	arrival = kind
 	if player.get_parent() != level:
 		player.reparent(level, false)
 	level.attach_player(player, player.rig.camera)
 	if kind == Tuning.RUN_ARRIVE_DROP:
-		player.global_transform = drop_transform()
+		player.global_transform = drop_xf if drop_xf is Transform3D else drop_transform()
 	player.velocity = Vector3.ZERO
 	player.rig.camera.make_current()
 	AudioManager.set_listener(player.rig.camera)
@@ -223,7 +234,8 @@ func _arrive(kind: StringName) -> void:
 		exit.start_cycle()
 	GameState.run.stratum = data.stratum
 	EventBus.level_entered.emit(GameState.run.depth, data.stratum, kind)
-	RunLevelSetup.begin_director(level, player, kind)
+	RunLevelSetup.begin_director(level, player, kind, true)
+	arrival_ms[&"arrive"] = (Time.get_ticks_usec() - t0) / 1000.0
 	level_ready.emit(GameState.run.depth)
 
 
@@ -350,7 +362,10 @@ func commit_drop() -> void:
 		await get_tree().process_frame
 		if _prepared:
 			waited += get_process_delta_time()
-	_arrive(Tuning.RUN_ARRIVE_DROP)
+	# R19: the arrival cell a frame ahead (pure: the level's data, no error spawned yet).
+	var xf := drop_transform()
+	await get_tree().process_frame
+	_arrive(Tuning.RUN_ARRIVE_DROP, xf)
 
 
 # --- breaker -----------------------------------------------------------------------------------

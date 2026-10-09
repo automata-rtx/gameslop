@@ -126,6 +126,9 @@ func measure() -> Dictionary:
 	director = run.level.find_child("Director", true, false) as Director if run.level != null else null
 	await _until(func() -> bool: return run.level.is_ready() and _nav_ready(), 60.0)
 	build.merge(build_stats(run.level.builder))
+	# R19: the arrival's own frames after the builder's last slice, and the roster's.
+	build[&"arrival_ms"] = run.arrival_ms.duplicate()
+	build[&"roster_frame_ms"] = Array(director.arrival_work.queue.frame_ms) if director != null else []
 	_walk = PerfWalk.new(run.player, run.data, ROUTE_CELLS)
 	_peak_setup()
 	Engine.max_fps = fps
@@ -171,6 +174,8 @@ func _main() -> void:
 func _nav_ready() -> bool:
 	if director == null:
 		return true
+	if director.is_arriving():
+		return false
 	for e in director.errors:
 		if is_instance_valid(e) and not e.navigation_ready:
 			return false

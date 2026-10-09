@@ -22,8 +22,17 @@ const BREAKER_SCENE := "res://scenes/interactables/breaker.tscn"
 
 
 ## Replaces the exit, breaker, item and note markers of `level` (after `geometry_ready`).
-## Returns {exit: Exit, breaker: Breaker or null, pickups: Array}.
+## Returns {exit: Exit, breaker: Breaker or null, pickups: Array}. R19: the run calls its two
+## halves, `prepare_props` and `populate`, in separate frames (14 §10 build slice).
 static func prepare(level: Level, data: LevelData) -> Dictionary:
+	var out := prepare_props(level, data)
+	out[&"pickups"] = populate(level, data)
+	return out
+
+
+## The exit and breaker prefabs in place of their markers, the Powered lock's dark exit room,
+## and the item and note markers freed. Returns {exit, breaker, pickups: []}.
+static func prepare_props(level: Level, data: LevelData) -> Dictionary:
 	var out := {&"exit": null, &"breaker": null, &"pickups": []}
 	var tree := level.get_tree()
 	for m: Node in tree.get_nodes_in_group(LevelPlacer.group_of(LevelData.P_EXIT)):
@@ -52,10 +61,25 @@ static func prepare(level: Level, data: LevelData) -> Dictionary:
 		for m: Node in tree.get_nodes_in_group(LevelPlacer.group_of(kind)):
 			if level.is_ancestor_of(m):
 				m.queue_free()
-	var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_ITEMS))
-	out[&"pickups"] = ItemSpawner.populate(level.content, data, rng)
-	Level.fade_small_lights(level.content)  # M3.5: the pickups' glints (14 §10 active lights)
 	return out
+
+
+## The item and note pickups (ItemSpawner.populate, seeded from the level seed). Returns them.
+static func populate(level: Level, data: LevelData) -> Array:
+	var out: Array[Node3D] = []
+	for step in populate_steps(level, data, out):
+		step.call()
+	return out
+
+
+## R19: populate as steps (ItemSpawner.populate_steps, then the glints' fade) for the run to
+## spread over frames. Each pickup is appended to `out`.
+static func populate_steps(level: Level, data: LevelData, out: Array[Node3D]) -> Array[Callable]:
+	var rng := Seeds.rng(Seeds.derive(data.level_seed, Tuning.SEED_LABEL_ITEMS))
+	var steps := ItemSpawner.populate_steps(level.content, data, rng, out)
+	# M3.5: the pickups' glints (14 §10 active lights).
+	steps.append(func() -> void: Level.fade_small_lights(level.content))
+	return steps
 
 
 ## The prefab path for an exit placement's `exit_kind`: the elevator for an unknown kind or a
@@ -150,7 +174,8 @@ static func cut_power(level: Level, exit: Exit, lit: Array[Fixture]) -> void:
 
 ## M1.8 hook: the per-level Director, when the level carries one (a node named Director or
 ## in group `director`), gets begin(level, player, arrival) with as many arguments as it takes.
-static func begin_director(lvl: Level, player: Player, kind: StringName) -> void:
+## `staged` (the run, R19): the Director spreads its roster over the next frames.
+static func begin_director(lvl: Level, player: Player, kind: StringName, staged: bool = false) -> void:
 	var d: Node = lvl.find_child("Director", true, false)
 	if d == null:
 		for n in lvl.get_tree().get_nodes_in_group(&"director"):
@@ -163,6 +188,8 @@ static func begin_director(lvl: Level, player: Player, kind: StringName) -> void
 		lvl.add_child(d)
 	if not d.has_method(&"begin"):
 		return
+	if staged and d is Director:
+		(d as Director).staged = true
 	var args: Array = [lvl, player, kind]
 	d.callv(&"begin", args.slice(0, d.get_method_argument_count(&"begin")))
 

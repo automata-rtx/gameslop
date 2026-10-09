@@ -3,9 +3,10 @@ extends Node3D
 ## A hide spot host (06 §10, 09 §6): one script, one scene per kind (scenes/interactables/
 ## hide_spot_<kind>.tscn): locker, under car, under desk, pump corner, rack gap. Each scene
 ## sets its own view point, yaw limit and view mask kind.
-## Scene contract: %ViewPoint (Marker3D: the eye inside, looking out), %ExitPoint (Marker3D:
-## where the player stands after leaving, facing away from the spot), and an Interactable
-## (%Interactable) on a collider on layer 4. The view mask is a CanvasLayer this host shows
+## Scene contract: `view_offset` (the eye inside, looking out) and `exit_offset` (where the
+## player stands after leaving, facing away from the spot), both local to the host, and an
+## Interactable (%Interactable) on a collider on layer 4 (the host itself may be that collider:
+## `under_desk` is one StaticBody3D with its shape and Interactable, 3 nodes, R19 14 §10). The view mask is a CanvasLayer this host shows
 ## while occupied: six slits for a locker, a floor-level letterbox for a desk, a small window
 ## for a pump corner, none for a car (the car's belly is the frame) or a rack gap. The LevelPlacer
 ## orients the scene so its local -Z is the way the occupant looks, except the locker (+Z).
@@ -34,8 +35,11 @@ const MASK_CANVAS_LAYER := -20
 ## and leaving (11 §2). Empty: `hide_<kind>`.
 @export var sound: StringName = &""
 
-@onready var view_point: Marker3D = %ViewPoint
-@onready var exit_point: Marker3D = %ExitPoint
+## The eye inside, looking out, local to the host (R19: was a ViewPoint marker node).
+@export var view_offset: Transform3D = Transform3D.IDENTITY
+## Where the player stands after leaving, local to the host (R19: was an ExitPoint marker).
+@export var exit_offset: Transform3D = Transform3D.IDENTITY
+
 @onready var interactable: Interactable = %Interactable
 
 var occupant: Node = null
@@ -92,11 +96,11 @@ func sound_id() -> StringName:
 
 
 func view_transform() -> Transform3D:
-	return view_point.global_transform
+	return global_transform * view_offset
 
 
 func exit_transform() -> Transform3D:
-	return exit_point.global_transform
+	return global_transform * exit_offset
 
 
 func _refresh_prompt() -> void:

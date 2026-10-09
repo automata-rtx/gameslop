@@ -254,18 +254,20 @@ static func crosses(root: Node, level: LevelData) -> PackedStringArray:
 	return out
 
 
-## Hide spots whose ExitPoint does not stand the player on a walkable cell with room for the
+## Hide spots whose exit point does not stand the player on a walkable cell with room for the
 ## capsule (the spot's own bodies excluded): "spot: why".
 static func hide_exits(space: PhysicsDirectSpaceState3D, root: Node, grid: LevelGrid, exclude: Array[RID] = []) -> PackedStringArray:
 	var out := PackedStringArray()
 	for n in root.find_children("*", "HideSpot", true, false):
 		var spot := n as HideSpot
-		var at := spot.exit_point.global_position
+		var at := spot.exit_transform().origin
 		var c := grid.cell_of(at)
 		if not grid.is_walkable(c):
 			out.append("%s exit at %s: cell %s not walkable" % [spot.name, at, c])
 			continue
 		var ex: Array[RID] = exclude.duplicate()
+		if n is CollisionObject3D:  # the under-desk host is its own kneehole body (R19)
+			ex.append((n as CollisionObject3D).get_rid())
 		for b in spot.find_children("*", "CollisionObject3D", true, false):
 			ex.append((b as CollisionObject3D).get_rid())
 		var q := _query(ex)

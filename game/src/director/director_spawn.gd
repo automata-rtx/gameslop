@@ -71,11 +71,14 @@ static func path_fraction(path: Array[Vector2i], c: Vector2i) -> float:
 ## spawns (M1.13 ruling): with no fair cell it takes the farthest legal one (`farthest_cell`). `band` (cell -> true, the
 ## first Descent's breaker-to-exit stretch, `breaker_exit_band`) is where the first Static
 ## goes when a fair cell lies in it (05 §10, M1.13 ruling).
+## R19: `ctx` (pick_context, its fallback finished with fallback_chunk) holds the parts that
+## draw nothing from the rng, made ahead over frames; the picks are the same with or without.
 static func pick_cells(data: LevelData, roster: Array[StringName], native: StringName, player_pos: Vector3,
 		eye: Vector3, forward: Vector3, half_fov: float, rng: RandomNumberGenerator,
-		band: Dictionary = {}) -> Array[Vector2i]:
+		band: Dictionary = {}, ctx: Dictionary = {}) -> Array[Vector2i]:
 	var grid := data.grid
-	var walk := grid.distance_field(grid.cell_of(player_pos))
+	var made := not ctx.is_empty()
+	var walk: PackedInt32Array = ctx[&"walk"] if made else grid.distance_field(grid.cell_of(player_pos))
 	var markers: Array[Vector2i] = []
 	var off_path: Dictionary = {}
 	for p in data.placements_of(LevelData.P_ERROR_SPAWN):
@@ -85,7 +88,12 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 			off_path[c] = bool((p.get(&"params", {}) as Dictionary).get(&"off_path", false))
 	var fallback: Array[Vector2i] = []
 	var fallback_done := false
-	var spawn_room := _spawn_room_cells(data)
+	if made:
+		fallback = ctx[&"fallback"]
+		fallback_done = true
+	var spawn_room: Array[Vector3] = ctx[&"spawn_room"] if made else _spawn_room_cells(data)
+	# Static's spawn-room distance test, once per cell for every Static of the roster.
+	var near: Dictionary = {}
 	var out: Array[Vector2i] = []
 	out.resize(roster.size())
 	out.fill(LevelData.NO_CELL)
@@ -109,7 +117,7 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 			var both: Array[Vector2i] = markers.duplicate()
 			both.append_array(fallback)
 			var in_band: Array[Vector2i] = []
-			for c in _eligible(both, used, id, spawn_room):
+			for c in _eligible(both, used, id, spawn_room, near):
 				if band.has(c) and not in_band.has(c):
 					in_band.append(c)
 			if not in_band.is_empty():
@@ -119,12 +127,12 @@ static func pick_cells(data: LevelData, roster: Array[StringName], native: Strin
 			# It draws nothing while Dormant, so the view cone does not apply (07 wins, 00 §8).
 			cell = data.null_spawn_cell
 		if cell == LevelData.NO_CELL:
-			cell = _pick_one(data, id, native, markers, off_path, used, spawn_room, rng)
+			cell = _pick_one(data, id, native, markers, off_path, used, spawn_room, rng, near)
 		if cell == LevelData.NO_CELL and not fallback_done:
 			fallback_done = true
 			fallback = _fallback_cells(grid, player_pos, eye, forward, half_fov, walk)
 		if cell == LevelData.NO_CELL:
-			cell = _pick_one(data, id, native, fallback, off_path, used, spawn_room, rng)
+			cell = _pick_one(data, id, native, fallback, off_path, used, spawn_room, rng, near)
 		if cell == LevelData.NO_CELL:
 			# Last resort: a hunter only on a fair cell (the spawn and exit rooms allowed);
 			# Static always, at the farthest cell when nothing fair is left (M1.13).
@@ -217,8 +225,8 @@ static func null_pursuit_cell(data: LevelData, player_pos: Vector3) -> Vector2i:
 ## One cell for `id` from `cells` (not `used`): the native hunter prefers 35% to 65% of
 ## the critical path, the others side branches. NO_CELL when none is eligible.
 static func _pick_one(data: LevelData, id: StringName, native: StringName, cells: Array[Vector2i], off_path: Dictionary,
-		used: Array[Vector2i], spawn_room: Array[Vector3], rng: RandomNumberGenerator) -> Vector2i:
-	var pool := _eligible(cells, used, id, spawn_room)
+		used: Array[Vector2i], spawn_room: Array[Vector3], rng: RandomNumberGenerator, near: Dictionary = {}) -> Vector2i:
+	var pool := _eligible(cells, used, id, spawn_room, near)
 	if pool.is_empty():
 		return LevelData.NO_CELL
 	var preferred: Array[Vector2i] = []
@@ -237,13 +245,45 @@ static func _pick_one(data: LevelData, id: StringName, native: StringName, cells
 static func _fallback_cells(grid: LevelGrid, player_pos: Vector3, eye: Vector3, forward: Vector3, half_fov: float,
 		walk: PackedInt32Array) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
-	for i in grid.cell_count():
-		var c := grid.cell_at(i)
-		if grid.has_flag(c, LevelGrid.F_SPAWN_ROOM) or grid.has_flag(c, LevelGrid.F_EXIT_ROOM):
+	_fallback_range(grid, player_pos, eye, forward, half_fov, walk, 0, grid.cell_count(), out)
+	return out
+
+
+## _fallback_cells over cell indices [from, to), appended to `out` in index order.
+static func _fallback_range(grid: LevelGrid, player_pos: Vector3, eye: Vector3, forward: Vector3, half_fov: float,
+		walk: PackedInt32Array, from: int, to: int, out: Array[Vector2i]) -> void:
+	var rooms := LevelGrid.F_SPAWN_ROOM | LevelGrid.F_EXIT_ROOM
+	for i in range(from, to):
+		# A cell that is not walkable or too near on foot is never fair: skip it before the
+		# sight test (spawn_ok's own first checks, read from the packed arrays).
+		if (grid.flags[i] & rooms) != 0 or not grid.is_walkable_i(i):
 			continue
+		var w := walk[i]
+		if w < 0 or w * CS < Tuning.DIRECTOR_SPAWN_MIN_WALK_DIST:
+			continue
+		var c := grid.cell_at(i)
 		if spawn_ok(grid, c, player_pos, eye, forward, half_fov, walk):
 			out.append(c)
-	return out
+
+
+## R19: pick_cells' rng-free parts for a pose, made ahead: {walk, spawn_room, fallback}. The
+## fallback fills in chunks (`fallback_chunk`) so the Director can spread it over frames.
+static func pick_context(data: LevelData, player_pos: Vector3) -> Dictionary:
+	var grid := data.grid
+	var fallback: Array[Vector2i] = []
+	return {&"walk": grid.distance_field(grid.cell_of(player_pos)), &"spawn_room": _spawn_room_cells(data),
+		&"fallback": fallback, &"next": 0}
+
+
+## Adds the fair cells of the next `cells` cell indices to `ctx`'s fallback. True when done.
+static func fallback_chunk(data: LevelData, ctx: Dictionary, player_pos: Vector3, eye: Vector3, forward: Vector3,
+		half_fov: float, cells: int) -> bool:
+	var grid := data.grid
+	var from: int = ctx[&"next"]
+	var to := mini(from + cells, grid.cell_count())
+	_fallback_range(grid, player_pos, eye, forward, half_fov, ctx[&"walk"], from, to, ctx[&"fallback"])
+	ctx[&"next"] = to
+	return to >= grid.cell_count()
 
 
 ## The last resort (M1.13 ruling): the walkable cell farthest (walking) from the player that
@@ -259,12 +299,19 @@ static func farthest_cell(grid: LevelGrid, used: Array[Vector2i], player_pos: Ve
 			order.append(c)
 	if order.is_empty():
 		return LevelData.NO_CELL
+	# R19: the comparator reads each cell's flat distance from a table made once (it was
+	# recomputed on every comparison, 11 ms on a 1,444-cell grid); same answers, same order.
+	var w := grid.size.x
+	var flat := PackedFloat32Array()
+	flat.resize(grid.cell_count())
+	for c in order:
+		flat[c.y * w + c.x] = flat_dist(grid.world_of(c), player_pos)
 	order.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		var wa := walk[grid.idx(a)]
-		var wb := walk[grid.idx(b)]
-		if wa != wb:
-			return wa > wb
-		return flat_dist(grid.world_of(a), player_pos) > flat_dist(grid.world_of(b), player_pos))
+		var ia := a.y * w + a.x
+		var ib := b.y * w + b.x
+		if walk[ia] != walk[ib]:
+			return walk[ia] > walk[ib]
+		return flat[ia] > flat[ib])
 	for c in order:
 		if walk[grid.idx(c)] < 0:
 			break
@@ -273,13 +320,18 @@ static func farthest_cell(grid: LevelGrid, used: Array[Vector2i], player_pos: Ve
 	return LevelData.NO_CELL if fair_only else order[0]
 
 
-static func _eligible(cells: Array[Vector2i], used: Array[Vector2i], id: StringName, spawn_room: Array[Vector3]) -> Array[Vector2i]:
+## `near` (optional) memoizes the spawn-room test per cell across calls of one pick.
+static func _eligible(cells: Array[Vector2i], used: Array[Vector2i], id: StringName, spawn_room: Array[Vector3],
+		near: Dictionary = {}) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	for c in cells:
 		if used.has(c):
 			continue
-		if id == &"static" and _near_any(c, spawn_room, Tuning.STATIC_SPAWN_MIN_FROM_SPAWN_ROOM):
-			continue
+		if id == &"static":
+			if not near.has(c):
+				near[c] = _near_any(c, spawn_room, Tuning.STATIC_SPAWN_MIN_FROM_SPAWN_ROOM)
+			if near[c]:
+				continue
 		out.append(c)
 	return out
 
@@ -288,9 +340,8 @@ static func _spawn_room_cells(data: LevelData) -> Array[Vector3]:
 	var out: Array[Vector3] = []
 	var g := data.grid
 	for i in g.cell_count():
-		var c := g.cell_at(i)
-		if g.has_flag(c, LevelGrid.F_SPAWN_ROOM):
-			out.append(g.world_of(c))
+		if (g.flags[i] & LevelGrid.F_SPAWN_ROOM) != 0:
+			out.append(g.world_of(g.cell_at(i)))
 	if out.is_empty() and data.spawn_cell != LevelData.NO_CELL:
 		out.append(g.world_of(data.spawn_cell))
 	return out
@@ -336,16 +387,23 @@ static func breaker_exit_band(data: LevelData, near: float = Tuning.DIRECTOR_FD_
 
 ## A random walkable cell whose straight-line distance from `centre` is in [rmin, rmax]
 ## (and passes `filter`); without one, the cell closest to the ring. NO_CELL on an empty grid.
+## R19: one pass over cell indices with the distance inline (was 2 to 3.5 ms per call on a
+## 1,444-cell grid through cell_at, world_of and flat_dist); the same cells, order and draw.
 static func cell_in_ring(grid: LevelGrid, centre: Vector3, rmin: float, rmax: float, rng: RandomNumberGenerator,
 		filter: Callable = Callable()) -> Vector2i:
 	var pool: Array[Vector2i] = []
 	var best := LevelData.NO_CELL
 	var best_err := INF
+	var w := grid.size.x
+	var filtered := filter.is_valid()
 	for i in grid.cell_count():
-		var c := grid.cell_at(i)
-		if not grid.is_walkable(c) or (filter.is_valid() and not bool(filter.call(c))):
+		if not grid.is_walkable_i(i):
 			continue
-		var d := flat_dist(grid.world_of(c), centre)
+		var c := Vector2i(i % w, i / w)
+		if filtered and not bool(filter.call(c)):
+			continue
+		# flat_dist(grid.world_of(c), centre), term for term.
+		var d := Vector2(c.x * CS - centre.x, c.y * CS - centre.z).length()
 		if d >= rmin and d <= rmax:
 			pool.append(c)
 		else:
@@ -364,32 +422,48 @@ static func cell_at_distance(grid: LevelGrid, centre: Vector3, d: float, rng: Ra
 
 
 ## The nearest walkable cell (walking) to `from` that is off the critical path by at least
-## the clearance, within the search radius. NO_CELL if none.
-static func off_path_cell(grid: LevelGrid, path: Array[Vector2i], from: Vector3) -> Vector2i:
+## the clearance, within the search radius. NO_CELL if none. `mask` is `off_path_mask(grid,
+## path)` (the Director keeps one per level, R19); without it one is made for this call.
+static func off_path_cell(grid: LevelGrid, path: Array[Vector2i], from: Vector3,
+		mask: PackedByteArray = PackedByteArray()) -> Vector2i:
 	var start := grid.cell_of(from)
 	if not grid.in_bounds(start) or not grid.is_walkable(start):
 		return LevelData.NO_CELL
-	var walk := grid.distance_field(start)
-	var best := LevelData.NO_CELL
+	if mask.size() != grid.cell_count():
+		mask = off_path_mask(grid, path)
+	# Only cells within the search radius can win: the walk stops there (R19).
+	var walk := grid.distance_field(start, Tuning.DIRECTOR_STATIC_OFF_PATH_SEARCH_CELLS)
+	var best := -1
 	var best_w := Tuning.DIRECTOR_STATIC_OFF_PATH_SEARCH_CELLS + 1
-	var clear_cells := Tuning.DIRECTOR_STATIC_OFF_PATH_CLEARANCE / CS
 	for i in walk.size():
 		var w := walk[i]
-		if w < 0 or w >= best_w:
-			continue
-		var c := grid.cell_at(i)
-		# 10 §7 rule 9: never into the Threshold pocket (the exit room).
-		var ok := not grid.has_flag(c, LevelGrid.F_EXIT_ROOM)
-		for p in path:
-			if not ok:
-				break
-			if Vector2(p - c).length() < clear_cells:
-				ok = false
-				break
-		if ok:
-			best = c
+		if w >= 0 and w < best_w and mask[i] == 1:
+			best = i
 			best_w = w
-	return best
+	return grid.cell_at(best) if best >= 0 else LevelData.NO_CELL
+
+
+## Cell index -> 1 where a Static may be sent off the critical path: farther than the
+## off-path clearance (6 m) from every path cell and outside the exit room (10 §7 rule 9,
+## the Threshold pocket). R19: each path cell stamps its disc once (was a scan of the whole
+## path for every reachable cell, 0.9 ms per Static at Relief entry).
+static func off_path_mask(grid: LevelGrid, path: Array[Vector2i]) -> PackedByteArray:
+	var mask := PackedByteArray()
+	mask.resize(grid.cell_count())
+	mask.fill(1)
+	var clear_cells := Tuning.DIRECTOR_STATIC_OFF_PATH_CLEARANCE / CS
+	var span := ceili(clear_cells)
+	for p in path:
+		for dz in range(-span, span + 1):
+			for dx in range(-span, span + 1):
+				var c := p + Vector2i(dx, dz)
+				# The same test as before: Vector2(p - c).length() < clear_cells.
+				if grid.in_bounds(c) and Vector2(p - c).length() < clear_cells:
+					mask[grid.idx(c)] = 0
+	for i in mask.size():
+		if (grid.flags[i] & LevelGrid.F_EXIT_ROOM) != 0:
+			mask[i] = 0
+	return mask
 
 
 ## Pursuit: a critical-path cell outside the Threshold pocket (10 §7 rule 9).
