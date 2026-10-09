@@ -3,10 +3,13 @@ extends CanvasLayer
 ## 14 §9 debug overlay, toggled with F3 in debug builds. Shows engine counters plus the
 ## lines from every node in the `debug_info` group (each implements `debug_info() -> Dictionary`).
 ## Systems add their own lines by joining the group (Director phase, error states, exit status).
+## M3.6: the GAMEPLAY tab's Debug overlay option (12 §7, debug builds only) shows and hides
+## it too; F3 still toggles it for the session.
 
 const GROUP := &"debug_info"
 const LAYER := 100
 const REFRESH_S := 0.25
+const SETTING := &"debug_overlay"
 
 var _label: Label
 var _accum := 0.0
@@ -23,6 +26,16 @@ func _ready() -> void:
 	_label.add_theme_constant_override(&"shadow_offset_x", 1)
 	_label.add_theme_constant_override(&"shadow_offset_y", 1)
 	add_child(_label)
+	SettingsManager.changed.connect(_on_setting_changed)
+	_on_setting_changed(SETTING, SettingsManager.get_value(SETTING))
+
+
+## 12 §7 Debug overlay (debug builds only).
+func _on_setting_changed(key: StringName, value: Variant) -> void:
+	if key != SETTING or not OS.is_debug_build():
+		return
+	visible = value is bool and bool(value)
+	_refresh()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

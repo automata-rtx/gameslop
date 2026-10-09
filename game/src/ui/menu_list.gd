@@ -30,7 +30,7 @@ func _init() -> void:
 func add_item(id: StringName, text: String, enabled: bool = true) -> void:
 	var l := Label.new()
 	l.theme_type_variation = &"MenuItemLabel"
-	l.custom_minimum_size.y = UiTokens.MENU_ROW_HEIGHT
+	l.custom_minimum_size.y = UiTokens.row_height()
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_STOP
 	var i := ids.size()
@@ -49,6 +49,12 @@ func add_item(id: StringName, text: String, enabled: bool = true) -> void:
 	_texts.append(text)
 	_enabled.append(enabled)
 	_refresh()
+
+
+## Re-applies the row height after the compact flag changed (MenuShell, M3.6).
+func apply_row_height() -> void:
+	for l in _labels:
+		l.custom_minimum_size.y = UiTokens.row_height()
 
 
 func clear_items() -> void:

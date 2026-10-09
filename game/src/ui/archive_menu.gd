@@ -12,8 +12,18 @@ const SECTION_NOTES := &"notes"
 const SECTION_ERRORS := &"errors"
 const SECTION_STATISTICS := &"statistics"
 const SECTION_UNLOCKS := &"unlocks"
+## M3.6 (16 §6): the full credits, a page of their own (CreditsMenu) under this id.
+const SECTION_CREDITS := &"credits"
+const PAGE_CREDITS := &"credits"
+## M3.6 compact (720 logical px): the 14 milestones in one column, 7 to a page, as
+## `UNLOCKS 1/2` and `UNLOCKS 2/2` (the second page's id is SECTION_UNLOCKS_2).
+const SECTION_UNLOCKS_2 := &"unlocks_2"
+const UNLOCKS_PER_PAGE_COMPACT := 7
+## Two columns of 464 px fill the 960 px detail column (04 §7).
+const UNLOCK_ENTRY_WIDTH := UiTokens.GRID * 58
 const GRID := Tuning.ARCHIVE_NOTE_GRID
-const CELL := Vector2(UiTokens.GRID * 16, UiTokens.MENU_ROW_HEIGHT)
+## M3.6: 120 px, so six strata fit the compact detail column (736 px).
+const CELL_WIDTH := UiTokens.GRID * 15
 ## 04 §5 codex glyphs.
 const ERROR_GLYPHS: Dictionary = {&"static": &"wave", &"still": &"eye", &"flicker": &"bolt", &"echo": &"steps", &"null": &"null"}
 const SHEET_PANELS: Dictionary = {
@@ -36,27 +46,50 @@ var _blink_t: float = INF
 
 func build() -> void:
 	title = Strings.MENU_ARCHIVE
-	list.add_item(SECTION_NOTES, Strings.ARCHIVE_NOTES)
-	list.add_item(SECTION_ERRORS, Strings.ARCHIVE_ERRORS)
-	list.add_item(SECTION_STATISTICS, Strings.ARCHIVE_STATISTICS)
-	list.add_item(SECTION_UNLOCKS, Strings.ARCHIVE_UNLOCKS)
+	_add_sections()
 	list.selection_changed.connect(show_section)
-	list.activated.connect(func(id: StringName) -> void:
-		if id == SECTION_NOTES:
-			focus_grid())
-	list.advanced.connect(func(id: StringName) -> void:
-		if id == SECTION_NOTES:
-			focus_grid())
+	list.activated.connect(_enter)
+	list.advanced.connect(_enter)
 	body = VBoxContainer.new()
 	body.add_theme_constant_override(&"separation", UiTokens.GRID)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail.add_child(body)
 
 
+func _add_sections() -> void:
+	list.add_item(SECTION_NOTES, Strings.ARCHIVE_NOTES)
+	list.add_item(SECTION_ERRORS, Strings.ARCHIVE_ERRORS)
+	list.add_item(SECTION_STATISTICS, Strings.ARCHIVE_STATISTICS)
+	if UiTokens.compact:
+		for i in 2:
+			list.add_item(SECTION_UNLOCKS if i == 0 else SECTION_UNLOCKS_2,
+					Strings.ARCHIVE_UNLOCKS_PAGE.replace("{page}", str(i + 1)).replace("{pages}", "2"))
+	else:
+		list.add_item(SECTION_UNLOCKS, Strings.ARCHIVE_UNLOCKS)
+	list.add_item(SECTION_CREDITS, Strings.ARCHIVE_CREDITS)
+
+
 func on_open() -> void:
 	grid_focus = false
 	list.active = true
 	show_section(list.selected_id())
+
+
+## Rebuilds the open section at the new row height (M3.6).
+func apply_compact() -> void:
+	var keep := list.selected_id()
+	list.clear_items()
+	_add_sections()
+	list.select_id(keep if list.ids.has(keep) else SECTION_UNLOCKS)
+	super.apply_compact()
+	if body == null:
+		return
+	var focus := grid_focus
+	show_section(list.selected_id())
+	if focus and not cells.is_empty():
+		grid_focus = true
+		list.active = false
+		_refresh_grid()
 
 
 func handle_cancel() -> bool:
@@ -79,7 +112,20 @@ func show_section(id: StringName) -> void:
 		SECTION_STATISTICS:
 			_build_statistics()
 		SECTION_UNLOCKS:
-			_build_unlocks()
+			_build_unlocks(0)
+		SECTION_UNLOCKS_2:
+			_build_unlocks(1)
+		SECTION_CREDITS:
+			body.add_child(MenuPage.description_label(Strings.ARCHIVE_CREDITS_DESC))
+			body.add_child(MenuPage.description_label(Strings.ARCHIVE_CREDITS_HELP))
+
+
+## Enter or Right on a section: the notes grid takes the keyboard; CREDITS opens its page.
+func _enter(id: StringName) -> void:
+	if id == SECTION_NOTES:
+		focus_grid()
+	elif id == SECTION_CREDITS:
+		open_requested.emit(PAGE_CREDITS)
 
 
 # --- notes --------------------------------------------------------------------------------------
@@ -120,7 +166,7 @@ func _build_notes() -> void:
 		var h := Label.new()
 		h.theme_type_variation = &"Description"
 		h.text = String(Strings.STRATUM_NAMES.get(stratum, String(stratum).to_upper()))
-		h.custom_minimum_size = CELL
+		h.custom_minimum_size = Vector2(CELL_WIDTH, UiTokens.row_height())
 		h.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		grid.add_child(h)
 	for r in GRID.y:
@@ -128,7 +174,7 @@ func _build_notes() -> void:
 			var id: StringName = _grid_ids[c][r] if c < _grid_ids.size() and r < (_grid_ids[c] as Array).size() else &""
 			var l := Label.new()
 			l.theme_type_variation = &"MenuItemLabel"
-			l.custom_minimum_size = CELL
+			l.custom_minimum_size = Vector2(CELL_WIDTH, UiTokens.row_height())
 			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			l.text = "  " + (cell_text(id) if id != &"" else "")
 			l.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -286,7 +332,7 @@ func _build_errors() -> void:
 		var count := int(GameState.meta.codex.get(String(id), 0))
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override(&"separation", UiTokens.GRID * 2)
-		row.custom_minimum_size.y = UiTokens.MENU_ROW_HEIGHT
+		row.custom_minimum_size.y = UiTokens.row_height()
 		var glyph := TextureRect.new()
 		glyph.custom_minimum_size = Vector2(UiTokens.GLYPH_SIZE, UiTokens.GLYPH_SIZE)
 		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -313,6 +359,8 @@ func _build_errors() -> void:
 
 
 func _build_statistics() -> void:
+	if UiTokens.compact:
+		body.add_theme_constant_override(&"separation", 0)   # M3.6: 17 rows in 720 px
 	var s: Dictionary = GameState.meta.stats
 	var fmt := func(v: Variant) -> String: return RunSummary.format_score(int(v))
 	body.add_child(MenuPage.leader_row(Strings.STAT_RUNS, fmt.call(s.get("runs", 0))))
@@ -333,7 +381,7 @@ func _build_statistics() -> void:
 	body.add_child(MenuPage.leader_row(Strings.STAT_POLAROIDS_SEEN, fmt.call(GameState.meta.polaroids_seen.size())))
 
 
-func _build_unlocks() -> void:
+func _build_unlocks(page: int) -> void:
 	var earned := 0
 	for id in Tuning.UNLOCK_IDS:
 		if GameState.meta.is_unlocked(id):
@@ -341,14 +389,14 @@ func _build_unlocks() -> void:
 	body.add_child(MenuPage.leader_row(Strings.ARCHIVE_UNLOCKS, Strings.ARCHIVE_UNLOCKED_COUNT
 			.replace("{earned}", str(earned)).replace("{total}", str(Tuning.UNLOCK_IDS.size()))))
 	var grid := GridContainer.new()
-	grid.columns = 2
+	grid.columns = 1 if UiTokens.compact else 2
 	grid.add_theme_constant_override(&"h_separation", UiTokens.GRID * 4)
-	grid.add_theme_constant_override(&"v_separation", UiTokens.GRID * 2)
-	for id in Tuning.UNLOCK_IDS:
+	grid.add_theme_constant_override(&"v_separation", UiTokens.GRID * (1 if UiTokens.compact else 2))
+	for id in unlock_page(page):
 		var on := GameState.meta.is_unlocked(id)
 		var entry := VBoxContainer.new()
 		entry.add_theme_constant_override(&"separation", 0)
-		entry.custom_minimum_size.x = UiTokens.GRID * 60
+		entry.custom_minimum_size.x = 0 if UiTokens.compact else UNLOCK_ENTRY_WIDTH
 		entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var head := HBoxContainer.new()
 		head.add_theme_constant_override(&"separation", UiTokens.GRID)
@@ -366,3 +414,11 @@ func _build_unlocks() -> void:
 		entry.add_child(MenuPage.description_label(String(Strings.UNLOCK_DESCRIPTIONS[id])))
 		grid.add_child(entry)
 	body.add_child(grid)
+
+
+## The milestones on unlock page `page` (all of them unless compact, M3.6).
+static func unlock_page(page: int) -> Array[StringName]:
+	if not UiTokens.compact:
+		return Tuning.UNLOCK_IDS.duplicate()
+	var n := UNLOCKS_PER_PAGE_COMPACT
+	return Tuning.UNLOCK_IDS.slice(page * n, (page + 1) * n)

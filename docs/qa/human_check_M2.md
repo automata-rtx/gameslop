@@ -44,7 +44,7 @@ Direct launches (Stratum) drop you into a built level with the Director running 
 Start with no `meta.json` and no `settings.cfg` in the user directory.
 
 **A1. The title.** Launch the Game.
-Expect: a black screen, the word `rendering` typing itself with a block cursor, a shutter, then the title: NOCLIP, a menu with `DESCEND`, `DAILY DESCENT` (dimmed), `ARCHIVE`, `SETTINGS`, `QUIT`, and the line `v1.0.0 · MADE BY AN AI · SEED OF THE DAY <date>`. A live corridor flickers behind the menu (M3: not yet built; the background is black today). `ENDLESS` is not listed. Up and Down move the `▸` marker with a tick sound.
+Expect: a black screen, the word `rendering` typing itself with a block cursor, a shutter, then the title: NOCLIP, a menu with `DESCEND`, `DAILY DESCENT` (dimmed), `ARCHIVE`, `SETTINGS`, `QUIT`, and the line `v1.0.0 · MADE BY AN AI · SEED OF THE DAY <date>`. Behind the menu, a live yellow Halls corridor (seen through a 55% black backing) drifts past slowly as if walked at a stroll, with faint grain; every 25 to 40 s a 200 ms ripple of white grid lines on black runs down the corridor ahead and is gone. Turn on ACCESSIBILITY > REDUCE FLASHING and wait a minute: the ripple never comes. `ENDLESS` is not listed. Up and Down move the `▸` marker with a tick sound.
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **A2. The detail column.** Move onto each item and read the column beside it.
@@ -56,7 +56,7 @@ Expect: each tab lists its options with a one-line description under the selecte
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **A4. Display options apply live.** On DISPLAY drag FIELD OF VIEW from 90 to 110 and back, then BRIGHTNESS; read the test strip text.
-Expect: the title's live corridor changes its field of view at once (M3: not yet built; skip this clause); the darkest bar of the brightness strip is barely visible at the default. Change WINDOW MODE to WINDOWED: a `KEEP` / `REVERT` prompt appears with `REVERTING IN 10`; choose REVERT and the old mode returns; choose it again and KEEP, and it stays.
+Expect: the title's live corridor widens and narrows its field of view at once, with no stutter; the darkest bar of the brightness strip is barely visible at the default. Change WINDOW MODE to WINDOWED: a `KEEP` / `REVERT` prompt appears with `REVERTING IN 10`; choose REVERT and the old mode returns; choose it again and KEEP, and it stays.
 [ ] PASS  [ ] FAIL  Note: ______________________
 
 **A5. Graphics presets.** On GRAPHICS set PRESET to LOW, then HIGH, then change one option (SHADOW QUALITY).

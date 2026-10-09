@@ -14,6 +14,9 @@ const LIST_WIDTH := UiTokens.GRID * 52
 const COLUMN_GAP := UiTokens.GRID * 8
 ## The detail column's width at 1080p; leaders stay readable instead of spanning the screen.
 const DETAIL_WIDTH := UiTokens.GRID * 120
+## The narrowest the detail column gets before the whole page scales down (M3.6: UI scale
+## 1.5 at 1280 x 720 leaves 736 px beside the list).
+const DETAIL_MIN_WIDTH := UiTokens.GRID * 80
 
 ## The title line of the shell while this page is open.
 var title: String = ""
@@ -22,6 +25,9 @@ var show_header: bool = true
 var list: MenuList
 var left: VBoxContainer
 var detail: VBoxContainer
+## Holds `detail` in the space beside the list (DETAIL_MIN_WIDTH to DETAIL_WIDTH wide) and
+## scales it down when its content would not fit (M3.6).
+var detail_fit: UiFitBox
 var _built: bool = false
 
 
@@ -35,12 +41,16 @@ func _init() -> void:
 	add_child(left)
 	list = MenuList.new()
 	left.add_child(list)
+	detail_fit = UiFitBox.new()
+	detail_fit.max_width = DETAIL_WIDTH
+	detail_fit.custom_minimum_size.x = DETAIL_MIN_WIDTH
+	detail_fit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_fit.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_child(detail_fit)
 	detail = VBoxContainer.new()
-	detail.custom_minimum_size.x = DETAIL_WIDTH
-	detail.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail.add_theme_constant_override(&"separation", UiTokens.GRID)
-	add_child(detail)
+	detail_fit.add_child(detail)
 
 
 func _ready() -> void:
@@ -62,6 +72,16 @@ func build() -> void:
 ## Called each time the shell shows the page (override to refresh from state).
 func on_open() -> void:
 	pass
+
+
+## The compact flag changed (UiTokens.compact, M3.6): rows take the new height. Pages
+## with more to adjust override and call super.
+func apply_compact() -> void:
+	for n in find_children("*", "", true, false):
+		if n is MenuRow:
+			(n as MenuRow).apply_row_height()
+		elif n is MenuList:
+			(n as MenuList).apply_row_height()
 
 
 ## Esc inside the page. True when consumed (the shell then stays on this page).

@@ -132,20 +132,21 @@ func test_licenses_page_shows_the_notice_and_every_component_a_page_at_a_time() 
 	page.on_open()
 	var pages := LicensesMenu.component_pages()
 	var n := Credits.components().size()
-	assert_eq(pages, ceili(float(n) / LicensesMenu.COMPONENTS_PER_PAGE))
+	assert_eq(pages, ceili(float(n) / LicensesMenu.per_page()))
 	assert_eq(page.list.ids.size(), pages + 3, "ENGINE, the component pages, TYPEFACE, SOUND")
 	assert_lt(page.list.ids.size() * UiTokens.MENU_ROW_HEIGHT, 1080 - 2 * MenuShell.MARGIN,
 			"04 §7: the list fits one screen")
 	var engine := page.section_text(LicensesMenu.SECTION_ENGINE)
 	assert_contains(engine, Strings.CREDITS_GODOT)
-	assert_contains(engine, Engine.get_license_text().strip_edges(), "the MIT notice in full")
+	for l in Credits.godot_license_lines():
+		assert_contains(engine, l, "the MIT notice in full (reflowed into paragraphs, M3.6)")
 	var seen := 0
 	for i in pages:
 		var text := page.section_text(LicensesMenu.component_section(i))
 		var rows := page.body.find_children("*", "HBoxContainer", true, false).size()
-		assert_lt(rows, LicensesMenu.COMPONENTS_PER_PAGE + 1)
+		assert_lt(rows, LicensesMenu.per_page() + 1)
 		seen += rows
-		for j in range(i * LicensesMenu.COMPONENTS_PER_PAGE, mini((i + 1) * LicensesMenu.COMPONENTS_PER_PAGE, n)):
+		for j in range(i * LicensesMenu.per_page(), mini((i + 1) * LicensesMenu.per_page(), n)):
 			assert_contains(text, String(Credits.components()[j]["name"]))
 			assert_contains(text, String(Credits.components()[j]["license"]))
 	assert_eq(seen, n, "every component once")

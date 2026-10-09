@@ -17,6 +17,7 @@ const ITEM_ARCHIVE := &"archive"
 const ITEM_TITLE := &"title"
 
 var lines: Array[UiTypedLabel] = []
+var frame: MarginContainer
 var menu: MenuList
 var _texts: Array[String] = []
 var _typing: int = -1
@@ -29,10 +30,22 @@ func _ready() -> void:
 	bg.color = UiTokens.UI_BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	# M3.6: the table sits 128 px in at 1080p; on a short logical screen (UI scale above 1.0,
+	# 720p) the frame keeps the 32 px safe area and the column scales down if it still
+	# does not fit (UiFitBox).
+	frame = MarginContainer.new()
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(frame)
+	_apply_margins()
+	resized.connect(_apply_margins)
+	var fit := UiFitBox.new()
+	frame.add_child(fit)
 	var col := VBoxContainer.new()
-	col.position = Vector2(UiTokens.SAFE_MARGIN * 4, UiTokens.SAFE_MARGIN * 4)
 	col.add_theme_constant_override(&"separation", UiTokens.GRID)
-	add_child(col)
+	col.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	col.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	fit.add_child(col)
 	var win := GameState.last_cause() == WIN_CAUSE
 	_add_line(col, top_line() if win else UiTokens.danger_mark(top_line()), &"AccentLabel" if win else &"DangerLabel")
 	_add_line(col, cause_explanation(GameState.last_cause()), &"DimLabel")
@@ -53,6 +66,14 @@ func _ready() -> void:
 	menu.activated.connect(choose)
 	col.add_child(menu)
 	_type_next()
+
+
+func _apply_margins() -> void:
+	if frame == null:
+		return
+	var m := UiTokens.SAFE_MARGIN * (1 if size.y > 0.0 and size.y < MenuShell.COMPACT_HEIGHT else 4)
+	for side in [&"margin_left", &"margin_top", &"margin_right", &"margin_bottom"]:
+		frame.add_theme_constant_override(side, m)
 
 
 func _add_line(parent: Node, text: String, variation: StringName) -> void:

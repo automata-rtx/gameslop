@@ -38,6 +38,8 @@ var _dim_t: float = INF
 var _dissolve_t: float = -1.0
 ## True from the dissolve shutter until restore() (11 §3).
 var dissolved_state: bool = false
+## M3.6: `EXIT UNLOCKED` prints once a level; a Cycled exit reopens every 90 s silently.
+var exit_unlock_notified: bool = false
 
 @onready var frame: Control = %Frame
 @onready var coherence_shutter: UiShutter = %CoherenceShutter
@@ -90,6 +92,8 @@ func advance(dt: float) -> void:
 		if _dissolve_t >= Tuning.FEEDBACK_DISSOLVE_HUD_SHUTTER:
 			_dissolve_t = -1.0
 			_shutter_all_out()
+	# M3.6: while a note sheet shows, the caption stack ends above it (never under the sheet).
+	captions.set_floor(note_sheet.global_position.y - captions.global_position.y if note_sheet.visible else INF)
 
 
 # --- binding ------------------------------------------------------------------------------
@@ -156,7 +160,8 @@ func set_depth(d: int, stratum: StringName) -> void:
 
 func set_exit_status(status: StringName, timer: float) -> void:
 	var before := depth.set_exit_status(status, timer)
-	if before in LOCKED_STATUSES and status == HudDepth.STATUS_OPEN:
+	if before in LOCKED_STATUSES and status == HudDepth.STATUS_OPEN and not exit_unlock_notified:
+		exit_unlock_notified = true
 		notify(Strings.MSG_EXIT_UNLOCKED)
 
 
@@ -355,6 +360,7 @@ func _on_level_entered(d: int, stratum: StringName, arrival: StringName) -> void
 	restore()
 	set_depth(d, stratum)
 	depth.set_exit_status(HudDepth.STATUS_UNKNOWN, 0.0)
+	exit_unlock_notified = false
 	if arrival == ARRIVAL_DROP:
 		notify(Strings.MSG_DROPPED)
 
