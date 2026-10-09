@@ -20,6 +20,8 @@ var hold_time: float = 0.0
 var progress: float = 0.0
 var raw_text: String = ""
 var _bar: HoldBar
+## M3.1 ruling (04 §8): pixels the line sits above its place while a note sheet would cover it.
+var _lift: float = 0.0
 
 
 class HoldBar extends Control:
@@ -127,7 +129,24 @@ func underline_visible() -> bool:
 	return _bar.visible
 
 
+## Pixels the line is raised from the position 04 §6 fixes (0 when nothing covers it).
+func lift() -> float:
+	return _lift
+
+
+func set_lift(px: float) -> void:
+	if is_equal_approx(px, _lift):
+		return
+	_lift = maxf(px, 0.0)
+	_layout()
+
+
+## Height the line takes: its own while it shows, a line of the prompt face otherwise.
+func reserved_height() -> float:
+	return maxf(shutter.size.y, UiTokens.text_px(Tuning.UI_FONT_PROMPT) * 1.6)
+
+
 func _layout() -> void:
 	var s := shutter.get_combined_minimum_size()
 	shutter.size = s
-	shutter.position = (-s * 0.5).round()
+	shutter.position = (-s * 0.5).round() - Vector2(0.0, roundf(_lift))

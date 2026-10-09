@@ -180,6 +180,47 @@ func test_note_sheet_never_covers_the_captions() -> void:
 	SettingsManager.set_value(&"text_size", 1.0)
 
 
+## M3.1 ruling (04 §6, §8): at UI scale 1.5 the tallest note sheet reaches the prompt line.
+## The line then rises to a grid unit above the sheet (never onto the crosshair), the
+## captions end above the line, and where nothing overlaps the line keeps its 04 §6 place.
+func test_prompt_line_clears_the_note_sheet() -> void:
+	var lifted_somewhere := false
+	for ts: float in [1.0, Tuning.SETTINGS_TEXT_SIZE_MAX]:
+		SettingsManager.set_value(&"text_size", ts)
+		for size in logical_sizes():
+			var vp := _viewport(size)
+			var root := Control.new()
+			vp.add_child(root)
+			root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			root.size = Vector2(size)
+			var hud := HudGalleryStates.build(root, &"note_prompt")
+			await await_frames(2)
+			HudGalleryStates._step(hud, 0.3)
+			var tag := "at %s text %s" % [size, ts]
+			assert_true(hud.note_sheet.is_shown(), "the sheet " + tag)
+			assert_true(hud.prompt.is_shown(), "the prompt " + tag)
+			var sheet := UiLayoutCheck._rect(hud.note_sheet)
+			var line := UiLayoutCheck._rect(hud.prompt.shutter)
+			var cross_y := hud.prompt.global_position.y - float(Tuning.HUD_PROMPT_OFFSET_Y)
+			assert_true(line.end.y <= sheet.position.y + 0.5, "the prompt line is not under the sheet " + tag)
+			for l in hud.captions.labels():
+				var r := UiLayoutCheck._rect(l)
+				assert_true(r.end.y <= line.position.y + 0.5, "caption %s above the prompt line %s" % [l.text, tag])
+			if hud.prompt.lift() > 0.0:
+				lifted_somewhere = true
+				assert_true(line.end.y <= cross_y - float(Tuning.HUD_PROMPT_CROSSHAIR_CLEAR) + 1.0, "off the crosshair " + tag)
+				assert_true(hud.prompt.lift() <= 1080.0, "a sane lift")
+				assert_approx(hud.hints.line.lift(), hud.prompt.lift(), 0.01, "the hint line rises with it " + tag)
+			else:
+				assert_approx(line.get_center().y, cross_y + float(Tuning.HUD_PROMPT_OFFSET_Y), 1.5, "04 §6 place kept " + tag)
+			hud.note_sheet.show_now(false)
+			HudGalleryStates._step(hud, 0.3)
+			assert_approx(hud.prompt.lift(), 0.0, 0.01, "back to the 04 §6 place when the sheet is gone " + tag)
+			vp.free()
+	assert_true(lifted_somewhere, "the extremes include a combination where the sheet reaches the line")
+	SettingsManager.set_value(&"text_size", 1.0)
+
+
 func test_text_size_14_fits_the_smallest_viewport() -> void:
 	SettingsManager.set_value(&"text_size", Tuning.SETTINGS_TEXT_SIZE_MAX)
 	var size := Vector2i(1280, 720)

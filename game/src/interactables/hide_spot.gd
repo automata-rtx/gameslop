@@ -81,6 +81,12 @@ func set_occupant(player: Node) -> void:
 	occupied_changed.emit(player != null)
 
 
+## 11 §2 leave hide spot: the view mask lifts as the player starts to leave (the slide out
+## takes 0.6 s, the occupant is cleared when it ends). M3.1: it used to lift with the slide's end.
+func lift_view_mask() -> void:
+	_show_mask(false)
+
+
 func sound_id() -> StringName:
 	return sound if sound != &"" else StringName("hide_%s" % kind)
 

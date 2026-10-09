@@ -93,7 +93,7 @@ func _boot(auto: bool) -> void:
 		var mi := args2.find("--md")
 		if mi != -1 and mi + 1 < args2.size():
 			write_text(args2[mi + 1], markdown(results))
-		var bad := results.filter(func(r: Dictionary) -> bool: return r[&"status"] == FeedbackRows.IMPLEMENTED and not r[&"ok"])
+		var bad := results.filter(func(r: Dictionary) -> bool: return r[&"status"] == FeedbackRows.IMPLEMENTED and not (r[&"ok"] and r[&"full"]))
 		get_tree().quit(1 if not bad.is_empty() else 0)
 	else:
 		_refresh_ui()
@@ -195,10 +195,32 @@ func run_row(id: StringName) -> Dictionary:
 	release_all()
 	var result := _evaluate(row)
 	result[&"wall_ms"] = int((Time.get_ticks_usec() - t0) / 1000)
+	if OS.get_cmdline_user_args().has("--trace"):
+		_print_trace(row)
 	spy.extra.clear()
 	_store(result)
 	_busy = false
 	return result
+
+
+## `--trace`: the keys that changed per sampled frame from 8 frames before the anchor to the
+## end of the row's window, per channel (what a failing row actually saw).
+func _print_trace(row: Dictionary) -> void:
+	if _anchor_index < 0:
+		return
+	var end_tick := _anchor_tick + int(row[&"window"])
+	print("  trace %s anchor tick %d" % [row[&"id"], _anchor_tick])
+	for i in range(maxi(_anchor_index - 8, 0), spy.entries.size()):
+		var e: Dictionary = spy.entries[i]
+		if int(e[&"tick"]) > end_tick:
+			break
+		var parts: PackedStringArray = []
+		for ch: StringName in FeedbackSpy.CHANNELS:
+			var keys: PackedStringArray = e[&"changed"][ch]
+			if lists(row, ch) and not keys.is_empty():
+				parts.append("%s=%s" % [ch, ",".join(keys.slice(0, 6))])
+		print("  trace %s%+d t%+d %s" % ["@" if i == _anchor_index else " ", i - _anchor_index,
+				int(e[&"tick"]) - _anchor_tick, " ".join(parts)])
 
 
 func _store(result: Dictionary) -> void:
@@ -301,10 +323,20 @@ func _result_for(row: Dictionary, channels: Dictionary) -> Dictionary:
 		else:
 			missing.append(String(ch))
 	var pending: bool = row[&"status"] == FeedbackRows.PENDING
+	# `full`: every listed channel on time except the ones the row documents as later by the
+	# table's own timing (`allow`). `ok` is the contract's floor (three of four); `full` is
+	# what the table lists (M3.1).
+	var allow: Dictionary = row.get(&"allow", {})
+	var unexcused: Array[String] = []
+	for ch: String in missing + late:
+		if not allow.has(StringName(ch)):
+			unexcused.append(ch)
 	return {
 		&"id": row[&"id"], &"label": row[&"label"], &"ref": row[&"ref"], &"status": row[&"status"],
 		&"listed": row[&"listed"], &"min": row[&"min"], &"fired": fired,
 		&"ok": pending or fired >= int(row[&"min"]),
+		&"full": pending or unexcused.is_empty(),
+		&"unexcused": unexcused, &"allow": allow,
 		&"channels": channels, &"missing": missing, &"late": late, &"reason": row[&"reason"],
 	}
 
@@ -330,7 +362,8 @@ static func format_line(r: Dictionary) -> String:
 			parts.append("%s -" % ch)
 		else:
 			parts.append("%s %dt/%.0fms %s" % [ch, c[&"ticks"], c[&"ms"], c[&"key"]])
-	var mark := "ok  " if r[&"ok"] else ("GAP " if r[&"status"] == FeedbackRows.GAP else "FAIL")
+	var mark := ("ok  " if r.get(&"full", true) else "PART") if r[&"ok"] \
+			else ("GAP " if r[&"status"] == FeedbackRows.GAP else "FAIL")
 	return "feedback %-22s %s  %d/%d  %5dms  %s" % [r[&"id"], mark, r[&"fired"], r[&"min"], int(r.get(&"wall_ms", 0)), " | ".join(parts)]
 
 
@@ -368,8 +401,8 @@ func write_json(path: String) -> void:
 ## listed but did not react, `-` = not listed. Written by `--auto out.json --md out.md`.
 static func markdown(rows: Array) -> String:
 	var lines: PackedStringArray = []
-	lines.append("| Action / event | Ref | I | S | M | R | Result | What reacted |")
-	lines.append("|---|---|---|---|---|---|---|---|")
+	lines.append("| Ticked | Action / event | Ref | I | S | M | R | Result | What reacted |")
+	lines.append("|---|---|---|---|---|---|---|---|---|")
 	for r in rows:
 		var cells: PackedStringArray = []
 		var evidence: PackedStringArray = []
@@ -389,7 +422,13 @@ static func markdown(rows: Array) -> String:
 		var result := "pending: " + String(r[&"reason"]) if r[&"status"] == FeedbackRows.PENDING \
 				else ("ok %d/%d" % [r[&"fired"], r[&"min"]] if r[&"ok"] else "GAP: " + String(r[&"reason"]) \
 				if r[&"status"] == FeedbackRows.GAP else "FAIL %d/%d" % [r[&"fired"], r[&"min"]])
-		lines.append("| %s | %s | %s | %s | %s |" % [r[&"label"], r[&"ref"], " | ".join(cells), result, "; ".join(evidence)])
+		if r[&"status"] != FeedbackRows.PENDING and not bool(r.get(&"full", true)):
+			result += " (a listed channel is off)"
+		for ch: StringName in r.get(&"allow", {}):
+			result += " (%s later by design: %s)" % [ch, (r[&"allow"] as Dictionary)[ch]]
+		var ticked: bool = r[&"status"] == FeedbackRows.IMPLEMENTED and bool(r[&"ok"]) and bool(r.get(&"full", true))
+		lines.append("| %s | %s | %s | %s | %s | %s |" % ["[x]" if ticked else "[ ]", r[&"label"], r[&"ref"],
+				" | ".join(cells), result, "; ".join(evidence)])
 	return "\n".join(lines) + "\n"
 
 
@@ -465,6 +504,12 @@ func until(cond: Callable, frames: int = 600) -> bool:
 		await get_tree().process_frame
 		n += 1
 	return bool(cond.call())
+
+
+## Waits `n` process frames (what the spy samples at; physics ticks bunch under load).
+func frames(n: int) -> void:
+	for i in n:
+		await get_tree().process_frame
 
 
 ## Waits `n` physics ticks (process frames while the tree is paused by a hitstop).

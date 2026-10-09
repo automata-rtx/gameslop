@@ -6,6 +6,8 @@ extends RefCounted
 ## at the trigger and fires the row through the game's own code path.
 
 const DOOR_STAND := [1.0, 1.3, 1.6]
+## Process frames the spy needs to see a continuous channel still (its noise window).
+const QUIET_FRAMES := 12
 
 
 ## Adds a probe for a row: channel &"I"/&"S"/&"M"/&"R", a name and a Callable -> Variant.
